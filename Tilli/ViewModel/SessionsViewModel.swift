@@ -8,20 +8,47 @@
 import Foundation
 import Combine
 
-class SessionsViewModel: ObservableObject {
-    @Published var searchText: String = ""
-    @Published var sessions: [Session] = [
-        Session(title: "河濱市集春季特賣", date: "2025年4月10日", amount: "NT$6,200", status: .ongoing),
-        Session(title: "手作市集週末場", date: "2025年4月8日", amount: "NT$4,800", status: .ongoing),
-        Session(title: "年度文創市集", date: "2025年4月5日", amount: "NT$12,500", status: .completed)
+class SessionViewModel: ObservableObject {
+    @Published var sessions: [SessionModel] = [
+        SessionModel(
+            id: UUID(),
+            title: "Session A",
+            date: Date(),
+            status: .ongoing,
+            amount: 5200,
+            categories: ["Breakfast", "Lunch"]
+        ),
+        SessionModel(
+            id: UUID(),
+            title: "Session B",
+            date: Date().addingTimeInterval(86400),
+            status: .completed,
+            amount: 8300,
+            categories: ["Dinner"]
+        )
     ]
     
-    var filteredSessions: [Session] {
-        guard !searchText.isEmpty else { return sessions }
-        
+    func addSession(title: String, date: Date, status: SessionStatus, amount: Int, categories: [String] = []) {
+        let newSession = SessionModel(
+            id: UUID(),
+            title: title,
+            date: date,
+            status: status,
+            amount: amount,
+            categories: categories
+        )
+        sessions.append(newSession)
+    }
+
+    func removeSession(id: UUID) {
+        sessions.removeAll { $0.id == id }
+    }
+
+    func filtered(by keyword: String) -> [SessionModel] {
+        if keyword.isEmpty { return sessions }
         return sessions.filter {
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.title.folding(options: .diacriticInsensitive, locale: .current).localizedCaseInsensitiveContains(searchText)
+            $0.title.localizedStandardContains(keyword) ||
+            keyword.localizedStandardContains($0.title) // 支援模糊、拼音比對
         }
     }
 }

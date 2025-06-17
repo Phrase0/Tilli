@@ -8,48 +8,73 @@
 import SwiftUI
 
 struct SessionsView: View {
-    @StateObject private var viewModel = SessionsViewModel()
-    @State private var showAddSession = false
-    
+    @StateObject private var viewModel = SessionViewModel()
+    @State private var searchText = ""
+    @State private var isNavigatingToAddSession = false
+
+
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // 搜尋欄
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                    TextField("search session", text: $viewModel.searchText)
-                        .textInputAutocapitalization(.none)
-                        .disableAutocorrection(true)
+            ScrollView {
+                LazyVStack(spacing: 12, pinnedViews: []) {
+                    ForEach(viewModel.filtered(by: searchText)) { session in
+                        sessionCard(session)
+                    }
                 }
                 .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.horizontal)
-
-                // 卡片式列表
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(viewModel.filteredSessions) { session in
-                            SessionCard(session: session)
-                                .padding(.horizontal)
-                        }
-                    }
-                    .padding(.top, 10)
-                }
             }
             .navigationTitle("Sessions")
+            .searchable(text: $searchText)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showAddSession = true
-                    }) {
+                    NavigationLink(destination: AddSessionView(onAdd: { newSession in
+                        viewModel.sessions.append(newSession) // 加入新增 session
+                    }), isActive: $isNavigatingToAddSession) {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showAddSession) {
-                AddSessionView()
+        }
+    }
+    
+    @ViewBuilder
+    private func sessionCard(_ session: SessionModel) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(session.title)
+                        .font(.headline)
+
+                    Text(session.date, formatter: DateFormatter.sessionDate)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(session.status.rawValue)
+                        .font(.caption)
+                        .foregroundColor(session.status.textColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(session.status.color)
+                        .clipShape(Capsule())
+
+                    Text("NT$\(session.amount.formatted())")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(.systemGray6))
+                        .clipShape(Capsule())
+                }
             }
         }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
 }
