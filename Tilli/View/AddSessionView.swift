@@ -8,66 +8,59 @@
 import SwiftUI
 
 struct AddSessionView: View {
-    var onAdd: ((SessionModel) -> Void)? // 回傳 closure
-    
-    @Environment(\.dismiss) var dismiss
-    @StateObject private var viewModel = AddSessionViewModel()
-    
+    @ObservedObject private var viewModel: AddSessionViewModel
+    var onSave: (SessionModel) -> Void
+
+    @Environment(\.presentationMode) private var presentationMode
+
+    init(sessionToEdit: SessionModel? = nil, onSave: @escaping (SessionModel) -> Void) {
+        self._viewModel = ObservedObject(wrappedValue: AddSessionViewModel(sessionToEdit: sessionToEdit))
+        self.onSave = onSave
+    }
+
     var body: some View {
         Form {
-            Section(header: Text("Session Name")) {
-                TextField("Enter session name", text: $viewModel.sessionName)
-            }
+            TextField("Session Name", text: $viewModel.sessionName)
 
-            Section(header: Text("Session Time")) {
-                DatePicker("Select session time", selection: $viewModel.sessionDate, displayedComponents: [.date])
-                    .datePickerStyle(.compact)
-            }
+            DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
 
-            Section(header: Text("Product Categories")) {
-                ForEach(viewModel.categories.indices, id: \.self) { index in
-                    HStack {
-                        Text(viewModel.categories[index])
-                        Spacer()
-                        Button(action: {
-                            viewModel.removeCategory(at: index)
-                        }) {
-                            Image(systemName: "xmark")
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .padding(.vertical, 4)
+            Section(header: Text("Categories")) {
+                ForEach(viewModel.categories, id: \.self) { category in
+                    Text(category)
+                }
+                .onDelete { indexSet in
+                    indexSet.forEach { viewModel.removeCategory(at: $0) }
                 }
 
-                HStack {
-                    TextField("Add new category", text: $viewModel.newCategory)
-                    Button(action: {
-                        viewModel.addCategory()
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.blue)
+                TextField("New Category", text: $viewModel.newCategory, onCommit: {
+                    let trimmed = viewModel.newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty && !viewModel.categories.contains(trimmed) {
+                        viewModel.categories.append(trimmed)
                     }
-                    .disabled(viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+
+                    // 確保清空在主執行緒中排程，避免視圖還沒更新就寫入空字串
+                    DispatchQueue.main.async {
+                        viewModel.newCategory = ""
+                    }
+                })
+
             }
         }
-        .navigationTitle("Session Settings")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(viewModel.editingSession == nil ? "Add Session" : "Edit Session")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") {
-                    let newSession = SessionModel(
-                        id: UUID(),
-                        title: viewModel.sessionName,
-                        date: viewModel.sessionDate,
-                        status: .ongoing,
-                        amount: 0, // 預設為 0，或你也可以加上金額欄位
-                        categories: viewModel.categories
-                    )
-                    onAdd?(newSession)
-                    dismiss()
+                    let trimmed = viewModel.newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty && !viewModel.categories.contains(trimmed) {
+                        viewModel.categories.append(trimmed)
+                    }
+                    viewModel.newCategory = ""
+
+                    let session = viewModel.save()
+                    onSave(session)
+                    presentationMode.wrappedValue.dismiss()
                 }
-                .disabled(viewModel.sessionName.isEmpty)
+                .disabled(viewModel.sessionName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
     }

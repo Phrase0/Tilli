@@ -10,13 +10,17 @@ import SwiftUI
 struct SessionsView: View {
     @StateObject private var viewModel = SessionViewModel()
     @State private var searchText = ""
+    
+    // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
-
+    
+    // 用來儲存當前想要編輯的 Session
+    @State private var editingSession: SessionModel? = nil
 
     var body: some View {
         NavigationView {
             ScrollView {
-                LazyVStack(spacing: 12, pinnedViews: []) {
+                LazyVStack(spacing: 12) {
                     ForEach(viewModel.filtered(by: searchText)) { session in
                         sessionCard(session)
                     }
@@ -27,13 +31,40 @@ struct SessionsView: View {
             .searchable(text: $searchText)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: AddSessionView(onAdd: { newSession in
-                        viewModel.sessions.append(newSession) // 加入新增 session
-                    }), isActive: $isNavigatingToAddSession) {
+                    NavigationLink(
+                        destination: AddSessionView(onSave: { newSession in
+                            viewModel.sessions.append(newSession)
+                        }),
+                        isActive: $isNavigatingToAddSession
+                    ) {
                         Image(systemName: "plus")
                     }
                 }
             }
+            // 隱藏式 NavigationLink 用來觸發編輯頁面導航
+            .background(
+                NavigationLink(
+                    destination: editingSession != nil ?
+                        AnyView(AddSessionView(sessionToEdit: editingSession!, onSave: { updatedSession in
+                            // 更新資料
+                            if let index = viewModel.sessions.firstIndex(where: { $0.id == updatedSession.id }) {
+                                viewModel.sessions[index] = updatedSession
+                            }
+                            self.editingSession = nil
+                        })) :
+                        AnyView(EmptyView()),
+                    isActive: Binding(
+                        get: { editingSession != nil },
+                        set: { isActive in
+                            if !isActive { editingSession = nil }
+                        }
+                    )
+                ) {
+                    EmptyView()
+                }
+                .hidden()
+
+            )
         }
     }
     
@@ -53,13 +84,25 @@ struct SessionsView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text(session.status.rawValue)
-                        .font(.caption)
-                        .foregroundColor(session.status.textColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(session.status.color)
-                        .clipShape(Capsule())
+                    HStack(spacing: 6) {
+                        Text(session.status.rawValue)
+                            .font(.caption)
+                            .foregroundColor(session.status.textColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(session.status.color)
+                            .clipShape(Capsule())
+
+                        if session.status == .ongoing {
+                            Button {
+                                editingSession = session
+                            } label: {
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
 
                     Text("NT$\(session.amount.formatted())")
                         .font(.subheadline)

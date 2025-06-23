@@ -9,24 +9,21 @@ import Foundation
 import Combine
 
 class SessionViewModel: ObservableObject {
-    @Published var sessions: [SessionModel] = [
-        SessionModel(
-            id: UUID(),
-            title: "Session A",
-            date: Date(),
-            status: .ongoing,
-            amount: 5200,
-            categories: ["Breakfast", "Lunch"]
-        ),
-        SessionModel(
-            id: UUID(),
-            title: "Session B",
-            date: Date().addingTimeInterval(86400),
-            status: .completed,
-            amount: 8300,
-            categories: ["Dinner"]
-        )
-    ]
+    @Published var sessions: [SessionModel] = []
+    
+    init() {
+        sessions = [
+            SessionModel(
+                id: UUID(),
+                title: "Demo Session",
+                date: Date(),
+                status: .ongoing,
+                amount: 0,
+                categories: []
+            )
+        ]
+    }
+
     
     func addSession(title: String, date: Date, status: SessionStatus, amount: Int, categories: [String] = []) {
         let newSession = SessionModel(

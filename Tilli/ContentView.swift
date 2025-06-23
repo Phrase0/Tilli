@@ -1,3 +1,10 @@
+//
+//  ContentView.swift
+//  Tilli
+//
+//  Created by Peiyun on 2025/4/23.
+//
+
 import SwiftUI
 
 struct ContentView: View {
@@ -7,22 +14,22 @@ struct ContentView: View {
                 .tabItem {
                     Label("Home", systemImage: "house")
                 }
-            
+
             SessionsView()
                 .tabItem {
                     Label("Sessions", systemImage: "folder")
                 }
-            
-            AddView()
+
+            MainAddProductFlowView()
                 .tabItem {
-                    Label("", systemImage: "plus.circle")
+                    Label("Add", systemImage: "plus.circle")
                 }
-            
+
             CalendarView()
                 .tabItem {
                     Label("Calendar", systemImage: "calendar")
                 }
-            
+
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.crop.circle")
