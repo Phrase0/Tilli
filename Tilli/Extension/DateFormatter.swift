@@ -11,6 +11,8 @@ extension DateFormatter {
     static let sessionDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd"
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
         return formatter
     }()
 }

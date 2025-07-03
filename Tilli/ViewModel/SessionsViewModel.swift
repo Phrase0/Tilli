@@ -10,33 +10,20 @@ import Combine
 
 class SessionViewModel: ObservableObject {
     @Published var sessions: [SessionModel] = []
-    
-    init() {
-        sessions = [
-            SessionModel(
-                id: UUID(),
-                title: "Demo Session",
-                date: Date(),
-                status: .ongoing,
-                amount: 0,
-                categories: []
-            )
-        ]
-    }
 
-    
     func addSession(title: String, date: Date, status: SessionStatus, amount: Int, categories: [String] = []) {
         let newSession = SessionModel(
-            id: UUID(),
             title: title,
             date: date,
             status: status,
             amount: amount,
-            categories: categories
+            categories: categories,
+            createdAt: Date(),
+            products: []
         )
         sessions.append(newSession)
     }
-
+    
     func removeSession(id: UUID) {
         sessions.removeAll { $0.id == id }
     }

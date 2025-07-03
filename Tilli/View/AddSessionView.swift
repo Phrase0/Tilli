@@ -38,12 +38,10 @@ struct AddSessionView: View {
                         viewModel.categories.append(trimmed)
                     }
 
-                    // 確保清空在主執行緒中排程，避免視圖還沒更新就寫入空字串
                     DispatchQueue.main.async {
                         viewModel.newCategory = ""
                     }
                 })
-
             }
         }
         .navigationTitle(viewModel.editingSession == nil ? "Add Session" : "Edit Session")
@@ -65,3 +63,4 @@ struct AddSessionView: View {
         }
     }
 }
+

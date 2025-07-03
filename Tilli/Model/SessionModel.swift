@@ -14,7 +14,10 @@ struct SessionModel: Identifiable {
     var status: SessionStatus
     var amount: Int
     var categories: [String]
+    var createdAt: Date // 建立時間
+    var products: [ProductModel]
 }
+
 
 enum SessionStatus: String {
     case ongoing = "ongoing"
