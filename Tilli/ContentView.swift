@@ -20,10 +20,10 @@ struct ContentView: View {
                     Label("Sessions", systemImage: "folder")
                 }
 
-            MainAddProductFlowView()
-                .tabItem {
-                    Label("Add", systemImage: "plus.circle")
-                }
+//            MainAddProductFlowView()
+//                .tabItem {
+//                    Label("Add", systemImage: "plus.circle")
+//                }
 
             CalendarView()
                 .tabItem {
