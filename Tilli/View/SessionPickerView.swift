@@ -25,6 +25,8 @@ struct SessionPickerView: View {
             searchText.isEmpty || session.title.localizedStandardContains(searchText)
         }
     }
+    
+    
 
     var body: some View {
         VStack {

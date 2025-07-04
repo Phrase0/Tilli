@@ -10,85 +10,158 @@ import PhotosUI
 struct AddNewProductView: View {
     var session: SessionModel
     var onSave: (ProductModel) -> Void
-
+    
     @Environment(\.presentationMode) private var presentationMode
-
+    
     @State private var name: String = ""
     @State private var price: String = ""
     @State private var quantity: String = ""
     @State private var selectedCategory: String = ""
     @State private var description: String = ""
     @State private var image: UIImage?
-
+    
     @State private var selectedItem: PhotosPickerItem?
     @State private var showValidationError = false
-
+    
+    init(session: SessionModel, onSave: @escaping (ProductModel) -> Void) {
+        self.session = session
+        self.onSave = onSave
+        _selectedCategory = State(initialValue: session.categories.first ?? "")
+    }
+    
     var body: some View {
-        Form {
-            Section(header: Text("基本資訊")) {
-                TextField("商品名稱 *", text: $name)
-                TextField("價格 *", text: $price)
-                    .keyboardType(.decimalPad)
-                TextField("數量 *", text: $quantity)
-                    .keyboardType(.numberPad)
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Group {
+                        Text("Product Name")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        TextField("Enter product name", text: $name)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Text("Price")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        TextField("$ 0.00", text: $price)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Text("Stock Quantity")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        TextField("Enter quantity", text: $quantity)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Text("Category")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        Picker("Select category", selection: $selectedCategory) {
+                            Text("Select category").tag("")
+                            ForEach(session.categories, id: \.self) {
+                                Text($0).tag($0)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .frame(maxWidth: .infinity)
+                        .padding(12)
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(8)
+                    }
+                    
+                    Text("Product Image")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
+                            .foregroundColor(.gray.opacity(0.4))
+                            .frame(height: 140)
+                        
+                        VStack {
+                            if let image = image {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 140)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else {
+                                PhotosPicker(selection: $selectedItem, matching: .images) {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "camera")
+                                            .font(.title2)
+                                            .foregroundColor(.gray)
+                                        Text("Upload Image")
+                                            .foregroundColor(.gray)
+                                            .font(.caption)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Text("Description")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    TextEditor(text: $description)
+                        .frame(height: 100)
+                        .padding(8)
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(8)
+                }
+                .padding()
+                
+                Button(action: {
+                    guard !name.isEmpty,
+                          let priceValue = Double(price),
+                          let quantityValue = Int(quantity) else {
+                        showValidationError = true
+                        return
+                    }
+                    
+                    let newProduct = ProductModel(
+                        name: name,
+                        price: priceValue,
+                        quantity: quantityValue,
+                        description: description,
+                        image: image,
+                        sessionId: session.id
+                    )
+                    
+                    onSave(newProduct)
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Text("Save Product")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(30)
+                        .padding(.horizontal)
+                }
+                .padding(.bottom, 20)
             }
-
-            Section(header: Text("分類")) {
-                Picker("選擇分類", selection: $selectedCategory) {
-                    ForEach(session.categories, id: \.self) {
-                        Text($0)
+            .navigationTitle("Add New Product")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
                     }
                 }
             }
-
-            Section(header: Text("描述")) {
-                TextEditor(text: $description)
-                    .frame(height: 100)
+            .alert("Please complete all required fields", isPresented: $showValidationError) {
+                Button("OK", role: .cancel) { }
             }
-
-            Section(header: Text("圖片")) {
-                PhotosPicker("選擇圖片", selection: $selectedItem, matching: .images)
-                if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 150)
-                }
-            }
-
-            Button("儲存") {
-                guard !name.isEmpty,
-                      let priceValue = Double(price),
-                      let quantityValue = Int(quantity)
-                else {
-                    showValidationError = true
-                    return
-                }
-
-                let newProduct = ProductModel(
-                    name: name,
-                    price: priceValue,
-                    quantity: quantityValue,
-                    description: description,
-                    image: image,
-                    sessionId: session.id
-                )
-
-                onSave(newProduct)
-                presentationMode.wrappedValue.dismiss()
-            }
-            .disabled(name.isEmpty || quantity.isEmpty || price.isEmpty)
-        }
-        .navigationTitle("新增商品")
-        .alert("請確認所有必填欄位已填寫", isPresented: $showValidationError) {
-            Button("知道了", role: .cancel) { }
-        }
-        .onChange(of: selectedItem) { newItem in
-            if let item = newItem {
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        image = uiImage
+            .onChange(of: selectedItem) { newItem in
+                if let item = newItem {
+                    Task {
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: data) {
+                            image = uiImage
+                        }
                     }
                 }
             }
