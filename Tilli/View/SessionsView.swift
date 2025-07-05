@@ -11,11 +11,11 @@ struct SessionsView: View {
     @StateObject private var viewModel = SessionViewModel()
     @State private var searchText = ""
     @EnvironmentObject var sessionStore: SessionStore
-    // 控制新增頁面導航
+    @EnvironmentObject var appState: AppState
+
     @State private var isNavigatingToAddSession = false
-    
-    // 用來儲存當前想要編輯的 Session
     @State private var editingSession: SessionModel? = nil
+    @State private var selectedSession: SessionModel? = nil
 
     var body: some View {
         NavigationView {
@@ -42,32 +42,45 @@ struct SessionsView: View {
                     }
                 }
             }
-            // 隱藏式 NavigationLink 用來觸發編輯頁面導航
             .background(
-                NavigationLink(
-                    destination: editingSession != nil ?
-                        AnyView(AddSessionView(sessionToEdit: editingSession!, onSave: { updatedSession in
-                            // 更新資料
-                            if let index = viewModel.sessions.firstIndex(where: { $0.id == updatedSession.id }) {
-                                viewModel.sessions[index] = updatedSession
+                Group {
+                    NavigationLink(
+                        destination: editingSession != nil ?
+                            AnyView(AddSessionView(sessionToEdit: editingSession!, onSave: { updatedSession in
+                                if let index = viewModel.sessions.firstIndex(where: { $0.id == updatedSession.id }) {
+                                    viewModel.sessions[index] = updatedSession
+                                }
+                                self.editingSession = nil
+                            })) :
+                            AnyView(EmptyView()),
+                        isActive: Binding(
+                            get: { editingSession != nil },
+                            set: { isActive in
+                                if !isActive { editingSession = nil }
                             }
-                            self.editingSession = nil
-                        })) :
-                        AnyView(EmptyView()),
-                    isActive: Binding(
-                        get: { editingSession != nil },
-                        set: { isActive in
-                            if !isActive { editingSession = nil }
-                        }
-                    )
-                ) {
-                    EmptyView()
+                        )
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
+
+                    NavigationLink(
+                        destination: selectedSession.map { SessionDetailView(session: $0) },
+                        isActive: Binding(
+                            get: { selectedSession != nil },
+                            set: { isActive in
+                                if !isActive { selectedSession = nil }
+                            }
+                        )
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
                 }
-                .hidden()
             )
         }
     }
-    
+
     @ViewBuilder
     private func sessionCard(_ session: SessionModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -119,5 +132,9 @@ struct SessionsView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .onTapGesture {
+            appState.currentSession = session
+            selectedSession = session
+        }
     }
 }
