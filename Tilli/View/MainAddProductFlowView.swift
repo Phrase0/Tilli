@@ -6,49 +6,25 @@
 //
 
 import SwiftUI
+import PhotosUI
 
-//struct MainAddProductFlowView: View {
-//    @StateObject private var sessionVM = SessionViewModel()
-//
-//    @State private var currentSession: SessionModel? = nil
-//    @State private var isAddingProduct = false
-//
-//    var body: some View {
-//        NavigationView {
-//            Group {
-//                if let session = currentSession {
-//                    AddNewProductView(session: session) { newProduct in
-//                        if let index = sessionVM.sessions.firstIndex(where: { $0.id == session.id }) {
-//                            sessionVM.sessions[index].products.append(newProduct)
-//                            // 更新 amount 總和
-//                            sessionVM.sessions[index].amount = sessionVM.sessions[index].products.reduce(0) {
-//                                $0 + Int($1.price * Double($1.quantity))
-//                            }
-//                        }
-//                        // 新增完成，回到選擇頁面或重置狀態
-//                        currentSession = nil
-//                        isAddingProduct = false
-//                    }
-//                } else {
-//                    SessionPickerView(sessionViewModel: sessionVM) { session in
-//                        currentSession = session
-//                        isAddingProduct = true
-//                    }
-//                }
-//            }
-//            .navigationBarHidden(true)
-//        }
-//    }
-//}
 struct MainAddProductFlowView: View {
     @EnvironmentObject var sessionStore: SessionStore
+    @Binding var selectedTab: Int
 
-    @State private var currentSession: SessionModel?
+    @State private var currentSession: SessionModel? = nil
+    @State private var searchText: String = ""
+
+    var filteredSessions: [SessionModel] {
+        sessionStore.sessions.filter { session in
+            searchText.isEmpty || session.title.localizedStandardContains(searchText)
+        }
+    }
 
     var body: some View {
-        NavigationView {
-            if let session = currentSession ?? sessionStore.sessions.first {
-                AddNewProductView(session: session) { newProduct in
+        VStack {
+            if let session = currentSession {
+                AddNewProductView(session: session, onSave: { newProduct in
                     if let index = sessionStore.sessions.firstIndex(where: { $0.id == session.id }) {
                         sessionStore.sessions[index].products.append(newProduct)
                         sessionStore.sessions[index].amount = sessionStore.sessions[index].products.reduce(0) {
@@ -56,13 +32,26 @@ struct MainAddProductFlowView: View {
                         }
                     }
                     currentSession = nil
-                }
-            } else {
-                SessionPickerView(onSessionSelected: { session in
-                    currentSession = session
+                    selectedTab = 0
+                }, onCancel: {
+                    currentSession = nil
+                    selectedTab = 0
                 })
-                .environmentObject(sessionStore)
-
+            } else {
+                NavigationView {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredSessions) { session in
+                                SessionCardView(session: session) {
+                                    currentSession = session
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    .navigationTitle("選擇場次")
+                    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+                }
             }
         }
     }

@@ -10,7 +10,7 @@ import SwiftUI
 struct SessionsView: View {
     @StateObject private var viewModel = SessionViewModel()
     @State private var searchText = ""
-    
+    @EnvironmentObject var sessionStore: SessionStore
     // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
     
@@ -34,6 +34,7 @@ struct SessionsView: View {
                     NavigationLink(
                         destination: AddSessionView(onSave: { newSession in
                             viewModel.sessions.append(newSession)
+                            sessionStore.sessions.append(newSession)
                         }),
                         isActive: $isNavigatingToAddSession
                     ) {

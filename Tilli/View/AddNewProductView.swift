@@ -8,27 +8,13 @@ import SwiftUI
 import PhotosUI
 
 struct AddNewProductView: View {
-    var session: SessionModel
-    var onSave: (ProductModel) -> Void
-    
+    @ObservedObject private var viewModel: AddNewProductViewModel
     @Environment(\.presentationMode) private var presentationMode
-    
-    @State private var name: String = ""
-    @State private var price: String = ""
-    @State private var quantity: String = ""
-    @State private var selectedCategory: String = ""
-    @State private var description: String = ""
-    @State private var image: UIImage?
-    
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var showValidationError = false
-    
-    init(session: SessionModel, onSave: @escaping (ProductModel) -> Void) {
-        self.session = session
-        self.onSave = onSave
-        _selectedCategory = State(initialValue: session.categories.first ?? "")
+
+    init(session: SessionModel, onSave: @escaping (ProductModel) -> Void, onCancel: (() -> Void)? = nil) {
+        self._viewModel = ObservedObject(wrappedValue: AddNewProductViewModel(session: session, onSave: onSave, onCancel: onCancel))
     }
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -37,29 +23,29 @@ struct AddNewProductView: View {
                         Text("Product Name")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("Enter product name", text: $name)
+                        TextField("Enter product name", text: $viewModel.name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+
                         Text("Price")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("$ 0.00", text: $price)
+                        TextField("$ 0.00", text: $viewModel.price)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+
                         Text("Stock Quantity")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("Enter quantity", text: $quantity)
+                        TextField("Enter quantity", text: $viewModel.quantity)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+
                         Text("Category")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Picker("Select category", selection: $selectedCategory) {
+                        Picker("Select category", selection: $viewModel.selectedCategory) {
                             Text("Select category").tag("")
-                            ForEach(session.categories, id: \.self) {
+                            ForEach(viewModel.session.categories, id: \.self) {
                                 Text($0).tag($0)
                             }
                         }
@@ -69,7 +55,7 @@ struct AddNewProductView: View {
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
                     }
-                    
+
                     Text("Product Image")
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -78,16 +64,16 @@ struct AddNewProductView: View {
                             .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
                             .foregroundColor(.gray.opacity(0.4))
                             .frame(height: 140)
-                        
+
                         VStack {
-                            if let image = image {
+                            if let image = viewModel.image {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFit()
                                     .frame(height: 140)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             } else {
-                                PhotosPicker(selection: $selectedItem, matching: .images) {
+                                PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
                                     VStack(spacing: 4) {
                                         Image(systemName: "camera")
                                             .font(.title2)
@@ -100,37 +86,22 @@ struct AddNewProductView: View {
                             }
                         }
                     }
-                    
+
                     Text("Description")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    TextEditor(text: $description)
+                    TextEditor(text: $viewModel.description)
                         .frame(height: 100)
                         .padding(8)
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
                 }
                 .padding()
-                
+
                 Button(action: {
-                    guard !name.isEmpty,
-                          let priceValue = Double(price),
-                          let quantityValue = Int(quantity) else {
-                        showValidationError = true
-                        return
+                    if viewModel.save() {
+                        presentationMode.wrappedValue.dismiss()
                     }
-                    
-                    let newProduct = ProductModel(
-                        name: name,
-                        price: priceValue,
-                        quantity: quantityValue,
-                        description: description,
-                        image: image,
-                        sessionId: session.id
-                    )
-                    
-                    onSave(newProduct)
-                    presentationMode.wrappedValue.dismiss()
                 }) {
                     Text("Save Product")
                         .font(.headline)
@@ -149,21 +120,15 @@ struct AddNewProductView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         presentationMode.wrappedValue.dismiss()
+                        viewModel.onCancel?()
                     }
                 }
             }
-            .alert("Please complete all required fields", isPresented: $showValidationError) {
+            .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {
                 Button("OK", role: .cancel) { }
             }
-            .onChange(of: selectedItem) { newItem in
-                if let item = newItem {
-                    Task {
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let uiImage = UIImage(data: data) {
-                            image = uiImage
-                        }
-                    }
-                }
+            .onChange(of: viewModel.selectedItem) { _ in
+                viewModel.handleImageSelection()
             }
         }
     }
