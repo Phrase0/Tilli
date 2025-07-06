@@ -10,21 +10,28 @@ import SwiftUI
 struct SessionsView: View {
     @StateObject private var viewModel = SessionViewModel()
     @State private var searchText = ""
-    @EnvironmentObject var sessionStore: SessionStore
     @EnvironmentObject var appState: AppState
 
+    // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
+
+    // 用來儲存當前想要編輯的 Session
     @State private var editingSession: SessionModel? = nil
-    @State private var selectedSession: SessionModel? = nil
 
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(viewModel.filtered(by: searchText)) { session in
-                        sessionCard(session)
+                    ForEach(filteredSessions(by: searchText)) { session in
+                        NavigationLink(destination: SessionDetailView(session: session)) {
+                            sessionCard(session)
+                        }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            appState.currentSession = session
+                        })
                     }
                 }
+
                 .padding()
             }
             .navigationTitle("Sessions")
@@ -33,8 +40,8 @@ struct SessionsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(
                         destination: AddSessionView(onSave: { newSession in
-                            viewModel.sessions.append(newSession)
-                            sessionStore.sessions.append(newSession)
+                            appState.sessions.append(newSession)
+                            viewModel.sessions = appState.sessions // 同步更新viewModel.sessions
                         }),
                         isActive: $isNavigatingToAddSession
                     ) {
@@ -42,42 +49,33 @@ struct SessionsView: View {
                     }
                 }
             }
+            // 隱藏式 NavigationLink 用來觸發編輯頁面導航
             .background(
-                Group {
-                    NavigationLink(
-                        destination: editingSession != nil ?
-                            AnyView(AddSessionView(sessionToEdit: editingSession!, onSave: { updatedSession in
-                                if let index = viewModel.sessions.firstIndex(where: { $0.id == updatedSession.id }) {
-                                    viewModel.sessions[index] = updatedSession
-                                }
-                                self.editingSession = nil
-                            })) :
-                            AnyView(EmptyView()),
-                        isActive: Binding(
-                            get: { editingSession != nil },
-                            set: { isActive in
-                                if !isActive { editingSession = nil }
+                NavigationLink(
+                    destination: editingSession != nil ?
+                        AnyView(AddSessionView(sessionToEdit: editingSession!, onSave: { updatedSession in
+                            if let index = appState.sessions.firstIndex(where: { $0.id == updatedSession.id }) {
+                                appState.sessions[index] = updatedSession
+                                viewModel.sessions = appState.sessions // 同步更新viewModel.sessions
                             }
-                        )
-                    ) {
-                        EmptyView()
-                    }
-                    .hidden()
-
-                    NavigationLink(
-                        destination: selectedSession.map { SessionDetailView(session: $0) },
-                        isActive: Binding(
-                            get: { selectedSession != nil },
-                            set: { isActive in
-                                if !isActive { selectedSession = nil }
-                            }
-                        )
-                    ) {
-                        EmptyView()
-                    }
-                    .hidden()
+                            editingSession = nil
+                        })) :
+                        AnyView(EmptyView()),
+                    isActive: Binding(
+                        get: { editingSession != nil },
+                        set: { isActive in
+                            if !isActive { editingSession = nil }
+                        }
+                    )
+                ) {
+                    EmptyView()
                 }
+                .hidden()
             )
+            .onAppear {
+                // 初次載入時同步 ViewModel 的 sessions
+                viewModel.sessions = appState.sessions
+            }
         }
     }
 
@@ -132,9 +130,16 @@ struct SessionsView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-        .onTapGesture {
-            appState.currentSession = session
-            selectedSession = session
+    }
+
+    private func filteredSessions(by keyword: String) -> [SessionModel] {
+        if keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return appState.sessions
+        } else {
+            return appState.sessions.filter {
+                $0.title.localizedCaseInsensitiveContains(keyword)
+            }
         }
     }
 }
+

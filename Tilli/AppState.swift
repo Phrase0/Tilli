@@ -8,5 +8,7 @@
 import Foundation
 
 class AppState: ObservableObject {
+    @Published var sessions: [SessionModel] = []
     @Published var currentSession: SessionModel? = nil
 }
+

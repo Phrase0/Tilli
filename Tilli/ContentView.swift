@@ -9,19 +9,19 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Int = 0
-    @StateObject private var sessionStore = SessionStore() // ✅ 提出來只建一次
+    @StateObject private var appState = AppState()
 
     var body: some View {
         TabView(selection: $selectedTab) {
             SessionsView()
-                .environmentObject(sessionStore)
+                .environmentObject(appState)
                 .tabItem {
                     Label("Sessions", systemImage: "folder")
                 }
                 .tag(0)
 
             MainAddProductFlowView(selectedTab: $selectedTab)
-                .environmentObject(sessionStore)
+                .environmentObject(appState)
                 .tabItem {
                     Label("Add", systemImage: "plus.circle")
                 }

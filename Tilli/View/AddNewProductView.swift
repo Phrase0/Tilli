@@ -99,8 +99,11 @@ struct AddNewProductView: View {
                 .padding()
 
                 Button(action: {
-                    if viewModel.save() {
+                    if let newProduct = viewModel.createProductIfValid() {
+                        viewModel.onSave(newProduct)
                         presentationMode.wrappedValue.dismiss()
+                    } else {
+                        viewModel.showValidationError = true
                     }
                 }) {
                     Text("Save Product")

@@ -15,5 +15,6 @@ struct ProductModel: Identifiable, Hashable {
     var description: String
     var image: UIImage?
     var sessionId: UUID
+    var category: String
 }
 
