@@ -46,7 +46,7 @@ struct SessionDetailView: View {
 
                             if !productsInCategory.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text("📦 \(category)")
+                                    Text("\(category)")
                                         .font(.headline)
                                         .padding(.horizontal)
 

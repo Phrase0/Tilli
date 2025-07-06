@@ -23,7 +23,8 @@ struct SessionsView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(filteredSessions(by: searchText)) { session in
-                        NavigationLink(destination: SessionDetailView(session: session)) {
+                        NavigationLink(destination: SessionDetailView(session: session)
+                                        .environmentObject(appState)) {
                             sessionCard(session)
                         }
                         .simultaneousGesture(TapGesture().onEnded {
@@ -31,7 +32,6 @@ struct SessionsView: View {
                         })
                     }
                 }
-
                 .padding()
             }
             .navigationTitle("Sessions")
@@ -75,6 +75,9 @@ struct SessionsView: View {
             .onAppear {
                 // 初次載入時同步 ViewModel 的 sessions
                 viewModel.sessions = appState.sessions
+                
+                // 清空 currentSession，確保從明細返回時沒殘留
+                appState.currentSession = nil
             }
         }
     }
@@ -142,4 +145,3 @@ struct SessionsView: View {
         }
     }
 }
-
