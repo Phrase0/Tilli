@@ -8,16 +8,13 @@
 import Foundation
 
 class AddSessionViewModel: ObservableObject {
-    // MARK: - Input Properties
     @Published var sessionName: String
     @Published var sessionDate: Date
     @Published var categories: [String]
     @Published var newCategory: String = ""
 
-    // MARK: - Editing State
     var editingSession: SessionModel?
 
-    // MARK: - Init
     init(sessionToEdit: SessionModel? = nil) {
         self.editingSession = sessionToEdit
         self.sessionName = sessionToEdit?.title ?? ""
@@ -25,10 +22,28 @@ class AddSessionViewModel: ObservableObject {
         self.categories = sessionToEdit?.categories ?? []
     }
 
-    // MARK: - Public Methods
     func removeCategory(at index: Int) {
         guard categories.indices.contains(index) else { return }
         categories.remove(at: index)
+    }
+
+    /// 嘗試將 newCategory 加入，成功則清空 newCategory，失敗回傳錯誤訊息
+    func tryAddCategory() -> String? {
+        let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+
+        if categories.contains(trimmed) {
+            return "此分類已存在"
+        }
+
+        categories.append(trimmed)
+        DispatchQueue.main.async {
+            self.newCategory = ""
+        }
+        return nil
     }
 
     func save() -> SessionModel {
