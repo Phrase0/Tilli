@@ -8,27 +8,28 @@
 import SwiftUI
 
 struct SessionDetailView: View {
-    var session: SessionModel
+    @ObservedObject private var viewModel: SessionDetailViewModel
 
-    @State private var quantities: [UUID: Int] = [:]
-    @State private var selectedTab: Int = 0 // 0: 商品, 1: 記錄
+    init(session: SessionModel) {
+        self._viewModel = ObservedObject(wrappedValue: SessionDetailViewModel(session: session))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 4) {
-                Text(session.title)
+                Text(viewModel.session.title)
                     .font(.title2)
                     .bold()
 
-                Text("\(session.date, formatter: DateFormatter.sessionDate) • NT$\(session.amount)")
+                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • NT$\(viewModel.totalAmount())")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             .padding(.top)
 
-            // 分頁 Tab 指示器
-            Picker("", selection: $selectedTab) {
+            // Segmented Tab
+            Picker("", selection: $viewModel.selectedTab) {
                 Text("商品").tag(0)
                 Text("記錄").tag(1)
             }
@@ -37,12 +38,11 @@ struct SessionDetailView: View {
 
             Divider()
 
-            TabView(selection: $selectedTab) {
-                // 商品頁
+            TabView(selection: $viewModel.selectedTab) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(session.categories, id: \.self) { category in
-                            let productsInCategory = session.products.filter { $0.category == category }
+                        ForEach(viewModel.session.categories, id: \.self) { category in
+                            let productsInCategory = viewModel.session.products.filter { $0.category == category }
 
                             if !productsInCategory.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
@@ -61,7 +61,7 @@ struct SessionDetailView: View {
                 }
                 .tag(0)
 
-                // 記錄頁（佔位）
+                // Placeholder for 記錄頁
                 VStack {
                     Text("記錄頁內容（尚未實作）")
                         .foregroundColor(.gray)
@@ -71,36 +71,32 @@ struct SessionDetailView: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
 
-            // Footer: 總計與結帳
+            // Footer
             VStack(spacing: 12) {
                 HStack {
                     Text("總計")
                         .font(.headline)
                     Spacer()
-                    Text("NT$\(totalAmount())")
+                    Text("NT$\(viewModel.totalAmount())")
                         .font(.headline)
                         .bold()
                 }
 
-                Button(action: {
-                    // 處理結帳邏輯（可留空）
-                }) {
-                    Text("結帳")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(30)
+                Button("結帳") {
+                    // TODO: Checkout Logic
                 }
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .cornerRadius(30)
             }
             .padding()
         }
         .background(Color(.systemGroupedBackground))
     }
 
-    // 商品卡片
-    @ViewBuilder
     private func productCard(_ product: ProductModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -124,34 +120,38 @@ struct SessionDetailView: View {
                     .foregroundColor(.gray)
             }
 
-            // 折扣與數量在同一列
             HStack {
                 HStack(spacing: 8) {
                     ForEach([5, 10, 20], id: \.self) { percent in
+                        let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
                         Text("\(percent)%")
                             .font(.caption)
                             .padding(.vertical, 4)
                             .padding(.horizontal, 8)
-                            .background(Color(.systemGray5))
+                            .background(isSelected ? Color.blue : Color(.systemGray5))
+                            .foregroundColor(isSelected ? .white : .primary)
                             .cornerRadius(6)
+                            .onTapGesture {
+                                viewModel.toggleDiscount(for: product, percent: percent)
+                            }
                     }
                 }
 
                 Spacer()
 
                 HStack(spacing: 16) {
-                    Button(action: {
-                        quantities[product.id, default: 0] = max(0, quantities[product.id, default: 0] - 1)
-                    }) {
+                    Button {
+                        viewModel.decreaseQuantity(for: product)
+                    } label: {
                         Image(systemName: "minus.circle")
                     }
 
-                    Text("\(quantities[product.id, default: 0])")
+                    Text("\(viewModel.quantity(for: product))")
                         .frame(width: 24)
 
-                    Button(action: {
-                        quantities[product.id, default: 0] += 1
-                    }) {
+                    Button {
+                        viewModel.increaseQuantity(for: product)
+                    } label: {
                         Image(systemName: "plus.circle")
                     }
                 }
@@ -163,13 +163,5 @@ struct SessionDetailView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
-    }
-
-    // 計算總額
-    private func totalAmount() -> Int {
-        session.products.reduce(0) { result, product in
-            let qty = quantities[product.id, default: 0]
-            return result + Int(product.price) * qty
-        }
     }
 }
