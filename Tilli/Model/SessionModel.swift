@@ -7,7 +7,7 @@
 //
 import SwiftUI
 
-struct SessionModel: Identifiable {
+struct SessionModel: Identifiable, Codable {
     var id = UUID()
     var title: String
     var date: Date
@@ -18,8 +18,7 @@ struct SessionModel: Identifiable {
     var products: [ProductModel]
 }
 
-
-enum SessionStatus: String {
+enum SessionStatus: String, Codable {
     case ongoing = "ongoing"
     case completed = "completed"
 
@@ -41,4 +40,3 @@ enum SessionStatus: String {
         }
     }
 }
-

@@ -8,36 +8,32 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int = 1
     @StateObject private var appState = AppState()
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            CalendarView()
+                .tabItem { Label("Calendar", systemImage: "calendar") }
+                .tag(0)
+
             SessionsView()
                 .environmentObject(appState)
-                .tabItem {
-                    Label("Sessions", systemImage: "folder")
-                }
-                .tag(0)
+                .tabItem { Label("Sessions", systemImage: "folder") }
+                .tag(1)
 
             MainAddProductFlowView(selectedTab: $selectedTab)
                 .environmentObject(appState)
-                .tabItem {
-                    Label("Add", systemImage: "plus.circle")
-                }
-                .tag(1)
-
-            CalendarView()
-                .tabItem {
-                    Label("Calendar", systemImage: "calendar")
-                }
+                .tabItem { Label("Add", systemImage: "plus.circle") }
                 .tag(2)
 
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.crop.circle")
-                }
+            QRCodeView()
+                .tabItem { Label("QRCode", systemImage: "qrcode") }
                 .tag(3)
+
+            ProfileView()
+                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                .tag(4)
         }
     }
 }

@@ -47,6 +47,10 @@ class SessionDetailViewModel: ObservableObject {
     func quantity(for product: ProductModel) -> Int {
         quantities[product.id, default: 0]
     }
+    
+    func clearAllQuantities() {
+        quantities.removeAll()
+    }
 
     func totalAmount() -> Int {
         session.products.reduce(0) { result, product in

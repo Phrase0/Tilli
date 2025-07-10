@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SessionDetailView: View {
     @ObservedObject private var viewModel: SessionDetailViewModel
+    @State private var showClearAlert = false
 
     init(session: SessionModel) {
         self._viewModel = ObservedObject(wrappedValue: SessionDetailViewModel(session: session))
@@ -39,6 +40,7 @@ struct SessionDetailView: View {
             Divider()
 
             TabView(selection: $viewModel.selectedTab) {
+                // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         ForEach(viewModel.session.categories, id: \.self) { category in
@@ -61,7 +63,7 @@ struct SessionDetailView: View {
                 }
                 .tag(0)
 
-                // Placeholder for 記錄頁
+                // 記錄頁
                 VStack {
                     Text("記錄頁內容（尚未實作）")
                         .foregroundColor(.gray)
@@ -95,8 +97,28 @@ struct SessionDetailView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+        .toolbar {
+            // 僅在商品頁顯示垃圾桶按鈕
+            if viewModel.selectedTab == 0 {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showClearAlert = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityLabel("清除所有選取數量")
+                }
+            }
+        }
+        .alert("確定要清除所有已選數量嗎？", isPresented: $showClearAlert) {
+            Button("取消", role: .cancel) { }
+            Button("清除", role: .destructive) {
+                viewModel.clearAllQuantities()
+            }
+        }
     }
 
+    // 商品卡片
     private func productCard(_ product: ProductModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {

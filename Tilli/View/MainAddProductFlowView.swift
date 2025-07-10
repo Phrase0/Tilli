@@ -37,12 +37,12 @@ struct MainAddProductFlowView: View {
                         }
                         // 儲存後保持 currentSession，不清空
                         showAddProduct = false
-                        selectedTab = 0
+                        selectedTab = 1
                     },
                     onCancel: {
                         // 取消新增，同樣保持 currentSession
                         showAddProduct = false
-                        selectedTab = 0
+                        selectedTab = 1
                     }
                 )
             }
