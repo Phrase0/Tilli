@@ -10,11 +10,12 @@ import SwiftUI
 struct SessionDetailView: View {
     @ObservedObject private var viewModel: SessionDetailViewModel
     @State private var showClearAlert = false
-
+    @State private var showCheckoutSheet = false
+    
     init(session: SessionModel) {
         self._viewModel = ObservedObject(wrappedValue: SessionDetailViewModel(session: session))
     }
-
+    
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -22,13 +23,13 @@ struct SessionDetailView: View {
                 Text(viewModel.session.title)
                     .font(.title2)
                     .bold()
-
+                
                 Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • NT$\(viewModel.totalAmount())")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             .padding(.top)
-
+            
             // Segmented Tab
             Picker("", selection: $viewModel.selectedTab) {
                 Text("商品").tag(0)
@@ -36,22 +37,22 @@ struct SessionDetailView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
-
+            
             Divider()
-
+            
             TabView(selection: $viewModel.selectedTab) {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         ForEach(viewModel.session.categories, id: \.self) { category in
                             let productsInCategory = viewModel.session.products.filter { $0.category == category }
-
+                            
                             if !productsInCategory.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text("\(category)")
                                         .font(.headline)
                                         .padding(.horizontal)
-
+                                    
                                     ForEach(productsInCategory) { product in
                                         productCard(product)
                                     }
@@ -62,7 +63,7 @@ struct SessionDetailView: View {
                     .padding(.top)
                 }
                 .tag(0)
-
+                
                 // 記錄頁
                 VStack {
                     Text("記錄頁內容（尚未實作）")
@@ -72,7 +73,7 @@ struct SessionDetailView: View {
                 .tag(1)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-
+            
             // Footer
             VStack(spacing: 12) {
                 HStack {
@@ -83,9 +84,9 @@ struct SessionDetailView: View {
                         .font(.headline)
                         .bold()
                 }
-
+                
                 Button("結帳") {
-                    // TODO: Checkout Logic
+                    showCheckoutSheet = true
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -98,7 +99,6 @@ struct SessionDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .toolbar {
-            // 僅在商品頁顯示垃圾桶按鈕
             if viewModel.selectedTab == 0 {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -116,8 +116,15 @@ struct SessionDetailView: View {
                 viewModel.clearAllQuantities()
             }
         }
+        .sheet(isPresented: $showCheckoutSheet) {
+            CheckoutSummaryView(
+                selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
+                totalAmount: viewModel.totalAmount()
+            )
+        }
+        
     }
-
+    
     // 商品卡片
     private func productCard(_ product: ProductModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -125,23 +132,23 @@ struct SessionDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product.name)
                         .font(.headline)
-
+                    
                     Text("NT$\(Int(product.price))")
                         .font(.subheadline)
                         .foregroundColor(.blue)
-
+                    
                     Text("庫存: \(product.quantity)")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
-
+                
                 Spacer()
-
+                
                 Image(systemName: "ellipsis")
                     .rotationEffect(.degrees(90))
                     .foregroundColor(.gray)
             }
-
+            
             HStack {
                 HStack(spacing: 8) {
                     ForEach([5, 10, 20], id: \.self) { percent in
@@ -158,19 +165,19 @@ struct SessionDetailView: View {
                             }
                     }
                 }
-
+                
                 Spacer()
-
+                
                 HStack(spacing: 16) {
                     Button {
                         viewModel.decreaseQuantity(for: product)
                     } label: {
                         Image(systemName: "minus.circle")
                     }
-
+                    
                     Text("\(viewModel.quantity(for: product))")
                         .frame(width: 24)
-
+                    
                     Button {
                         viewModel.increaseQuantity(for: product)
                     } label: {

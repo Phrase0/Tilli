@@ -60,4 +60,15 @@ class SessionDetailViewModel: ObservableObject {
             return result + Int(discountedPrice * Double(qty))
         }
     }
+    
+    func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
+        session.products.compactMap { product in
+            let qty = quantities[product.id, default: 0]
+            guard qty > 0 else { return nil }
+            let discount = selectedDiscounts[product.id, default: 0]
+            return SummaryItemModel(product: product, quantity: qty, discount: discount)
+        }
+    }
+
+
 }
