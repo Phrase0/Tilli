@@ -96,25 +96,6 @@ struct AddNewProductView: View {
                         .cornerRadius(8)
                 }
                 .padding()
-
-                Button(action: {
-                    if let newProduct = viewModel.createProductIfValid() {
-                        viewModel.onSave(newProduct)
-                        presentationMode.wrappedValue.dismiss()
-                    } else {
-                        viewModel.showValidationError = true
-                    }
-                }) {
-                    Text("Save Product")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(30)
-                        .padding(.horizontal)
-                }
-                .padding(.bottom, 20)
             }
             .navigationTitle("Add New Product")
             .navigationBarTitleDisplayMode(.inline)
@@ -124,6 +105,15 @@ struct AddNewProductView: View {
                         presentationMode.wrappedValue.dismiss()
                         viewModel.onCancel?()
                     }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if viewModel.save() {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                    .disabled(!viewModel.isValid)
                 }
             }
             .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {

@@ -13,6 +13,7 @@ class AddNewProductViewModel: ObservableObject {
     let session: SessionModel
     let onSave: (ProductModel) -> Void
     let onCancel: (() -> Void)?
+    
 
     // MARK: - Input Fields
     @Published var name: String = ""
@@ -27,6 +28,16 @@ class AddNewProductViewModel: ObservableObject {
 
     // MARK: - UI State
     @Published var showValidationError = false
+    
+    var isValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !price.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        Double(price) != nil &&
+        !quantity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        Int(quantity) != nil &&
+        !selectedCategory.isEmpty
+    }
+
 
     // MARK: - Init
     init(session: SessionModel, onSave: @escaping (ProductModel) -> Void, onCancel: (() -> Void)? = nil) {
