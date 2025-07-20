@@ -85,16 +85,20 @@ struct SessionDetailView: View {
                         .bold()
                 }
                 
-                Button("結帳") {
+                Button(action: {
                     showCheckoutSheet = true
+                }) {
+                    Text("結帳")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(viewModel.totalAmount() > 0 ? Color.blue : Color.gray)
+                        .cornerRadius(30)
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(30)
+                .disabled(viewModel.totalAmount() == 0)
             }
+            
             .padding()
         }
         .background(Color(.systemGroupedBackground))

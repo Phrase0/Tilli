@@ -50,11 +50,12 @@ struct CheckoutSummaryView: View {
                                                 .padding(4)
                                                 .background(Color.blue.opacity(0.2))
                                                 .cornerRadius(4)
-                                            Text(String(format: "NT$%.2f", item.product.price * (1 - Double(item.discount)/100)))
+                                            
+                                            Text("NT$\(Int(item.product.price * (1 - Double(item.discount) / 100)))")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         } else {
-                                            Text(String(format: "NT$%.2f", item.product.price))
+                                            Text("NT$\(Int(item.product.price))")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         }
@@ -63,7 +64,8 @@ struct CheckoutSummaryView: View {
 
                                 Spacer()
 
-                                Text(String(format: "NT$%.2f", item.total))
+                            
+                                Text("NT$\(Int(item.total))")
                                     .font(.body)
                                     .fontWeight(.semibold)
                             }
