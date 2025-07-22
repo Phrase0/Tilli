@@ -73,6 +73,8 @@ struct CashPaymentView: View {
                     Label("Please enter an amount equal to or greater than the total", systemImage: "xmark.octagon.fill")
                         .foregroundColor(.red)
                         .font(.footnote)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -109,5 +111,9 @@ struct CashPaymentView: View {
             }
         }
         .padding()
+        .contentShape(Rectangle()) // 確保整個區域可點擊
+        .onTapGesture {
+            UIApplication.shared.endEditing()
+        }
     }
 }

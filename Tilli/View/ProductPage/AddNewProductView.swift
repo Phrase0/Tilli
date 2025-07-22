@@ -96,6 +96,10 @@ struct AddNewProductView: View {
                         .cornerRadius(8)
                 }
                 .padding()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    UIApplication.shared.endEditing()
+                }
             }
             .navigationTitle("Add New Product")
             .navigationBarTitleDisplayMode(.inline)
