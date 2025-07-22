@@ -11,8 +11,11 @@ struct SummaryItemModel: Identifiable {
     let product: ProductModel
     let quantity: Int
     let discount: Int
+    let timestamp: Date
+
     var total: Double {
         let discountedPrice = product.price * (1 - Double(discount) / 100)
         return (discountedPrice * Double(quantity)).rounded()
     }
 }
+

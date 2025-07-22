@@ -9,7 +9,11 @@ import SwiftUI
 
 struct CashPaymentView: View {
     var totalAmount: Int // e.g. 4599 表示 NT$4599
+    var onComplete: () -> Void
+    
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
 
     @State private var receivedAmountText: String = ""
     @State private var errorMessage: String? = nil
@@ -83,11 +87,16 @@ struct CashPaymentView: View {
             // 按鈕區
             VStack(spacing: 12) {
                 Button(action: {
-                    // 完成付款
                     if isAmountValid {
-                        // 實際付款邏輯處理
-                        print("付款完成，找零：NT$\(change)")
-                        presentationMode.wrappedValue.dismiss()
+                        // 儲存目前 summary 為一筆交易紀錄
+                        appState.transactionRecords.append(appState.currentSummaryItems)
+                        
+                        // 清空目前購物車
+                        appState.currentSummaryItems = []
+                        
+                        //返回前兩層（CheckoutSummaryView & SessionDetailView）
+                        onComplete()
+                        dismiss()
                     }
                 }) {
                     Text("Complete Payment")
@@ -111,9 +120,5 @@ struct CashPaymentView: View {
             }
         }
         .padding()
-        .contentShape(Rectangle()) // 確保整個區域可點擊
-        .onTapGesture {
-            UIApplication.shared.endEditing()
-        }
     }
 }

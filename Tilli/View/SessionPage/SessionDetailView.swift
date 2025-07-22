@@ -123,7 +123,8 @@ struct SessionDetailView: View {
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
                 selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
-                totalAmount: viewModel.totalAmount()
+                totalAmount: viewModel.totalAmount(),
+                isPresented: $showCheckoutSheet
             )
         }
         

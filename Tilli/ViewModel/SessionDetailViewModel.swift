@@ -64,13 +64,17 @@ class SessionDetailViewModel: ObservableObject {
 
     
     func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
-        session.products.compactMap { product in
+        var result: [SummaryItemModel] = []
+        for product in session.products {
             let qty = quantities[product.id, default: 0]
-            guard qty > 0 else { return nil }
-            let discount = selectedDiscounts[product.id, default: 0]
-            return SummaryItemModel(product: product, quantity: qty, discount: discount)
+            if qty > 0 {
+                let discount = selectedDiscounts[product.id, default: 0]
+                result.append(SummaryItemModel(product: product, quantity: qty, discount: discount, timestamp: Date()))
+            }
         }
+        return result
     }
+
 
 
 }
