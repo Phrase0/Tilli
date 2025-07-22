@@ -12,6 +12,9 @@ struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Int
 
+    @State private var navigateToCashPayment = false
+    @State private var navigateToEPayment = false
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -64,7 +67,6 @@ struct CheckoutSummaryView: View {
 
                                 Spacer()
 
-                            
                                 Text("NT$\(Int(item.total))")
                                     .font(.body)
                                     .fontWeight(.semibold)
@@ -87,8 +89,13 @@ struct CheckoutSummaryView: View {
                 .padding()
 
                 VStack(spacing: 12) {
+                    // NavigationLink to CashPaymentView
+                    NavigationLink(destination: CashPaymentView(totalAmount: totalAmount), isActive: $navigateToCashPayment) {
+                        EmptyView()
+                    }
+
                     Button {
-                        // Cash payment logic
+                        navigateToCashPayment = true
                     } label: {
                         HStack {
                             Image(systemName: "banknote")
@@ -105,8 +112,13 @@ struct CheckoutSummaryView: View {
                         .cornerRadius(12)
                     }
 
+                    // NavigationLink to EPaymentView
+                    NavigationLink(destination: EPaymentView(totalAmount: totalAmount), isActive: $navigateToEPayment) {
+                        EmptyView()
+                    }
+
                     Button {
-                        // E-payment logic
+                        navigateToEPayment = true
                     } label: {
                         HStack {
                             Image(systemName: "creditcard")
