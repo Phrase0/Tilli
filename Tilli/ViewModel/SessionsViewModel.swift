@@ -27,13 +27,16 @@ class SessionViewModel: ObservableObject {
     func removeSession(id: UUID) {
         sessions.removeAll { $0.id == id }
     }
-
-    func filtered(by keyword: String) -> [SessionModel] {
-        if keyword.isEmpty { return sessions }
-        return sessions.filter {
-            $0.title.localizedStandardContains(keyword) ||
-            keyword.localizedStandardContains($0.title) // 支援模糊、拼音比對
+    
+    func filteredSessions(by keyword: String) -> [SessionModel] {
+        if keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return sessions
+        } else {
+            return sessions.filter {
+                $0.title.localizedCaseInsensitiveContains(keyword)
+            }
         }
     }
+
 }
 

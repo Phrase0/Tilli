@@ -22,7 +22,7 @@ struct SessionsView: View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(filteredSessions(by: searchText)) { session in
+                    ForEach(viewModel.filteredSessions(by: searchText)) { session in
                         NavigationLink(destination: SessionDetailView(session: session)
                                         .environmentObject(appState)) {
                             sessionCard(session)
@@ -133,15 +133,5 @@ struct SessionsView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-    }
-
-    private func filteredSessions(by keyword: String) -> [SessionModel] {
-        if keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return appState.sessions
-        } else {
-            return appState.sessions.filter {
-                $0.title.localizedCaseInsensitiveContains(keyword)
-            }
-        }
     }
 }
