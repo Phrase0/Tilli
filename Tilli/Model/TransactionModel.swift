@@ -9,7 +9,7 @@ import SwiftUI
 struct TransactionModel: Identifiable, Codable {
     var id = UUID()
     var sessionId: UUID
-    var items: [SummaryItemModel]
+    var items: [SummaryItemModel]     // 多筆商品銷售記錄
     var totalAmount: Double
     var paymentMethod: PaymentMethod
     var timestamp: Date

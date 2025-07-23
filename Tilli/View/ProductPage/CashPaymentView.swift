@@ -98,7 +98,7 @@ struct CashPaymentView: View {
                                 var updatedSession = appState.sessions[sessionIndex]
                                 
                                 for item in appState.currentSummaryItems {
-                                    if let productIndex = updatedSession.products.firstIndex(where: { $0.id == item.product.id }) {
+                                    if let productIndex = updatedSession.products.firstIndex(where: { $0.id == item.productId }) {
                                         // 扣除庫存
                                         updatedSession.products[productIndex].stock -= item.quantity
                                         

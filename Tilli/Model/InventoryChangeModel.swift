@@ -10,6 +10,7 @@ struct InventoryChangeModel: Identifiable, Codable {
     var id = UUID()
     var productId: UUID
     var sessionId: UUID
-    var change: Int // +10 = 進貨, -2 = 銷售
+    var change: Int                   // +10 進貨，-3 銷售
+    var reason: String                // 原因（進貨 / 盤點 / 調整）
     var timestamp: Date
 }

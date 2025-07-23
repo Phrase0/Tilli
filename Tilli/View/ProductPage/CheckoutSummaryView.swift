@@ -41,7 +41,7 @@ struct CheckoutSummaryView: View {
                         ForEach(selectedItems) { item in
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.product.name)
+                                    Text(item.name)
                                         .font(.body)
                                     
                                     HStack(spacing: 8) {
@@ -56,11 +56,11 @@ struct CheckoutSummaryView: View {
                                                 .background(Color.blue.opacity(0.2))
                                                 .cornerRadius(4)
                                             
-                                            Text("NT$\(Int(item.product.price * (1 - Double(item.discount) / 100)))")
+                                            Text("NT$\(Int(item.price * (1 - Double(item.discount) / 100)))")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         } else {
-                                            Text("NT$\(Int(item.product.price))")
+                                            Text("NT$\(Int(item.price))")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         }
@@ -74,6 +74,7 @@ struct CheckoutSummaryView: View {
                                     .fontWeight(.semibold)
                             }
                         }
+
                     }
                     .padding()
                 }

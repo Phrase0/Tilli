@@ -69,7 +69,8 @@ class SessionDetailViewModel: ObservableObject {
             let qty = quantities[product.id, default: 0]
             if qty > 0 {
                 let discount = selectedDiscounts[product.id, default: 0]
-                result.append(SummaryItemModel(product: product, quantity: qty, discount: discount, timestamp: Date()))
+                result.append(SummaryItemModel(productId: product.id, name: product.name, price: product.price, quantity: qty, discount: discount, timestamp: Date()))
+//                (SummaryItemModel(productId: product, quantity: qty, discount: discount, timestamp: Date()))
             }
         }
         return result
