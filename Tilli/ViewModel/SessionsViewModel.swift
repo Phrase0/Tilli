@@ -16,7 +16,7 @@ class SessionViewModel: ObservableObject {
             title: title,
             date: date,
             status: status,
-            amount: amount,
+//            amount: amount,
             categories: categories,
             createdAt: Date(),
             products: []

@@ -118,14 +118,14 @@ struct SessionsView: View {
                         }
                     }
 
-                    Text("NT$\(session.amount.formatted())")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(.systemGray6))
-                        .clipShape(Capsule())
+//                    Text("NT$\(session.amount.formatted())")
+//                        .font(.subheadline)
+//                        .fontWeight(.bold)
+//                        .foregroundColor(.black)
+//                        .padding(.horizontal, 8)
+//                        .padding(.vertical, 4)
+//                        .background(Color(.systemGray6))
+//                        .clipShape(Capsule())
                 }
             }
         }

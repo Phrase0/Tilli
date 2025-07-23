@@ -20,7 +20,7 @@ class SessionDetailViewModel: ObservableObject {
 
     func increaseQuantity(for product: ProductModel) {
         let current = quantities[product.id, default: 0]
-        if current < product.quantity {
+        if current < product.stock {
             quantities[product.id] = current + 1
         }
     }
@@ -74,7 +74,4 @@ class SessionDetailViewModel: ObservableObject {
         }
         return result
     }
-
-
-
 }

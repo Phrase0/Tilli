@@ -142,7 +142,7 @@ struct SessionDetailView: View {
                         .font(.subheadline)
                         .foregroundColor(.blue)
                     
-                    Text("庫存: \(product.quantity)")
+                    Text("庫存: \(product.stock)")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }

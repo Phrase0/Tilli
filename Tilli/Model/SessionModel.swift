@@ -12,7 +12,7 @@ struct SessionModel: Identifiable, Codable {
     var title: String
     var date: Date
     var status: SessionStatus
-    var amount: Int
+//    var amount: Int
     var categories: [String]
     var createdAt: Date // 建立時間
     var products: [ProductModel]

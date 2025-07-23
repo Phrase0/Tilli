@@ -91,10 +91,36 @@ struct CashPaymentView: View {
                         // 儲存目前 summary 為一筆交易紀錄
                         appState.transactionRecords.append(appState.currentSummaryItems)
                         
+                        // 根據 summary 扣除產品庫存，且更新 AppState.sessions
+                        if let currentSessionId = appState.currentSession?.id {
+                            if let sessionIndex = appState.sessions.firstIndex(where: { $0.id == currentSessionId }) {
+                                // 先把該 session 取出，因為 struct 是值類型
+                                var updatedSession = appState.sessions[sessionIndex]
+                                
+                                for item in appState.currentSummaryItems {
+                                    if let productIndex = updatedSession.products.firstIndex(where: { $0.id == item.product.id }) {
+                                        // 扣除庫存
+                                        updatedSession.products[productIndex].stock -= item.quantity
+                                        
+                                        // 確保庫存不會小於0
+                                        if updatedSession.products[productIndex].stock < 0 {
+                                            updatedSession.products[productIndex].stock = 0
+                                        }
+                                    }
+                                }
+                                
+                                // 把更新後的 session 存回 AppState.sessions
+                                appState.sessions[sessionIndex] = updatedSession
+                                
+                                // 同時更新 currentSession (避免 UI 不同步)
+                                appState.currentSession = updatedSession
+                            }
+                        }
+                        
                         // 清空目前購物車
                         appState.currentSummaryItems = []
                         
-                        //返回前兩層（CheckoutSummaryView & SessionDetailView）
+                        // 返回前兩層（CheckoutSummaryView & SessionDetailView）
                         onComplete()
                         dismiss()
                     }

@@ -31,9 +31,9 @@ struct MainAddProductFlowView: View {
                     onSave: { newProduct in
                         if let index = appState.sessions.firstIndex(where: { $0.id == session.id }) {
                             appState.sessions[index].products.append(newProduct)
-                            appState.sessions[index].amount = appState.sessions[index].products.reduce(0) {
-                                $0 + Int($1.price * Double($1.quantity))
-                            }
+//                            appState.sessions[index].amount = appState.sessions[index].products.reduce(0) {
+//                                $0 + Int($1.price * Double($1.stock))
+//                            }
                         }
                         // 儲存後保持 currentSession，不清空
                         showAddProduct = false

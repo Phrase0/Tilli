@@ -6,7 +6,7 @@
 //
 import SwiftUI
 
-struct SummaryItemModel: Identifiable {
+struct SummaryItemModel: Identifiable, Codable  {
     let id = UUID()
     let product: ProductModel
     let quantity: Int

@@ -11,7 +11,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var id: UUID = UUID()
     var name: String
     var price: Double
-    var quantity: Int
+    var stock: Int
     var description: String
 
     // Use Data to store image for Codable compliance
@@ -45,7 +45,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
         self.id = id
         self.name = name
         self.price = price
-        self.quantity = quantity
+        self.stock = quantity
         self.description = description
         self.imageData = image?.jpegData(compressionQuality: 0.8)
         self.sessionId = sessionId
