@@ -8,9 +8,6 @@
 import SwiftUI
 import PhotosUI
 
-import SwiftUI
-import PhotosUI
-
 class AddNewProductViewModel: ObservableObject {
     // MARK: - 輸入 Session & 回調
     let session: SessionModel
