@@ -14,8 +14,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var price: Double
     var stock: Int                   // 初始庫存
     var category: String
-    var description: String
-
+    var note: String?
     var imageData: Data?             // 可選圖片（轉 UIImage 用 image）
     
     var image: UIImage? {
@@ -26,5 +25,18 @@ struct ProductModel: Identifiable, Hashable, Codable {
         set {
             imageData = newValue?.jpegData(compressionQuality: 0.8)
         }
+    }
+}
+
+extension ProductModel {
+    init(entity: CDProductEntity) {
+        self.id = entity.id
+        self.sessionId = entity.sessionId
+        self.name = entity.name
+        self.price = entity.price
+        self.stock = Int(entity.stock)
+        self.category = entity.category
+        self.note = entity.note
+        self.imageData = entity.imageData
     }
 }

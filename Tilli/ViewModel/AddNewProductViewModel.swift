@@ -67,7 +67,7 @@ class AddNewProductViewModel: ObservableObject {
             price: priceValue,
             stock: quantityValue,
             category: selectedCategory,
-            description: description,
+            note: description,
             imageData: image?.jpegData(compressionQuality: 0.8)  // 直接轉 Data 儲存
         )
     }
