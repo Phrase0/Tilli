@@ -11,9 +11,7 @@ struct SessionsView: View {
     @StateObject private var viewModel = SessionViewModel()
     @State private var searchText = ""
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var productDataManager: ProductDataManager
-
-
+    
     // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
 
@@ -27,8 +25,7 @@ struct SessionsView: View {
                     ForEach(filteredSessions(by: searchText)) { session in
                         NavigationLink(destination:
                             SessionDetailView(session: session)
-                                .environmentObject(appState)
-//                                .environmentObject(productDataManager)
+                                //.environmentObject(appState)
                         ) {
                             sessionCard(session)
                         }
@@ -80,7 +77,6 @@ struct SessionsView: View {
             .onAppear {
                 // 初次載入時同步 ViewModel 的 sessions
                 viewModel.sessions = appState.sessions
-                
                 // 清空 currentSession，確保從明細返回時沒殘留
                 appState.currentSession = nil
             }

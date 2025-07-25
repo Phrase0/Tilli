@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SessionDetailView: View {
-    @EnvironmentObject var productDataManager: ProductDataManager
+//    @EnvironmentObject var productDataManager: ProductDataManager
     @ObservedObject private var viewModel: SessionDetailViewModel
 
     @State private var showClearAlert = false
