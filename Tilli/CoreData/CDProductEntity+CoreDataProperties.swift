@@ -9,13 +9,12 @@
 import Foundation
 import CoreData
 
-
 extension CDProductEntity {
-
+    
     @nonobjc public class func fetchRequest() -> NSFetchRequest<CDProductEntity> {
         return NSFetchRequest<CDProductEntity>(entityName: "CDProductEntity")
     }
-
+    
     @NSManaged public var id: UUID
     @NSManaged public var sessionId: UUID
     @NSManaged public var name: String
@@ -24,11 +23,8 @@ extension CDProductEntity {
     @NSManaged public var category: String
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
-
-
-}
-
-extension CDProductEntity {
+    
+    
     func update(from model: ProductModel) {
         self.id = model.id
         self.sessionId = model.sessionId
@@ -39,4 +35,8 @@ extension CDProductEntity {
         self.note = model.note
         self.imageData = model.imageData
     }
+
+    func toModel() -> ProductModel {
+            ProductModel(entity: self)
+        }
 }

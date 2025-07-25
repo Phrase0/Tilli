@@ -5,11 +5,10 @@
 //  Created by Peiyun on 2025/7/25.
 //
 
-import Foundation
 import CoreData
 import SwiftUI
 
-class ProductCoreDataViewModel: ObservableObject {
+class ProductDataManager: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
 
@@ -90,6 +89,7 @@ class ProductCoreDataViewModel: ObservableObject {
     private func saveContext() {
         do {
             try context.save()
+            print("Product save to CoreData")
         } catch {
             print("Core Data save failed:", error)
             context.rollback()

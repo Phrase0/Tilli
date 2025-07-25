@@ -11,6 +11,8 @@ struct SessionsView: View {
     @StateObject private var viewModel = SessionViewModel()
     @State private var searchText = ""
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var productDataManager: ProductDataManager
+
 
     // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
@@ -23,8 +25,11 @@ struct SessionsView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(filteredSessions(by: searchText)) { session in
-                        NavigationLink(destination: SessionDetailView(session: session)
-                                        .environmentObject(appState)) {
+                        NavigationLink(destination:
+                            SessionDetailView(session: session)
+                                .environmentObject(appState)
+//                                .environmentObject(productDataManager)
+                        ) {
                             sessionCard(session)
                         }
                         .simultaneousGesture(TapGesture().onEnded {

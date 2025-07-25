@@ -10,11 +10,19 @@ import PhotosUI
 struct AddNewProductView: View {
     @ObservedObject private var viewModel: AddNewProductViewModel
     @Environment(\.presentationMode) private var presentationMode
-
-    init(session: SessionModel, onSave: @escaping (ProductModel) -> Void, onCancel: (() -> Void)? = nil) {
-        self._viewModel = ObservedObject(wrappedValue: AddNewProductViewModel(session: session, onSave: onSave, onCancel: onCancel))
+    
+    init(session: SessionModel,
+         productDataManager: ProductDataManager,
+         onSave: @escaping () -> Void,
+         onCancel: (() -> Void)? = nil) {
+        self._viewModel = ObservedObject(wrappedValue: AddNewProductViewModel(
+            session: session,
+            productDataManager: productDataManager,
+            onSave: onSave,
+            onCancel: onCancel
+        ))
     }
-
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -25,21 +33,21 @@ struct AddNewProductView: View {
                             .fontWeight(.semibold)
                         TextField("Enter product name", text: $viewModel.name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-
+                        
                         Text("Price")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         TextField("$ 0.00", text: $viewModel.price)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-
+                        
                         Text("Stock Quantity")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         TextField("Enter quantity", text: $viewModel.quantity)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-
+                        
                         Text("Category")
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -54,7 +62,7 @@ struct AddNewProductView: View {
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
                     }
-
+                    
                     Text("Product Image")
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -63,7 +71,7 @@ struct AddNewProductView: View {
                             .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
                             .foregroundColor(.gray.opacity(0.4))
                             .frame(height: 140)
-
+                        
                         VStack {
                             if let image = viewModel.image {
                                 Image(uiImage: image)
@@ -85,7 +93,7 @@ struct AddNewProductView: View {
                             }
                         }
                     }
-
+                    
                     Text("Description")
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -110,7 +118,7 @@ struct AddNewProductView: View {
                         viewModel.onCancel?()
                     }
                 }
-
+                
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if viewModel.save() {

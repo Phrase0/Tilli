@@ -8,14 +8,18 @@
 import SwiftUI
 
 struct SessionDetailView: View {
+    @EnvironmentObject var productDataManager: ProductDataManager
     @ObservedObject private var viewModel: SessionDetailViewModel
+
     @State private var showClearAlert = false
     @State private var showCheckoutSheet = false
-    
+
     init(session: SessionModel) {
-        self._viewModel = ObservedObject(wrappedValue: SessionDetailViewModel(session: session))
+        self._viewModel = ObservedObject(
+            wrappedValue: SessionDetailViewModel(session: session)
+        )
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -23,37 +27,34 @@ struct SessionDetailView: View {
                 Text(viewModel.session.title)
                     .font(.title2)
                     .bold()
-                
                 Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • NT$\(viewModel.totalAmount())")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             .padding(.top)
-            
-            // Segmented Tab
+
+            // Tab Toggle
             Picker("", selection: $viewModel.selectedTab) {
                 Text("商品").tag(0)
                 Text("記錄").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
-            
+
             Divider()
-            
+
             TabView(selection: $viewModel.selectedTab) {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         ForEach(viewModel.session.categories, id: \.self) { category in
-                            let productsInCategory = viewModel.session.products.filter { $0.category == category }
-                            
-                            if !productsInCategory.isEmpty {
+                            let items = viewModel.products.filter { $0.category == category }
+                            if !items.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text("\(category)")
+                                    Text(category)
                                         .font(.headline)
                                         .padding(.horizontal)
-                                    
-                                    ForEach(productsInCategory) { product in
+                                    ForEach(items) { product in
                                         productCard(product)
                                     }
                                 }
@@ -63,7 +64,7 @@ struct SessionDetailView: View {
                     .padding(.top)
                 }
                 .tag(0)
-                
+
                 // 記錄頁
                 VStack {
                     Text("記錄頁內容（尚未實作）")
@@ -73,7 +74,7 @@ struct SessionDetailView: View {
                 .tag(1)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            
+
             // Footer
             VStack(spacing: 12) {
                 HStack {
@@ -84,10 +85,10 @@ struct SessionDetailView: View {
                         .font(.headline)
                         .bold()
                 }
-                
-                Button(action: {
+
+                Button {
                     showCheckoutSheet = true
-                }) {
+                } label: {
                     Text("結帳")
                         .font(.headline)
                         .foregroundColor(.white)
@@ -98,7 +99,6 @@ struct SessionDetailView: View {
                 }
                 .disabled(viewModel.totalAmount() == 0)
             }
-            
             .padding()
         }
         .background(Color(.systemGroupedBackground))
@@ -110,7 +110,7 @@ struct SessionDetailView: View {
                     } label: {
                         Image(systemName: "trash")
                     }
-                    .accessibilityLabel("清除所有選取數量")
+                    .accessibilityLabel("清除所有已選數量")
                 }
             }
         }
@@ -127,67 +127,47 @@ struct SessionDetailView: View {
                 isPresented: $showCheckoutSheet
             )
         }
-        
     }
-    
-    // 商品卡片
+
     private func productCard(_ product: ProductModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product.name)
                         .font(.headline)
-                    
                     Text("NT$\(Int(product.price))")
                         .font(.subheadline)
                         .foregroundColor(.blue)
-                    
                     Text("庫存: \(product.stock)")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
-                
                 Spacer()
-                
                 Image(systemName: "ellipsis")
                     .rotationEffect(.degrees(90))
                     .foregroundColor(.gray)
             }
-            
             HStack {
                 HStack(spacing: 8) {
                     ForEach([5, 10, 20], id: \.self) { percent in
-                        let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
+                        let isSel = viewModel.isDiscountSelected(for: product, percent: percent)
                         Text("\(percent)%")
                             .font(.caption)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(isSelected ? Color.blue : Color(.systemGray5))
-                            .foregroundColor(isSelected ? .white : .primary)
-                            .cornerRadius(6)
+                            .padding(4)
+                            .background(isSel ? Color.blue : Color(.systemGray5))
+                            .foregroundColor(isSel ? .white : .primary)
+                            .cornerRadius(4)
                             .onTapGesture {
                                 viewModel.toggleDiscount(for: product, percent: percent)
                             }
                     }
                 }
-                
                 Spacer()
-                
                 HStack(spacing: 16) {
-                    Button {
-                        viewModel.decreaseQuantity(for: product)
-                    } label: {
-                        Image(systemName: "minus.circle")
-                    }
-                    
+                    Button { viewModel.decreaseQuantity(for: product) } label: { Image(systemName: "minus.circle") }
                     Text("\(viewModel.quantity(for: product))")
                         .frame(width: 24)
-                    
-                    Button {
-                        viewModel.increaseQuantity(for: product)
-                    } label: {
-                        Image(systemName: "plus.circle")
-                    }
+                    Button { viewModel.increaseQuantity(for: product) } label: { Image(systemName: "plus.circle") }
                 }
                 .font(.title3)
             }
@@ -195,7 +175,7 @@ struct SessionDetailView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+        .shadow(radius: 1, y: 1)
         .padding(.horizontal)
     }
 }

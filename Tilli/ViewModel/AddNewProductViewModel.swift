@@ -9,9 +9,11 @@ import SwiftUI
 import PhotosUI
 
 class AddNewProductViewModel: ObservableObject {
-    // MARK: - 輸入 Session & 回調
+    
+    // MARK: - 輸入 Session & Product
+    private let productDataManager: ProductDataManager
     let session: SessionModel
-    let onSave: (ProductModel) -> Void
+    let onSave: () -> Void
     let onCancel: (() -> Void)?
     
     // MARK: - 編輯欄位狀態綁定
@@ -39,11 +41,13 @@ class AddNewProductViewModel: ObservableObject {
     }
     
     // MARK: - 初始化
-    init(session: SessionModel, onSave: @escaping (ProductModel) -> Void, onCancel: (() -> Void)? = nil) {
+    init(session: SessionModel,
+         productDataManager: ProductDataManager,
+         onSave: @escaping () -> Void, onCancel: (() -> Void)? = nil) {
         self.session = session
+        self.productDataManager = productDataManager
         self.onSave = onSave
         self.onCancel = onCancel
-        // 預設選擇 Session 第一個分類
         self.selectedCategory = session.categories.first ?? ""
     }
     
@@ -75,7 +79,8 @@ class AddNewProductViewModel: ObservableObject {
             showValidationError = true
             return false
         }
-        onSave(product)
+        productDataManager.addProduct(product)
+        onSave()
         return true
     }
     
