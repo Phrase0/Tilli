@@ -10,8 +10,7 @@ import PhotosUI
 
 class AddNewProductViewModel: ObservableObject {
     
-    // MARK: - 輸入 Session & Product
-    private let productDataManager: ProductDataManager
+    // MARK: - 輸入 Session
     let session: SessionModel
     let onSave: () -> Void
     let onCancel: (() -> Void)?
@@ -42,10 +41,9 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 初始化
     init(session: SessionModel,
-         productDataManager: ProductDataManager,
-         onSave: @escaping () -> Void, onCancel: (() -> Void)? = nil) {
+         onSave: @escaping () -> Void,
+         onCancel: (() -> Void)? = nil) {
         self.session = session
-        self.productDataManager = productDataManager
         self.onSave = onSave
         self.onCancel = onCancel
         self.selectedCategory = session.categories.first ?? ""
@@ -74,7 +72,7 @@ class AddNewProductViewModel: ObservableObject {
     }
     
     // MARK: - 儲存動作
-    func save() -> Bool {
+    func save(using productDataManager: ProductDataManager) -> Bool {
         guard let product = createProductIfValid() else {
             showValidationError = true
             return false

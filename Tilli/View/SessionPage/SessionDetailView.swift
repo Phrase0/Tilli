@@ -8,18 +8,19 @@
 import SwiftUI
 
 struct SessionDetailView: View {
-//    @EnvironmentObject var productDataManager: ProductDataManager
-    @ObservedObject private var viewModel: SessionDetailViewModel
-
+    
+    @EnvironmentObject var productDataManager: ProductDataManager
+    @StateObject private var viewModel: SessionDetailViewModel
+    
     @State private var showClearAlert = false
     @State private var showCheckoutSheet = false
-
+    
     init(session: SessionModel) {
-        self._viewModel = ObservedObject(
+        self._viewModel = StateObject(
             wrappedValue: SessionDetailViewModel(session: session)
         )
     }
-
+    
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -32,7 +33,7 @@ struct SessionDetailView: View {
                     .foregroundColor(.gray)
             }
             .padding(.top)
-
+            
             // Tab Toggle
             Picker("", selection: $viewModel.selectedTab) {
                 Text("商品").tag(0)
@@ -40,9 +41,9 @@ struct SessionDetailView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
-
+            
             Divider()
-
+            
             TabView(selection: $viewModel.selectedTab) {
                 // 商品頁
                 ScrollView {
@@ -64,7 +65,7 @@ struct SessionDetailView: View {
                     .padding(.top)
                 }
                 .tag(0)
-
+                
                 // 記錄頁
                 VStack {
                     Text("記錄頁內容（尚未實作）")
@@ -74,7 +75,7 @@ struct SessionDetailView: View {
                 .tag(1)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-
+            
             // Footer
             VStack(spacing: 12) {
                 HStack {
@@ -85,7 +86,7 @@ struct SessionDetailView: View {
                         .font(.headline)
                         .bold()
                 }
-
+                
                 Button {
                     showCheckoutSheet = true
                 } label: {
@@ -100,6 +101,9 @@ struct SessionDetailView: View {
                 .disabled(viewModel.totalAmount() == 0)
             }
             .padding()
+        }
+        .onAppear {
+            viewModel.loadProducts(using: productDataManager)
         }
         .background(Color(.systemGroupedBackground))
         .toolbar {
@@ -128,46 +132,64 @@ struct SessionDetailView: View {
             )
         }
     }
-
+    
     private func productCard(_ product: ProductModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product.name)
                         .font(.headline)
+                    
                     Text("NT$\(Int(product.price))")
                         .font(.subheadline)
                         .foregroundColor(.blue)
+                    
                     Text("庫存: \(product.stock)")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
+                
                 Spacer()
+                
                 Image(systemName: "ellipsis")
                     .rotationEffect(.degrees(90))
                     .foregroundColor(.gray)
             }
+            
             HStack {
                 HStack(spacing: 8) {
                     ForEach([5, 10, 20], id: \.self) { percent in
-                        let isSel = viewModel.isDiscountSelected(for: product, percent: percent)
+                        let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
                         Text("\(percent)%")
                             .font(.caption)
-                            .padding(4)
-                            .background(isSel ? Color.blue : Color(.systemGray5))
-                            .foregroundColor(isSel ? .white : .primary)
-                            .cornerRadius(4)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(isSelected ? Color.blue : Color(.systemGray5))
+                            .foregroundColor(isSelected ? .white : .primary)
+                            .cornerRadius(6)
                             .onTapGesture {
                                 viewModel.toggleDiscount(for: product, percent: percent)
                             }
                     }
                 }
+                
                 Spacer()
+                
                 HStack(spacing: 16) {
-                    Button { viewModel.decreaseQuantity(for: product) } label: { Image(systemName: "minus.circle") }
+                    Button {
+                        viewModel.decreaseQuantity(for: product)
+                    } label: {
+                        Image(systemName: "minus.circle")
+                    }
+                    
                     Text("\(viewModel.quantity(for: product))")
                         .frame(width: 24)
-                    Button { viewModel.increaseQuantity(for: product) } label: { Image(systemName: "plus.circle") }
+                    
+                    Button {
+                        viewModel.increaseQuantity(for: product)
+                    } label: {
+                        Image(systemName: "plus.circle")
+                    }
                 }
                 .font(.title3)
             }
@@ -175,7 +197,7 @@ struct SessionDetailView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(12)
-        .shadow(radius: 1, y: 1)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
     }
 }

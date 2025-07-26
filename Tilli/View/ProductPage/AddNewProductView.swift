@@ -8,16 +8,16 @@ import SwiftUI
 import PhotosUI
 
 struct AddNewProductView: View {
-    @ObservedObject private var viewModel: AddNewProductViewModel
+    
+    @EnvironmentObject var productDataManager: ProductDataManager
     @Environment(\.presentationMode) private var presentationMode
+    @StateObject private var viewModel: AddNewProductViewModel
     
     init(session: SessionModel,
-         productDataManager: ProductDataManager,
          onSave: @escaping () -> Void,
          onCancel: (() -> Void)? = nil) {
-        self._viewModel = ObservedObject(wrappedValue: AddNewProductViewModel(
+        _viewModel = StateObject(wrappedValue: AddNewProductViewModel(
             session: session,
-            productDataManager: productDataManager,
             onSave: onSave,
             onCancel: onCancel
         ))
@@ -121,7 +121,8 @@ struct AddNewProductView: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        if viewModel.save() {
+                        if viewModel.save(using: productDataManager) {
+                            // 用 injection 的 manager
                             presentationMode.wrappedValue.dismiss()
                         }
                     }

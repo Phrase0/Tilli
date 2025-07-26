@@ -8,22 +8,18 @@
 import Foundation
 
 class SessionDetailViewModel: ObservableObject {
+    
     let session: SessionModel
-
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscounts: [UUID: Int] = [:]
     @Published var selectedTab: Int = 0
-
-    private let productDataManager: ProductDataManager
-
-    init(session: SessionModel, productDataManager: ProductDataManager = ProductDataManager()) {
-        self.session = session
-        self.productDataManager = productDataManager
-        loadProducts()
-    }
     
-    func loadProducts() {
+    init(session: SessionModel) {
+        self.session = session
+    }
+
+    func loadProducts(using productDataManager: ProductDataManager) {
         products = productDataManager.fetchProducts(forSessionId: session.id)
     }
 
