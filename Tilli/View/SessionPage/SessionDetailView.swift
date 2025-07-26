@@ -14,7 +14,8 @@ struct SessionDetailView: View {
     
     @State private var showClearAlert = false
     @State private var showCheckoutSheet = false
-    
+    @State private var selectedTab: Int = 0
+
     init(session: SessionModel) {
         self._viewModel = StateObject(
             wrappedValue: SessionDetailViewModel(session: session)
@@ -35,7 +36,7 @@ struct SessionDetailView: View {
             .padding(.top)
             
             // Tab Toggle
-            Picker("", selection: $viewModel.selectedTab) {
+            Picker("", selection: $selectedTab) {
                 Text("商品").tag(0)
                 Text("記錄").tag(1)
             }
@@ -44,7 +45,7 @@ struct SessionDetailView: View {
             
             Divider()
             
-            TabView(selection: $viewModel.selectedTab) {
+            TabView(selection: $selectedTab) {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -107,7 +108,7 @@ struct SessionDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .toolbar {
-            if viewModel.selectedTab == 0 {
+            if selectedTab == 0 {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showClearAlert = true

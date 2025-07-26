@@ -10,4 +10,5 @@
         <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="stock" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="CDSessionEntity" representedClassName="CDSessionEntity" syncable="YES" codeGenerationType="class"/>
 </model>
