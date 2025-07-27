@@ -23,7 +23,7 @@ class ProductDataManager: ObservableObject {
     // MARK: - Create
     func addProduct(_ model: ProductModel) {
         let entity = CDProductEntity(context: context)
-        entity.update(from: model)
+        entity.update(from: model, context: context)
         saveContext()
         fetchAllProducts()
     }
@@ -60,7 +60,7 @@ class ProductDataManager: ObservableObject {
 
         do {
             if let entity = try context.fetch(request).first {
-                entity.update(from: model)
+                entity.update(from: model, context: context)
                 saveContext()
                 fetchAllProducts()
             }

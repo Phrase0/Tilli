@@ -6,8 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F8F7C2862E362D5F0082844A /* CDTransactionEntity+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F7C2842E362D5F0082844A /* CDTransactionEntity+CoreDataClass.swift */; };
+		F8F7C2872E362D5F0082844A /* CDTransactionEntity+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F7C2852E362D5F0082844A /* CDTransactionEntity+CoreDataProperties.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		F84D81F62DB85002006730C2 /* Tilli.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tilli.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F8F7C2842E362D5F0082844A /* CDTransactionEntity+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTransactionEntity+CoreDataClass.swift"; sourceTree = "<group>"; };
+		F8F7C2852E362D5F0082844A /* CDTransactionEntity+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTransactionEntity+CoreDataProperties.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +39,8 @@
 		F84D81ED2DB85002006730C2 = {
 			isa = PBXGroup;
 			children = (
+				F8F7C2842E362D5F0082844A /* CDTransactionEntity+CoreDataClass.swift */,
+				F8F7C2852E362D5F0082844A /* CDTransactionEntity+CoreDataProperties.swift */,
 				F84D81F82DB85002006730C2 /* Tilli */,
 				F84D81F72DB85002006730C2 /* Products */,
 			);
@@ -119,6 +128,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8F7C2862E362D5F0082844A /* CDTransactionEntity+CoreDataClass.swift in Sources */,
+				F8F7C2872E362D5F0082844A /* CDTransactionEntity+CoreDataProperties.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

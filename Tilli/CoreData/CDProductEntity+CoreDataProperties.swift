@@ -23,9 +23,11 @@ extension CDProductEntity {
     @NSManaged public var category: String
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
+}
+
+extension CDProductEntity {
     
-    
-    func update(from model: ProductModel) {
+    func update(from model: ProductModel, context: NSManagedObjectContext) {
         self.id = model.id
         self.sessionId = model.sessionId
         self.name = model.name
