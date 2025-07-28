@@ -21,12 +21,39 @@ class ProductDataManager: ObservableObject {
     }
 
     // MARK: - Create
+//    func addProduct(_ model: ProductModel) {
+//        let entity = CDProductEntity(context: context)
+//        entity.update(from: model, context: context)
+//        saveContext()
+//        fetchAllProducts()
+//    }
     func addProduct(_ model: ProductModel) {
-        let entity = CDProductEntity(context: context)
-        entity.update(from: model, context: context)
-        saveContext()
-        fetchAllProducts()
+        // 找到對應 session
+        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        sessionRequest.predicate = NSPredicate(format: "id == %@", model.sessionId as CVarArg)
+        
+        do {
+            guard let sessionEntity = try context.fetch(sessionRequest).first else {
+                print("找不到對應 session，無法加入 product")
+                return
+            }
+            
+            // 建立新的 product entity
+            let productEntity = CDProductEntity(context: context)
+            productEntity.update(from: model, context: context)
+            
+            // 加入 session 的 products 集合
+            sessionEntity.addToProducts(productEntity)
+            
+            // 儲存
+            saveContext()
+            fetchAllProducts()
+            
+        } catch {
+            print("加入 product 失敗:", error)
+        }
     }
+
 
     // MARK: - Read
     func fetchAllProducts() {

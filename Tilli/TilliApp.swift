@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct TilliApp: App {
+    @StateObject private var sessionDataManager = SessionDataManager()
     @StateObject private var productDataManager = ProductDataManager()
     @StateObject private var appState = AppState()
     let persistenceController = PersistenceController.shared
@@ -18,6 +19,7 @@ struct TilliApp: App {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(appState)
+                .environmentObject(sessionDataManager)
                 .environmentObject(productDataManager)
         }
     }

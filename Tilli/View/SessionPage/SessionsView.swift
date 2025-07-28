@@ -8,13 +8,14 @@
 import SwiftUI
 
 struct SessionsView: View {
-    @StateObject private var viewModel = SessionViewModel()
-    @State private var searchText = ""
-    @EnvironmentObject var appState: AppState
     
+    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @StateObject private var viewModel = SessionViewModel()
+//    @EnvironmentObject var appState: AppState
+    
+    @State private var searchText = ""
     // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
-
     // 用來儲存當前想要編輯的 Session
     @State private var editingSession: SessionModel? = nil
 
@@ -25,7 +26,6 @@ struct SessionsView: View {
                     ForEach(filteredSessions(by: searchText)) { session in
                         NavigationLink(destination:
                             SessionDetailView(session: session)
-                                //.environmentObject(appState)
                         ) {
                             sessionCard(session)
                         }
