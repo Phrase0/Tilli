@@ -10,6 +10,7 @@ import SwiftUI
 struct SessionDetailView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
     
     @State private var showClearAlert = false
@@ -104,6 +105,7 @@ struct SessionDetailView: View {
             .padding()
         }
         .onAppear {
+            appState.currentSession = viewModel.session
             viewModel.loadProducts(using: productDataManager)
         }
         .background(Color(.systemGroupedBackground))

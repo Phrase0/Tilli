@@ -6,26 +6,33 @@
 //
 
 import Foundation
-import Combine
 
 class SessionViewModel: ObservableObject {
     @Published var sessions: [SessionModel] = []
-
-    func addSession(title: String, date: Date, status: SessionStatus, amount: Int, categories: [String] = []) {
-        let newSession = SessionModel(
-            title: title,
-            date: date,
-            status: status,
-//            amount: amount,
-            categories: categories,
-            createdAt: Date(),
-            products: []
-        )
-        sessions.append(newSession)
-    }
+    private let sessionDataManager: SessionDataManager
     
-    func removeSession(id: UUID) {
-        sessions.removeAll { $0.id == id }
+    init(sessionDataManager: SessionDataManager) {
+        self.sessionDataManager = sessionDataManager
+        loadSessions()
+    }
+
+    func loadSessions() {
+        sessions = sessionDataManager.sessions
+    }
+
+    func addSession(_ session: SessionModel) {
+        sessionDataManager.addSession(session)
+        loadSessions()
+    }
+
+    func updateSession(_ session: SessionModel) {
+        sessionDataManager.updateSession(session)
+        loadSessions()
+    }
+
+    func deleteSession(_ session: SessionModel) {
+        sessionDataManager.deleteSession(session)
+        loadSessions()
     }
 
 }
