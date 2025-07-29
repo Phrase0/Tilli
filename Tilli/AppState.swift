@@ -9,14 +9,14 @@ import SwiftUI
 
 class AppState: ObservableObject {
     
-//    @Published var sessions: [SessionModel] = [] {
-//        didSet {
-//            // 若目前的 currentSession 被刪除，就清空
-//            if let current = currentSession, !sessions.contains(where: { $0.id == current.id }) {
-//                currentSession = nil
-//            }
-//        }
-//    }
+    @Published var sessions: [SessionModel] = [] {
+        didSet {
+            // 若目前的 currentSession 被刪除，就清空
+            if let current = currentSession, !sessions.contains(where: { $0.id == current.id }) {
+                currentSession = nil
+            }
+        }
+    }
 
     @Published var currentSession: SessionModel? {
         didSet {

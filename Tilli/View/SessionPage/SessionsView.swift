@@ -21,14 +21,14 @@ struct SessionsView: View {
     @StateObject private var viewModel: SessionViewModel
 
     init(sessionDataManager: SessionDataManager) {
-        _viewModel = StateObject(wrappedValue: SessionViewModel(sessionDataManager: sessionDataManager))
+        _viewModel = StateObject(wrappedValue: SessionViewModel())
     }
 
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(filteredSessions(by: searchText)) { session in
+                    ForEach(viewModel.filteredSessions(by: searchText)) { session in
                         NavigationLink(destination:
                                         SessionDetailView(session: session)
                         ) {
@@ -41,7 +41,7 @@ struct SessionsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Sessions")
+            .navigationTitle("場次")
             .searchable(text: $searchText)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -137,16 +137,5 @@ struct SessionsView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-    }
-    
-    private func filteredSessions(by keyword: String) -> [SessionModel] {
-        let sessions = viewModel.sessions
-        if keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return sessions
-        } else {
-            return sessions.filter {
-                $0.title.localizedCaseInsensitiveContains(keyword)
-            }
-        }
     }
 }

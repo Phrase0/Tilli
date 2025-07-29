@@ -9,7 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Int = 1
-    @StateObject private var appState = AppState()
+    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -17,7 +18,7 @@ struct ContentView: View {
                 .tabItem { Label("Calendar", systemImage: "calendar") }
                 .tag(0)
 
-            SessionsView()
+            SessionsView(sessionDataManager: sessionDataManager)
                 .environmentObject(appState)
                 .tabItem { Label("Sessions", systemImage: "folder") }
                 .tag(1)

@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct AddSessionView: View {
-    @ObservedObject private var viewModel: AddSessionViewModel
+    
+    @StateObject private var viewModel: AddSessionViewModel
     var onSave: (SessionModel) -> Void
 
     @Environment(\.presentationMode) private var presentationMode
@@ -23,7 +24,7 @@ struct AddSessionView: View {
     @FocusState private var focusedField: FocusField?
 
     init(sessionToEdit: SessionModel? = nil, onSave: @escaping (SessionModel) -> Void) {
-        self._viewModel = ObservedObject(wrappedValue: AddSessionViewModel(sessionToEdit: sessionToEdit))
+        self._viewModel = StateObject(wrappedValue: AddSessionViewModel(sessionToEdit: sessionToEdit))
         self.onSave = onSave
     }
 

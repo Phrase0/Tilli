@@ -11,6 +11,7 @@ struct AddNewProductView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
     @Environment(\.presentationMode) private var presentationMode
+    
     @StateObject private var viewModel: AddNewProductViewModel
     
     init(session: SessionModel,

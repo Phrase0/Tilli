@@ -13,6 +13,8 @@ class ProductDataManager: ObservableObject {
     private let context: NSManagedObjectContext
 
     @Published var products: [ProductModel] = []
+    
+    static let shared = ProductDataManager()
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
