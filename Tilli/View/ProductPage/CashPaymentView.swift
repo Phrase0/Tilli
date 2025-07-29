@@ -8,134 +8,106 @@
 import SwiftUI
 
 struct CashPaymentView: View {
-    var totalAmount: Int // e.g. 4599 表示 NT$4599
-    var onComplete: () -> Void
     
     @Environment(\.presentationMode) private var presentationMode
-    @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     
-    @State private var receivedAmountText: String = ""
-    @State private var errorMessage: String? = nil
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     
-    private var receivedAmount: Int {
-        Int(receivedAmountText) ?? 0
+    var onComplete: () -> Void
+    
+    @StateObject private var viewModel: CashPaymentViewModel
+
+    init(totalAmount: Int, session: SessionModel, summaryItems: [SummaryItemModel], onComplete: @escaping () -> Void) {
+        self._viewModel = StateObject(wrappedValue: CashPaymentViewModel(
+            totalAmount: totalAmount,
+            session: session,
+            summaryItems: summaryItems
+        ))
+        self.onComplete = onComplete
     }
-    
-    private var change: Int {
-        receivedAmount - totalAmount
-    }
-    
-    private var isAmountValid: Bool {
-        receivedAmount >= totalAmount
-    }
-    
+
     var body: some View {
         VStack(spacing: 24) {
-            // 標題區
             VStack(spacing: 8) {
-                Text("Total Amount Due")
+                Text("總金額")
                     .font(.subheadline)
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 4) {
                     Image(systemName: "tag.fill")
                         .foregroundColor(.blue)
-                    Text("NT$\(totalAmount)")
+                    Text("NT$\(viewModel.totalAmount)")
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.black)
                 }
             }
-            
+
             Divider()
             
-            // 收到金額輸入
             VStack(alignment: .leading, spacing: 8) {
-                Text("Amount Received")
+                Text("支付")
                     .font(.subheadline)
                     .foregroundColor(.gray)
                 
-                TextField("NT$", text: $receivedAmountText)
+                TextField("NT$", text: $viewModel.receivedAmountText)
                     .keyboardType(.numberPad)
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
             }
             
-            // 找零金額
             VStack(alignment: .leading, spacing: 8) {
-                Text("Change Due")
+                Text("找零")
                     .font(.subheadline)
                     .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text("NT$\(max(change, 0))")
+                Text("NT$\(max(viewModel.change, 0))")
                     .font(.title)
                     .foregroundColor(.blue)
                     .bold()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                if !isAmountValid {
-                    Label("Please enter an amount equal to or greater than the total", systemImage: "xmark.octagon.fill")
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                Group {
+                    if !viewModel.isAmountValid {
+                        Label("請輸入等於或大於總額的金額", systemImage: "xmark.octagon.fill")
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .multilineTextAlignment(.leading)
+                    } else {
+                        // 這個 Spacer 是重點：當錯誤不顯示時，保留空間
+                        Color.clear
+                            .frame(height: 20) // 要與錯誤訊息大致等高
+                    }
                 }
             }
-            
+
             Spacer()
             
-            // 按鈕區
             VStack(spacing: 12) {
                 Button(action: {
-                    if isAmountValid {
-                        // 儲存目前 summary 為一筆交易紀錄
-                        appState.transactionRecords.append(appState.currentSummaryItems)
-                        
-                        // 根據 summary 扣除產品庫存，且更新 AppState.sessions
-                        if let currentSessionId = appState.currentSession?.id {
-                            if let sessionIndex = appState.sessions.firstIndex(where: { $0.id == currentSessionId }) {
-                                // 先把該 session 取出，因為 struct 是值類型
-                                var updatedSession = appState.sessions[sessionIndex]
-                                
-                                for item in appState.currentSummaryItems {
-                                    if let productIndex = updatedSession.products.firstIndex(where: { $0.id == item.productId }) {
-                                        // 扣除庫存
-                                        updatedSession.products[productIndex].stock -= item.quantity
-                                        
-                                        // 確保庫存不會小於0
-                                        if updatedSession.products[productIndex].stock < 0 {
-                                            updatedSession.products[productIndex].stock = 0
-                                        }
-                                    }
-                                }
-                                
-                                // 把更新後的 session 存回 AppState.sessions
-                                appState.sessions[sessionIndex] = updatedSession
-                                
-                                // 同時更新 currentSession (避免 UI 不同步)
-                                appState.currentSession = updatedSession
-                            }
-                        }
-                        
-                        // 清空目前購物車
-                        appState.currentSummaryItems = []
-                        
-                        // 返回前兩層（CheckoutSummaryView & SessionDetailView）
+                    if viewModel.isAmountValid {
+                        viewModel.performCheckout(
+                            transactionDataManager: transactionDataManager,
+                            sessionDataManager: sessionDataManager
+                        )
                         onComplete()
                         dismiss()
                     }
                 }) {
-                    Text("Complete Payment")
+                    Text("完成付款")
                         .foregroundColor(.white)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isAmountValid ? Color.blue : Color.gray)
+                        .background(viewModel.isAmountValid ? Color.blue : Color.gray)
                         .cornerRadius(12)
                 }
-                .disabled(!isAmountValid)
+                .disabled(!viewModel.isAmountValid)
                 
-                Button("Cancel") {
+                Button("取消") {
                     presentationMode.wrappedValue.dismiss()
                 }
                 .foregroundColor(.gray)

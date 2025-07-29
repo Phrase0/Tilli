@@ -31,7 +31,7 @@ class AppState: ObservableObject {
 //        }
 //    }
 
-    @Published var currentSummaryItems: [SummaryItemModel] = []
-    @Published var transactionRecords: [[SummaryItemModel]] = []
+//    @Published var currentSummaryItems: [SummaryItemModel] = []
+//    @Published var transactionRecords: [[SummaryItemModel]] = []
 }
 

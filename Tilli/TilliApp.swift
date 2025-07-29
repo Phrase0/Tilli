@@ -11,6 +11,8 @@ import SwiftUI
 struct TilliApp: App {
     @StateObject private var sessionDataManager = SessionDataManager()
     @StateObject private var productDataManager = ProductDataManager()
+    @StateObject private var transactionDataManager = TransactionDataManager()
+    
     @StateObject private var appState = AppState()
     let persistenceController = PersistenceController.shared
 
@@ -21,6 +23,7 @@ struct TilliApp: App {
                 .environmentObject(appState)
                 .environmentObject(sessionDataManager)
                 .environmentObject(productDataManager)
+                .environmentObject(transactionDataManager)
         }
     }
 }

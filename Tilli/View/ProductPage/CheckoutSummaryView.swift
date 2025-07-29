@@ -10,14 +10,16 @@ import SwiftUI
 struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Int
-    
+
     @Binding var isPresented: Bool
     @State private var navigateToCashPayment = false
     @State private var navigateToEPayment = false
+
     @EnvironmentObject var appState: AppState
-    
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
+
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 // Header
                 HStack {
@@ -26,7 +28,7 @@ struct CheckoutSummaryView: View {
                     Spacer()
                     Button(action: {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        isPresented = false // 手動關閉 sheet
+                        isPresented = false
                     }) {
                         Image(systemName: "xmark")
                             .foregroundColor(.gray)
@@ -56,7 +58,8 @@ struct CheckoutSummaryView: View {
                                                 .background(Color.blue.opacity(0.2))
                                                 .cornerRadius(4)
                                             
-                                            Text("NT$\(Int(item.price * (1 - Double(item.discount) / 100)))")
+                                            let discountedPrice = (item.price * (1 - Double(item.discount) / 100)).rounded()
+                                            Text("NT$\(Int(discountedPrice))")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         } else {
@@ -74,7 +77,6 @@ struct CheckoutSummaryView: View {
                                     .fontWeight(.semibold)
                             }
                         }
-
                     }
                     .padding()
                 }
@@ -91,17 +93,24 @@ struct CheckoutSummaryView: View {
                 }
                 .padding()
                 
-                VStack(spacing: 12) {
-                    // NavigationLink to CashPaymentView
-                    NavigationLink(destination:
-                                    CashPaymentView(totalAmount: totalAmount) {
-                        // 付款完成時，關閉 sheet（CheckoutSummaryView）
-                        isPresented = false
-                    }
-                        .environmentObject(appState),
-                                   isActive: $navigateToCashPayment
-                    ) {
-                        EmptyView()
+                VStack(spacing: 3) {
+                    // MARK: - NavigationLink to CashPaymentView
+                    if let currentSession = appState.currentSession {
+                        NavigationLink(
+                            destination: CashPaymentView(
+                                totalAmount: totalAmount,
+                                session: currentSession,
+                                summaryItems: selectedItems
+                            ) {
+                                isPresented = false
+                            }
+                                .environmentObject(transactionDataManager)
+                                .environmentObject(appState), // optional, if needed inside CashPaymentView
+                            isActive: $navigateToCashPayment
+                        ) {
+                            Text("") // 避免 EmptyView 被忽略
+                                .hidden()
+                        }
                     }
                     
                     Button {
@@ -122,15 +131,15 @@ struct CheckoutSummaryView: View {
                         .cornerRadius(12)
                     }
                     
-                    // NavigationLink to EPaymentView
-                    NavigationLink(destination:
-                                    EPaymentView(totalAmount: totalAmount)
-                        .environmentObject(appState),
-                                   isActive: $navigateToEPayment
+                    // MARK: - NavigationLink to EPaymentView
+                    NavigationLink(
+                        destination: EPaymentView(totalAmount: totalAmount)
+                            .environmentObject(transactionDataManager),
+                        isActive: $navigateToEPayment
                     ) {
-                        EmptyView()
+                        Text("")
+                            .hidden()
                     }
-                    
                     
                     Button {
                         navigateToEPayment = true
@@ -152,7 +161,6 @@ struct CheckoutSummaryView: View {
                 }
                 .padding()
             }
-            .navigationBarHidden(true)
         }
     }
 }
