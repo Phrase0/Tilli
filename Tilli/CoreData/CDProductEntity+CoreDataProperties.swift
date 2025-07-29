@@ -23,6 +23,7 @@ extension CDProductEntity {
     @NSManaged public var category: String
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
+    @NSManaged public var session: CDSessionEntity
 }
 
 extension CDProductEntity {

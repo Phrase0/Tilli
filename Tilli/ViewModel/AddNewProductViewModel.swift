@@ -72,15 +72,6 @@ class AddNewProductViewModel: ObservableObject {
     }
     
     // MARK: - 儲存動作
-//    func save() -> Bool {
-//        guard let product = createProductIfValid() else {
-//            showValidationError = true
-//            return false
-//        }
-//        productDataManager.addProduct(product)
-//        onSave()
-//        return true
-//    }
     func save(using productDataManager: ProductDataManager) -> Bool {
         guard let product = createProductIfValid() else {
             showValidationError = true

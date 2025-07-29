@@ -100,15 +100,16 @@ extension CDSessionEntity {
             self.addToProducts(product)
         }
 
-        // 更新 transactions（可選）
-//        self.removeFromTransactions(self.transactions ?? [])
-//        for tx in model.transactions {
-//            let cdTx = CDTransactionEntity(context: context)
-//            cdTx.update(from: tx)
-//            self.addToTransactions(cdTx)
-//        }
+        // 更新 transactions
+        self.removeFromTransactions(self.transactions ?? [])
+        for transactionModel in model.transactions {
+            let cdTx = CDTransactionEntity(context: context)
+            cdTx.update(from: transactionModel, context: context)
+            self.addToTransactions(cdTx)
+        }
     }
 
+    // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
         let productModels: [ProductModel] = (products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
         let transactionModels: [TransactionModel] = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
