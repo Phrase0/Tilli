@@ -16,10 +16,10 @@ class SessionStorage {
             UserDefaults.standard.removeObject(forKey: currentSessionKey)
         }
     }
-
-    static func loadCurrentSessionId() -> UUID? {
-        guard let idString = UserDefaults.standard.string(forKey: currentSessionKey),
-              let uuid = UUID(uuidString: idString) else { return nil }
-        return uuid
-    }
+//
+//    static func loadCurrentSessionId() -> UUID? {
+//        guard let idString = UserDefaults.standard.string(forKey: currentSessionKey),
+//              let uuid = UUID(uuidString: idString) else { return nil }
+//        return uuid
+//    }
 }
