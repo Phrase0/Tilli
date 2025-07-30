@@ -40,8 +40,7 @@ class CashPaymentViewModel: ObservableObject {
         sessionDataManager: SessionDataManager,
         productDataManager: ProductDataManager
     ) -> SessionModel {
-        
-//        var updatedSession = session
+
 
         for item in summaryItems {
             guard let matchedProduct = productDataManager.products.first(where: { $0.id == item.productId }) else {

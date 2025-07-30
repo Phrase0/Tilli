@@ -18,10 +18,13 @@ struct SessionDetailView: View {
     @State private var showClearAlert = false
     @State private var showCheckoutSheet = false
     @State private var selectedTab: Int = 0
+    @State private var checkoutCompleted = false
+
 
     init(session: Binding<SessionModel>) {
         self._session = session
-        self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session.wrappedValue))
+        self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
+
     }
     
     var body: some View {
@@ -133,13 +136,16 @@ struct SessionDetailView: View {
                 selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
                 totalAmount: viewModel.totalAmount(),
                 session: $session,
-                isPresented: $showCheckoutSheet
+                isPresented: $showCheckoutSheet,
+                checkoutCompleted: $checkoutCompleted
             )
         }
-        .onChange(of: showCheckoutSheet) {
-            if showCheckoutSheet == false {
+        .onChange(of: checkoutCompleted) {
+                // 結帳完成後的處理
                 viewModel.loadProducts(using: productDataManager)
-            }
+                viewModel.clearAllQuantities()
+                // 重設狀態，避免下次誤觸發
+                checkoutCompleted = false
         }
 
 

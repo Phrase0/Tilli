@@ -5,18 +5,18 @@
 //  Created by Peiyun on 2025/7/8.
 //
 
-import Foundation
+import SwiftUI
 
 class SessionDetailViewModel: ObservableObject {
     
-    @Published var session: SessionModel
+    @Binding var session: SessionModel
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscounts: [UUID: Int] = [:]
     
     
-    init(session: SessionModel) {
-        self.session = session
+    init(session: Binding<SessionModel>) {
+        self._session = session
     }
     
     func loadProducts(using productDataManager: ProductDataManager) {

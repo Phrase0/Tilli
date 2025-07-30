@@ -13,8 +13,11 @@ struct CheckoutSummaryView: View {
 
     @Binding var session: SessionModel
     @Binding var isPresented: Bool
+    @Binding var checkoutCompleted: Bool
+
     @State private var navigateToCashPayment = false
     @State private var navigateToEPayment = false
+    
 
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var transactionDataManager: TransactionDataManager
@@ -105,6 +108,7 @@ struct CheckoutSummaryView: View {
                                 summaryItems: selectedItems
                             ) { updatedSession in
                                 self.session = updatedSession
+                                checkoutCompleted = true
                                 isPresented = false
                             }
                             .environmentObject(transactionDataManager)
