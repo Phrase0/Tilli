@@ -14,20 +14,29 @@ struct CashPaymentView: View {
     
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var productDataManager: ProductDataManager
     
-    var onComplete: () -> Void
+    @Binding var session: SessionModel
     
-    @StateObject private var viewModel: CashPaymentViewModel
-
-    init(totalAmount: Int, session: SessionModel, summaryItems: [SummaryItemModel], onComplete: @escaping () -> Void) {
-        self._viewModel = StateObject(wrappedValue: CashPaymentViewModel(
+    var onComplete: (SessionModel) -> Void
+    
+    @ObservedObject var viewModel: CashPaymentViewModel
+    
+    init(
+        totalAmount: Int,
+        session: Binding<SessionModel>,
+        summaryItems: [SummaryItemModel],
+        onComplete: @escaping (SessionModel) -> Void
+    ) {
+        self._session = session
+        self._viewModel = ObservedObject(wrappedValue: CashPaymentViewModel(
             totalAmount: totalAmount,
-            session: session,
+            session: session.wrappedValue,
             summaryItems: summaryItems
         ))
         self.onComplete = onComplete
     }
-
+    
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
@@ -44,7 +53,7 @@ struct CashPaymentView: View {
                         .foregroundColor(.black)
                 }
             }
-
+            
             Divider()
             
             VStack(alignment: .leading, spacing: 8) {
@@ -83,17 +92,17 @@ struct CashPaymentView: View {
                     }
                 }
             }
-
+            
             Spacer()
             
             VStack(spacing: 12) {
                 Button(action: {
                     if viewModel.isAmountValid {
-                        viewModel.performCheckout(
+                        let updatedSession = viewModel.performCheckout(
                             transactionDataManager: transactionDataManager,
-                            sessionDataManager: sessionDataManager
+                            sessionDataManager: sessionDataManager, productDataManager: productDataManager
                         )
-                        onComplete()
+                        onComplete(updatedSession)
                         dismiss()
                     }
                 }) {

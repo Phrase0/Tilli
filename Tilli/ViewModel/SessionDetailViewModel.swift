@@ -9,7 +9,7 @@ import Foundation
 
 class SessionDetailViewModel: ObservableObject {
     
-    let session: SessionModel
+    @Published var session: SessionModel
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscounts: [UUID: Int] = [:]

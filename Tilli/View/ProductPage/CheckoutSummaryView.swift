@@ -11,6 +11,7 @@ struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Int
 
+    @Binding var session: SessionModel
     @Binding var isPresented: Bool
     @State private var navigateToCashPayment = false
     @State private var navigateToEPayment = false
@@ -58,7 +59,7 @@ struct CheckoutSummaryView: View {
                                                 .background(Color.blue.opacity(0.2))
                                                 .cornerRadius(4)
                                             
-                                            let discountedPrice = (item.price * (1 - Double(item.discount) / 100)).rounded()
+                                            let discountedPrice = Int((item.price * (1 - Double(item.discount) / 100)).rounded())
                                             Text("NT$\(Int(discountedPrice))")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
@@ -93,26 +94,26 @@ struct CheckoutSummaryView: View {
                 }
                 .padding()
                 
-                VStack(spacing: 3) {
-                    // MARK: - NavigationLink to CashPaymentView
-                    if let currentSession = appState.currentSession {
-                        NavigationLink(
-                            destination: CashPaymentView(
+                // MARK: - Payment Options
+                VStack(spacing: 8) {
+                    // Cash Payment Navigation
+                    NavigationLink(
+                        destination:
+                            CashPaymentView(
                                 totalAmount: totalAmount,
-                                session: currentSession,
+                                session: $session,
                                 summaryItems: selectedItems
-                            ) {
+                            ) { updatedSession in
+                                self.session = updatedSession
                                 isPresented = false
                             }
-                                .environmentObject(transactionDataManager)
-                                .environmentObject(appState), // optional, if needed inside CashPaymentView
-                            isActive: $navigateToCashPayment
-                        ) {
-                            Text("") // 避免 EmptyView 被忽略
-                                .hidden()
-                        }
+                            .environmentObject(transactionDataManager)
+                            .environmentObject(appState),
+                        isActive: $navigateToCashPayment
+                    ) {
+                        EmptyView()
                     }
-                    
+
                     Button {
                         navigateToCashPayment = true
                     } label: {
@@ -130,17 +131,17 @@ struct CheckoutSummaryView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(12)
                     }
-                    
-                    // MARK: - NavigationLink to EPaymentView
+
+                    // E-Payment Navigation
                     NavigationLink(
-                        destination: EPaymentView(totalAmount: totalAmount)
-                            .environmentObject(transactionDataManager),
+                        destination:
+                            EPaymentView(totalAmount: totalAmount)
+                                .environmentObject(transactionDataManager),
                         isActive: $navigateToEPayment
                     ) {
-                        Text("")
-                            .hidden()
+                        EmptyView()
                     }
-                    
+
                     Button {
                         navigateToEPayment = true
                     } label: {

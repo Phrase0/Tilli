@@ -18,7 +18,7 @@ struct ContentView: View {
                 .tabItem { Label("Calendar", systemImage: "calendar") }
                 .tag(0)
 
-            SessionsView(sessionDataManager: sessionDataManager)
+            SessionsView()
                 .environmentObject(appState)
                 .tabItem { Label("Sessions", systemImage: "folder") }
                 .tag(1)

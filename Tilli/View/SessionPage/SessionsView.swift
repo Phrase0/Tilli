@@ -13,30 +13,27 @@ struct SessionsView: View {
     @EnvironmentObject var appState: AppState
 
     @State private var searchText = ""
-    // 控制新增頁面導航
     @State private var isNavigatingToAddSession = false
-    // 用來儲存當前想要編輯的 Session
     @State private var editingSession: SessionModel? = nil
     
-    @StateObject private var viewModel: SessionViewModel
-
-    init(sessionDataManager: SessionDataManager) {
-        _viewModel = StateObject(wrappedValue: SessionViewModel())
-    }
+    @StateObject private var viewModel = SessionViewModel()
 
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.filteredSessions(by: searchText)) { session in
-                        NavigationLink(destination:
-                                        SessionDetailView(session: session)
-                        ) {
-                            sessionCard(session)
+                        // 取得 session 在 sessions 陣列的索引
+                        if let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) {
+                            NavigationLink(destination:
+                                            SessionDetailView(session: $viewModel.sessions[index])
+                            ) {
+                                sessionCard(session)
+                            }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                appState.currentSession = session
+                            })
                         }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            appState.currentSession = session
-                        })
                     }
                 }
                 .padding()
@@ -56,7 +53,6 @@ struct SessionsView: View {
                     }
                 }
             }
-            // 隱藏式 NavigationLink 用來觸發編輯頁面導航
             .background(
                 NavigationLink(
                     destination: editingSession != nil ?
@@ -78,9 +74,7 @@ struct SessionsView: View {
                     .hidden()
             )
             .onAppear {
-                // 初次載入時同步 ViewModel 的 sessions
                 viewModel.sessions = sessionDataManager.sessions
-                // 清空 currentSession，確保從明細返回時沒殘留
                 appState.currentSession = nil
             }
         }
@@ -121,15 +115,6 @@ struct SessionsView: View {
                             .buttonStyle(PlainButtonStyle())
                         }
                     }
-                    
-                    //                    Text("NT$\(session.amount.formatted())")
-                    //                        .font(.subheadline)
-                    //                        .fontWeight(.bold)
-                    //                        .foregroundColor(.black)
-                    //                        .padding(.horizontal, 8)
-                    //                        .padding(.vertical, 4)
-                    //                        .background(Color(.systemGray6))
-                    //                        .clipShape(Capsule())
                 }
             }
         }

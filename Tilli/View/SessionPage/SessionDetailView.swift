@@ -13,14 +13,15 @@ struct SessionDetailView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
     
+    @Binding var session: SessionModel
+    
     @State private var showClearAlert = false
     @State private var showCheckoutSheet = false
     @State private var selectedTab: Int = 0
 
-    init(session: SessionModel) {
-        self._viewModel = StateObject(
-            wrappedValue: SessionDetailViewModel(session: session)
-        )
+    init(session: Binding<SessionModel>) {
+        self._session = session
+        self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session.wrappedValue))
     }
     
     var body: some View {
@@ -131,9 +132,17 @@ struct SessionDetailView: View {
             CheckoutSummaryView(
                 selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
                 totalAmount: viewModel.totalAmount(),
+                session: $session,
                 isPresented: $showCheckoutSheet
             )
         }
+        .onChange(of: showCheckoutSheet) {
+            if showCheckoutSheet == false {
+                viewModel.loadProducts(using: productDataManager)
+            }
+        }
+
+
     }
     
     private func productCard(_ product: ProductModel) -> some View {
