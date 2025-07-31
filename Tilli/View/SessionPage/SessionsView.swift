@@ -15,24 +15,14 @@ struct SessionsView: View {
     @State private var searchText = ""
     @State private var isNavigatingToAddSession = false
     @State private var editingSession: SessionModel? = nil
-    @State private var sessionToDelete: SessionModel? = nil
     @State private var showDeleteConfirmation = false
-    
+    @State private var selectedSessionID: UUID? = nil
     
     @StateObject private var viewModel: SessionViewModel
+    
     init() {
         _viewModel = StateObject(wrappedValue: SessionViewModel())
     }
-    
-    @State private var selectedSessionID: UUID? = nil
-    
-    private func binding(for session: SessionModel) -> Binding<SessionModel>? {
-        guard let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) else {
-            return nil
-        }
-        return $viewModel.sessions[index]
-    }
-    
     
     
     var body: some View {
@@ -62,10 +52,7 @@ struct SessionsView: View {
                                     }
                                     .hidden()
                                 }
-                                
                             }
-                            
-                            
                         }
                     }
                 }
@@ -156,7 +143,15 @@ struct SessionsView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
+    
+    private func binding(for session: SessionModel) -> Binding<SessionModel>? {
+        guard let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) else {
+            return nil
+        }
+        return $viewModel.sessions[index]
+    }
 }
+
 
 
 struct SwipeToDeleteCardView<Content: View>: View {
