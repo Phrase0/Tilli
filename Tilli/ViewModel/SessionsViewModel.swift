@@ -19,6 +19,11 @@ class SessionViewModel: ObservableObject {
             }
         }
     }
+    
+    func deleteSession(_ session: SessionModel,using sessionDataManager: SessionDataManager) {
+        sessionDataManager.deleteSession(session)
+        sessions = sessionDataManager.sessions
+    }
 
 }
 

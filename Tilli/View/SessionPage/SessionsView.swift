@@ -11,28 +11,61 @@ struct SessionsView: View {
     
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var appState: AppState
-
+    
     @State private var searchText = ""
     @State private var isNavigatingToAddSession = false
     @State private var editingSession: SessionModel? = nil
+    @State private var sessionToDelete: SessionModel? = nil
+    @State private var showDeleteConfirmation = false
     
-    @StateObject private var viewModel = SessionViewModel()
-
+    
+    @StateObject private var viewModel: SessionViewModel
+    init() {
+        _viewModel = StateObject(wrappedValue: SessionViewModel())
+    }
+    
+    @State private var selectedSessionID: UUID? = nil
+    
+    private func binding(for session: SessionModel) -> Binding<SessionModel>? {
+        guard let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) else {
+            return nil
+        }
+        return $viewModel.sessions[index]
+    }
+    
+    
+    
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.filteredSessions(by: searchText)) { session in
                         // 取得 session 在 sessions 陣列的索引
-                        if let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) {
-                            NavigationLink(destination:
-                                            SessionDetailView(session: $viewModel.sessions[index])
-                            ) {
+                        SwipeToDeleteCardView(session: session) {
+                            viewModel.deleteSession(session, using: sessionDataManager)
+                        } content: {
+                            ZStack {
                                 sessionCard(session)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedSessionID = session.id
+                                        appState.currentSession = session
+                                    }
+                                // 這裡改為搜尋 binding 而不是用 index
+                                if let binding = binding(for: session) {
+                                    NavigationLink(
+                                        destination: SessionDetailView(session: binding),
+                                        tag: session.id,
+                                        selection: $selectedSessionID
+                                    ) {
+                                        EmptyView()
+                                    }
+                                    .hidden()
+                                }
+                                
                             }
-                            .simultaneousGesture(TapGesture().onEnded {
-                                appState.currentSession = session
-                            })
+                            
+                            
                         }
                     }
                 }
@@ -122,5 +155,65 @@ struct SessionsView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+}
+
+
+struct SwipeToDeleteCardView<Content: View>: View {
+    let session: SessionModel
+    let onDelete: () -> Void
+    let content: () -> Content
+    
+    @State private var offsetX: CGFloat = 0
+    @GestureState private var isDragging = false
+    @State private var showDeleteConfirmation = false
+    
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            // 背後的紅色刪除區域
+            HStack {
+                Spacer()
+                Button {
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.red)
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 16)
+            }
+            
+            // 前方卡片
+            content()
+                .background(Color.white)
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+                .offset(x: offsetX)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if value.translation.width < 0 {
+                                offsetX = max(value.translation.width, -80)
+                            }
+                        }
+                        .onEnded { value in
+                            withAnimation {
+                                if value.translation.width < -50 {
+                                    offsetX = -80
+                                } else {
+                                    offsetX = 0
+                                }
+                            }
+                        }
+                )
+                .alert("確定要刪除這個場次嗎？", isPresented: $showDeleteConfirmation) {
+                    Button("刪除", role: .destructive, action: onDelete)
+                    Button("取消", role: .cancel) { }
+                } message: {
+                    Text("此操作將無法還原。")
+                }
+        }
     }
 }
