@@ -29,7 +29,7 @@ struct SessionsView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(viewModel.filteredSessions(by: searchText)) { session in
+                    ForEach(viewModel.sortedFilteredSessions(by: searchText)) { session in
                         sessionCard(session)
                             .onTapGesture {
                                 selectedSession = session
@@ -128,8 +128,11 @@ struct SessionsView: View {
             }
         }
         .padding()
-        .background(Color.white)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(session.status == .ongoing ? Color.blue.opacity(0.1) : Color.white)
+        )
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }

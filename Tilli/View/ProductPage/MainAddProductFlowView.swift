@@ -22,6 +22,20 @@ struct MainAddProductFlowView: View {
             searchText.isEmpty || session.title.localizedStandardContains(searchText)
         }
     }
+    
+    var sortedFilteredSessions: [SessionModel] {
+         let filtered = filteredSessions
+         return filtered.sorted {
+             switch ($0.status, $1.status) {
+             case (.ongoing, _): return true
+             case (_, .ongoing): return false
+             case (.upcoming, .completed): return true
+             case (.completed, .upcoming): return false
+             default:
+                 return $0.date > $1.date // 同類型比日期
+             }
+         }
+     }
 
     var body: some View {
         VStack {
@@ -42,7 +56,7 @@ struct MainAddProductFlowView: View {
                 NavigationView {
                     ScrollView {
                         LazyVStack(spacing: 12) {
-                            ForEach(filteredSessions) { session in
+                            ForEach(sortedFilteredSessions) { session in
                                 SessionCardView(session: session) {
                                     appState.currentSession = session
                                     showAddProduct = true

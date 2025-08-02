@@ -50,8 +50,6 @@ class AddSessionViewModel: ObservableObject {
         let baseSession = editingSession ?? SessionModel(
             title: "",
             date: Date(),
-            status: .ongoing,
-//            amount: 0,
             categories: [],
             createdAt: Date(),
             products: []
@@ -61,8 +59,6 @@ class AddSessionViewModel: ObservableObject {
             id: baseSession.id,
             title: sessionName,
             date: sessionDate,
-            status: baseSession.status,
-//            amount: baseSession.amount,
             categories: categories,
             createdAt: baseSession.createdAt,
             products: baseSession.products

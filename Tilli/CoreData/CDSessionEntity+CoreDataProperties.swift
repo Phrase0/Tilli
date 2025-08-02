@@ -19,7 +19,6 @@ extension CDSessionEntity {
     @NSManaged public var title: String
     @NSManaged public var date: Date
     @NSManaged public var createdAt: Date
-    @NSManaged public var status: String
     @NSManaged public var categories: String
     @NSManaged public var products: NSSet?
     @NSManaged public var transactions: NSSet?
@@ -64,15 +63,6 @@ extension CDSessionEntity {
 
 extension CDSessionEntity {
 
-    var wrappedStatus: SessionStatus {
-        get {
-            SessionStatus(rawValue: self.status) ?? .ongoing
-        }
-        set {
-            self.status = newValue.rawValue
-        }
-    }
-
     var wrappedCategories: [String] {
         get {
             guard let json = self.categories.data(using: .utf8) else { return [] }
@@ -88,7 +78,6 @@ extension CDSessionEntity {
         self.id = model.id
         self.title = model.title
         self.date = model.date
-        self.wrappedStatus = model.status
         self.createdAt = model.createdAt
         self.wrappedCategories = model.categories
         
@@ -118,7 +107,6 @@ extension CDSessionEntity {
             id: self.id,
             title: self.title,
             date: self.date,
-            status: self.wrappedStatus,
             categories: self.wrappedCategories,
             createdAt: self.createdAt,
             products: productModels,
