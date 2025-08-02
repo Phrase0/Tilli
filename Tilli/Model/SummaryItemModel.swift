@@ -6,11 +6,12 @@
 //
 import SwiftUI
 
-struct SummaryItemModel: Identifiable, Codable {
+struct SummaryItemModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var productId: UUID              // 對應的 Product ID（為了避免資料冗長，僅存 ID）
     var name: String                 // 快照：交易當下商品名稱（避免名稱變動）
     var price: Double                // 快照：單價
+    var category: String
     var quantity: Int
     var discount: Int               // 0~100 百分比折扣
     var timestamp: Date             // 交易發生時間

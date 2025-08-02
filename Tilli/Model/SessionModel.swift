@@ -7,7 +7,7 @@
 //
 import SwiftUI
 
-struct SessionModel: Identifiable, Codable {
+struct SessionModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String                  // 場次名稱，例如「2025/08/01 花博市集」
     var date: Date                    // 場次日期，主要報表依據

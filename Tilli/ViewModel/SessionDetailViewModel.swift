@@ -79,6 +79,7 @@ class SessionDetailViewModel: ObservableObject {
                 productId: product.id,
                 name: product.name,
                 price: product.price,
+                category:product.category,
                 quantity: qty,
                 discount: discount,
                 timestamp: Date()
