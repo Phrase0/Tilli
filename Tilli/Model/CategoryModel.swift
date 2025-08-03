@@ -1,0 +1,22 @@
+//
+//  CategoryModel.swift
+//  Tilli
+//
+//  Created by Peiyun on 2025/8/3.
+//
+import SwiftUI
+
+struct CategoryModel: Identifiable, Codable, Hashable {
+    var id: UUID = UUID()
+    var name: String
+    var products: [ProductModel] = []
+}
+
+extension CategoryModel {
+    init(entity: CDCategoryEntity) {
+        self.id = entity.id
+        self.name = entity.name
+        self.products = (entity.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
+    }
+}
+

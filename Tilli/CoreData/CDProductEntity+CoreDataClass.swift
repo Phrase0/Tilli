@@ -2,7 +2,7 @@
 //  CDProductEntity+CoreDataClass.swift
 //  Tilli
 //
-//  Created by Peiyun on 2025/7/25.
+//  Created by Peiyun on 2025/8/3.
 //
 //
 

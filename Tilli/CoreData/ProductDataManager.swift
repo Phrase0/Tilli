@@ -13,8 +13,6 @@ class ProductDataManager: ObservableObject {
     private let context: NSManagedObjectContext
 
     @Published var products: [ProductModel] = []
-    
-    static let shared = ProductDataManager()
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
@@ -24,27 +22,24 @@ class ProductDataManager: ObservableObject {
 
     // MARK: - Create
     func addProduct(_ model: ProductModel) {
-        // 找到對應 session
-        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        sessionRequest.predicate = NSPredicate(format: "id == %@", model.sessionId as CVarArg)
-        
+        // 1. 找到對應的 category
+        let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", model.categoryId as CVarArg)
+
         do {
-            guard let sessionEntity = try context.fetch(sessionRequest).first else {
-                print("找不到對應 session，無法加入 product")
+            guard let categoryEntity = try context.fetch(request).first else {
+                print("找不到對應 category，無法加入 product")
                 return
             }
-            
-            // 建立新的 product entity
+
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: model, context: context)
-            
-            // 加入 session 的 products 集合
-            sessionEntity.addToProducts(productEntity)
-            
-            // 儲存
+
+            // 加入 category 的 products
+            categoryEntity.addToProducts(productEntity)
+
             saveContext()
             fetchAllProducts()
-            
         } catch {
             print("加入 product 失敗:", error)
         }

@@ -11,9 +11,8 @@ struct SessionModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String                  // 場次名稱，例如「2025/08/01 花博市集」
     var date: Date                    // 場次日期，主要報表依據
-    var categories: [String]         // 類別選單，用於過濾商品或報表
+    var categories: [CategoryModel]         // 類別選單，用於過濾商品或報表
     var createdAt: Date              // 場次建立時間
-    var products: [ProductModel]     // 該場次所有商品
     var transactions: [TransactionModel] = []  // 場次中發生的交易紀錄（新增）
     
     var status: SessionStatus {  // 進行中 / 已結束
@@ -29,7 +28,6 @@ struct SessionModel: Identifiable, Codable, Hashable {
         }
     }
 }
-
 
 
 enum SessionStatus: String, Codable {

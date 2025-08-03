@@ -13,6 +13,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var name: String
     var price: Double
     var stock: Int                   // 初始庫存
+    var categoryId: UUID
     var category: String
     var note: String?
     var imageData: Data?             // 可選圖片（轉 UIImage 用 image）
@@ -35,8 +36,11 @@ extension ProductModel {
         self.name = entity.name
         self.price = entity.price
         self.stock = Int(entity.stock)
-        self.category = entity.category
         self.note = entity.note
         self.imageData = entity.imageData
+        
+        self.categoryId = entity.category.id
+        self.category = entity.category.name
     }
 }
+

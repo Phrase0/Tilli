@@ -2,7 +2,7 @@
 //  CDSessionEntity+CoreDataProperties.swift
 //  Tilli
 //
-//  Created by Peiyun on 2025/7/27.
+//  Created by Peiyun on 2025/8/3.
 //
 //
 
@@ -15,30 +15,13 @@ extension CDSessionEntity {
         return NSFetchRequest<CDSessionEntity>(entityName: "CDSessionEntity")
     }
 
+    
     @NSManaged public var id: UUID
     @NSManaged public var title: String
     @NSManaged public var date: Date
     @NSManaged public var createdAt: Date
-    @NSManaged public var categories: String
-    @NSManaged public var products: NSSet?
+    @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
-
-}
-
-// MARK: Generated accessors for products
-extension CDSessionEntity {
-
-    @objc(addProductsObject:)
-    @NSManaged public func addToProducts(_ value: CDProductEntity)
-
-    @objc(removeProductsObject:)
-    @NSManaged public func removeFromProducts(_ value: CDProductEntity)
-
-    @objc(addProducts:)
-    @NSManaged public func addToProducts(_ values: NSSet)
-
-    @objc(removeProducts:)
-    @NSManaged public func removeFromProducts(_ values: NSSet)
 
 }
 
@@ -59,37 +42,49 @@ extension CDSessionEntity {
 
 }
 
-
-
+// MARK: Generated accessors for categories
 extension CDSessionEntity {
 
-    var wrappedCategories: [String] {
-        get {
-            guard let json = self.categories.data(using: .utf8) else { return [] }
-            return (try? JSONDecoder().decode([String].self, from: json)) ?? []
-        }
-        set {
-            let data = try? JSONEncoder().encode(newValue)
-            self.categories = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-        }
-    }
+    @objc(addCategoriesObject:)
+    @NSManaged public func addToCategories(_ value: CDCategoryEntity)
+
+    @objc(removeCategoriesObject:)
+    @NSManaged public func removeFromCategories(_ value: CDCategoryEntity)
+
+    @objc(addCategories:)
+    @NSManaged public func addToCategories(_ values: NSSet)
+
+    @objc(removeCategories:)
+    @NSManaged public func removeFromCategories(_ values: NSSet)
+
+}
+
+extension CDSessionEntity {
 
     func update(from model: SessionModel, context: NSManagedObjectContext) {
         self.id = model.id
         self.title = model.title
         self.date = model.date
         self.createdAt = model.createdAt
-        self.wrappedCategories = model.categories
-        
-        // 更新 products
-        self.removeFromProducts(self.products ?? [])
-        for productModel in model.products {
-            let product = CDProductEntity(context: context)
-            product.update(from: productModel, context: context)
-            self.addToProducts(product)
+
+        // 更新分類（先清除再加）
+        self.removeFromCategories(self.categories)
+        for categoryModel in model.categories {
+            let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", categoryModel.id as CVarArg)
+            request.fetchLimit = 1
+
+            if let existingCategory = try? context.fetch(request).first {
+                existingCategory.update(from: categoryModel, context: context)
+                self.addToCategories(existingCategory)
+            } else {
+                let newCategory = CDCategoryEntity(context: context)
+                newCategory.update(from: categoryModel, context: context)
+                self.addToCategories(newCategory)
+            }
         }
 
-        // 更新 transactions
+        // 更新交易
         self.removeFromTransactions(self.transactions ?? [])
         for transactionModel in model.transactions {
             let cdTx = CDTransactionEntity(context: context)
@@ -100,17 +95,22 @@ extension CDSessionEntity {
 
     // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
-        let productModels: [ProductModel] = (products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
-        let transactionModels: [TransactionModel] = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
+        // 取出所有 CategoryModel
+        let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
+
+        // 所有產品集中為一份 array（optional：可刪除）
+        let allProducts: [ProductModel] = categoryModels.flatMap { $0.products }
+
+        let transactionModels = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
 
         return SessionModel(
             id: self.id,
             title: self.title,
             date: self.date,
-            categories: self.wrappedCategories,
+            categories: categoryModels,
             createdAt: self.createdAt,
-            products: productModels,
             transactions: transactionModels
         )
     }
 }
+

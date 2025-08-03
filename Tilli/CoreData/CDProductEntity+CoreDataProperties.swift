@@ -2,7 +2,7 @@
 //  CDProductEntity+CoreDataProperties.swift
 //  Tilli
 //
-//  Created by Peiyun on 2025/7/25.
+//  Created by Peiyun on 2025/8/3.
 //
 //
 
@@ -10,7 +10,7 @@ import Foundation
 import CoreData
 
 extension CDProductEntity {
-    
+
     @nonobjc public class func fetchRequest() -> NSFetchRequest<CDProductEntity> {
         return NSFetchRequest<CDProductEntity>(entityName: "CDProductEntity")
     }
@@ -20,10 +20,10 @@ extension CDProductEntity {
     @NSManaged public var name: String
     @NSManaged public var price: Double
     @NSManaged public var stock: Int32
-    @NSManaged public var category: String
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
-    @NSManaged public var session: CDSessionEntity
+    @NSManaged public var category: CDCategoryEntity
+
 }
 
 extension CDProductEntity {
@@ -34,9 +34,23 @@ extension CDProductEntity {
         self.name = model.name
         self.price = model.price
         self.stock = Int32(model.stock)
-        self.category = model.category
         self.note = model.note
         self.imageData = model.imageData
+
+        // 確保分類已存在 → 強制 unwrap
+        let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", model.categoryId as CVarArg)
+        request.fetchLimit = 1
+
+        do {
+            if let category = try context.fetch(request).first {
+                self.category = category
+            } else {
+                fatalError("Category with ID \(model.categoryId) not found.")
+            }
+        } catch {
+            fatalError("Failed to fetch category: \(error)")
+        }
     }
 
     func toModel() -> ProductModel {
