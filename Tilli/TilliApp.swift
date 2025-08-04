@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct TilliApp: App {
     @StateObject private var sessionDataManager = SessionDataManager()
+//    @StateObject private var categoryDataManager = CategoryDataManager()
     @StateObject private var productDataManager = ProductDataManager()
     @StateObject private var transactionDataManager = TransactionDataManager()
     
@@ -22,6 +23,7 @@ struct TilliApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(appState)
                 .environmentObject(sessionDataManager)
+//                .environmentObject(categoryDataManager)
                 .environmentObject(productDataManager)
                 .environmentObject(transactionDataManager)
         }

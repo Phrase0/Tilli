@@ -10,7 +10,7 @@ import Foundation
 class AddSessionViewModel: ObservableObject {
     @Published var sessionName: String
     @Published var sessionDate: Date
-    @Published var categories: [String]
+    @Published var categories: [CategoryModel]
     @Published var newCategory: String = ""
 
     var editingSession: SessionModel?
@@ -31,18 +31,19 @@ class AddSessionViewModel: ObservableObject {
     func tryAddCategory() -> String? {
         let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !trimmed.isEmpty else {
-            return nil
-        }
+        guard !trimmed.isEmpty else { return nil }
 
-        if categories.contains(trimmed) {
+        if categories.contains(where: { $0.name == trimmed }) {
             return "此分類已存在"
         }
 
-        categories.append(trimmed)
+        let new = CategoryModel(id: UUID(), name: trimmed)
+        categories.append(new)
+
         DispatchQueue.main.async {
             self.newCategory = ""
         }
+
         return nil
     }
 
@@ -51,8 +52,7 @@ class AddSessionViewModel: ObservableObject {
             title: "",
             date: Date(),
             categories: [],
-            createdAt: Date(),
-            products: []
+            createdAt: Date()
         )
 
         return SessionModel(
@@ -61,7 +61,7 @@ class AddSessionViewModel: ObservableObject {
             date: sessionDate,
             categories: categories,
             createdAt: baseSession.createdAt,
-            products: baseSession.products
+            transactions: baseSession.transactions
         )
     }
 }

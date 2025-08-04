@@ -4,7 +4,7 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" attributeType="String"/>
         <relationship name="products" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDProductEntity" inverseName="category" inverseEntity="CDProductEntity"/>
-        <relationship name="session" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="categories" inverseEntity="CDSessionEntity"/>
+        <relationship name="session" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="categories" inverseEntity="CDSessionEntity"/>
     </entity>
     <entity name="CDProductEntity" representedClassName="CDProductEntity" syncable="YES">
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
@@ -14,14 +14,14 @@
         <attribute name="price" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="stock" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDCategoryEntity" inverseName="products" inverseEntity="CDCategoryEntity"/>
+        <relationship name="category" maxCount="1" deletionRule="Nullify" destinationEntity="CDCategoryEntity" inverseName="products" inverseEntity="CDCategoryEntity"/>
     </entity>
     <entity name="CDSessionEntity" representedClassName="CDSessionEntity" syncable="YES">
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="title" attributeType="String"/>
-        <relationship name="categories" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDCategoryEntity" inverseName="session" inverseEntity="CDCategoryEntity"/>
+        <relationship name="categories" toMany="YES" deletionRule="Cascade" destinationEntity="CDCategoryEntity" inverseName="session" inverseEntity="CDCategoryEntity"/>
         <relationship name="transactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTransactionEntity" inverseName="session" inverseEntity="CDTransactionEntity"/>
     </entity>
     <entity name="CDTransactionEntity" representedClassName="CDTransactionEntity" syncable="YES">

@@ -39,9 +39,5 @@ class SessionViewModel: ObservableObject {
         sessionDataManager.deleteSession(session)
         sessions = sessionDataManager.sessions
     }
-    
-
-
-
 }
 

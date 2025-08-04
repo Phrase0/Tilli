@@ -92,14 +92,15 @@ extension CDSessionEntity {
             self.addToTransactions(cdTx)
         }
     }
-
+    
+    
     // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
         // 取出所有 CategoryModel
         let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
 
         // 所有產品集中為一份 array（optional：可刪除）
-        let allProducts: [ProductModel] = categoryModels.flatMap { $0.products }
+//        let allProducts: [ProductModel] = categoryModels.flatMap { $0.products }
 
         let transactionModels = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
 
@@ -112,5 +113,7 @@ extension CDSessionEntity {
             transactions: transactionModels
         )
     }
+    
+    
 }
 

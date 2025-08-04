@@ -10,6 +10,7 @@ import SwiftUI
 class SessionDetailViewModel: ObservableObject {
     
     @Binding var session: SessionModel
+    @Published var categories: [CategoryModel] = []
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscounts: [UUID: Int] = [:]
@@ -21,6 +22,7 @@ class SessionDetailViewModel: ObservableObject {
     
     func loadProducts(using productDataManager: ProductDataManager) {
         products = productDataManager.fetchProducts(forSessionId: session.id)
+        categories = session.categories
     }
     
     func increaseQuantity(for product: ProductModel) {
@@ -71,15 +73,17 @@ class SessionDetailViewModel: ObservableObject {
     
     func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
         products.compactMap { product in
-            let qty = quantities[product.id, default: 0]
+            let qty = quantity(for: product)
             guard qty > 0 else { return nil }
-            
+
             let discount = selectedDiscounts[product.id, default: 0]
+
             return SummaryItemModel(
                 productId: product.id,
                 name: product.name,
                 price: product.price,
-                category:product.category,
+                categoryId: product.categoryId,
+                category: product.categoryName,
                 quantity: qty,
                 discount: discount,
                 timestamp: Date()

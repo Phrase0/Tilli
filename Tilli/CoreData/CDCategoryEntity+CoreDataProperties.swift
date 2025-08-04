@@ -46,13 +46,24 @@ extension CDCategoryEntity {
         self.id = model.id
         self.name = model.name
 
-        // 🟢 更新商品（先清空舊的）
-        self.removeFromProducts(self.products ?? [])
-
+        // 修正：不要清空所有商品，因為可能被其他 session 使用
+        // 改為只處理新增的商品
         for productModel in model.products {
-            let product = CDProductEntity(context: context)
-            product.update(from: productModel, context: context)
-            self.addToProducts(product)
+            // 檢查商品是否已存在
+            let existingProduct = (self.products as? Set<CDProductEntity>)?.first {
+                $0.id == productModel.id
+            }
+            
+            if let existing = existingProduct {
+                // 更新現有商品
+                existing.update(from: productModel, context: context)
+            } else {
+                // 創建新商品
+                let product = CDProductEntity(context: context)
+                product.update(from: productModel, context: context)
+                product.category = self
+                self.addToProducts(product)
+            }
         }
     }
 

@@ -19,7 +19,7 @@ class AddNewProductViewModel: ObservableObject {
     @Published var name: String = ""
     @Published var price: String = ""
     @Published var quantity: String = ""
-    @Published var selectedCategory: String = ""
+    @Published var selectedCategory: CategoryModel?
     @Published var description: String = ""
 
     // MARK: - 圖片選擇
@@ -36,7 +36,7 @@ class AddNewProductViewModel: ObservableObject {
         Double(price) != nil &&
         !quantity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         Int(quantity) != nil &&
-        !selectedCategory.isEmpty
+        selectedCategory != nil
     }
     
     // MARK: - 初始化
@@ -46,16 +46,15 @@ class AddNewProductViewModel: ObservableObject {
         self.session = session
         self.onSave = onSave
         self.onCancel = onCancel
-        self.selectedCategory = session.categories.first ?? ""
+        self.selectedCategory = session.categories.first
     }
     
     // MARK: - 依表單建立 ProductModel
     func createProductIfValid() -> ProductModel? {
-        // 驗證資料有效性
-        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        guard let category = selectedCategory,
               let priceValue = Double(price),
               let quantityValue = Int(quantity),
-              !selectedCategory.isEmpty else {
+              !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return nil
         }
         
@@ -65,9 +64,10 @@ class AddNewProductViewModel: ObservableObject {
             name: name,
             price: priceValue,
             stock: quantityValue,
-            category: selectedCategory,
+            categoryId: category.id,
+            categoryName: category.name,
             note: description,
-            imageData: image?.jpegData(compressionQuality: 0.8)  // 直接轉 Data 儲存
+            imageData: image?.jpegData(compressionQuality: 0.8)
         )
     }
     

@@ -53,8 +53,8 @@ struct AddNewProductView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         Picker("Select category", selection: $viewModel.selectedCategory) {
-                            ForEach(viewModel.session.categories, id: \.self) {
-                                Text($0).tag($0)
+                            ForEach(viewModel.session.categories, id: \.id) { category in
+                                Text(category.name).tag(category as CategoryModel?)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())

@@ -54,11 +54,13 @@ struct SessionDetailView: View {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(viewModel.session.categories, id: \.self) { category in
-                            let items = viewModel.products.filter { $0.category == category }
+                        ForEach(viewModel.session.categories, id: \.id) { category in
+                            let items = viewModel.products
+                                .filter { $0.categoryId == category.id }
+                                .sorted { $0.name < $1.name }
                             if !items.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text(category)
+                                    Text(category.name)
                                         .font(.headline)
                                         .padding(.horizontal)
                                     ForEach(items) { product in

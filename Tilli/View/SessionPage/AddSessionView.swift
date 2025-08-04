@@ -41,7 +41,7 @@ struct AddSessionView: View {
 
             Section(header: Text("Categories")) {
                 ForEach(viewModel.categories, id: \.self) { category in
-                    Text(category)
+                    Text(category.name)
                 }
                 .onDelete { indexSet in
                     indexSet.forEach { viewModel.removeCategory(at: $0) }

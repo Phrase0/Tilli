@@ -22,7 +22,6 @@ class ProductDataManager: ObservableObject {
 
     // MARK: - Create
     func addProduct(_ model: ProductModel) {
-        // 1. 找到對應的 category
         let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", model.categoryId as CVarArg)
 
@@ -34,9 +33,7 @@ class ProductDataManager: ObservableObject {
 
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: model, context: context)
-
-            // 加入 category 的 products
-            categoryEntity.addToProducts(productEntity)
+            productEntity.category = categoryEntity
 
             saveContext()
             fetchAllProducts()
@@ -72,6 +69,20 @@ class ProductDataManager: ObservableObject {
     }
 
     // MARK: - Update
+//    func updateProduct(_ model: ProductModel) {
+//        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+//        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+//
+//        do {
+//            if let entity = try context.fetch(request).first {
+//                entity.update(from: model, context: context)
+//                saveContext()
+//                fetchAllProducts()
+//            }
+//        } catch {
+//            print("Update product failed:", error)
+//        }
+//    }
     func updateProduct(_ model: ProductModel) {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
@@ -80,12 +91,16 @@ class ProductDataManager: ObservableObject {
             if let entity = try context.fetch(request).first {
                 entity.update(from: model, context: context)
                 saveContext()
-                fetchAllProducts()
+                // 不要呼叫 fetchAllProducts() 這裡避免不必要的刷新
+                if let index = products.firstIndex(where: { $0.id == model.id }) {
+                    products[index] = model
+                }
             }
         } catch {
             print("Update product failed:", error)
         }
     }
+
 
     // MARK: - Delete
     func deleteProduct(_ model: ProductModel) {
