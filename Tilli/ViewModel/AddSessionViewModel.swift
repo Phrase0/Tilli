@@ -10,11 +10,21 @@ import Foundation
 class AddSessionViewModel: ObservableObject {
     @Published var sessionName: String
     @Published var sessionDate: Date
-    @Published var categories: [CategoryModel]
     @Published var newCategory: String = ""
-
+    @Published var categories: [CategoryModel]
+    @Published var editingCategoryID: UUID?
     var editingSession: SessionModel?
+    
+    var sortedCategories: [CategoryModel] {
+        categories.sorted(by: { $0.createdAt < $1.createdAt })
+    }
+    
+    var selectedCategory: CategoryModel? {
+        sortedCategories.first(where: { $0.id == editingCategoryID })
+    }
 
+    
+    
     init(sessionToEdit: SessionModel? = nil) {
         self.editingSession = sessionToEdit
         self.sessionName = sessionToEdit?.title ?? ""
@@ -22,9 +32,22 @@ class AddSessionViewModel: ObservableObject {
         self.categories = sessionToEdit?.categories ?? []
     }
 
-    func removeCategory(at index: Int) {
-        guard categories.indices.contains(index) else { return }
-        categories.remove(at: index)
+    func updateCategoryName(id: UUID, newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // 避免同名
+        if categories.contains(where: { $0.name == trimmed && $0.id != id }) {
+            return
+        }
+
+        if let index = categories.firstIndex(where: { $0.id == id }) {
+            categories[index].name = trimmed
+        }
+    }
+
+    func removeCategory(byId categoryId: UUID) {
+        categories.removeAll { $0.id == categoryId }
     }
 
     /// 嘗試將 newCategory 加入，成功則清空 newCategory，失敗回傳錯誤訊息

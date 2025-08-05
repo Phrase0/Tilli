@@ -19,7 +19,6 @@ class AddNewProductViewModel: ObservableObject {
     @Published var name: String = ""
     @Published var price: String = ""
     @Published var quantity: String = ""
-    
     @Published var selectedCategoryID: UUID?
     @Published var description: String = ""
     

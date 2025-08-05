@@ -48,7 +48,7 @@ extension CDCategoryEntity {
         self.name = model.name
         self.createdAt = model.createdAt
 
-        // 修正：不要清空所有商品，改為只處理新增的商品
+        self.removeFromProducts(self.products ?? [])
         for productModel in model.products {
             // 檢查商品是否已存在
             let existingProduct = (self.products as? Set<CDProductEntity>)?.first {

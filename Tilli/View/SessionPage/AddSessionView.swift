@@ -40,11 +40,34 @@ struct AddSessionView: View {
             DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
 
             Section(header: Text("Categories")) {
-                ForEach(viewModel.categories.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
-                    Text(category.name)
+                ForEach(viewModel.sortedCategories, id: \.id) { category in
+//                    Text(category.name)
+                    if viewModel.editingCategoryID == category.id {
+                        TextField("Category Name", text: Binding(
+                            get: {
+                                viewModel.selectedCategory?.name ?? ""
+                            },
+                            set: { newValue in
+                                viewModel.updateCategoryName(id: category.id, newName: newValue)
+                            }
+                        ))
+                        .focused($focusedField, equals: .newCategory)
+                        .onSubmit {
+                            viewModel.editingCategoryID = nil
+                        }
+                    } else {
+                        Text(category.name)
+                            .onTapGesture {
+                                viewModel.editingCategoryID = category.id
+                            }
+                    }
                 }
                 .onDelete { indexSet in
-                    indexSet.forEach { viewModel.removeCategory(at: $0) }
+                    let sortedCategories = viewModel.sortedCategories
+                    for index in indexSet {
+                        let categoryToDelete = sortedCategories[index]
+                        viewModel.removeCategory(byId: categoryToDelete.id)
+                    }
                 }
 
                 TextField("New Category", text: $viewModel.newCategory)
