@@ -19,12 +19,12 @@ struct SessionDetailView: View {
     @State private var showCheckoutSheet = false
     @State private var selectedTab: Int = 0
     @State private var checkoutCompleted = false
-
-
+    
+    
     init(session: Binding<SessionModel>) {
         self._session = session
         self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
-
+        
     }
     
     var body: some View {
@@ -54,7 +54,8 @@ struct SessionDetailView: View {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(viewModel.session.categories, id: \.id) { category in
+                        ForEach(viewModel.session.categories.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id)
+                        { category in
                             let items = viewModel.products
                                 .filter { $0.categoryId == category.id }
                                 .sorted { $0.name < $1.name }
@@ -143,14 +144,14 @@ struct SessionDetailView: View {
             )
         }
         .onChange(of: checkoutCompleted) {
-                // 結帳完成後的處理
-                viewModel.loadProducts(using: productDataManager)
-                viewModel.clearAllQuantities()
-                // 重設狀態，避免下次誤觸發
-                checkoutCompleted = false
+            // 結帳完成後的處理
+            viewModel.loadProducts(using: productDataManager)
+            viewModel.clearAllQuantities()
+            // 重設狀態，避免下次誤觸發
+            checkoutCompleted = false
         }
-
-
+        
+        
     }
     
     private func productCard(_ product: ProductModel) -> some View {

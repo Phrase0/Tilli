@@ -19,8 +19,17 @@ class AddNewProductViewModel: ObservableObject {
     @Published var name: String = ""
     @Published var price: String = ""
     @Published var quantity: String = ""
-    @Published var selectedCategory: CategoryModel?
+    
+    @Published var selectedCategoryID: UUID?
     @Published var description: String = ""
+    
+    var sortedCategories: [CategoryModel] {
+        session.categories.sorted(by: { $0.createdAt < $1.createdAt })
+    }
+    
+    var selectedCategory: CategoryModel? {
+        sortedCategories.first(where: { $0.id == selectedCategoryID })
+    }
 
     // MARK: - 圖片選擇
     @Published var image: UIImage?
@@ -36,7 +45,7 @@ class AddNewProductViewModel: ObservableObject {
         Double(price) != nil &&
         !quantity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         Int(quantity) != nil &&
-        selectedCategory != nil
+        selectedCategoryID != nil
     }
     
     // MARK: - 初始化
@@ -46,7 +55,7 @@ class AddNewProductViewModel: ObservableObject {
         self.session = session
         self.onSave = onSave
         self.onCancel = onCancel
-        self.selectedCategory = session.categories.first
+        self.selectedCategoryID = session.categories.sorted(by: { $0.createdAt < $1.createdAt }).first?.id
     }
     
     // MARK: - 依表單建立 ProductModel

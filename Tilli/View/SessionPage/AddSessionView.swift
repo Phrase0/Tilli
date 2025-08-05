@@ -40,7 +40,7 @@ struct AddSessionView: View {
             DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
 
             Section(header: Text("Categories")) {
-                ForEach(viewModel.categories, id: \.self) { category in
+                ForEach(viewModel.categories.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
                     Text(category.name)
                 }
                 .onDelete { indexSet in

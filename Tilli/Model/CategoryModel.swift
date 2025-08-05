@@ -10,13 +10,16 @@ struct CategoryModel: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var name: String
     var products: [ProductModel] = []
+    var createdAt: Date = Date()
 }
 
 extension CategoryModel {
     init(entity: CDCategoryEntity) {
         self.id = entity.id
         self.name = entity.name
+        self.createdAt = entity.createdAt
         self.products = (entity.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
+        
     }
 }
 

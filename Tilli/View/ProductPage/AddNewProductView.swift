@@ -52,9 +52,9 @@ struct AddNewProductView: View {
                         Text("Category")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Picker("Select category", selection: $viewModel.selectedCategory) {
-                            ForEach(viewModel.session.categories, id: \.id) { category in
-                                Text(category.name).tag(category as CategoryModel?)
+                        Picker("選擇分類", selection: $viewModel.selectedCategoryID) {
+                            ForEach(viewModel.sortedCategories, id: \.id) { category in
+                                Text(category.name).tag(category.id)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())
@@ -123,7 +123,6 @@ struct AddNewProductView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if viewModel.save(using: productDataManager) {
-                            // 用 injection 的 manager
                             presentationMode.wrappedValue.dismiss()
                         }
                     }

@@ -36,21 +36,6 @@ extension CDProductEntity {
         self.stock = Int32(model.stock)
         self.note = model.note
         self.imageData = model.imageData
-
-        // 確保分類已存在 → 強制 unwrap
-//        let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
-//        request.predicate = NSPredicate(format: "id == %@", model.categoryId as CVarArg)
-//        request.fetchLimit = 1
-//
-//        do {
-//            if let category = try context.fetch(request).first {
-//                self.category = category
-//            } else {
-//                fatalError("Category with ID \(model.categoryId) not found.")
-//            }
-//        } catch {
-//            fatalError("Failed to fetch category: \(error)")
-//        }
     }
 
     func toModel() -> ProductModel {

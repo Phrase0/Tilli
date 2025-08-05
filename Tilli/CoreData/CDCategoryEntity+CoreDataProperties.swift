@@ -18,6 +18,7 @@ extension CDCategoryEntity {
 
     @NSManaged public var id: UUID
     @NSManaged public var name: String
+    @NSManaged public var createdAt: Date
     @NSManaged public var session: CDSessionEntity
     @NSManaged public var products: NSSet?
 
@@ -45,9 +46,9 @@ extension CDCategoryEntity {
     func update(from model: CategoryModel, context: NSManagedObjectContext) {
         self.id = model.id
         self.name = model.name
+        self.createdAt = model.createdAt
 
-        // 修正：不要清空所有商品，因為可能被其他 session 使用
-        // 改為只處理新增的商品
+        // 修正：不要清空所有商品，改為只處理新增的商品
         for productModel in model.products {
             // 檢查商品是否已存在
             let existingProduct = (self.products as? Set<CDProductEntity>)?.first {
@@ -69,7 +70,8 @@ extension CDCategoryEntity {
 
     func toModel() -> CategoryModel {
         let products = (self.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
-        return CategoryModel(id: self.id, name: self.name, products: products)
+        return CategoryModel(id: self.id, name: self.name, products: products, createdAt: self.createdAt)
     }
+
 }
 
