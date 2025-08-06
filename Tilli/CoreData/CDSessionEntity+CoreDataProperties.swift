@@ -61,38 +61,91 @@ extension CDSessionEntity {
 
 extension CDSessionEntity {
 
+//    func update(from model: SessionModel, context: NSManagedObjectContext) {
+//        self.id = model.id
+//        self.title = model.title
+//        self.date = model.date
+//        self.createdAt = model.createdAt
+//
+//        // 更新分類（先清除再加）
+//        self.removeFromCategories(self.categories)
+//        for categoryModel in model.categories {
+//            let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
+//            request.predicate = NSPredicate(format: "id == %@", categoryModel.id as CVarArg)
+//            request.fetchLimit = 1
+//
+//            if let existingCategory = try? context.fetch(request).first {
+//                existingCategory.update(from: categoryModel, context: context)
+//                self.addToCategories(existingCategory)
+//            } else {
+//                let newCategory = CDCategoryEntity(context: context)
+//                newCategory.update(from: categoryModel, context: context)
+//                self.addToCategories(newCategory)
+//            }
+//        }
+//
+//        // 更新交易
+//        self.removeFromTransactions(self.transactions ?? [])
+//        for transactionModel in model.transactions {
+//            let cdTx = CDTransactionEntity(context: context)
+//            cdTx.update(from: transactionModel, context: context)
+//            self.addToTransactions(cdTx)
+//        }
+//    }
     func update(from model: SessionModel, context: NSManagedObjectContext) {
+        // 更新基本欄位
         self.id = model.id
         self.title = model.title
         self.date = model.date
         self.createdAt = model.createdAt
 
-        // 更新分類（先清除再加）
-        self.removeFromCategories(self.categories)
-        for categoryModel in model.categories {
-            let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", categoryModel.id as CVarArg)
-            request.fetchLimit = 1
+        // MARK: 更新 Categories
+        let existingCategories = (self.categories as? Set<CDCategoryEntity>) ?? []
+        var categoryMap: [UUID: CDCategoryEntity] = [:]
+        for category in existingCategories {
+            categoryMap[category.id] = category
+        }
 
-            if let existingCategory = try? context.fetch(request).first {
+        for categoryModel in model.categories {
+            if let existingCategory = categoryMap[categoryModel.id] {
                 existingCategory.update(from: categoryModel, context: context)
-                self.addToCategories(existingCategory)
             } else {
                 let newCategory = CDCategoryEntity(context: context)
                 newCategory.update(from: categoryModel, context: context)
+                newCategory.session = self
                 self.addToCategories(newCategory)
             }
+            categoryMap.removeValue(forKey: categoryModel.id)
         }
 
-        // 更新交易
-        self.removeFromTransactions(self.transactions ?? [])
-        for transactionModel in model.transactions {
-            let cdTx = CDTransactionEntity(context: context)
-            cdTx.update(from: transactionModel, context: context)
-            self.addToTransactions(cdTx)
+        // 移除剩下的（被刪除的）
+        for (_, unusedCategory) in categoryMap {
+            context.delete(unusedCategory)
+        }
+
+        // MARK: 更新 Transactions
+        let existingTransactions = (self.transactions as? Set<CDTransactionEntity>) ?? []
+        var transactionMap: [UUID: CDTransactionEntity] = [:]
+        for tx in existingTransactions {
+                transactionMap[tx.id] = tx
+        }
+
+        for txModel in model.transactions {
+            if let existingTx = transactionMap[txModel.id] {
+                existingTx.update(from: txModel, context: context)
+            } else {
+                let newTx = CDTransactionEntity(context: context)
+                newTx.update(from: txModel, context: context)
+                self.addToTransactions(newTx)
+            }
+            transactionMap.removeValue(forKey: txModel.id)
+        }
+
+        for (_, unusedTx) in transactionMap {
+            context.delete(unusedTx)
         }
     }
-    
+
     
     // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {

@@ -35,7 +35,9 @@ extension CDProductEntity {
         self.price = model.price
         self.stock = Int32(model.stock)
         self.note = model.note
-        self.imageData = model.imageData
+        if let imageData = model.imageData {
+            self.imageData = imageData
+        }
     }
 
     func toModel() -> ProductModel {

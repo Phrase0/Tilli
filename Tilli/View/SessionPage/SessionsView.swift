@@ -59,8 +59,7 @@ struct SessionsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(
                         destination: AddSessionView(onSave: { newSession in
-                            sessionDataManager.addSession(newSession)
-                            viewModel.sessions = sessionDataManager.sessions
+                            viewModel.addSession(newSession, using: sessionDataManager)
                         }),
                         isActive: $isNavigatingToAddSession
                     ) {
@@ -81,14 +80,13 @@ struct SessionsView: View {
             )) {
                 if let session = editingSession {
                     AddSessionView(sessionToEdit: session, onSave: { updatedSession in
-                        sessionDataManager.updateSession(updatedSession)
-                        viewModel.sessions = sessionDataManager.sessions
+                        viewModel.updateSession(updatedSession, using: sessionDataManager)
                         editingSession = nil
                     })
                 }
             }
             .onAppear {
-                viewModel.sessions = sessionDataManager.sessions
+                viewModel.refresh(using: sessionDataManager)
                 appState.currentSession = nil
             }
         }

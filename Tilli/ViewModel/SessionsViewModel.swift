@@ -34,9 +34,24 @@ class SessionViewModel: ObservableObject {
             }
         }
     }
+
+    
+    func addSession(_ newSession: SessionModel, using sessionDataManager: SessionDataManager) {
+        sessionDataManager.addSession(newSession)
+        sessions = sessionDataManager.sessions
+    }
+
+    func updateSession(_ updatedSession: SessionModel, using sessionDataManager: SessionDataManager) {
+        sessionDataManager.updateSession(updatedSession)
+        sessions = sessionDataManager.sessions
+    }
     
     func deleteSession(_ session: SessionModel,using sessionDataManager: SessionDataManager) {
         sessionDataManager.deleteSession(session)
+        sessions = sessionDataManager.sessions
+    }
+    
+    func refresh(using sessionDataManager: SessionDataManager) {
         sessions = sessionDataManager.sessions
     }
 }
