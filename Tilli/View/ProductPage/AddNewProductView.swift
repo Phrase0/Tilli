@@ -52,7 +52,7 @@ struct AddNewProductView: View {
                         Text("Category")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Picker("選擇分類", selection: $viewModel.selectedCategoryID) {
+                        Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
                             ForEach(viewModel.sortedCategories, id: \.id) { category in
                                 Text(category.name).tag(category.id)
                             }

@@ -21,6 +21,7 @@ extension CDCategoryEntity {
     @NSManaged public var createdAt: Date
     @NSManaged public var session: CDSessionEntity
     @NSManaged public var products: NSSet?
+    @NSManaged public var isDisabled: Bool
 
 }
 
@@ -47,7 +48,8 @@ extension CDCategoryEntity {
         self.id = model.id
         self.name = model.name
         self.createdAt = model.createdAt
-
+        self.isDisabled = model.isDisabled
+        
         // 智慧判斷：檢查是否應該同步產品
         let shouldSyncProducts = self.shouldSyncProducts(with: model)
         
@@ -139,7 +141,7 @@ extension CDCategoryEntity {
     
     func toModel() -> CategoryModel {
         let products = (self.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
-        return CategoryModel(id: self.id, name: self.name, products: products, createdAt: self.createdAt)
+        return CategoryModel(id: self.id, name: self.name, products: products, createdAt: self.createdAt, isDisabled: self.isDisabled)
     }
 
 }

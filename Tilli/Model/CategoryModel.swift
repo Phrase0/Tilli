@@ -11,6 +11,7 @@ struct CategoryModel: Identifiable, Codable, Hashable {
     var name: String
     var products: [ProductModel] = []
     var createdAt: Date = Date()
+    var isDisabled: Bool = false 
 }
 
 extension CategoryModel {
@@ -19,6 +20,7 @@ extension CategoryModel {
         self.name = entity.name
         self.createdAt = entity.createdAt
         self.products = (entity.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
+        self.isDisabled = entity.isDisabled
         
     }
 }

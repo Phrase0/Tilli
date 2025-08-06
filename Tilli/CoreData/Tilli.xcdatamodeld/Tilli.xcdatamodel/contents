@@ -3,6 +3,7 @@
     <entity name="CDCategoryEntity" representedClassName="CDCategoryEntity" syncable="YES">
         <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isDisabled" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <relationship name="products" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDProductEntity" inverseName="category" inverseEntity="CDProductEntity"/>
         <relationship name="session" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="categories" inverseEntity="CDSessionEntity"/>

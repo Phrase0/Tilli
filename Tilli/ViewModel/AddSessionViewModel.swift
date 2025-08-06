@@ -57,7 +57,7 @@ class AddSessionViewModel: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
 
         if categories.contains(where: { $0.name == trimmed }) {
-            return "此分類已存在"
+            return "此類別已存在"
         }
 
         let new = CategoryModel(id: UUID(), name: trimmed)
@@ -69,6 +69,20 @@ class AddSessionViewModel: ObservableObject {
 
         return nil
     }
+    
+    func hasTransaction(for categoryId: UUID) -> Bool {
+        guard let session = editingSession else { return false }
+        
+        for transaction in session.transactions {
+            for item in transaction.items {
+                if item.categoryId == categoryId {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
 
     func save() -> SessionModel {
         let baseSession = editingSession ?? SessionModel(

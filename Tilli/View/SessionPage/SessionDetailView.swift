@@ -54,7 +54,7 @@ struct SessionDetailView: View {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(viewModel.session.categories.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id)
+                        ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id)
                         { category in
                             let items = viewModel.products
                                 .filter { $0.categoryId == category.id }

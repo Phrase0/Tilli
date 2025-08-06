@@ -96,7 +96,7 @@ struct SessionsView: View {
             }
             Button("取消", role: .cancel) { }
         } message: { session in
-            Text("刪除後將同時移除底下的所有分類、商品與交易紀錄，且無法復原，是否確定？")
+            Text("刪除後將同時移除底下的所有類別、商品與交易紀錄，且無法復原，是否確定？")
         }
     }
 
