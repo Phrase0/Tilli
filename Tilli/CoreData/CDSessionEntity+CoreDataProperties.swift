@@ -152,9 +152,6 @@ extension CDSessionEntity {
         // 取出所有 CategoryModel
         let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
 
-        // 所有產品集中為一份 array（optional：可刪除）
-//        let allProducts: [ProductModel] = categoryModels.flatMap { $0.products }
-
         let transactionModels = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
 
         return SessionModel(

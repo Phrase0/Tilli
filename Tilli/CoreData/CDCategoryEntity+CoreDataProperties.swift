@@ -43,74 +43,12 @@ extension CDCategoryEntity {
 
 extension CDCategoryEntity {
     
-//    func update(from model: CategoryModel, context: NSManagedObjectContext) {
-//        self.id = model.id
-//        self.name = model.name
-//        self.createdAt = model.createdAt
-//
-//        self.removeFromProducts(self.products ?? [])
-//        for productModel in model.products {
-//            // 檢查商品是否已存在
-//            let existingProduct = (self.products as? Set<CDProductEntity>)?.first {
-//                $0.id == productModel.id
-//            }
-//            
-//            if let existing = existingProduct {
-//                // 更新現有商品
-//                existing.update(from: productModel, context: context)
-//            } else {
-//                // 創建新商品
-//                let product = CDProductEntity(context: context)
-//                product.update(from: productModel, context: context)
-//                product.category = self
-//                self.addToProducts(product)
-//            }
-//        }
-//    }
-    //這是新的
-//    func update(from model: CategoryModel, context: NSManagedObjectContext) {
-//        self.id = model.id
-//        self.name = model.name
-//        self.createdAt = model.createdAt
-//
-//        let existingProducts = self.products as? Set<CDProductEntity> ?? []
-//        var productMap: [UUID: CDProductEntity] = [:]
-//        for product in existingProducts {
-//            productMap[product.id] = product
-//        }
-//
-//        // 比對 model.products → 更新、保留、新增
-//        var updatedProducts = Set<CDProductEntity>()
-//
-//        for productModel in model.products {
-//            if let existing = productMap[productModel.id] {
-//                existing.update(from: productModel, context: context)
-//                updatedProducts.insert(existing)
-//            } else {
-//                let newProduct = CDProductEntity(context: context)
-//                newProduct.update(from: productModel, context: context)
-//                newProduct.category = self
-//                updatedProducts.insert(newProduct)
-//            }
-//        }
-//
-//        // 刪除不存在的 product
-////        let removedProducts = existingProducts.subtracting(updatedProducts)
-////        for removed in removedProducts {
-////            context.delete(removed)
-////        }
-//
-//        // 更新 products 關聯
-//        self.products = updatedProducts as NSSet
-//    }
-
-
     func update(from model: CategoryModel, context: NSManagedObjectContext) {
         self.id = model.id
         self.name = model.name
         self.createdAt = model.createdAt
 
-        // 🟢 智慧判斷：檢查是否應該同步產品
+        // 智慧判斷：檢查是否應該同步產品
         let shouldSyncProducts = self.shouldSyncProducts(with: model)
         
         if shouldSyncProducts {
@@ -144,7 +82,7 @@ extension CDCategoryEntity {
         return false
     }
     
-    // 🟢 完整同步產品（包含刪除）
+    // 完整同步產品（包含刪除）
     private func syncProducts(with model: CategoryModel, context: NSManagedObjectContext) {
         let existingProducts = self.products as? Set<CDProductEntity> ?? []
         var productMap: [UUID: CDProductEntity] = [:]
@@ -175,11 +113,11 @@ extension CDCategoryEntity {
         self.products = updatedProducts as NSSet
     }
     
-    // 🟢 只更新/新增產品，不刪除
+    // 只更新/新增產品，不刪除
     private func updateProductsOnly(with model: CategoryModel, context: NSManagedObjectContext) {
         for productModel in model.products {
             if let existingProduct = (self.products as? Set<CDProductEntity>)?.first(where: { $0.id == productModel.id }) {
-                // 🟢 保護庫存：如果 Core Data 中的庫存比較少，保留 Core Data 的值
+                // 保護庫存：如果 Core Data 中的庫存比較少，保留 Core Data 的值
                 let currentStock = Int(existingProduct.stock)
                 existingProduct.update(from: productModel, context: context)
                 
@@ -197,6 +135,8 @@ extension CDCategoryEntity {
         }
     }
     //----
+    
+    
     func toModel() -> CategoryModel {
         let products = (self.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
         return CategoryModel(id: self.id, name: self.name, products: products, createdAt: self.createdAt)
