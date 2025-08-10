@@ -50,7 +50,7 @@ struct AddSessionView: View {
                         }
                 }
 
-                TextField("New Category", text: $viewModel.newCategory)
+                TextField("新增類別", text: $viewModel.newCategory)
                     .focused($focusedField, equals: .newCategory)
                     .submitLabel(.done)
                     .onSubmit {

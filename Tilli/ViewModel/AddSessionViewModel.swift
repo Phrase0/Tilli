@@ -64,7 +64,7 @@ class AddSessionViewModel: ObservableObject {
         }
     }
 
-    /// 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
+    // 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
     func tryAddCategory() -> String? {
         let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
 
