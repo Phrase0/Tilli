@@ -16,6 +16,7 @@ struct AddSessionView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var categoryPendingDeletion: UUID?
+    @State private var isDisableAction = false
 
     enum FocusField: Hashable {
         case sessionName
@@ -41,57 +42,13 @@ struct AddSessionView: View {
             DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
 
             Section(header: Text("類別")) {
-                ForEach(viewModel.sortedCategories, id: \.id) { category in
-//                    Text(category.name)
-                    if viewModel.editingCategoryID == category.id {
-                        TextField("Category Name", text: Binding(
-                            get: {
-                                viewModel.selectedCategory?.name ?? ""
-                            },
-                            set: { newValue in
-                                viewModel.updateCategoryName(id: category.id, newName: newValue)
-                            }
-                        ))
-                        .focused($focusedField, equals: .newCategory)
-                        .onSubmit {
-                            viewModel.editingCategoryID = nil
+                ForEach(viewModel.sortedCategories.filter { !$0.isDisabled }, id: \.id) { category in
+                    categoryRow(for: category)
+                        .swipeActions(edge: .trailing) {
+                            swipeActionsContent(for: category)
                         }
-                    } else {
-                        Text(category.name)
-                            .onTapGesture {
-                                viewModel.editingCategoryID = category.id
-                            }
-                    }
-                }
-                .onDelete { indexSet in
-//                    let sortedCategories = viewModel.sortedCategories
-//                    for index in indexSet {
-//                        let categoryToDelete = sortedCategories[index]
-//                        viewModel.removeCategory(byId: categoryToDelete.id)
-//                    }
-//                }
-                    let sorted = viewModel.sortedCategories
-                    for index in indexSet {
-                        let category = sorted[index]
-
-                        if viewModel.hasTransaction(for: category.id) {
-                            // 有交易 → 停用
-                            if let i = viewModel.categories.firstIndex(where: { $0.id == category.id }) {
-                                viewModel.categories[i].isDisabled = true
-                            }
-                        } else if !category.products.isEmpty {
-                            // ⚠️ 有商品 → 警告後再刪除
-                            alertMessage = "此類別仍有產品，確定要刪除嗎？"
-                            categoryPendingDeletion = category.id
-                            showAlert = true
-                        } else {
-                            // ✅ 沒有商品與交易 → 直接刪除
-                            viewModel.removeCategory(byId: category.id)
-                        }
-                    }
                 }
 
-                ///
                 TextField("New Category", text: $viewModel.newCategory)
                     .focused($focusedField, equals: .newCategory)
                     .submitLabel(.done)
@@ -104,6 +61,7 @@ struct AddSessionView: View {
                         }
                     }
             }
+            
             Section(header: Text("已停用類別")) {
                 ForEach(viewModel.sortedCategories.filter { $0.isDisabled }, id: \.id) { category in
                     Text(category.name)
@@ -122,7 +80,7 @@ struct AddSessionView: View {
                         return
                     }
 
-                    if viewModel.categories.isEmpty {
+                    if viewModel.categories.filter({ !$0.isDisabled }).isEmpty {
                         alertMessage = "請至少輸入一個類別"
                         showAlert = true
                         return
@@ -135,26 +93,41 @@ struct AddSessionView: View {
                 .disabled(viewModel.sessionName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-//        .alert(alertMessage, isPresented: $showAlert) {
-//            Button("好") {
-//                focusedField = .newCategory
-//            }
-//        }
         .alert(isPresented: $showAlert) {
             if categoryPendingDeletion != nil {
-                return Alert(
-                    title: Text("確認刪除"),
-                    message: Text(alertMessage),
-                    primaryButton: .destructive(Text("刪除")) {
-                        if let id = categoryPendingDeletion {
-                            viewModel.removeCategory(byId: id)
+                if isDisableAction {
+                    // 停用操作的警告
+                    return Alert(
+                        title: Text("確認停用"),
+                        message: Text(alertMessage),
+                        primaryButton: .default(Text("確認")) {
+                            if let id = categoryPendingDeletion {
+                                viewModel.disableCategory(byId: id)
+                                categoryPendingDeletion = nil
+                                isDisableAction = false
+                            }
+                        },
+                        secondaryButton: .cancel {
+                            categoryPendingDeletion = nil
+                            isDisableAction = false
+                        }
+                    )
+                } else {
+                    // 刪除操作的警告
+                    return Alert(
+                        title: Text("確認刪除"),
+                        message: Text(alertMessage),
+                        primaryButton: .destructive(Text("刪除")) {
+                            if let id = categoryPendingDeletion {
+                                viewModel.removeCategory(byId: id)
+                                categoryPendingDeletion = nil
+                            }
+                        },
+                        secondaryButton: .cancel {
                             categoryPendingDeletion = nil
                         }
-                    },
-                    secondaryButton: .cancel {
-                        categoryPendingDeletion = nil
-                    }
-                )
+                    )
+                }
             } else {
                 return Alert(
                     title: Text("提醒"),
@@ -165,11 +138,70 @@ struct AddSessionView: View {
                 )
             }
         }
-
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.focusedField = .sessionName
             }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    @ViewBuilder
+    private func categoryRow(for category: CategoryModel) -> some View {
+        if viewModel.editingCategoryID == category.id {
+            TextField("Category Name", text: Binding(
+                get: {
+                    viewModel.selectedCategory?.name ?? ""
+                },
+                set: { newValue in
+                    viewModel.updateCategoryName(id: category.id, newName: newValue)
+                }
+            ))
+            .focused($focusedField, equals: .newCategory)
+            .onSubmit {
+                viewModel.editingCategoryID = nil
+            }
+        } else {
+            Text(category.name)
+                .onTapGesture {
+                    viewModel.editingCategoryID = category.id
+                }
+        }
+    }
+    
+    @ViewBuilder
+    private func swipeActionsContent(for category: CategoryModel) -> some View {
+        if viewModel.hasTransaction(for: category.id) {
+            // 有交易記錄 → 顯示「停用」按鈕
+            Button("停用") {
+                handleDisableAction(for: category.id)
+            }
+            .tint(.orange)
+        } else {
+            // 沒有交易記錄 → 顯示「刪除」按鈕
+            Button("刪除", role: .destructive) {
+                handleDeleteAction(for: category)
+            }
+        }
+    }
+    
+    private func handleDisableAction(for categoryId: UUID) {
+        alertMessage = "已有交易紀錄不可刪除，只能停用"
+        categoryPendingDeletion = categoryId
+        isDisableAction = true
+        showAlert = true
+    }
+    
+    private func handleDeleteAction(for category: CategoryModel) {
+        if !category.products.isEmpty {
+            // 有商品 → 警告後再刪除
+            alertMessage = "此類別仍有產品，確定要刪除嗎？"
+            categoryPendingDeletion = category.id
+            isDisableAction = false
+            showAlert = true
+        } else {
+            // 沒有商品 → 直接刪除
+            viewModel.removeCategory(byId: category.id)
         }
     }
 }

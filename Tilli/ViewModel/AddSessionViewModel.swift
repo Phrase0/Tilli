@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  AddSessionViewModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/6/17.
@@ -23,8 +23,6 @@ class AddSessionViewModel: ObservableObject {
         sortedCategories.first(where: { $0.id == editingCategoryID })
     }
 
-    
-    
     init(sessionToEdit: SessionModel? = nil) {
         self.editingSession = sessionToEdit
         self.sessionName = sessionToEdit?.title ?? ""
@@ -49,8 +47,15 @@ class AddSessionViewModel: ObservableObject {
     func removeCategory(byId categoryId: UUID) {
         categories.removeAll { $0.id == categoryId }
     }
+    
+    // 停用類別
+    func disableCategory(byId categoryId: UUID) {
+        if let index = categories.firstIndex(where: { $0.id == categoryId }) {
+            categories[index].isDisabled = true
+        }
+    }
 
-    /// 嘗試將 newCategory 加入，成功則清空 newCategory，失敗回傳錯誤訊息
+    /// 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
     func tryAddCategory() -> String? {
         let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -82,7 +87,6 @@ class AddSessionViewModel: ObservableObject {
         }
         return false
     }
-
 
     func save() -> SessionModel {
         let baseSession = editingSession ?? SessionModel(
