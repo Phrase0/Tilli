@@ -57,15 +57,18 @@ struct SessionsView: View {
             .searchable(text: $searchText)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(
-                        destination: AddSessionView(onSave: { newSession in
-                            viewModel.addSession(newSession, using: sessionDataManager)
-                        }),
-                        isActive: $isNavigatingToAddSession
-                    ) {
+                    Button {
+                        isNavigatingToAddSession = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .navigationDestination(isPresented: $isNavigatingToAddSession) {
+                AddSessionView(onSave: { newSession in
+                    viewModel.addSession(newSession, using: sessionDataManager)
+                    isNavigatingToAddSession = false
+                })
             }
             .navigationDestination(item: $selectedSession) { session in
                 if let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) {

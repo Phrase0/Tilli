@@ -132,7 +132,7 @@ struct AddNewProductView: View {
             .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {
                 Button("OK", role: .cancel) { }
             }
-            .onChange(of: viewModel.selectedItem) { _ in
+            .onChange(of: viewModel.selectedItem) {
                 viewModel.handleImageSelection()
             }
         }
