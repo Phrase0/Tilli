@@ -52,17 +52,19 @@ struct AddNewProductView: View {
                         Text("Category")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
-                            ForEach(viewModel.sortedCategories, id: \.id) { category in
-                                Text(category.name).tag(category.id)
+                        
+                            Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
+                                ForEach(viewModel.sortedCategories, id: \.id) { category in
+                                    Text(category.name).tag(category.id as UUID?)
+                                }
                             }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(maxWidth: .infinity)
+                            .padding(12)
+                            .background(Color(UIColor.systemGray6))
+                            .cornerRadius(8)
                         }
-                        .pickerStyle(MenuPickerStyle())
-                        .frame(maxWidth: .infinity)
-                        .padding(12)
-                        .background(Color(UIColor.systemGray6))
-                        .cornerRadius(8)
-                    }
+                    
                     
                     Text("Product Image")
                         .font(.subheadline)
@@ -126,7 +128,7 @@ struct AddNewProductView: View {
                             presentationMode.wrappedValue.dismiss()
                         }
                     }
-                    .disabled(!viewModel.isValid)
+                    .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
                 }
             }
             .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {
@@ -134,6 +136,10 @@ struct AddNewProductView: View {
             }
             .onChange(of: viewModel.selectedItem) {
                 viewModel.handleImageSelection()
+            }
+            .onAppear {
+                // 當視圖出現時確保類別選擇有效
+                viewModel.ensureValidCategorySelection()
             }
         }
     }

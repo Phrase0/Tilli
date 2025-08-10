@@ -1,5 +1,5 @@
 //
-//  ProductViewModel.swift
+//  AddNewProductViewModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/6/23.
@@ -22,14 +22,6 @@ class AddNewProductViewModel: ObservableObject {
     @Published var selectedCategoryID: UUID?
     @Published var description: String = ""
     
-    var sortedCategories: [CategoryModel] {
-        session.categories.sorted(by: { $0.createdAt < $1.createdAt })
-    }
-    
-    var selectedCategory: CategoryModel? {
-        sortedCategories.first(where: { $0.id == selectedCategoryID })
-    }
-
     // MARK: - 圖片選擇
     @Published var image: UIImage?
     @Published var selectedItem: PhotosPickerItem?
@@ -37,14 +29,23 @@ class AddNewProductViewModel: ObservableObject {
     // MARK: - UI 驗證狀態
     @Published var showValidationError = false
     
-    // MARK: - 表單驗證
+    // MARK: - 計算屬性
+    var sortedCategories: [CategoryModel] {
+        session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+    }
+    
+    var selectedCategory: CategoryModel? {
+        guard let id = selectedCategoryID else { return nil }
+        return sortedCategories.first(where: { $0.id == id })
+    }
+    
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !price.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         Double(price) != nil &&
         !quantity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         Int(quantity) != nil &&
-        selectedCategoryID != nil
+        selectedCategory != nil // 直接使用 selectedCategory 而不是 selectedCategoryID
     }
     
     // MARK: - 初始化
@@ -54,11 +55,22 @@ class AddNewProductViewModel: ObservableObject {
         self.session = session
         self.onSave = onSave
         self.onCancel = onCancel
-        self.selectedCategoryID = session.categories.sorted(by: { $0.createdAt < $1.createdAt }).first?.id
+        
+        // 設置預設選中第一個啟用的類別
+        self.selectedCategoryID = sortedCategories.first?.id
+    }
+    
+    // MARK: - 確保選中的類別是有效的
+    func ensureValidCategorySelection() {
+        if selectedCategory == nil {
+            selectedCategoryID = sortedCategories.first?.id
+        }
     }
     
     // MARK: - 依表單建立 ProductModel
     func createProductIfValid() -> ProductModel? {
+        ensureValidCategorySelection()
+        
         guard let category = selectedCategory,
               let priceValue = Double(price),
               let quantityValue = Int(quantity),
@@ -66,7 +78,6 @@ class AddNewProductViewModel: ObservableObject {
             return nil
         }
         
-        // 建立 ProductModel 實例
         return ProductModel(
             sessionId: session.id,
             name: name,
