@@ -155,64 +155,86 @@ struct SessionDetailView: View {
     }
     
     private func productCard(_ product: ProductModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(product.name)
-                        .font(.headline)
-                    
-                    Text("NT$\(Int(product.price))")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                    
-                    Text("庫存: \(product.stock)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "ellipsis")
-                    .rotationEffect(.degrees(90))
-                    .foregroundColor(.gray)
+        HStack(alignment: .top, spacing: 12) {
+            if let imageName = product.image {
+                Image(uiImage: imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+            } else {
+                Rectangle()
+                    .foregroundColor(.clear)
+                    .background(Color(.systemGray5))
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
             }
             
-            HStack {
-                HStack(spacing: 8) {
-                    ForEach([5, 10, 20], id: \.self) { percent in
-                        let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
-                        Text("\(percent)%")
+            VStack(alignment: .leading, spacing: 8) {
+                // 上方標題區 + 右側省略號
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(product.name)
+                            .font(.headline)
+                        
+                        Text("NT$\(Int(product.price))")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                        
+                        Text("庫存: \(product.stock)")
                             .font(.caption)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(isSelected ? Color.blue : Color(.systemGray5))
-                            .foregroundColor(isSelected ? .white : .primary)
-                            .cornerRadius(6)
-                            .onTapGesture {
-                                viewModel.toggleDiscount(for: product, percent: percent)
-                            }
-                    }
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 16) {
-                    Button {
-                        viewModel.decreaseQuantity(for: product)
-                    } label: {
-                        Image(systemName: "minus.circle")
+                            .foregroundColor(.gray)
                     }
                     
-                    Text("\(viewModel.quantity(for: product))")
-                        .frame(width: 24)
+                    Spacer()
                     
-                    Button {
-                        viewModel.increaseQuantity(for: product)
-                    } label: {
-                        Image(systemName: "plus.circle")
-                    }
+                    Image(systemName: "ellipsis")
+                        .rotationEffect(.degrees(90))
+                        .foregroundColor(.gray)
+                        .padding(.top, 2) // 微調讓跟標題頂部靠齊
                 }
-                .font(.title3)
+                
+                // 下方折扣與數量控制區
+                HStack {
+                    HStack(spacing: 8) {
+                        ForEach([5, 10, 20], id: \.self) { percent in
+                            let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
+                            Text("\(percent)%")
+                                .font(.caption)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(isSelected ? Color.blue : Color(.systemGray5))
+                                .foregroundColor(isSelected ? .white : .primary)
+                                .cornerRadius(6)
+                                .onTapGesture {
+                                    viewModel.toggleDiscount(for: product, percent: percent)
+                                }
+                        }
+                    }
+                    
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 16) {
+                        Button {
+                            viewModel.decreaseQuantity(for: product)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        
+                        Text("\(viewModel.quantity(for: product))")
+                            .frame(width: 24)
+                        
+                        Button {
+                            viewModel.increaseQuantity(for: product)
+                        } label: {
+                            Image(systemName: "plus.circle")
+                        }
+                    }
+                    .font(.title3)
+                }
             }
         }
         .padding()
@@ -221,4 +243,6 @@ struct SessionDetailView: View {
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
     }
+
+
 }
