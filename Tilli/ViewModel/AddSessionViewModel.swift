@@ -19,6 +19,10 @@ class AddSessionViewModel: ObservableObject {
         categories.sorted(by: { $0.createdAt < $1.createdAt })
     }
     
+    var activeSortedCategories: [CategoryModel] {
+        categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+    }
+    
     var selectedCategory: CategoryModel? {
         sortedCategories.first(where: { $0.id == editingCategoryID })
     }
@@ -48,10 +52,15 @@ class AddSessionViewModel: ObservableObject {
         categories.removeAll { $0.id == categoryId }
     }
     
-    // 停用類別
     func disableCategory(byId categoryId: UUID) {
         if let index = categories.firstIndex(where: { $0.id == categoryId }) {
             categories[index].isDisabled = true
+        }
+    }
+    
+    func restoreCategory(byId categoryId: UUID) {
+        if let index = categories.firstIndex(where: { $0.id == categoryId }) {
+            categories[index].isDisabled = false
         }
     }
 

@@ -16,6 +16,7 @@ struct AddSessionView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var categoryPendingDeletion: UUID?
+    @State private var categoryPendingRestore: UUID?
     @State private var isDisableAction = false
 
     enum FocusField: Hashable {
@@ -66,6 +67,12 @@ struct AddSessionView: View {
                 ForEach(viewModel.sortedCategories.filter { $0.isDisabled }, id: \.id) { category in
                     Text(category.name)
                         .foregroundColor(.gray)
+                        .swipeActions(edge: .trailing) {
+                            Button("復原") {
+                                handleRestoreAction(for: category.id)
+                            }
+                            .tint(.green)
+                        }
                 }
             }
         }
@@ -94,7 +101,22 @@ struct AddSessionView: View {
             }
         }
         .alert(isPresented: $showAlert) {
-            if categoryPendingDeletion != nil {
+            if categoryPendingRestore != nil {
+                // 復原操作的警告
+                return Alert(
+                    title: Text("確認復原"),
+                    message: Text("確定要復原此類別嗎？"),
+                    primaryButton: .default(Text("確認")) {
+                        if let id = categoryPendingRestore {
+                            viewModel.restoreCategory(byId: id)
+                            categoryPendingRestore = nil
+                        }
+                    },
+                    secondaryButton: .cancel {
+                        categoryPendingRestore = nil
+                    }
+                )
+            } else if categoryPendingDeletion != nil {
                 if isDisableAction {
                     // 停用操作的警告
                     return Alert(
@@ -203,5 +225,10 @@ struct AddSessionView: View {
             // 沒有商品 → 直接刪除
             viewModel.removeCategory(byId: category.id)
         }
+    }
+    
+    private func handleRestoreAction(for categoryId: UUID) {
+        categoryPendingRestore = categoryId
+        showAlert = true
     }
 }
