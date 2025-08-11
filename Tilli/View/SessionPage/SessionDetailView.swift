@@ -20,6 +20,8 @@ struct SessionDetailView: View {
     @State private var selectedTab: Int = 0
     @State private var checkoutCompleted = false
     
+    @State private var selectedProductForAction: ProductModel?
+    
     
     init(session: Binding<SessionModel>) {
         self._session = session
@@ -173,7 +175,7 @@ struct SessionDetailView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                // 上方標題區 + 右側省略號
+                // 上方標題區 + 右側 Menu
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.name)
@@ -190,10 +192,29 @@ struct SessionDetailView: View {
                     
                     Spacer()
                     
-                    Image(systemName: "ellipsis")
-                        .rotationEffect(.degrees(90))
-                        .foregroundColor(.gray)
-                        .padding(.top, 2) // 微調讓跟標題頂部靠齊
+                    Menu {
+                        Button {
+                            print("編輯 \(product.name)")
+                        } label: {
+                            Label("編輯", systemImage: "pencil")
+                                .frame(minWidth: 60)
+                                .multilineTextAlignment(.center)
+                        }
+
+                        Button(role: .destructive) {
+                            print("刪除 \(product.name)")
+                        } label: {
+                            Label("刪除", systemImage: "trash")
+                                .frame(minWidth: 60)
+                                .multilineTextAlignment(.center)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+
                 }
                 
                 // 下方折扣與數量控制區
@@ -213,7 +234,6 @@ struct SessionDetailView: View {
                                 }
                         }
                     }
-                    
                     
                     Spacer()
                     
@@ -243,6 +263,4 @@ struct SessionDetailView: View {
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
     }
-
-
 }
