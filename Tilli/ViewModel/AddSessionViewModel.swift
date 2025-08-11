@@ -13,7 +13,19 @@ class AddSessionViewModel: ObservableObject {
     @Published var newCategory: String = ""
     @Published var categories: [CategoryModel]
     @Published var editingCategoryID: UUID?
+    
+    // Alert 相關狀態
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+    @Published var categoryPendingDeletion: UUID?
+    @Published var categoryPendingRestore: UUID?
+    @Published var isDisableAction = false
+    
     var editingSession: SessionModel?
+    
+    // 用於獲取最新狀態的 DataManager
+    private var transactionDataManager: TransactionDataManager?
+    private var productDataManager: ProductDataManager?
     
     var sortedCategories: [CategoryModel] {
         categories.sorted(by: { $0.createdAt < $1.createdAt })
@@ -32,6 +44,12 @@ class AddSessionViewModel: ObservableObject {
         self.sessionName = sessionToEdit?.title ?? ""
         self.sessionDate = sessionToEdit?.date ?? Date()
         self.categories = sessionToEdit?.categories ?? []
+    }
+    
+    /// 更新 DataManager 引用
+    func updateDataManagers(transactionDataManager: TransactionDataManager, productDataManager: ProductDataManager) {
+        self.transactionDataManager = transactionDataManager
+        self.productDataManager = productDataManager
     }
 
     func updateCategoryName(id: UUID, newName: String) {
@@ -85,8 +103,23 @@ class AddSessionViewModel: ObservableObject {
     }
     
     func hasTransaction(for categoryId: UUID) -> Bool {
-        guard let session = editingSession else { return false }
+        guard let sessionId = editingSession?.id else { return false }
         
+        // 優先使用 TransactionDataManager 獲取最新的交易數據
+        if let transactionManager = transactionDataManager {
+            let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+            for transaction in transactions {
+                for item in transaction.items {
+                    if item.categoryId == categoryId {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+        
+        // 後備方案：使用初始的 editingSession 數據
+        guard let session = editingSession else { return false }
         for transaction in session.transactions {
             for item in transaction.items {
                 if item.categoryId == categoryId {
@@ -95,6 +128,113 @@ class AddSessionViewModel: ObservableObject {
             }
         }
         return false
+    }
+    
+    /// 檢查類別是否有產品（從最新數據源）
+    func hasProducts(for categoryId: UUID) -> Bool {
+        guard let sessionId = editingSession?.id else { return false }
+        
+        // 優先使用 ProductDataManager 獲取最新的產品數據
+        if let productManager = productDataManager {
+            let products = productManager.fetchProducts(forSessionId: sessionId)
+            return products.contains { $0.categoryId == categoryId }
+        }
+        
+        // 後備方案：使用類別模型中的產品數據
+        if let category = categories.first(where: { $0.id == categoryId }) {
+            return !category.products.isEmpty
+        }
+        
+        return false
+    }
+    
+    // MARK: - Alert 處理邏輯
+    
+    /// 處理停用操作
+    func handleDisableAction(for categoryId: UUID) {
+        alertMessage = "已有交易紀錄不可刪除，只能停用"
+        categoryPendingDeletion = categoryId
+        isDisableAction = true
+        showAlert = true
+    }
+    
+    /// 處理刪除操作
+    func handleDeleteAction(for category: CategoryModel) {
+        if hasProducts(for: category.id) {
+            // 有商品 → 警告後再刪除
+            alertMessage = "此類別仍有產品，確定要刪除嗎？"
+            categoryPendingDeletion = category.id
+            isDisableAction = false
+            showAlert = true
+        } else {
+            // 沒有商品 → 直接刪除
+            removeCategory(byId: category.id)
+        }
+    }
+    
+    /// 處理復原操作
+    func handleRestoreAction(for categoryId: UUID) {
+        categoryPendingRestore = categoryId
+        showAlert = true
+    }
+    
+    /// 確認刪除/停用操作
+    func confirmDeletionAction() {
+        guard let categoryId = categoryPendingDeletion else { return }
+        
+        if isDisableAction {
+            disableCategory(byId: categoryId)
+        } else {
+            removeCategory(byId: categoryId)
+        }
+        
+        resetDeletionState()
+    }
+    
+    /// 確認復原操作
+    func confirmRestoreAction() {
+        guard let categoryId = categoryPendingRestore else { return }
+        restoreCategory(byId: categoryId)
+        categoryPendingRestore = nil
+    }
+    
+    /// 取消刪除/停用操作
+    func cancelDeletionAction() {
+        resetDeletionState()
+    }
+    
+    /// 取消復原操作
+    func cancelRestoreAction() {
+        categoryPendingRestore = nil
+    }
+    
+    /// 重置刪除狀態
+    private func resetDeletionState() {
+        categoryPendingDeletion = nil
+        isDisableAction = false
+    }
+    
+    /// 處理 Swipe Actions
+    func getSwipeAction(for category: CategoryModel) -> SwipeActionType {
+        if hasTransaction(for: category.id) {
+            return .disable
+        } else {
+            return .delete
+        }
+    }
+    
+    /// 驗證保存條件
+    func validateSave() -> ValidationResult {
+        // 儲存前嘗試新增 newCategory
+        if let error = tryAddCategory() {
+            return .failure(error)
+        }
+
+        if categories.filter({ !$0.isDisabled }).isEmpty {
+            return .failure("請至少輸入一個類別")
+        }
+        
+        return .success
     }
 
     func save() -> SessionModel {
@@ -114,4 +254,16 @@ class AddSessionViewModel: ObservableObject {
             transactions: baseSession.transactions
         )
     }
+}
+
+// MARK: - Helper Enums
+
+enum SwipeActionType {
+    case delete
+    case disable
+}
+
+enum ValidationResult {
+    case success
+    case failure(String)
 }
