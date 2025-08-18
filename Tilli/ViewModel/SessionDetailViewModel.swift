@@ -24,7 +24,7 @@ class SessionDetailViewModel: ObservableObject {
         products = productDataManager.fetchProducts(forSessionId: session.id)
         categories = session.categories
     }
-    
+        
     func increaseQuantity(for product: ProductModel) {
         let current = quantities[product.id, default: 0]
         if current < product.stock {

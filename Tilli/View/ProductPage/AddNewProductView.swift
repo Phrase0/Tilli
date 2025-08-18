@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  AddNewProductView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/3.
@@ -10,15 +10,16 @@ import PhotosUI
 struct AddNewProductView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
-    @Environment(\.presentationMode) private var presentationMode
-    
     @StateObject private var viewModel: AddNewProductViewModel
-    
+
     init(session: SessionModel,
+         productToEdit: ProductModel? = nil,
          onSave: @escaping () -> Void,
          onCancel: (() -> Void)? = nil) {
+        
         _viewModel = StateObject(wrappedValue: AddNewProductViewModel(
             session: session,
+            productToEdit: productToEdit,
             onSave: onSave,
             onCancel: onCancel
         ))
@@ -38,10 +39,9 @@ struct AddNewProductView: View {
                         Text("Price")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("$ 0.00", text: $viewModel.price)
-                            .keyboardType(.decimalPad)
+                        TextField("$ 0", text: $viewModel.price)
+                            .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
                         Text("Stock Quantity")
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -53,18 +53,17 @@ struct AddNewProductView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         
-                            Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
-                                ForEach(viewModel.sortedCategories, id: \.id) { category in
-                                    Text(category.name).tag(category.id as UUID?)
-                                }
+                        Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
+                            ForEach(viewModel.sortedCategories, id: \.id) { category in
+                                Text(category.name).tag(category.id as UUID?)
                             }
-                            .pickerStyle(MenuPickerStyle())
-                            .frame(maxWidth: .infinity)
-                            .padding(12)
-                            .background(Color(UIColor.systemGray6))
-                            .cornerRadius(8)
                         }
-                    
+                        .pickerStyle(MenuPickerStyle())
+                        .frame(maxWidth: .infinity)
+                        .padding(12)
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(8)
+                    }
                     
                     Text("Product Image")
                         .font(.subheadline)
@@ -112,12 +111,11 @@ struct AddNewProductView: View {
                     UIApplication.shared.endEditing()
                 }
             }
-            .navigationTitle("Add New Product")
+            .navigationTitle(viewModel.editingProduct != nil ? "編輯產品" : "新增產品")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
                         viewModel.onCancel?()
                     }
                 }
@@ -125,7 +123,9 @@ struct AddNewProductView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if viewModel.save(using: productDataManager) {
-                            presentationMode.wrappedValue.dismiss()
+                            viewModel.onSave()
+                        } else {
+                            print("❌ 保存失敗")
                         }
                     }
                     .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
@@ -138,7 +138,6 @@ struct AddNewProductView: View {
                 viewModel.handleImageSelection()
             }
             .onAppear {
-                // 當視圖出現時確保類別選擇有效
                 viewModel.ensureValidCategorySelection()
             }
         }

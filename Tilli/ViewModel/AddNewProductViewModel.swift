@@ -28,6 +28,8 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - UI 驗證狀態
     @Published var showValidationError = false
+
+    var editingProduct: ProductModel?
     
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
@@ -50,15 +52,30 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 初始化
     init(session: SessionModel,
+         productToEdit: ProductModel? = nil,
          onSave: @escaping () -> Void,
          onCancel: (() -> Void)? = nil) {
+        
         self.session = session
         self.onSave = onSave
         self.onCancel = onCancel
+        self.editingProduct = productToEdit
         
         // 設置預設選中第一個啟用的類別
         self.selectedCategoryID = sortedCategories.first?.id
+
+        // 如果有編輯的產品，填入現有資料
+        if let product = editingProduct {
+            self.name = product.name
+            self.price = String(Int(product.price.rounded()))
+            self.quantity = String(product.stock)
+            self.selectedCategoryID = product.categoryId
+            // optional 欄位
+            self.description = product.note ?? ""   // description 先初始化成原有值或空字串
+            self.image = product.image
+        }
     }
+
     
     // MARK: - 確保選中的類別是有效的
     func ensureValidCategorySelection() {
@@ -78,16 +95,31 @@ class AddNewProductViewModel: ObservableObject {
             return nil
         }
         
-        return ProductModel(
-            sessionId: session.id,
-            name: name,
-            price: priceValue,
-            stock: quantityValue,
-            categoryId: category.id,
-            categoryName: category.name,
-            note: description,
-            imageData: image?.jpegData(compressionQuality: 0.8)
-        )
+        if let editing = editingProduct {
+            return ProductModel(
+                id: editing.id,                    // 保留原 ID
+                sessionId: editing.sessionId,      // 保留原 sessionId
+                name: name,
+                price: priceValue,
+                stock: quantityValue,
+                categoryId: editing.categoryId,    // 保留原類別 ID
+                categoryName: editing.categoryName, // 保留原類別名稱
+                note: description,
+                imageData: image?.jpegData(compressionQuality: 0.8)
+            )
+        } else {
+            // 新增模式
+            return ProductModel(
+                sessionId: session.id,
+                name: name,
+                price: priceValue,
+                stock: quantityValue,
+                categoryId: category.id,
+                categoryName: category.name,
+                note: description,
+                imageData: image?.jpegData(compressionQuality: 0.8)
+            )
+        }
     }
     
     // MARK: - 儲存動作
@@ -96,10 +128,18 @@ class AddNewProductViewModel: ObservableObject {
             showValidationError = true
             return false
         }
-        productDataManager.addProduct(product)
-        onSave()
+        
+        if editingProduct != nil {
+            // 編輯模式 → 更新產品
+            productDataManager.updateProduct(product)
+        } else {
+            // 新增模式 → 新增產品
+            productDataManager.addProduct(product)
+        }
         return true
     }
+
+    
     
     // MARK: - 處理 PhotosPicker 圖片選擇
     func handleImageSelection() {

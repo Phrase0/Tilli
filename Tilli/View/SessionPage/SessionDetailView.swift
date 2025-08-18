@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  SessionDetailView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/5.
@@ -20,16 +20,44 @@ struct SessionDetailView: View {
     @State private var selectedTab: Int = 0
     @State private var checkoutCompleted = false
     
-    @State private var selectedProductForAction: ProductModel?
-    
+    @State private var editingProduct: ProductModel? = nil
+    @State private var showEditProduct = false
     
     init(session: Binding<SessionModel>) {
         self._session = session
         self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
-        
     }
     
     var body: some View {
+        VStack {
+            // 當需要編輯產品時，顯示編輯頁面
+            if let product = editingProduct, showEditProduct {
+                AddNewProductView(
+                    session: session,
+                    productToEdit: product,
+                    onSave: {
+                        // 編輯完成
+                        showEditProduct = false
+                        editingProduct = nil
+                        viewModel.loadProducts(using: productDataManager)
+                    },
+                    onCancel: {
+                        // 取消編輯
+                        showEditProduct = false
+                        editingProduct = nil
+                    }
+                )
+            }
+            // 否則顯示主要的 SessionDetail 內容
+            else {
+                sessionDetailContent
+            }
+        }
+        .navigationBarHidden(showEditProduct)
+    }
+    
+    // 將原本的 body 內容提取為 computed property
+    private var sessionDetailContent: some View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 4) {
@@ -56,8 +84,7 @@ struct SessionDetailView: View {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id)
-                        { category in
+                        ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
                             let items = viewModel.products
                                 .filter { $0.categoryId == category.id }
                                 .sorted { $0.name < $1.name }
@@ -113,10 +140,6 @@ struct SessionDetailView: View {
             }
             .padding()
         }
-        .onAppear {
-            appState.currentSession = viewModel.session
-            viewModel.loadProducts(using: productDataManager)
-        }
         .background(Color(.systemGroupedBackground))
         .toolbar {
             if selectedTab == 0 {
@@ -146,20 +169,20 @@ struct SessionDetailView: View {
             )
         }
         .onChange(of: checkoutCompleted) {
-            // 結帳完成後的處理
             viewModel.loadProducts(using: productDataManager)
             viewModel.clearAllQuantities()
-            // 重設狀態，避免下次誤觸發
             checkoutCompleted = false
         }
-        
-        
+        .onAppear {
+            appState.currentSession = viewModel.session
+            viewModel.loadProducts(using: productDataManager)
+        }
     }
     
     private func productCard(_ product: ProductModel) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            if let imageName = product.image {
-                Image(uiImage: imageName)
+            if let image = product.image {
+                Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 60, height: 60)
@@ -175,34 +198,30 @@ struct SessionDetailView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                // 上方標題區 + 右側 Menu
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.name)
                             .font(.headline)
-                        
                         Text("NT$\(Int(product.price))")
                             .font(.subheadline)
                             .foregroundColor(.blue)
-                        
                         Text("庫存: \(product.stock)")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
-                    
                     Spacer()
-                    
                     Menu {
                         Button {
-                            print("編輯 \(product.name)")
+                            // 進入編輯頁 - 設置狀態並觸發條件判斷
+                            editingProduct = product
+                            showEditProduct = true
                         } label: {
                             Label("編輯", systemImage: "pencil")
                                 .frame(minWidth: 60)
                                 .multilineTextAlignment(.center)
                         }
-
                         Button(role: .destructive) {
-                            print("刪除 \(product.name)")
+                            // 刪除動作
                         } label: {
                             Label("刪除", systemImage: "trash")
                                 .frame(minWidth: 60)
@@ -214,10 +233,8 @@ struct SessionDetailView: View {
                             .foregroundColor(.gray)
                             .padding(8)
                     }
-
                 }
                 
-                // 下方折扣與數量控制區
                 HStack {
                     HStack(spacing: 8) {
                         ForEach([5, 10, 20], id: \.self) { percent in
@@ -234,24 +251,11 @@ struct SessionDetailView: View {
                                 }
                         }
                     }
-                    
                     Spacer()
-                    
                     HStack(spacing: 16) {
-                        Button {
-                            viewModel.decreaseQuantity(for: product)
-                        } label: {
-                            Image(systemName: "minus.circle")
-                        }
-                        
-                        Text("\(viewModel.quantity(for: product))")
-                            .frame(width: 24)
-                        
-                        Button {
-                            viewModel.increaseQuantity(for: product)
-                        } label: {
-                            Image(systemName: "plus.circle")
-                        }
+                        Button { viewModel.decreaseQuantity(for: product) } label: { Image(systemName: "minus.circle") }
+                        Text("\(viewModel.quantity(for: product))").frame(width: 24)
+                        Button { viewModel.increaseQuantity(for: product) } label: { Image(systemName: "plus.circle") }
                     }
                     .font(.title3)
                 }
