@@ -10,6 +10,7 @@ import SwiftUI
 struct SessionDetailView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
     
@@ -22,6 +23,10 @@ struct SessionDetailView: View {
     
     @State private var editingProduct: ProductModel? = nil
     @State private var showEditProduct = false
+    
+    // 產品刪除相關狀態
+    @State private var productToDelete: ProductModel? = nil
+    @State private var showDeleteAlert = false
     
     init(session: Binding<SessionModel>) {
         self._session = session
@@ -159,6 +164,19 @@ struct SessionDetailView: View {
                 viewModel.clearAllQuantities()
             }
         }
+        .alert("確定要刪除此產品嗎？", isPresented: $showDeleteAlert) {
+            Button("取消", role: .cancel) {
+                productToDelete = nil
+            }
+            Button("刪除", role: .destructive) {
+                if let product = productToDelete {
+                    viewModel.deleteProduct(product, using: productDataManager)
+                    productToDelete = nil
+                }
+            }
+        } message: {
+            Text("刪除後將無法復原")
+        }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
                 selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
@@ -176,6 +194,7 @@ struct SessionDetailView: View {
         .onAppear {
             appState.currentSession = viewModel.session
             viewModel.loadProducts(using: productDataManager)
+            viewModel.updateDataManagers(transactionDataManager: transactionDataManager)
         }
     }
     
@@ -220,12 +239,18 @@ struct SessionDetailView: View {
                                 .frame(minWidth: 60)
                                 .multilineTextAlignment(.center)
                         }
-                        Button(role: .destructive) {
-                            // 刪除動作
-                        } label: {
-                            Label("刪除", systemImage: "trash")
-                                .frame(minWidth: 60)
-                                .multilineTextAlignment(.center)
+                        
+                        // 根據是否有交易紀錄決定是否顯示刪除按鈕
+                        if !viewModel.hasTransaction(for: product.id) {
+                            Button(role: .destructive) {
+                                // 設置要刪除的產品並顯示警告
+                                productToDelete = product
+                                showDeleteAlert = true
+                            } label: {
+                                Label("刪除", systemImage: "trash")
+                                    .frame(minWidth: 60)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
                     } label: {
                         Image(systemName: "ellipsis")

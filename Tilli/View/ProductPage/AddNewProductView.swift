@@ -122,7 +122,7 @@ struct AddNewProductView: View {
                                 .font(.caption)
                                 .foregroundColor(.orange)
                         }
-                        .padding(.top, 8)
+                        .padding(8)
                     }
                 }
                 .padding()
