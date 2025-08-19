@@ -10,6 +10,7 @@ import PhotosUI
 struct AddNewProductView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
     @StateObject private var viewModel: AddNewProductViewModel
 
     init(session: SessionModel,
@@ -35,6 +36,8 @@ struct AddNewProductView: View {
                             .fontWeight(.semibold)
                         TextField("Enter product name", text: $viewModel.name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .disabled(viewModel.isEditingWithTransaction)
+                            .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                         
                         Text("Price")
                             .font(.subheadline)
@@ -42,6 +45,9 @@ struct AddNewProductView: View {
                         TextField("$ 0", text: $viewModel.price)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .disabled(viewModel.isEditingWithTransaction)
+                            .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
+                            
                         Text("Stock Quantity")
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -63,6 +69,8 @@ struct AddNewProductView: View {
                         .padding(12)
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
+                        .disabled(viewModel.isEditingWithTransaction)
+                        .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                     }
                     
                     Text("Product Image")
@@ -104,6 +112,18 @@ struct AddNewProductView: View {
                         .padding(8)
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
+                    
+                    // 顯示交易限制提示
+                    if viewModel.isEditingWithTransaction {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.orange)
+                            Text("此產品已有交易紀錄，無法更改名稱、價格和類別")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.top, 8)
+                    }
                 }
                 .padding()
                 .contentShape(Rectangle())
@@ -125,7 +145,7 @@ struct AddNewProductView: View {
                         if viewModel.save(using: productDataManager) {
                             viewModel.onSave()
                         } else {
-                            print("❌ 保存失敗")
+                            print("保存失敗")
                         }
                     }
                     .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
@@ -138,6 +158,10 @@ struct AddNewProductView: View {
                 viewModel.handleImageSelection()
             }
             .onAppear {
+                // 每次出現時更新資料管理器
+                viewModel.updateDataManagers(
+                    transactionDataManager: transactionDataManager
+                )
                 viewModel.ensureValidCategorySelection()
             }
         }

@@ -31,6 +31,9 @@ class AddNewProductViewModel: ObservableObject {
 
     var editingProduct: ProductModel?
     
+    // MARK: - 用於獲取最新狀態的 DataManager
+    private var transactionDataManager: TransactionDataManager?
+    
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
         session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
@@ -48,6 +51,12 @@ class AddNewProductViewModel: ObservableObject {
         !quantity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         Int(quantity) != nil &&
         selectedCategory != nil // 直接使用 selectedCategory 而不是 selectedCategoryID
+    }
+    
+    /// 檢查編輯中的產品是否有交易紀錄（限制編輯）
+    var isEditingWithTransaction: Bool {
+        guard let product = editingProduct else { return false }
+        return hasTransaction(for: product.id)
     }
     
     // MARK: - 初始化
@@ -76,6 +85,40 @@ class AddNewProductViewModel: ObservableObject {
         }
     }
 
+    // MARK: - 更新 DataManager 引用
+    /// 更新 DataManager 引用
+    func updateDataManagers(transactionDataManager: TransactionDataManager) {
+         self.transactionDataManager = transactionDataManager
+     }
+    
+    // MARK: - 交易檢查邏輯
+    /// 檢查產品是否有交易紀錄
+    func hasTransaction(for productId: UUID) -> Bool {
+        guard let sessionId = session.id as UUID? else { return false }
+        
+        // 優先使用 TransactionDataManager 獲取最新的交易數據
+        if let transactionManager = transactionDataManager {
+            let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+            for transaction in transactions {
+                for item in transaction.items {
+                    if item.productId == productId {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+        
+        // 後備方案：使用初始的 session 數據
+        for transaction in session.transactions {
+            for item in transaction.items {
+                if item.productId == productId {
+                    return true
+                }
+            }
+        }
+        return false
+    }
     
     // MARK: - 確保選中的類別是有效的
     func ensureValidCategorySelection() {
@@ -96,17 +139,34 @@ class AddNewProductViewModel: ObservableObject {
         }
         
         if let editing = editingProduct {
-            return ProductModel(
-                id: editing.id,                    // 保留原 ID
-                sessionId: editing.sessionId,      // 保留原 sessionId
-                name: name,
-                price: priceValue,
-                stock: quantityValue,
-                categoryId: editing.categoryId,    // 保留原類別 ID
-                categoryName: editing.categoryName, // 保留原類別名稱
-                note: description,
-                imageData: image?.jpegData(compressionQuality: 0.8)
-            )
+            // 編輯模式：檢查是否有交易紀錄
+            if hasTransaction(for: editing.id) {
+                // 有交易紀錄時，保持原有的名稱、價格和類別不變
+                return ProductModel(
+                    id: editing.id,                    // 保留原 ID
+                    sessionId: editing.sessionId,      // 保留原 sessionId
+                    name: editing.name,                // 保持原名稱
+                    price: editing.price,              // 保持原價格
+                    stock: quantityValue,              // 允許更新庫存
+                    categoryId: editing.categoryId,    // 保持原類別 ID
+                    categoryName: editing.categoryName, // 保持原類別名稱
+                    note: description,                 // 允許更新描述
+                    imageData: image?.jpegData(compressionQuality: 0.8) // 允許更新圖片
+                )
+            } else {
+                // 無交易紀錄時，允許更新所有欄位
+                return ProductModel(
+                    id: editing.id,                    // 保留原 ID
+                    sessionId: editing.sessionId,      // 保留原 sessionId
+                    name: name,                        // 允許更新名稱
+                    price: priceValue,                 // 允許更新價格
+                    stock: quantityValue,              // 允許更新庫存
+                    categoryId: category.id,           // 允許更新類別 ID
+                    categoryName: category.name,       // 允許更新類別名稱
+                    note: description,                 // 允許更新描述
+                    imageData: image?.jpegData(compressionQuality: 0.8) // 允許更新圖片
+                )
+            }
         } else {
             // 新增模式
             return ProductModel(
