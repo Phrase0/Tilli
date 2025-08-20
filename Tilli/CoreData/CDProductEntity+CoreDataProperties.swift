@@ -23,6 +23,7 @@ extension CDProductEntity {
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
     @NSManaged public var category: CDCategoryEntity
+    @NSManaged public var isDisabled: Bool
 
 }
 
@@ -38,6 +39,7 @@ extension CDProductEntity {
         if let imageData = model.imageData {
             self.imageData = imageData
         }
+        self.isDisabled = model.isDisabled
     }
 
     func toModel() -> ProductModel {

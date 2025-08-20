@@ -11,6 +11,7 @@
     <entity name="CDProductEntity" representedClassName="CDProductEntity" syncable="YES">
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageData" optional="YES" attributeType="Binary"/>
+        <attribute name="isDisabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="note" optional="YES" attributeType="String"/>
         <attribute name="price" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>

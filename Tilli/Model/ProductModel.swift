@@ -17,6 +17,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var categoryName: String
     var note: String?
     var imageData: Data?             // 可選圖片（轉 UIImage 用 image）
+    var isDisabled: Bool
     
     var image: UIImage? {
         get {
@@ -41,6 +42,7 @@ extension ProductModel {
         
         self.categoryId = entity.category.id
         self.categoryName = entity.category.name
+        self.isDisabled = entity.isDisabled
     }
 }
 
