@@ -15,20 +15,41 @@ class SessionDetailViewModel: ObservableObject {
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscounts: [UUID: Int] = [:]
     
+    // Alert 相關狀態（參考 AddSessionViewModel）
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+    @Published var productPendingDeletion: UUID?
+    @Published var productPendingRestore: UUID?
+    @Published var isDisableAction = false
+    
+    // 停用商品區顯示狀態
+    @Published var showDisabledProducts = false
+    
+    // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
+    private var productDataManager: ProductDataManager?
+    
+    // 計算屬性：啟用的產品
+    var activeProducts: [ProductModel] {
+        products.filter { !$0.isDisabled }
+    }
+    
+    // 計算屬性：停用的產品
+    var disabledProducts: [ProductModel] {
+        products.filter { $0.isDisabled }
+    }
     
     init(session: Binding<SessionModel>) {
         self._session = session
     }
     
     // MARK: - 更新 DataManager 引用
-    /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager) {
-         self.transactionDataManager = transactionDataManager
-     }
+    func updateDataManagers(transactionDataManager: TransactionDataManager, productDataManager: ProductDataManager) {
+        self.transactionDataManager = transactionDataManager
+        self.productDataManager = productDataManager
+    }
     
     // MARK: - 交易檢查邏輯
-    /// 檢查產品是否有交易紀錄
     func hasTransaction(for productId: UUID) -> Bool {
         guard let sessionId = session.id as UUID? else { return false }
         
@@ -56,20 +77,115 @@ class SessionDetailViewModel: ObservableObject {
         return false
     }
 
-      
-    func loadProducts(using productDataManager: ProductDataManager) {
-        products = productDataManager.fetchProducts(forSessionId: session.id)
+    // MARK: - 產品管理方法
+    
+    func loadProducts() {
+        guard let productManager = productDataManager else { return }
+        products = productManager.fetchProducts(forSessionId: session.id)
         categories = session.categories
     }
     
-    func deleteProduct(_ product: ProductModel, using productDataManager: ProductDataManager) {
-        productDataManager.deleteProduct(product)
-        // 重新載入產品列表
-        loadProducts(using: productDataManager)
-        // 清除該產品的選擇狀態
-        quantities.removeValue(forKey: product.id)
-        selectedDiscounts.removeValue(forKey: product.id)
+    func removeProduct(byId productId: UUID) {
+        guard let productManager = productDataManager else { return }
+        let allProducts = productManager.fetchProducts(forSessionId: session.id)
+        if let product = allProducts.first(where: { $0.id == productId }) {
+            productManager.deleteProduct(product)
+        }
     }
+    
+    func disableProduct(byId productId: UUID) {
+        guard let productManager = productDataManager else { return }
+        let allProducts = productManager.fetchProducts(forSessionId: session.id)
+        if var product = allProducts.first(where: { $0.id == productId }) {
+            product.isDisabled = true
+            productManager.updateProduct(product)
+        }
+    }
+    
+    func restoreProduct(byId productId: UUID) {
+        guard let productManager = productDataManager else { return }
+        let allProducts = productManager.fetchProducts(forSessionId: session.id)
+        if var product = allProducts.first(where: { $0.id == productId }) {
+            product.isDisabled = false
+            productManager.updateProduct(product)
+        }
+    }
+    
+    // MARK: - Alert 處理邏輯（參考 AddSessionViewModel）
+    
+    /// 處理停用操作
+    func handleDisableAction(for productId: UUID) {
+        alertMessage = "已有交易紀錄不可刪除，只能停用"
+        productPendingDeletion = productId
+        isDisableAction = true
+        showAlert = true
+    }
+    
+    /// 處理刪除操作
+    func handleDeleteAction(for productId: UUID) {
+        alertMessage = "確定要刪除此產品嗎？"
+        productPendingDeletion = productId
+        isDisableAction = false
+        showAlert = true
+    }
+    
+    /// 處理復原操作
+    func handleRestoreAction(for productId: UUID) {
+        productPendingRestore = productId
+        showAlert = true
+    }
+    
+    /// 確認刪除/停用操作
+    func confirmDeletionAction() {
+        guard let productId = productPendingDeletion else { return }
+        
+        if isDisableAction {
+            disableProduct(byId: productId)
+        } else {
+            removeProduct(byId: productId)
+            // 清除該產品的選擇狀態
+            quantities.removeValue(forKey: productId)
+            selectedDiscounts.removeValue(forKey: productId)
+        }
+        
+        loadProducts()
+        resetDeletionState()
+    }
+    
+    /// 確認復原操作
+    func confirmRestoreAction() {
+        guard let productId = productPendingRestore else { return }
+        restoreProduct(byId: productId)
+        loadProducts()
+        productPendingRestore = nil
+    }
+    
+    /// 取消刪除/停用操作
+    func cancelDeletionAction() {
+        resetDeletionState()
+    }
+    
+    /// 取消復原操作
+    func cancelRestoreAction() {
+        productPendingRestore = nil
+    }
+    
+    /// 重置刪除狀態
+    private func resetDeletionState() {
+        productPendingDeletion = nil
+        isDisableAction = false
+    }
+    
+    /// 處理 Actions（參考 AddSessionViewModel）
+    func getActionType(for productId: UUID) -> ProductActionType {
+        if hasTransaction(for: productId) {
+            return .disable
+        } else {
+            return .delete
+        }
+    }
+    
+    // MARK: - 購物車邏輯
     
     func increaseQuantity(for product: ProductModel) {
         let current = quantities[product.id, default: 0]
@@ -107,7 +223,7 @@ class SessionDetailViewModel: ObservableObject {
     }
     
     func totalAmount() -> Int {
-        products.reduce(0) { result, product in
+        activeProducts.reduce(0) { result, product in
             let qty = quantities[product.id, default: 0]
             let discount = selectedDiscounts[product.id] ?? 0
             let discountedPrice = product.price * (1 - Double(discount) / 100)
@@ -116,9 +232,8 @@ class SessionDetailViewModel: ObservableObject {
         }
     }
     
-    
     func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
-        products.compactMap { product in
+        activeProducts.compactMap { product in
             let qty = quantity(for: product)
             guard qty > 0 else { return nil }
 
@@ -136,4 +251,11 @@ class SessionDetailViewModel: ObservableObject {
             )
         }
     }
+}
+
+// MARK: - Helper Enums
+
+enum ProductActionType {
+    case delete
+    case disable
 }

@@ -24,10 +24,6 @@ struct SessionDetailView: View {
     @State private var editingProduct: ProductModel? = nil
     @State private var showEditProduct = false
     
-    // 產品刪除相關狀態
-    @State private var productToDelete: ProductModel? = nil
-    @State private var showDeleteAlert = false
-    
     init(session: Binding<SessionModel>) {
         self._session = session
         self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
@@ -44,7 +40,7 @@ struct SessionDetailView: View {
                         // 編輯完成
                         showEditProduct = false
                         editingProduct = nil
-                        viewModel.loadProducts(using: productDataManager)
+                        viewModel.loadProducts()
                     },
                     onCancel: {
                         // 取消編輯
@@ -89,8 +85,9 @@ struct SessionDetailView: View {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
+                        // 啟用的產品列表
                         ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
-                            let items = viewModel.products
+                            let items = viewModel.activeProducts
                                 .filter { $0.categoryId == category.id }
                                 .sorted { $0.name < $1.name }
                             if !items.isEmpty {
@@ -100,6 +97,38 @@ struct SessionDetailView: View {
                                         .padding(.horizontal)
                                     ForEach(items) { product in
                                         productCard(product)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 停用商品區（參考 AddSessionView 的已停用類別）
+                        if !viewModel.disabledProducts.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        viewModel.showDisabledProducts.toggle()
+                                    }
+                                }) {
+                                    HStack {
+                                        Text("停用商品")
+                                            .font(.headline)
+                                            .foregroundColor(.gray)
+                                            .padding(.horizontal)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                                            .foregroundColor(.gray)
+                                            .font(.caption)
+                                            .padding(.horizontal)
+                                    }
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                if viewModel.showDisabledProducts {
+                                    ForEach(viewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
+                                        disabledProductCard(product)
                                     }
                                 }
                             }
@@ -164,18 +193,8 @@ struct SessionDetailView: View {
                 viewModel.clearAllQuantities()
             }
         }
-        .alert("確定要刪除此產品嗎？", isPresented: $showDeleteAlert) {
-            Button("取消", role: .cancel) {
-                productToDelete = nil
-            }
-            Button("刪除", role: .destructive) {
-                if let product = productToDelete {
-                    viewModel.deleteProduct(product, using: productDataManager)
-                    productToDelete = nil
-                }
-            }
-        } message: {
-            Text("刪除後將無法復原")
+        .alert(isPresented: $viewModel.showAlert) {
+            createAlert()
         }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
@@ -187,17 +206,24 @@ struct SessionDetailView: View {
             )
         }
         .onChange(of: checkoutCompleted) {
-            viewModel.loadProducts(using: productDataManager)
+            viewModel.loadProducts()
             viewModel.clearAllQuantities()
             checkoutCompleted = false
         }
         .onAppear {
             appState.currentSession = viewModel.session
-            viewModel.loadProducts(using: productDataManager)
-            viewModel.updateDataManagers(transactionDataManager: transactionDataManager)
+            // 每次出現時更新資料管理器
+            viewModel.updateDataManagers(
+                transactionDataManager: transactionDataManager,
+                productDataManager: productDataManager
+            )
+            viewModel.loadProducts()
         }
     }
     
+    // MARK: - Helper Methods（參考 AddSessionView）
+    
+    // 啟用產品卡片
     private func productCard(_ product: ProductModel) -> some View {
         HStack(alignment: .top, spacing: 12) {
             if let image = product.image {
@@ -231,27 +257,15 @@ struct SessionDetailView: View {
                     Spacer()
                     Menu {
                         Button {
-                            // 進入編輯頁 - 設置狀態並觸發條件判斷
+                            // 進入編輯頁
                             editingProduct = product
                             showEditProduct = true
                         } label: {
                             Label("編輯", systemImage: "pencil")
-                                .frame(minWidth: 60)
-                                .multilineTextAlignment(.center)
                         }
                         
-                        // 根據是否有交易紀錄決定是否顯示刪除按鈕
-                        if !viewModel.hasTransaction(for: product.id) {
-                            Button(role: .destructive) {
-                                // 設置要刪除的產品並顯示警告
-                                productToDelete = product
-                                showDeleteAlert = true
-                            } label: {
-                                Label("刪除", systemImage: "trash")
-                                    .frame(minWidth: 60)
-                                    .multilineTextAlignment(.center)
-                            }
-                        }
+                        // 根據產品狀態顯示不同的操作按鈕
+                        productActionContent(for: product)
                     } label: {
                         Image(systemName: "ellipsis")
                             .rotationEffect(.degrees(90))
@@ -291,5 +305,132 @@ struct SessionDetailView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
+    }
+    
+    // 停用產品卡片（參考 AddSessionView 的已停用類別顯示方式）
+    private func disabledProductCard(_ product: ProductModel) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            if let image = product.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+                    .grayscale(1.0) // 灰階效果
+            } else {
+                Rectangle()
+                    .foregroundColor(.clear)
+                    .background(Color(.systemGray5))
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(product.name)
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Text("NT$\(Int(product.price))")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        Text("庫存: \(product.stock)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Menu {
+                        Button("復原") {
+                            viewModel.handleRestoreAction(for: product.id)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                }
+                
+                // 停用產品不顯示折扣和數量選擇
+                Text("（已停用）")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .italic()
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private func productActionContent(for product: ProductModel) -> some View {
+        switch viewModel.getActionType(for: product.id) {
+        case .disable:
+            Button {
+                viewModel.handleDisableAction(for: product.id)
+            } label: {
+                Label("停用", systemImage: "minus.circle")
+            }
+        case .delete:
+            Button(role: .destructive) {
+                viewModel.handleDeleteAction(for: product.id)
+            } label: {
+                Label("刪除", systemImage: "trash")
+            }
+        }
+    }
+    
+    // Alert 創建方法（參考 AddSessionView）
+    private func createAlert() -> Alert {
+        if viewModel.productPendingRestore != nil {
+            // 復原操作的警告
+            return Alert(
+                title: Text("確認復原"),
+                message: Text("確定要復原此產品嗎？"),
+                primaryButton: .default(Text("確認")) {
+                    viewModel.confirmRestoreAction()
+                },
+                secondaryButton: .cancel {
+                    viewModel.cancelRestoreAction()
+                }
+            )
+        } else if viewModel.productPendingDeletion != nil {
+            if viewModel.isDisableAction {
+                // 停用操作的警告
+                return Alert(
+                    title: Text("確認停用"),
+                    message: Text(viewModel.alertMessage),
+                    primaryButton: .default(Text("確認")) {
+                        viewModel.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.cancelDeletionAction()
+                    }
+                )
+            } else {
+                // 刪除操作的警告
+                return Alert(
+                    title: Text("確認刪除"),
+                    message: Text(viewModel.alertMessage),
+                    primaryButton: .destructive(Text("刪除")) {
+                        viewModel.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.cancelDeletionAction()
+                    }
+                )
+            }
+        } else {
+            return Alert(
+                title: Text("提醒"),
+                message: Text(viewModel.alertMessage),
+                dismissButton: .default(Text("好"))
+            )
+        }
     }
 }
