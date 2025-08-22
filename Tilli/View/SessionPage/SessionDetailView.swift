@@ -102,7 +102,7 @@ struct SessionDetailView: View {
                             }
                         }
                         
-                        // 停用商品區（參考 AddSessionView 的已停用類別）
+                        // 停用商品區
                         if !viewModel.disabledProducts.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Button(action: {
@@ -221,7 +221,7 @@ struct SessionDetailView: View {
         }
     }
     
-    // MARK: - Helper Methods（參考 AddSessionView）
+    // MARK: - Helper Methods
     
     // 啟用產品卡片
     private func productCard(_ product: ProductModel) -> some View {
@@ -352,12 +352,6 @@ struct SessionDetailView: View {
                             .padding(8)
                     }
                 }
-                
-                // 停用產品不顯示折扣和數量選擇
-                Text("（已停用）")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .italic()
             }
         }
         .padding()
@@ -385,7 +379,7 @@ struct SessionDetailView: View {
         }
     }
     
-    // Alert 創建方法（參考 AddSessionView）
+    // Alert 創建方法
     private func createAlert() -> Alert {
         if viewModel.productPendingRestore != nil {
             // 復原操作的警告

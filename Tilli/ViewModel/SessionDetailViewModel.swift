@@ -15,7 +15,7 @@ class SessionDetailViewModel: ObservableObject {
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscounts: [UUID: Int] = [:]
     
-    // Alert 相關狀態（參考 AddSessionViewModel）
+    // Alert 相關狀態
     @Published var showAlert = false
     @Published var alertMessage = ""
     @Published var productPendingDeletion: UUID?
