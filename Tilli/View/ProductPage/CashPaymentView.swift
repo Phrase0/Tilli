@@ -97,13 +97,18 @@ struct CashPaymentView: View {
             
             VStack(spacing: 12) {
                 Button(action: {
-                    if viewModel.isAmountValid {
-                        let updatedSession = viewModel.performCheckout(
-                            transactionDataManager: transactionDataManager,
-                            sessionDataManager: sessionDataManager, productDataManager: productDataManager
-                        )
-                        onComplete(updatedSession)
-                        dismiss()
+                        //
+                        if viewModel.isAmountValid {
+                            let updatedSession = viewModel.performCheckout(
+                                transactionDataManager: transactionDataManager,
+                                sessionDataManager: sessionDataManager,
+                                productDataManager: productDataManager
+                            )
+                            session = updatedSession  // 直接更新 Binding
+                            onComplete(updatedSession)
+                            dismiss()
+                        
+                        //
                     }
                 }) {
                     Text("完成付款")

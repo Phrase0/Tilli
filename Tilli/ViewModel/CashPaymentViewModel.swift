@@ -41,7 +41,6 @@ class CashPaymentViewModel: ObservableObject {
         productDataManager: ProductDataManager
     ) -> SessionModel {
 
-
         for item in summaryItems {
             guard let matchedProduct = productDataManager.products.first(where: { $0.id == item.productId }) else {
                 print("無法在 CoreData 中找到對應的 productId: \(item.productId)")
@@ -61,10 +60,11 @@ class CashPaymentViewModel: ObservableObject {
             timestamp: Date()
         )
 
+        
+        var updatedSession = session
+        updatedSession.transactions.append(transaction)
         transactionDataManager.addTransaction(transaction)
-        sessionDataManager.updateSession(session)
-
-        return session
+        return updatedSession
     }
 
 

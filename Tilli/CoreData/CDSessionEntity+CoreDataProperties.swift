@@ -2,7 +2,7 @@
 //  CDSessionEntity+CoreDataProperties.swift
 //  Tilli
 //
-//  Created by Peiyun on 2025/7/27.
+//  Created by Peiyun on 2025/8/3.
 //
 //
 
@@ -15,31 +15,13 @@ extension CDSessionEntity {
         return NSFetchRequest<CDSessionEntity>(entityName: "CDSessionEntity")
     }
 
+    
     @NSManaged public var id: UUID
     @NSManaged public var title: String
     @NSManaged public var date: Date
     @NSManaged public var createdAt: Date
-    @NSManaged public var status: String
-    @NSManaged public var categories: String
-    @NSManaged public var products: NSSet?
+    @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
-
-}
-
-// MARK: Generated accessors for products
-extension CDSessionEntity {
-
-    @objc(addProductsObject:)
-    @NSManaged public func addToProducts(_ value: CDProductEntity)
-
-    @objc(removeProductsObject:)
-    @NSManaged public func removeFromProducts(_ value: CDProductEntity)
-
-    @objc(addProducts:)
-    @NSManaged public func addToProducts(_ values: NSSet)
-
-    @objc(removeProducts:)
-    @NSManaged public func removeFromProducts(_ values: NSSet)
 
 }
 
@@ -60,69 +42,128 @@ extension CDSessionEntity {
 
 }
 
+// MARK: Generated accessors for categories
+extension CDSessionEntity {
 
+    @objc(addCategoriesObject:)
+    @NSManaged public func addToCategories(_ value: CDCategoryEntity)
+
+    @objc(removeCategoriesObject:)
+    @NSManaged public func removeFromCategories(_ value: CDCategoryEntity)
+
+    @objc(addCategories:)
+    @NSManaged public func addToCategories(_ values: NSSet)
+
+    @objc(removeCategories:)
+    @NSManaged public func removeFromCategories(_ values: NSSet)
+
+}
 
 extension CDSessionEntity {
 
-    var wrappedStatus: SessionStatus {
-        get {
-            SessionStatus(rawValue: self.status) ?? .ongoing
-        }
-        set {
-            self.status = newValue.rawValue
-        }
-    }
-
-    var wrappedCategories: [String] {
-        get {
-            guard let json = self.categories.data(using: .utf8) else { return [] }
-            return (try? JSONDecoder().decode([String].self, from: json)) ?? []
-        }
-        set {
-            let data = try? JSONEncoder().encode(newValue)
-            self.categories = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-        }
-    }
-
+//    func update(from model: SessionModel, context: NSManagedObjectContext) {
+//        self.id = model.id
+//        self.title = model.title
+//        self.date = model.date
+//        self.createdAt = model.createdAt
+//
+//        // 更新分類（先清除再加）
+//        self.removeFromCategories(self.categories)
+//        for categoryModel in model.categories {
+//            let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
+//            request.predicate = NSPredicate(format: "id == %@", categoryModel.id as CVarArg)
+//            request.fetchLimit = 1
+//
+//            if let existingCategory = try? context.fetch(request).first {
+//                existingCategory.update(from: categoryModel, context: context)
+//                self.addToCategories(existingCategory)
+//            } else {
+//                let newCategory = CDCategoryEntity(context: context)
+//                newCategory.update(from: categoryModel, context: context)
+//                self.addToCategories(newCategory)
+//            }
+//        }
+//
+//        // 更新交易
+//        self.removeFromTransactions(self.transactions ?? [])
+//        for transactionModel in model.transactions {
+//            let cdTx = CDTransactionEntity(context: context)
+//            cdTx.update(from: transactionModel, context: context)
+//            self.addToTransactions(cdTx)
+//        }
+//    }
     func update(from model: SessionModel, context: NSManagedObjectContext) {
+        // 更新基本欄位
         self.id = model.id
         self.title = model.title
         self.date = model.date
-        self.wrappedStatus = model.status
         self.createdAt = model.createdAt
-        self.wrappedCategories = model.categories
-        
-        // 更新 products
-        self.removeFromProducts(self.products ?? [])
-        for productModel in model.products {
-            let product = CDProductEntity(context: context)
-            product.update(from: productModel, context: context)
-            self.addToProducts(product)
+
+        // MARK: 更新 Categories
+        let existingCategories = (self.categories as? Set<CDCategoryEntity>) ?? []
+        var categoryMap: [UUID: CDCategoryEntity] = [:]
+        for category in existingCategories {
+            categoryMap[category.id] = category
         }
 
-        // 更新 transactions
-        self.removeFromTransactions(self.transactions ?? [])
-        for transactionModel in model.transactions {
-            let cdTx = CDTransactionEntity(context: context)
-            cdTx.update(from: transactionModel, context: context)
-            self.addToTransactions(cdTx)
+        for categoryModel in model.categories {
+            if let existingCategory = categoryMap[categoryModel.id] {
+                existingCategory.update(from: categoryModel, context: context)
+            } else {
+                let newCategory = CDCategoryEntity(context: context)
+                newCategory.update(from: categoryModel, context: context)
+                newCategory.session = self
+                self.addToCategories(newCategory)
+            }
+            categoryMap.removeValue(forKey: categoryModel.id)
+        }
+
+        // 移除剩下的（被刪除的）
+        for (_, unusedCategory) in categoryMap {
+            context.delete(unusedCategory)
+        }
+
+        // MARK: 更新 Transactions
+        let existingTransactions = (self.transactions as? Set<CDTransactionEntity>) ?? []
+        var transactionMap: [UUID: CDTransactionEntity] = [:]
+        for tx in existingTransactions {
+                transactionMap[tx.id] = tx
+        }
+
+        for txModel in model.transactions {
+            if let existingTx = transactionMap[txModel.id] {
+                existingTx.update(from: txModel, context: context)
+            } else {
+                let newTx = CDTransactionEntity(context: context)
+                newTx.update(from: txModel, context: context)
+                self.addToTransactions(newTx)
+            }
+            transactionMap.removeValue(forKey: txModel.id)
+        }
+
+        for (_, unusedTx) in transactionMap {
+            context.delete(unusedTx)
         }
     }
 
+    
     // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
-        let productModels: [ProductModel] = (products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
-        let transactionModels: [TransactionModel] = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
+        // 取出所有 CategoryModel
+        let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
+
+        let transactionModels = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
 
         return SessionModel(
             id: self.id,
             title: self.title,
             date: self.date,
-            status: self.wrappedStatus,
-            categories: self.wrappedCategories,
+            categories: categoryModels,
             createdAt: self.createdAt,
-            products: productModels,
             transactions: transactionModels
         )
     }
+    
+    
 }
+

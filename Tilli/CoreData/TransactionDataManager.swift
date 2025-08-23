@@ -70,6 +70,7 @@ class TransactionDataManager: ObservableObject {
             return []
         }
     }
+    
 
     // MARK: - Update
     func updateTransaction(_ model: TransactionModel) {

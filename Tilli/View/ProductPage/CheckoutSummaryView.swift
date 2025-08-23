@@ -17,31 +17,28 @@ struct CheckoutSummaryView: View {
 
     @State private var navigateToCashPayment = false
     @State private var navigateToEPayment = false
-    
-
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
-                // Header
+                // MARK: Header
                 HStack {
                     Text("Order Summary")
                         .font(.headline)
                     Spacer()
-                    Button(action: {
+                    Button {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         isPresented = false
-                    }) {
+                    } label: {
                         Image(systemName: "xmark")
                             .foregroundColor(.gray)
                     }
                 }
                 .padding()
-                
+
                 Divider()
-                
+
+                // MARK: 商品清單
                 ScrollView {
                     VStack(spacing: 16) {
                         ForEach(selectedItems) { item in
@@ -49,21 +46,21 @@ struct CheckoutSummaryView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(item.name)
                                         .font(.body)
-                                    
+
                                     HStack(spacing: 8) {
                                         Text("Qty: \(item.quantity)")
                                             .font(.caption)
                                             .foregroundColor(.gray)
-                                        
+
                                         if item.discount > 0 {
                                             Text("\(item.discount)%")
                                                 .font(.caption)
                                                 .padding(4)
                                                 .background(Color.blue.opacity(0.2))
                                                 .cornerRadius(4)
-                                            
+
                                             let discountedPrice = Int((item.price * (1 - Double(item.discount) / 100)).rounded())
-                                            Text("NT$\(Int(discountedPrice))")
+                                            Text("NT$\(discountedPrice)")
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         } else {
@@ -73,9 +70,9 @@ struct CheckoutSummaryView: View {
                                         }
                                     }
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 Text("NT$\(Int(item.total))")
                                     .font(.body)
                                     .fontWeight(.semibold)
@@ -84,9 +81,10 @@ struct CheckoutSummaryView: View {
                     }
                     .padding()
                 }
-                
+
                 Divider()
-                
+
+                // MARK: 總金額
                 HStack {
                     Text("Total")
                         .font(.headline)
@@ -96,28 +94,10 @@ struct CheckoutSummaryView: View {
                         .bold()
                 }
                 .padding()
-                
-                // MARK: - Payment Options
-                VStack(spacing: 8) {
-                    // Cash Payment Navigation
-                    NavigationLink(
-                        destination:
-                            CashPaymentView(
-                                totalAmount: totalAmount,
-                                session: $session,
-                                summaryItems: selectedItems
-                            ) { updatedSession in
-                                self.session = updatedSession
-                                checkoutCompleted = true
-                                isPresented = false
-                            }
-                            .environmentObject(transactionDataManager)
-                            .environmentObject(appState),
-                        isActive: $navigateToCashPayment
-                    ) {
-                        EmptyView()
-                    }
 
+                // MARK: 支付方式
+                VStack(spacing: 8) {
+                    // 現金付款
                     Button {
                         navigateToCashPayment = true
                     } label: {
@@ -136,16 +116,7 @@ struct CheckoutSummaryView: View {
                         .cornerRadius(12)
                     }
 
-                    // E-Payment Navigation
-                    NavigationLink(
-                        destination:
-                            EPaymentView(totalAmount: totalAmount)
-                                .environmentObject(transactionDataManager),
-                        isActive: $navigateToEPayment
-                    ) {
-                        EmptyView()
-                    }
-
+                    // 電子支付
                     Button {
                         navigateToEPayment = true
                     } label: {
@@ -165,6 +136,21 @@ struct CheckoutSummaryView: View {
                     }
                 }
                 .padding()
+            }
+            // MARK: - Navigation Destinations
+            .navigationDestination(isPresented: $navigateToCashPayment) {
+                CashPaymentView(
+                    totalAmount: totalAmount,
+                    session: $session,
+                    summaryItems: selectedItems
+                ) { updatedSession in
+                    self.session = updatedSession
+                    checkoutCompleted = true
+                    isPresented = false
+                }
+            }
+            .navigationDestination(isPresented: $navigateToEPayment) {
+                EPaymentView(totalAmount: totalAmount)
             }
         }
     }

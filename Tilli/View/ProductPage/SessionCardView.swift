@@ -16,11 +16,10 @@ struct SessionCardView: View {
             onTap?()
         }) {
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(session.title)
                             .font(.headline)
-                            .foregroundColor(.primary)
 
                         Text(session.date, formatter: DateFormatter.sessionDate)
                             .font(.subheadline)
@@ -29,30 +28,22 @@ struct SessionCardView: View {
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(session.status.rawValue)
-                            .font(.caption)
-                            .foregroundColor(session.status.textColor)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(session.status.color)
-                            .clipShape(Capsule())
-
-//                        Text("NT$\(session.amount)")
-//                            .font(.subheadline)
-//                            .fontWeight(.bold)
-//                            .foregroundColor(.black)
-//                            .padding(.horizontal, 8)
-//                            .padding(.vertical, 4)
-//                            .background(Color(.systemGray6))
-//                            .clipShape(Capsule())
-                    }
+                    Text(session.status.rawValue)
+                        .font(.caption)
+                        .foregroundColor(session.status.textColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(session.status.color)
+                        .clipShape(Capsule())
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(session.status == .ongoing ? Color.blue.opacity(0.1) : Color.white)
+            )
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
         .buttonStyle(PlainButtonStyle())
     }
