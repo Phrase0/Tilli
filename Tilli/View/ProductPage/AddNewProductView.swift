@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  AddNewProductView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/3.
@@ -10,15 +10,17 @@ import PhotosUI
 struct AddNewProductView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
-    @Environment(\.presentationMode) private var presentationMode
-    
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
     @StateObject private var viewModel: AddNewProductViewModel
-    
+
     init(session: SessionModel,
+         productToEdit: ProductModel? = nil,
          onSave: @escaping () -> Void,
          onCancel: (() -> Void)? = nil) {
+        
         _viewModel = StateObject(wrappedValue: AddNewProductViewModel(
             session: session,
+            productToEdit: productToEdit,
             onSave: onSave,
             onCancel: onCancel
         ))
@@ -34,14 +36,18 @@ struct AddNewProductView: View {
                             .fontWeight(.semibold)
                         TextField("Enter product name", text: $viewModel.name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .disabled(viewModel.isEditingWithTransaction)
+                            .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                         
                         Text("Price")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("$ 0.00", text: $viewModel.price)
-                            .keyboardType(.decimalPad)
+                        TextField("$ 0", text: $viewModel.price)
+                            .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
+                            .disabled(viewModel.isEditingWithTransaction)
+                            .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
+                            
                         Text("Stock Quantity")
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -52,9 +58,10 @@ struct AddNewProductView: View {
                         Text("Category")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Picker("Select category", selection: $viewModel.selectedCategory) {
-                            ForEach(viewModel.session.categories, id: \.self) {
-                                Text($0).tag($0)
+                        
+                        Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
+                            ForEach(viewModel.sortedCategories, id: \.id) { category in
+                                Text(category.name).tag(category.id as UUID?)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())
@@ -62,6 +69,8 @@ struct AddNewProductView: View {
                         .padding(12)
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
+                        .disabled(viewModel.isEditingWithTransaction)
+                        .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                     }
                     
                     Text("Product Image")
@@ -103,6 +112,18 @@ struct AddNewProductView: View {
                         .padding(8)
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
+                    
+                    // 顯示交易限制提示
+                    if viewModel.isEditingWithTransaction {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.orange)
+                            Text("此產品已有交易紀錄，無法更改名稱、價格和類別")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        .padding()
+                    }
                 }
                 .padding()
                 .contentShape(Rectangle())
@@ -110,12 +131,11 @@ struct AddNewProductView: View {
                     UIApplication.shared.endEditing()
                 }
             }
-            .navigationTitle("Add New Product")
+            .navigationTitle(viewModel.editingProduct != nil ? "編輯產品" : "新增產品")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
                         viewModel.onCancel?()
                     }
                 }
@@ -123,18 +143,26 @@ struct AddNewProductView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if viewModel.save(using: productDataManager) {
-                            // 用 injection 的 manager
-                            presentationMode.wrappedValue.dismiss()
+                            viewModel.onSave()
+                        } else {
+                            print("保存失敗")
                         }
                     }
-                    .disabled(!viewModel.isValid)
+                    .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
                 }
             }
             .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {
                 Button("OK", role: .cancel) { }
             }
-            .onChange(of: viewModel.selectedItem) { _ in
+            .onChange(of: viewModel.selectedItem) {
                 viewModel.handleImageSelection()
+            }
+            .onAppear {
+                // 每次出現時更新資料管理器
+                viewModel.updateDataManagers(
+                    transactionDataManager: transactionDataManager
+                )
+                viewModel.ensureValidCategorySelection()
             }
         }
     }

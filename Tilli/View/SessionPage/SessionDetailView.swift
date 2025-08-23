@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  SessionDetailView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/5.
@@ -10,6 +10,7 @@ import SwiftUI
 struct SessionDetailView: View {
     
     @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
     
@@ -19,15 +20,45 @@ struct SessionDetailView: View {
     @State private var showCheckoutSheet = false
     @State private var selectedTab: Int = 0
     @State private var checkoutCompleted = false
-
-
+    
+    @State private var editingProduct: ProductModel? = nil
+    @State private var showEditProduct = false
+    
     init(session: Binding<SessionModel>) {
         self._session = session
         self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
-
     }
     
     var body: some View {
+        VStack {
+            // 當需要編輯產品時，顯示編輯頁面
+            if let product = editingProduct, showEditProduct {
+                AddNewProductView(
+                    session: session,
+                    productToEdit: product,
+                    onSave: {
+                        // 編輯完成
+                        showEditProduct = false
+                        editingProduct = nil
+                        viewModel.loadProducts()
+                    },
+                    onCancel: {
+                        // 取消編輯
+                        showEditProduct = false
+                        editingProduct = nil
+                    }
+                )
+            }
+            // 否則顯示主要的 SessionDetail 內容
+            else {
+                sessionDetailContent
+            }
+        }
+        .navigationBarHidden(showEditProduct)
+    }
+    
+    // 將原本的 body 內容提取為 computed property
+    private var sessionDetailContent: some View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 4) {
@@ -46,23 +77,54 @@ struct SessionDetailView: View {
                 Text("記錄").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
-            .padding(.horizontal)
-            
-            Divider()
+            .padding(8)
             
             TabView(selection: $selectedTab) {
                 // 商品頁
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(viewModel.session.categories, id: \.self) { category in
-                            let items = viewModel.products.filter { $0.category == category }
+                        // 啟用的產品列表
+                        ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
+                            let items = viewModel.getSortedProductsForCategory(category.id)
                             if !items.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text(category)
+                                    Text(category.name)
                                         .font(.headline)
                                         .padding(.horizontal)
                                     ForEach(items) { product in
                                         productCard(product)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 停用商品區
+                        if !viewModel.disabledProducts.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        viewModel.showDisabledProducts.toggle()
+                                    }
+                                }) {
+                                    HStack {
+                                        Text("停用商品")
+                                            .font(.headline)
+                                            .foregroundColor(.gray)
+                                            .padding(.horizontal)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                                            .foregroundColor(.gray)
+                                            .font(.caption)
+                                            .padding(.horizontal)
+                                    }
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                if viewModel.showDisabledProducts {
+                                    ForEach(viewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
+                                        disabledProductCard(product)
                                     }
                                 }
                             }
@@ -108,10 +170,6 @@ struct SessionDetailView: View {
             }
             .padding()
         }
-        .onAppear {
-            appState.currentSession = viewModel.session
-            viewModel.loadProducts(using: productDataManager)
-        }
         .background(Color(.systemGroupedBackground))
         .toolbar {
             if selectedTab == 0 {
@@ -131,6 +189,9 @@ struct SessionDetailView: View {
                 viewModel.clearAllQuantities()
             }
         }
+        .alert(isPresented: $viewModel.showAlert) {
+            createAlert()
+        }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
                 selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
@@ -141,81 +202,273 @@ struct SessionDetailView: View {
             )
         }
         .onChange(of: checkoutCompleted) {
-                // 結帳完成後的處理
-                viewModel.loadProducts(using: productDataManager)
-                viewModel.clearAllQuantities()
-                // 重設狀態，避免下次誤觸發
-                checkoutCompleted = false
+            viewModel.loadProducts()
+            viewModel.clearAllQuantities()
+            checkoutCompleted = false
         }
-
-
+        .onAppear {
+            appState.currentSession = viewModel.session
+            // 每次出現時更新資料管理器
+            viewModel.updateDataManagers(
+                transactionDataManager: transactionDataManager,
+                productDataManager: productDataManager
+            )
+            viewModel.loadProducts()
+        }
     }
     
+    // MARK: - Helper Methods
+    
+    // 啟用產品卡片
     private func productCard(_ product: ProductModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(product.name)
-                        .font(.headline)
-                    
-                    Text("NT$\(Int(product.price))")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                    
-                    Text("庫存: \(product.stock)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "ellipsis")
-                    .rotationEffect(.degrees(90))
-                    .foregroundColor(.gray)
+        let isOutOfStock = viewModel.isOutOfStock(product)
+        
+        return HStack(alignment: .top, spacing: 12) {
+            if let image = product.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+                    .grayscale(isOutOfStock ? 1.0 : 0.0)
+                    .opacity(isOutOfStock ? 0.6 : 1.0)
+            } else {
+                Rectangle()
+                    .foregroundColor(.clear)
+                    .background(Color(.systemGray5))
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+                    .opacity(isOutOfStock ? 0.6 : 1.0)
             }
             
-            HStack {
-                HStack(spacing: 8) {
-                    ForEach([5, 10, 20], id: \.self) { percent in
-                        let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
-                        Text("\(percent)%")
-                            .font(.caption)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(isSelected ? Color.blue : Color(.systemGray5))
-                            .foregroundColor(isSelected ? .white : .primary)
-                            .cornerRadius(6)
-                            .onTapGesture {
-                                viewModel.toggleDiscount(for: product, percent: percent)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(product.name)
+                            .font(.headline)
+                            .foregroundColor(isOutOfStock ? .gray : .primary)
+                        Text("NT$\(Int(product.price))")
+                            .font(.subheadline)
+                            .foregroundColor(isOutOfStock ? .gray : .blue)
+                        HStack(spacing: 8) {
+                            Text("庫存: \(product.stock)")
+                                .font(.caption)
+                                .foregroundColor(isOutOfStock ? .gray : .gray)
+                            if isOutOfStock {
+                                Text("無庫存")
+                                    .font(.caption)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.red.opacity(0.1))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(4)
                             }
+                        }
+                    }
+                    Spacer()
+                    Menu {
+                        Button {
+                            // 進入編輯頁
+                            editingProduct = product
+                            showEditProduct = true
+                        } label: {
+                            Label("編輯", systemImage: "pencil")
+                        }
+                        
+                        // 根據產品狀態顯示不同的操作按鈕
+                        productActionContent(for: product)
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .foregroundColor(.gray)
+                            .padding(8)
                     }
                 }
                 
-                Spacer()
-                
-                HStack(spacing: 16) {
-                    Button {
-                        viewModel.decreaseQuantity(for: product)
-                    } label: {
-                        Image(systemName: "minus.circle")
+                HStack {
+                    HStack(spacing: 8) {
+                        ForEach([5, 10, 20], id: \.self) { percent in
+                            let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
+                            Text("\(percent)%")
+                                .font(.caption)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(isSelected ? Color.blue : Color(.systemGray5))
+                                .foregroundColor(isSelected ? .white : (isOutOfStock ? .gray : .primary))
+                                .cornerRadius(6)
+                                .opacity(isOutOfStock ? 0.6 : 1.0)
+                                .onTapGesture {
+                                    if !isOutOfStock {
+                                        viewModel.toggleDiscount(for: product, percent: percent)
+                                    }
+                                }
+                        }
                     }
-                    
-                    Text("\(viewModel.quantity(for: product))")
-                        .frame(width: 24)
-                    
-                    Button {
-                        viewModel.increaseQuantity(for: product)
-                    } label: {
-                        Image(systemName: "plus.circle")
+                    Spacer()
+                    HStack(spacing: 16) {
+                        Button {
+                            if !isOutOfStock {
+                                viewModel.decreaseQuantity(for: product)
+                            }
+                        } label: {
+                            Image(systemName: "minus.circle")
+                                .foregroundColor(isOutOfStock ? .gray : .blue)
+                        }
+                        .disabled(isOutOfStock)
+                        
+                        Text("\(viewModel.quantity(for: product))")
+                            .frame(width: 24)
+                            .foregroundColor(isOutOfStock ? .gray : .primary)
+                        
+                        Button {
+                            if !isOutOfStock {
+                                viewModel.increaseQuantity(for: product)
+                            }
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .foregroundColor(isOutOfStock ? .gray : .blue)
+                        }
+                        .disabled(isOutOfStock)
                     }
+                    .font(.title3)
+                    .opacity(isOutOfStock ? 0.6 : 1.0)
                 }
-                .font(.title3)
             }
         }
         .padding()
-        .background(Color.white)
+        .background(isOutOfStock ? Color(.systemGray6) : Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
+        .opacity(isOutOfStock ? 0.6 : 1.0)
+        .onTapGesture {
+            if isOutOfStock {
+                // 點擊無庫存商品時給予提示
+                viewModel.showOutOfStockAlert(for: product.name)
+            }
+        }
+    }
+    
+    // 停用產品卡片
+    private func disabledProductCard(_ product: ProductModel) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            if let image = product.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+                    .grayscale(1.0) // 灰階效果
+            } else {
+                Rectangle()
+                    .foregroundColor(.clear)
+                    .background(Color(.systemGray5))
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .clipped()
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(product.name)
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Text("NT$\(Int(product.price))")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        Text("庫存: \(product.stock)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Menu {
+                        Button("復原") {
+                            viewModel.handleRestoreAction(for: product.id)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private func productActionContent(for product: ProductModel) -> some View {
+        switch viewModel.getActionType(for: product.id) {
+        case .disable:
+            Button {
+                viewModel.handleDisableAction(for: product.id)
+            } label: {
+                Label("停用", systemImage: "minus.circle")
+            }
+        case .delete:
+            Button(role: .destructive) {
+                viewModel.handleDeleteAction(for: product.id)
+            } label: {
+                Label("刪除", systemImage: "trash")
+            }
+        }
+    }
+    
+    // Alert 創建方法
+    private func createAlert() -> Alert {
+        if viewModel.productPendingRestore != nil {
+            // 復原操作的警告
+            return Alert(
+                title: Text("確認復原"),
+                message: Text("確定要復原此產品嗎？"),
+                primaryButton: .default(Text("確認")) {
+                    viewModel.confirmRestoreAction()
+                },
+                secondaryButton: .cancel {
+                    viewModel.cancelRestoreAction()
+                }
+            )
+        } else if viewModel.productPendingDeletion != nil {
+            if viewModel.isDisableAction {
+                // 停用操作的警告
+                return Alert(
+                    title: Text("確認停用"),
+                    message: Text(viewModel.alertMessage),
+                    primaryButton: .default(Text("確認")) {
+                        viewModel.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.cancelDeletionAction()
+                    }
+                )
+            } else {
+                // 刪除操作的警告
+                return Alert(
+                    title: Text("確認刪除"),
+                    message: Text(viewModel.alertMessage),
+                    primaryButton: .destructive(Text("刪除")) {
+                        viewModel.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.cancelDeletionAction()
+                    }
+                )
+            }
+        } else {
+            return Alert(
+                title: Text("提醒"),
+                message: Text(viewModel.alertMessage),
+                dismissButton: .default(Text("好"))
+            )
+        }
     }
 }

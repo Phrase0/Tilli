@@ -13,8 +13,8 @@ struct AddSessionView: View {
     var onSave: (SessionModel) -> Void
 
     @Environment(\.presentationMode) private var presentationMode
-    @State private var showAlert = false
-    @State private var alertMessage = ""
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var productDataManager: ProductDataManager
 
     enum FocusField: Hashable {
         case sessionName
@@ -39,60 +39,160 @@ struct AddSessionView: View {
 
             DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
 
-            Section(header: Text("Categories")) {
-                ForEach(viewModel.categories, id: \.self) { category in
-                    Text(category)
-                }
-                .onDelete { indexSet in
-                    indexSet.forEach { viewModel.removeCategory(at: $0) }
+            Section(header: Text("類別")) {
+                ForEach(viewModel.sortedCategories.filter { !$0.isDisabled }, id: \.id) { category in
+                    categoryRow(for: category)
+                        .swipeActions(edge: .trailing) {
+                            swipeActionsContent(for: category)
+                        }
                 }
 
-                TextField("New Category", text: $viewModel.newCategory)
+                TextField("新增類別", text: $viewModel.newCategory)
                     .focused($focusedField, equals: .newCategory)
                     .submitLabel(.done)
                     .onSubmit {
                         if let error = viewModel.tryAddCategory() {
-                            alertMessage = error
-                            showAlert = true
+                            viewModel.alertMessage = error
+                            viewModel.showAlert = true
                         } else {
                             focusedField = .newCategory
                         }
                     }
+            }
+            
+            Section(header: Text("已停用類別")) {
+                ForEach(viewModel.sortedCategories.filter { $0.isDisabled }, id: \.id) { category in
+                    Text(category.name)
+                        .foregroundColor(.gray)
+                        .swipeActions(edge: .trailing) {
+                            Button("復原") {
+                                viewModel.handleRestoreAction(for: category.id)
+                            }
+                            .tint(.green)
+                        }
+                }
             }
         }
         .navigationTitle(viewModel.editingSession == nil ? "Add Session" : "Edit Session")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") {
-                    // 儲存前嘗試新增 newCategory
-                    if let error = viewModel.tryAddCategory() {
-                        alertMessage = error
-                        showAlert = true
-                        return
+                    switch viewModel.validateSave() {
+                    case .success:
+                        let session = viewModel.save()
+                        onSave(session)
+                        presentationMode.wrappedValue.dismiss()
+                    case .failure(let error):
+                        viewModel.alertMessage = error
+                        viewModel.showAlert = true
                     }
-
-                    if viewModel.categories.isEmpty {
-                        alertMessage = "請至少輸入一個分類"
-                        showAlert = true
-                        return
-                    }
-
-                    let session = viewModel.save()
-                    onSave(session)
-                    presentationMode.wrappedValue.dismiss()
                 }
                 .disabled(viewModel.sessionName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-        .alert(alertMessage, isPresented: $showAlert) {
-            Button("好") {
-                focusedField = .newCategory
-            }
+        .alert(isPresented: $viewModel.showAlert) {
+            createAlert()
         }
         .onAppear {
+            // 每次出現時更新資料管理器
+            viewModel.updateDataManagers(
+                transactionDataManager: transactionDataManager,
+                productDataManager: productDataManager
+            )
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.focusedField = .sessionName
             }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    @ViewBuilder
+    private func categoryRow(for category: CategoryModel) -> some View {
+        if viewModel.editingCategoryID == category.id {
+            TextField("Category Name", text: Binding(
+                get: {
+                    viewModel.selectedCategory?.name ?? ""
+                },
+                set: { newValue in
+                    viewModel.updateCategoryName(id: category.id, newName: newValue)
+                }
+            ))
+            .focused($focusedField, equals: .newCategory)
+            .onSubmit {
+                viewModel.editingCategoryID = nil
+            }
+        } else {
+            Text(category.name)
+                .onTapGesture {
+                    viewModel.editingCategoryID = category.id
+                }
+        }
+    }
+    
+    @ViewBuilder
+    private func swipeActionsContent(for category: CategoryModel) -> some View {
+        switch viewModel.getSwipeAction(for: category) {
+        case .disable:
+            Button("停用") {
+                viewModel.handleDisableAction(for: category.id)
+            }
+            .tint(.orange)
+        case .delete:
+            Button("刪除", role: .destructive) {
+                viewModel.handleDeleteAction(for: category)
+            }
+        }
+    }
+    
+    private func createAlert() -> Alert {
+        if viewModel.categoryPendingRestore != nil {
+            // 復原操作的警告
+            return Alert(
+                title: Text("確認復原"),
+                message: Text("確定要復原此類別嗎？"),
+                primaryButton: .default(Text("確認")) {
+                    viewModel.confirmRestoreAction()
+                },
+                secondaryButton: .cancel {
+                    viewModel.cancelRestoreAction()
+                }
+            )
+        } else if viewModel.categoryPendingDeletion != nil {
+            if viewModel.isDisableAction {
+                // 停用操作的警告
+                return Alert(
+                    title: Text("確認停用"),
+                    message: Text(viewModel.alertMessage),
+                    primaryButton: .default(Text("確認")) {
+                        viewModel.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.cancelDeletionAction()
+                    }
+                )
+            } else {
+                // 刪除操作的警告
+                return Alert(
+                    title: Text("確認刪除"),
+                    message: Text(viewModel.alertMessage),
+                    primaryButton: .destructive(Text("刪除")) {
+                        viewModel.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.cancelDeletionAction()
+                    }
+                )
+            }
+        } else {
+            return Alert(
+                title: Text("提醒"),
+                message: Text(viewModel.alertMessage),
+                dismissButton: .default(Text("好")) {
+                    focusedField = .newCategory
+                }
+            )
         }
     }
 }

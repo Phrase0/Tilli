@@ -6,7 +6,7 @@
 //
 import SwiftUI
 
-struct TransactionModel: Identifiable, Codable {
+struct TransactionModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var sessionId: UUID
     var items: [SummaryItemModel]     // 多筆商品銷售記錄

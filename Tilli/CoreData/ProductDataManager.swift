@@ -13,8 +13,6 @@ class ProductDataManager: ObservableObject {
     private let context: NSManagedObjectContext
 
     @Published var products: [ProductModel] = []
-    
-    static let shared = ProductDataManager()
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
@@ -24,27 +22,21 @@ class ProductDataManager: ObservableObject {
 
     // MARK: - Create
     func addProduct(_ model: ProductModel) {
-        // 找到對應 session
-        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        sessionRequest.predicate = NSPredicate(format: "id == %@", model.sessionId as CVarArg)
-        
+        let request: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", model.categoryId as CVarArg)
+
         do {
-            guard let sessionEntity = try context.fetch(sessionRequest).first else {
-                print("找不到對應 session，無法加入 product")
+            guard let categoryEntity = try context.fetch(request).first else {
+                print("找不到對應 category，無法加入 product")
                 return
             }
-            
-            // 建立新的 product entity
+
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: model, context: context)
-            
-            // 加入 session 的 products 集合
-            sessionEntity.addToProducts(productEntity)
-            
-            // 儲存
+            productEntity.category = categoryEntity
+
             saveContext()
             fetchAllProducts()
-            
         } catch {
             print("加入 product 失敗:", error)
         }
@@ -77,6 +69,20 @@ class ProductDataManager: ObservableObject {
     }
 
     // MARK: - Update
+//    func updateProduct(_ model: ProductModel) {
+//        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+//        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+//
+//        do {
+//            if let entity = try context.fetch(request).first {
+//                entity.update(from: model, context: context)
+//                saveContext()
+//                fetchAllProducts()
+//            }
+//        } catch {
+//            print("Update product failed:", error)
+//        }
+//    }
     func updateProduct(_ model: ProductModel) {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
@@ -85,12 +91,16 @@ class ProductDataManager: ObservableObject {
             if let entity = try context.fetch(request).first {
                 entity.update(from: model, context: context)
                 saveContext()
-                fetchAllProducts()
+                // 不要呼叫 fetchAllProducts() 這裡避免不必要的刷新
+                if let index = products.firstIndex(where: { $0.id == model.id }) {
+                    products[index] = model
+                }
             }
         } catch {
             print("Update product failed:", error)
         }
     }
+
 
     // MARK: - Delete
     func deleteProduct(_ model: ProductModel) {
