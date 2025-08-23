@@ -77,9 +77,7 @@ struct SessionDetailView: View {
                 Text("記錄").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
-            .padding(.horizontal)
-            
-            Divider()
+            .padding(8)
             
             TabView(selection: $selectedTab) {
                 // 商品頁
@@ -87,9 +85,7 @@ struct SessionDetailView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         // 啟用的產品列表
                         ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
-                            let items = viewModel.activeProducts
-                                .filter { $0.categoryId == category.id }
-                                .sorted { $0.name < $1.name }
+                            let items = viewModel.getSortedProductsForCategory(category.id)
                             if !items.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text(category.name)
@@ -225,7 +221,9 @@ struct SessionDetailView: View {
     
     // 啟用產品卡片
     private func productCard(_ product: ProductModel) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        let isOutOfStock = viewModel.isOutOfStock(product)
+        
+        return HStack(alignment: .top, spacing: 12) {
             if let image = product.image {
                 Image(uiImage: image)
                     .resizable()
@@ -233,6 +231,8 @@ struct SessionDetailView: View {
                     .frame(width: 60, height: 60)
                     .cornerRadius(8)
                     .clipped()
+                    .grayscale(isOutOfStock ? 1.0 : 0.0)
+                    .opacity(isOutOfStock ? 0.6 : 1.0)
             } else {
                 Rectangle()
                     .foregroundColor(.clear)
@@ -240,6 +240,7 @@ struct SessionDetailView: View {
                     .frame(width: 60, height: 60)
                     .cornerRadius(8)
                     .clipped()
+                    .opacity(isOutOfStock ? 0.6 : 1.0)
             }
             
             VStack(alignment: .leading, spacing: 8) {
@@ -247,12 +248,24 @@ struct SessionDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.name)
                             .font(.headline)
+                            .foregroundColor(isOutOfStock ? .gray : .primary)
                         Text("NT$\(Int(product.price))")
                             .font(.subheadline)
-                            .foregroundColor(.blue)
-                        Text("庫存: \(product.stock)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(isOutOfStock ? .gray : .blue)
+                        HStack(spacing: 8) {
+                            Text("庫存: \(product.stock)")
+                                .font(.caption)
+                                .foregroundColor(isOutOfStock ? .gray : .gray)
+                            if isOutOfStock {
+                                Text("無庫存")
+                                    .font(.caption)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.red.opacity(0.1))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(4)
+                            }
+                        }
                     }
                     Spacer()
                     Menu {
@@ -283,31 +296,62 @@ struct SessionDetailView: View {
                                 .padding(.vertical, 4)
                                 .padding(.horizontal, 8)
                                 .background(isSelected ? Color.blue : Color(.systemGray5))
-                                .foregroundColor(isSelected ? .white : .primary)
+                                .foregroundColor(isSelected ? .white : (isOutOfStock ? .gray : .primary))
                                 .cornerRadius(6)
+                                .opacity(isOutOfStock ? 0.6 : 1.0)
                                 .onTapGesture {
-                                    viewModel.toggleDiscount(for: product, percent: percent)
+                                    if !isOutOfStock {
+                                        viewModel.toggleDiscount(for: product, percent: percent)
+                                    }
                                 }
                         }
                     }
                     Spacer()
                     HStack(spacing: 16) {
-                        Button { viewModel.decreaseQuantity(for: product) } label: { Image(systemName: "minus.circle") }
-                        Text("\(viewModel.quantity(for: product))").frame(width: 24)
-                        Button { viewModel.increaseQuantity(for: product) } label: { Image(systemName: "plus.circle") }
+                        Button {
+                            if !isOutOfStock {
+                                viewModel.decreaseQuantity(for: product)
+                            }
+                        } label: {
+                            Image(systemName: "minus.circle")
+                                .foregroundColor(isOutOfStock ? .gray : .blue)
+                        }
+                        .disabled(isOutOfStock)
+                        
+                        Text("\(viewModel.quantity(for: product))")
+                            .frame(width: 24)
+                            .foregroundColor(isOutOfStock ? .gray : .primary)
+                        
+                        Button {
+                            if !isOutOfStock {
+                                viewModel.increaseQuantity(for: product)
+                            }
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .foregroundColor(isOutOfStock ? .gray : .blue)
+                        }
+                        .disabled(isOutOfStock)
                     }
                     .font(.title3)
+                    .opacity(isOutOfStock ? 0.6 : 1.0)
                 }
             }
         }
         .padding()
-        .background(Color.white)
+        .background(isOutOfStock ? Color(.systemGray6) : Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
+        .opacity(isOutOfStock ? 0.6 : 1.0)
+        .onTapGesture {
+            if isOutOfStock {
+                // 點擊無庫存商品時給予提示
+                viewModel.showOutOfStockAlert(for: product.name)
+            }
+        }
     }
     
-    // 停用產品卡片（參考 AddSessionView 的已停用類別顯示方式）
+    // 停用產品卡片
     private func disabledProductCard(_ product: ProductModel) -> some View {
         HStack(alignment: .top, spacing: 12) {
             if let image = product.image {

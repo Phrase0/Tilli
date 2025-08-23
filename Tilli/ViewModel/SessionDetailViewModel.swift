@@ -49,6 +49,44 @@ class SessionDetailViewModel: ObservableObject {
         self.productDataManager = productDataManager
     }
     
+    // MARK: - 庫存檢查相關方法
+    
+    /// 檢查商品是否無庫存
+    func isOutOfStock(_ product: ProductModel) -> Bool {
+        return product.stock <= 0
+    }
+    
+    /// 檢查是否有無庫存商品
+    func hasOutOfStockProducts() -> Bool {
+        return activeProducts.contains { isOutOfStock($0) }
+    }
+    
+    /// 取得無庫存商品數量
+    func outOfStockProductsCount() -> Int {
+        return activeProducts.filter { isOutOfStock($0) }.count
+    }
+    
+    /// 顯示無庫存商品點擊提醒
+    func showOutOfStockAlert(for productName: String) {
+        alertMessage = "「\(productName)」目前無庫存，無法加入訂單。請先進貨補充庫存。"
+        showAlert = true
+    }
+    
+    /// 取得分類下已排序的商品（有庫存在前，無庫存在後）
+    func getSortedProductsForCategory(_ categoryId: UUID) -> [ProductModel] {
+        let categoryProducts = activeProducts.filter { $0.categoryId == categoryId }
+        
+        // 將商品分為有庫存和無庫存兩組
+        let inStockProducts = categoryProducts.filter { !isOutOfStock($0) }
+        let outOfStockProducts = categoryProducts.filter { isOutOfStock($0) }
+        
+        // 各組內部按名稱排序，然後合併（有庫存在前）
+        let sortedInStock = inStockProducts.sorted { $0.name < $1.name }
+        let sortedOutOfStock = outOfStockProducts.sorted { $0.name < $1.name }
+        
+        return sortedInStock + sortedOutOfStock
+    }
+    
     // MARK: - 交易檢查邏輯
     func hasTransaction(for productId: UUID) -> Bool {
         guard let sessionId = session.id as UUID? else { return false }
@@ -185,9 +223,15 @@ class SessionDetailViewModel: ObservableObject {
         }
     }
     
-    // MARK: - 購物車邏輯
+    // MARK: - 購物車邏輯（更新以支援庫存檢查）
     
     func increaseQuantity(for product: ProductModel) {
+        // 檢查是否無庫存
+        if isOutOfStock(product) {
+            showOutOfStockAlert(for: product.name)
+            return
+        }
+        
         let current = quantities[product.id, default: 0]
         if current < product.stock {
             quantities[product.id] = current + 1
@@ -195,6 +239,11 @@ class SessionDetailViewModel: ObservableObject {
     }
     
     func decreaseQuantity(for product: ProductModel) {
+        // 無庫存商品也不能減少數量
+        if isOutOfStock(product) {
+            return
+        }
+        
         let current = quantities[product.id, default: 0]
         if current > 0 {
             quantities[product.id] = current - 1
@@ -202,6 +251,11 @@ class SessionDetailViewModel: ObservableObject {
     }
     
     func toggleDiscount(for product: ProductModel, percent: Int) {
+        // 無庫存商品不能選擇折扣
+        if isOutOfStock(product) {
+            return
+        }
+        
         if selectedDiscounts[product.id] == percent {
             selectedDiscounts[product.id] = nil
         } else {
