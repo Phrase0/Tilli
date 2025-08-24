@@ -88,17 +88,37 @@ struct SessionDetailView: View {
                             let items = viewModel.getSortedProductsForCategory(category.id)
                             if !items.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text(category.name)
-                                        .font(.headline)
-                                        .padding(.horizontal)
-                                    ForEach(items) { product in
-                                        productCard(product)
+                                    // 可點擊的分類標題
+                                    Button(action: {
+                                        viewModel.toggleCategoryExpansion(category.id)
+                                    }) {
+                                        HStack {
+                                            Text(category.name)
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                                .padding(.horizontal)
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                                                .foregroundColor(.gray)
+                                                .font(.caption)
+                                                .padding(.horizontal)
+                                        }
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    
+                                    // 商品列表（可展開/收起）
+                                    if viewModel.isCategoryExpanded(category.id) {
+                                        ForEach(items) { product in
+                                            productCard(product)
+                                        }
                                     }
                                 }
                             }
                         }
                         
-                        // 停用商品區
+                        // 下架商品區
                         if !viewModel.disabledProducts.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Button(action: {
@@ -107,7 +127,7 @@ struct SessionDetailView: View {
                                     }
                                 }) {
                                     HStack {
-                                        Text("停用商品")
+                                        Text("下架商品")
                                             .font(.headline)
                                             .foregroundColor(.gray)
                                             .padding(.horizontal)
@@ -351,7 +371,7 @@ struct SessionDetailView: View {
         }
     }
     
-    // 停用產品卡片
+    // 下架產品卡片
     private func disabledProductCard(_ product: ProductModel) -> some View {
         HStack(alignment: .top, spacing: 12) {
             if let image = product.image {
@@ -412,7 +432,7 @@ struct SessionDetailView: View {
             Button {
                 viewModel.handleDisableAction(for: product.id)
             } label: {
-                Label("停用", systemImage: "minus.circle")
+                Label("下架", systemImage: "minus.circle")
             }
         case .delete:
             Button(role: .destructive) {
@@ -439,9 +459,9 @@ struct SessionDetailView: View {
             )
         } else if viewModel.productPendingDeletion != nil {
             if viewModel.isDisableAction {
-                // 停用操作的警告
+                // 下架操作的警告
                 return Alert(
-                    title: Text("確認停用"),
+                    title: Text("確認下架"),
                     message: Text(viewModel.alertMessage),
                     primaryButton: .default(Text("確認")) {
                         viewModel.confirmDeletionAction()

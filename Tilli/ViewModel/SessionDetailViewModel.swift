@@ -22,7 +22,11 @@ class SessionDetailViewModel: ObservableObject {
     @Published var productPendingRestore: UUID?
     @Published var isDisableAction = false
     
-    // 停用商品區顯示狀態
+    
+    // 新增：用來追蹤每個分類的展開狀態
+    @Published var expandedCategories: Set<UUID> = []
+    
+    // 下架商品區顯示狀態
     @Published var showDisabledProducts = false
     
     // 用於獲取最新狀態的 DataManager
@@ -34,13 +38,36 @@ class SessionDetailViewModel: ObservableObject {
         products.filter { !$0.isDisabled }
     }
     
-    // 計算屬性：停用的產品
+    // 計算屬性：下架的產品
     var disabledProducts: [ProductModel] {
         products.filter { $0.isDisabled }
     }
     
     init(session: Binding<SessionModel>) {
         self._session = session
+    }
+    
+    // MARK: - 分類展開狀態管理
+    
+    /// 切換分類的展開狀態
+    func toggleCategoryExpansion(_ categoryId: UUID) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if expandedCategories.contains(categoryId) {
+                expandedCategories.remove(categoryId)
+            } else {
+                expandedCategories.insert(categoryId)
+            }
+        }
+    }
+    
+    /// 檢查分類是否展開
+    func isCategoryExpanded(_ categoryId: UUID) -> Bool {
+        return expandedCategories.contains(categoryId)
+    }
+    
+    /// 初始化時展開所有分類
+    func expandAllCategories() {
+        expandedCategories = Set(categories.filter { !$0.isDisabled }.map { $0.id })
     }
     
     // MARK: - 更新 DataManager 引用
@@ -121,6 +148,11 @@ class SessionDetailViewModel: ObservableObject {
         guard let productManager = productDataManager else { return }
         products = productManager.fetchProducts(forSessionId: session.id)
         categories = session.categories
+        
+        // 首次載入時展開所有分類
+        if expandedCategories.isEmpty {
+            expandAllCategories()
+        }
     }
     
     func removeProduct(byId productId: UUID) {
@@ -149,11 +181,11 @@ class SessionDetailViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Alert 處理邏輯（參考 AddSessionViewModel）
+    // MARK: - Alert 處理邏輯
     
-    /// 處理停用操作
+    /// 處理下架操作
     func handleDisableAction(for productId: UUID) {
-        alertMessage = "已有交易紀錄不可刪除，只能停用"
+        alertMessage = "已有交易紀錄不可刪除，只能下架"
         productPendingDeletion = productId
         isDisableAction = true
         showAlert = true
@@ -173,7 +205,7 @@ class SessionDetailViewModel: ObservableObject {
         showAlert = true
     }
     
-    /// 確認刪除/停用操作
+    /// 確認刪除/下架操作
     func confirmDeletionAction() {
         guard let productId = productPendingDeletion else { return }
         
@@ -198,7 +230,7 @@ class SessionDetailViewModel: ObservableObject {
         productPendingRestore = nil
     }
     
-    /// 取消刪除/停用操作
+    /// 取消刪除/下架操作
     func cancelDeletionAction() {
         resetDeletionState()
     }
