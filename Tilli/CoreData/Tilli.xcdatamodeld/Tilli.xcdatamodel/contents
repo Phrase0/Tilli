@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24C101" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="CDCategoryEntity" representedClassName="CDCategoryEntity" syncable="YES">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isDisabled" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <relationship name="products" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDProductEntity" inverseName="category" inverseEntity="CDProductEntity"/>
+        <relationship name="session" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="categories" inverseEntity="CDSessionEntity"/>
+    </entity>
+    <entity name="CDProductEntity" representedClassName="CDProductEntity" syncable="YES">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageData" optional="YES" attributeType="Binary"/>
+        <attribute name="isDisabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="price" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="stock" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="category" maxCount="1" deletionRule="Nullify" destinationEntity="CDCategoryEntity" inverseName="products" inverseEntity="CDCategoryEntity"/>
+    </entity>
+    <entity name="CDSessionEntity" representedClassName="CDSessionEntity" syncable="YES">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="title" attributeType="String"/>
+        <relationship name="categories" toMany="YES" deletionRule="Cascade" destinationEntity="CDCategoryEntity" inverseName="session" inverseEntity="CDCategoryEntity"/>
+        <relationship name="transactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTransactionEntity" inverseName="session" inverseEntity="CDTransactionEntity"/>
+    </entity>
+    <entity name="CDTransactionEntity" representedClassName="CDTransactionEntity" syncable="YES">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="itemsData" optional="YES" attributeType="Binary"/>
+        <attribute name="paymentMethod" attributeType="String"/>
+        <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="totalAmount" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="session" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="transactions" inverseEntity="CDSessionEntity"/>
+    </entity>
+</model>
