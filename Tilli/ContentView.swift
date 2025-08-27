@@ -20,7 +20,7 @@ struct ContentView: View {
 
             SessionsView()
                 .environmentObject(appState)
-                .tabItem { Label("Sessions", systemImage: "folder") }
+                .tabItem { Label("Sessions", systemImage: "list.bullet") }
                 .tag(1)
 
             MainAddProductFlowView(selectedTab: $selectedTab)
