@@ -83,19 +83,10 @@ struct TransactionHistoryView: View {
                     
                     // 第二行：日期時間
                     HStack {
-                        Text(formatDateTime(transaction.timestamp))
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                    }
-                    
-                    // 第三行：總金額和商品數量
-                    HStack {
-                        Text("總金額")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
+                            Text(formatDateTime(transaction.timestamp))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+
                         Spacer()
                         
                         VStack(alignment: .trailing, spacing: 2) {
@@ -113,6 +104,7 @@ struct TransactionHistoryView: View {
                             .foregroundColor(.gray)
                             .font(.caption)
                     }
+
                 }
                 .padding()
             }
