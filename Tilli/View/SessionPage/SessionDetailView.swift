@@ -155,11 +155,7 @@ struct SessionDetailView: View {
                 .tag(0)
                 
                 // 記錄頁
-                VStack {
-                    Text("記錄頁內容（尚未實作）")
-                        .foregroundColor(.gray)
-                        .padding()
-                }
+                TransactionHistoryView(session: $session)
                 .tag(1)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
