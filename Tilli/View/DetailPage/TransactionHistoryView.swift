@@ -131,26 +131,26 @@ struct TransactionHistoryView: View {
                         Text("類別")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .center)
+                            .frame(width: 60, alignment: .center)
                         
                         Text("數量")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 40, alignment: .center)
+                            .frame(width: 50, alignment: .center)
                         
                         Text("折扣")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 40, alignment: .center)
+                            .frame(width: 50, alignment: .center)
                         
                         Text("小計")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 60, alignment: .trailing)
+                            .frame(width: 50, alignment: .trailing)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 8)
-                    .background(Color(.systemGray6))
+                    .background(Color(.systemGray5))
                     
                     // 商品明細列表
                     ForEach(transaction.items) { item in
@@ -181,37 +181,33 @@ struct TransactionHistoryView: View {
             
             // 類別
             Text(item.category)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundColor(.gray)
-                .frame(width: 50, alignment: .center)
+                .frame(width: 60, alignment: .center)
                 .lineLimit(1)
             
             // 數量
             Text("\(item.quantity)")
                 .font(.subheadline)
                 .foregroundColor(.primary)
-                .frame(width: 40, alignment: .center)
+                .frame(width: 50, alignment: .center)
             
             // 折扣
             Text(item.discount > 0 ? "\(item.discount)%" : "-")
                 .font(.subheadline)
                 .foregroundColor(item.discount > 0 ? .orange : .gray)
-                .frame(width: 40, alignment: .center)
+                .frame(width: 50, alignment: .center)
             
             // 小計
             Text("\(formatAmount(item.total))")
                 .font(.subheadline)
                 .bold()
                 .foregroundColor(.primary)
-                .frame(width: 60, alignment: .trailing)
+                .frame(width: 50, alignment: .trailing)
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
         .background(Color.white)
-        
-        // 分隔線
-        return Divider()
-            .padding(.leading)
     }
     
     // MARK: - Helper Methods
