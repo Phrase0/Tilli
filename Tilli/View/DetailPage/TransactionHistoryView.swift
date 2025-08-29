@@ -67,7 +67,7 @@ struct TransactionHistoryView: View {
                     // 第一行：交易編號和支付方式
                     HStack {
                         Text(formatTransactionId(transaction.id.uuidString))
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.blue)
                         
                         Spacer()
@@ -82,29 +82,32 @@ struct TransactionHistoryView: View {
                     }
                     
                     // 第二行：日期時間
-                    HStack {
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 2)  {
                             Text(formatDateTime(transaction.timestamp))
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("NT$\(formatAmount(transaction.totalAmount))")
-                                .font(.headline)
-                                .bold()
-                                .foregroundColor(.primary)
+                                .font(.caption)
+                                .foregroundColor(.gray)
                             
                             Text("共 \(transaction.items.count) 項商品")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
                         
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .foregroundColor(.gray)
-                            .font(.caption)
+                        
+                        Spacer()
+                        
+                        HStack(alignment: .center)  {
+                            Text("NT$\(formatAmount(transaction.totalAmount))")
+                                .font(.headline)
+                                .bold()
+                                .foregroundColor(.primary)
+                            
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .foregroundColor(.gray)
+                                .font(.caption)
+                        }
                     }
-
+                    
                 }
                 .padding()
             }
@@ -123,7 +126,12 @@ struct TransactionHistoryView: View {
                         Text("類別")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 60, alignment: .center)
+                            .frame(width: 50, alignment: .center)
+                        
+                        Text("單價")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(width: 50, alignment: .center)
                         
                         Text("數量")
                             .font(.caption)
@@ -138,7 +146,7 @@ struct TransactionHistoryView: View {
                         Text("小計")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .trailing)
+                            .frame(width: 50, alignment: .center)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 8)
@@ -159,23 +167,24 @@ struct TransactionHistoryView: View {
     private func transactionItemRow(_ item: SummaryItemModel) -> some View {
         HStack {
             // 商品名稱
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                
-                Text("NT$\(formatAmount(item.price))")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(item.name)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
             // 類別
             Text(item.category)
                 .font(.subheadline)
                 .foregroundColor(.gray)
-                .frame(width: 60, alignment: .center)
+                .frame(width: 50, alignment: .center)
+                .lineLimit(1)
+            
+            
+            Text("\(formatAmount(item.price))")
+                .font(.subheadline)
+                .foregroundColor(.blue)
+                .frame(width: 50, alignment: .center)
                 .lineLimit(1)
             
             // 數量
@@ -195,7 +204,7 @@ struct TransactionHistoryView: View {
                 .font(.subheadline)
                 .bold()
                 .foregroundColor(.primary)
-                .frame(width: 50, alignment: .trailing)
+                .frame(width: 50, alignment: .center)
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
