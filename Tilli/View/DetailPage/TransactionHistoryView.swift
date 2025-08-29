@@ -8,15 +8,13 @@
 import SwiftUI
 
 struct TransactionHistoryView: View {
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @ObservedObject var viewModel: SessionDetailViewModel
     @Binding var session: SessionModel
-    @State private var transactions: [TransactionModel] = []
-    @State private var expandedTransactionIds: Set<UUID> = []
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                if transactions.isEmpty {
+                if viewModel.transactions.isEmpty {
                     // 空狀態
                     VStack(spacing: 16) {
                         Image(systemName: "list.clipboard")
@@ -34,7 +32,7 @@ struct TransactionHistoryView: View {
                     }
                     .padding(.top, 100)
                 } else {
-                    ForEach(transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
+                    ForEach(viewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
                         transactionCard(transaction)
                     }
                 }
@@ -42,41 +40,35 @@ struct TransactionHistoryView: View {
             .padding()
         }
         .onAppear {
-            loadTransactions()
+            viewModel.loadTransactions()
         }
         .refreshable {
-            loadTransactions()
+            viewModel.loadTransactions()
         }
     }
     
     private func transactionCard(_ transaction: TransactionModel) -> some View {
-        let isExpanded = expandedTransactionIds.contains(transaction.id)
+        let isExpanded = viewModel.isTransactionExpanded(transaction.id)
         
         return VStack(spacing: 0) {
             // 交易總覽卡片
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    if isExpanded {
-                        expandedTransactionIds.remove(transaction.id)
-                    } else {
-                        expandedTransactionIds.insert(transaction.id)
-                    }
-                }
+                viewModel.toggleTransactionExpansion(transaction.id)
             }) {
                 VStack(alignment: .leading, spacing: 8) {
                     // 第一行：交易編號和支付方式
                     HStack {
-                        Text(formatTransactionId(transaction.id.uuidString))
+                        Text(viewModel.formatTransactionId(transaction.id.uuidString))
                             .font(.subheadline)
                             .foregroundColor(.blue)
                         
                         Spacer()
                         
-                        Text(paymentMethodText(transaction.paymentMethod))
+                        Text(viewModel.paymentMethodText(transaction.paymentMethod))
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(paymentMethodColor(transaction.paymentMethod))
+                            .background(viewModel.paymentMethodColor(transaction.paymentMethod))
                             .foregroundColor(.white)
                             .cornerRadius(4)
                     }
@@ -84,7 +76,7 @@ struct TransactionHistoryView: View {
                     // 第二行：日期時間
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2)  {
-                            Text(formatDateTime(transaction.timestamp))
+                            Text(viewModel.formatDateTime(transaction.timestamp))
                                 .font(.caption)
                                 .foregroundColor(.gray)
                             
@@ -97,7 +89,7 @@ struct TransactionHistoryView: View {
                         Spacer()
                         
                         HStack(alignment: .center)  {
-                            Text("NT$\(formatAmount(transaction.totalAmount))")
+                            Text("NT$\(viewModel.formatAmount(transaction.totalAmount))")
                                 .font(.headline)
                                 .bold()
                                 .foregroundColor(.primary)
@@ -181,7 +173,7 @@ struct TransactionHistoryView: View {
                 .lineLimit(1)
             
             
-            Text("\(formatAmount(item.price))")
+            Text("\(viewModel.formatAmount(item.price))")
                 .font(.subheadline)
                 .foregroundColor(.blue)
                 .frame(width: 50, alignment: .center)
@@ -200,7 +192,7 @@ struct TransactionHistoryView: View {
                 .frame(width: 50, alignment: .center)
             
             // 小計
-            Text("\(formatAmount(item.total))")
+            Text("\(viewModel.formatAmount(item.total))")
                 .font(.subheadline)
                 .bold()
                 .foregroundColor(.primary)
@@ -209,44 +201,5 @@ struct TransactionHistoryView: View {
         .padding(.horizontal)
         .padding(.vertical, 12)
         .background(Color.white)
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func loadTransactions() {
-        transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
-    }
-    
-    private func formatTransactionId(_ id: String) -> String {
-        let prefix = String(id.prefix(8)).uppercased()
-        return "TXN\(prefix)"
-    }
-    
-    private func formatDateTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter.string(from: date)
-    }
-    
-    private func formatAmount(_ amount: Double) -> String {
-        return String(format: "%.0f", amount)
-    }
-    
-    private func paymentMethodText(_ method: PaymentMethod) -> String {
-        switch method {
-        case .cash:
-            return "現金"
-        case .ePayment:
-            return "電子支付"
-        }
-    }
-    
-    private func paymentMethodColor(_ method: PaymentMethod) -> Color {
-        switch method {
-        case .cash:
-            return .green
-        case .ePayment:
-            return .blue
-        }
     }
 }
