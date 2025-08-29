@@ -90,8 +90,11 @@ struct SessionDetailView: View {
                 .tag(0)
                 
                 // 記錄頁 - 使用 TransactionHistoryView
-                TransactionHistoryView(session: $session)
-                    .tag(1)
+                TransactionHistoryView(
+                    viewModel: viewModel,
+                    session: $session
+                )
+                .tag(1)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }

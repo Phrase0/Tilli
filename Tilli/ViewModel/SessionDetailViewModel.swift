@@ -22,12 +22,13 @@ class SessionDetailViewModel: ObservableObject {
     @Published var productPendingRestore: UUID?
     @Published var isDisableAction = false
     
-    
-    // 新增：用來追蹤每個分類的展開狀態
+    // Product Detail 相關狀態
     @Published var expandedCategories: Set<UUID> = []
-    
-    // 下架商品區顯示狀態
     @Published var showDisabledProducts = false
+    
+    // Transaction History 相關狀態
+    @Published var transactions: [TransactionModel] = []
+    @Published var expandedTransactionIds: Set<UUID> = []
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
@@ -47,7 +48,15 @@ class SessionDetailViewModel: ObservableObject {
         self._session = session
     }
     
-    // MARK: - 分類展開狀態管理
+    // MARK: - DataManager 管理
+    
+    /// 更新 DataManager 引用
+    func updateDataManagers(transactionDataManager: TransactionDataManager, productDataManager: ProductDataManager) {
+        self.transactionDataManager = transactionDataManager
+        self.productDataManager = productDataManager
+    }
+    
+    // MARK: - Product Detail 相關方法
     
     /// 切換分類的展開狀態
     func toggleCategoryExpansion(_ categoryId: UUID) {
@@ -70,27 +79,9 @@ class SessionDetailViewModel: ObservableObject {
         expandedCategories = Set(categories.filter { !$0.isDisabled }.map { $0.id })
     }
     
-    // MARK: - 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager, productDataManager: ProductDataManager) {
-        self.transactionDataManager = transactionDataManager
-        self.productDataManager = productDataManager
-    }
-    
-    // MARK: - 庫存檢查相關方法
-    
     /// 檢查商品是否無庫存
     func isOutOfStock(_ product: ProductModel) -> Bool {
         return product.stock <= 0
-    }
-    
-    /// 檢查是否有無庫存商品
-    func hasOutOfStockProducts() -> Bool {
-        return activeProducts.contains { isOutOfStock($0) }
-    }
-    
-    /// 取得無庫存商品數量
-    func outOfStockProductsCount() -> Int {
-        return activeProducts.filter { isOutOfStock($0) }.count
     }
     
     /// 顯示無庫存商品點擊提醒
@@ -114,7 +105,155 @@ class SessionDetailViewModel: ObservableObject {
         return sortedInStock + sortedOutOfStock
     }
     
-    // MARK: - 交易檢查邏輯
+    func loadProducts() {
+        guard let productManager = productDataManager else { return }
+        products = productManager.fetchProducts(forSessionId: session.id)
+        categories = session.categories
+        
+        // 首次載入時展開所有分類
+        if expandedCategories.isEmpty {
+            expandAllCategories()
+        }
+    }
+    
+    func increaseQuantity(for product: ProductModel) {
+        // 檢查是否無庫存
+        if isOutOfStock(product) {
+            showOutOfStockAlert(for: product.name)
+            return
+        }
+        
+        let current = quantities[product.id, default: 0]
+        if current < product.stock {
+            quantities[product.id] = current + 1
+        }
+    }
+    
+    func decreaseQuantity(for product: ProductModel) {
+        // 無庫存商品也不能減少數量
+        if isOutOfStock(product) {
+            return
+        }
+        
+        let current = quantities[product.id, default: 0]
+        if current > 0 {
+            quantities[product.id] = current - 1
+        }
+    }
+    
+    func toggleDiscount(for product: ProductModel, percent: Int) {
+        // 無庫存商品不能選擇折扣
+        if isOutOfStock(product) {
+            return
+        }
+        
+        if selectedDiscounts[product.id] == percent {
+            selectedDiscounts[product.id] = nil
+        } else {
+            selectedDiscounts[product.id] = percent
+        }
+    }
+    
+    func isDiscountSelected(for product: ProductModel, percent: Int) -> Bool {
+        selectedDiscounts[product.id] == percent
+    }
+    
+    func quantity(for product: ProductModel) -> Int {
+        quantities[product.id, default: 0]
+    }
+    
+    func clearAllQuantities() {
+        quantities.removeAll()
+        selectedDiscounts.removeAll()
+    }
+    
+    func totalAmount() -> Int {
+        activeProducts.reduce(0) { result, product in
+            let qty = quantities[product.id, default: 0]
+            let discount = selectedDiscounts[product.id] ?? 0
+            let discountedPrice = product.price * (1 - Double(discount) / 100)
+            let roundedTotal = (discountedPrice * Double(qty)).rounded()
+            return result + Int(roundedTotal)
+        }
+    }
+    
+    func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
+        activeProducts.compactMap { product in
+            let qty = quantity(for: product)
+            guard qty > 0 else { return nil }
+
+            let discount = selectedDiscounts[product.id, default: 0]
+
+            return SummaryItemModel(
+                productId: product.id,
+                name: product.name,
+                price: product.price,
+                categoryId: product.categoryId,
+                category: product.categoryName,
+                quantity: qty,
+                discount: discount,
+                timestamp: Date()
+            )
+        }
+    }
+    
+    // MARK: - Transaction History 相關方法
+    
+    func loadTransactions() {
+        guard let transactionManager = transactionDataManager else { return }
+        transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+    }
+    
+    func toggleTransactionExpansion(_ transactionId: UUID) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if expandedTransactionIds.contains(transactionId) {
+                expandedTransactionIds.remove(transactionId)
+            } else {
+                expandedTransactionIds.insert(transactionId)
+            }
+        }
+    }
+    
+    func isTransactionExpanded(_ transactionId: UUID) -> Bool {
+        return expandedTransactionIds.contains(transactionId)
+    }
+    
+    func formatTransactionId(_ id: String) -> String {
+        let prefix = String(id.prefix(8)).uppercased()
+        return "TXN\(prefix)"
+    }
+    
+    func formatDateTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter.string(from: date)
+    }
+    
+    func formatAmount(_ amount: Double) -> String {
+        return String(format: "%.0f", amount)
+    }
+    
+    func paymentMethodText(_ method: PaymentMethod) -> String {
+        switch method {
+        case .cash:
+            return "現金"
+        case .ePayment:
+            return "電子支付"
+        }
+    }
+    
+    func paymentMethodColor(_ method: PaymentMethod) -> Color {
+        switch method {
+        case .cash:
+            return .green
+        case .ePayment:
+            return .blue
+        }
+    }
+    
+    // MARK: - 共用方法
+    
+    /// 檢查產品是否有交易記錄
     func hasTransaction(for productId: UUID) -> Bool {
         guard let sessionId = session.id as UUID? else { return false }
         
@@ -140,19 +279,6 @@ class SessionDetailViewModel: ObservableObject {
             }
         }
         return false
-    }
-
-    // MARK: - 產品管理方法
-    
-    func loadProducts() {
-        guard let productManager = productDataManager else { return }
-        products = productManager.fetchProducts(forSessionId: session.id)
-        categories = session.categories
-        
-        // 首次載入時展開所有分類
-        if expandedCategories.isEmpty {
-            expandAllCategories()
-        }
     }
     
     func removeProduct(byId productId: UUID) {
@@ -252,89 +378,6 @@ class SessionDetailViewModel: ObservableObject {
             return .disable
         } else {
             return .delete
-        }
-    }
-    
-    // MARK: - 購物車邏輯（更新以支援庫存檢查）
-    
-    func increaseQuantity(for product: ProductModel) {
-        // 檢查是否無庫存
-        if isOutOfStock(product) {
-            showOutOfStockAlert(for: product.name)
-            return
-        }
-        
-        let current = quantities[product.id, default: 0]
-        if current < product.stock {
-            quantities[product.id] = current + 1
-        }
-    }
-    
-    func decreaseQuantity(for product: ProductModel) {
-        // 無庫存商品也不能減少數量
-        if isOutOfStock(product) {
-            return
-        }
-        
-        let current = quantities[product.id, default: 0]
-        if current > 0 {
-            quantities[product.id] = current - 1
-        }
-    }
-    
-    func toggleDiscount(for product: ProductModel, percent: Int) {
-        // 無庫存商品不能選擇折扣
-        if isOutOfStock(product) {
-            return
-        }
-        
-        if selectedDiscounts[product.id] == percent {
-            selectedDiscounts[product.id] = nil
-        } else {
-            selectedDiscounts[product.id] = percent
-        }
-    }
-    
-    func isDiscountSelected(for product: ProductModel, percent: Int) -> Bool {
-        selectedDiscounts[product.id] == percent
-    }
-    
-    func quantity(for product: ProductModel) -> Int {
-        quantities[product.id, default: 0]
-    }
-    
-    func clearAllQuantities() {
-        quantities.removeAll()
-        selectedDiscounts.removeAll()
-    }
-    
-    func totalAmount() -> Int {
-        activeProducts.reduce(0) { result, product in
-            let qty = quantities[product.id, default: 0]
-            let discount = selectedDiscounts[product.id] ?? 0
-            let discountedPrice = product.price * (1 - Double(discount) / 100)
-            let roundedTotal = (discountedPrice * Double(qty)).rounded()
-            return result + Int(roundedTotal)
-        }
-    }
-    
-    func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
-        activeProducts.compactMap { product in
-            let qty = quantity(for: product)
-            guard qty > 0 else { return nil }
-
-            let discount = selectedDiscounts[product.id, default: 0]
-
-            return SummaryItemModel(
-                productId: product.id,
-                name: product.name,
-                price: product.price,
-                categoryId: product.categoryId,
-                category: product.categoryName,
-                quantity: qty,
-                discount: discount,
-                timestamp: Date()
-            )
         }
     }
 }
