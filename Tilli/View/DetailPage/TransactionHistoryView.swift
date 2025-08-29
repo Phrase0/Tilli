@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TransactionHistoryView: View {
     @ObservedObject var viewModel: SessionDetailViewModel
     @Binding var session: SessionModel
+    @State private var showingDocumentPicker = false
     
     var body: some View {
         ScrollView {
@@ -44,6 +46,25 @@ struct TransactionHistoryView: View {
         }
         .refreshable {
             viewModel.loadTransactions()
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    viewModel.exportCSV()
+                    showingDocumentPicker = true
+                }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(viewModel.transactions.isEmpty)
+            }
+        }
+        .alert("CSV 導出成功", isPresented: $viewModel.showingExportAlert) {
+            Button("確定") { }
+        } message: {
+            Text("交易明細已成功導出為 CSV 檔案")
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker(viewModel: viewModel)
         }
     }
     
@@ -202,4 +223,38 @@ struct TransactionHistoryView: View {
         .padding(.vertical, 12)
         .background(Color.white)
     }
+    
+    // MARK: - 移除 CSV Export Methods（已移到 ViewModel）
 }
+
+// MARK: - Document Picker for CSV Export
+
+struct DocumentPicker: UIViewControllerRepresentable {
+    let viewModel: SessionDetailViewModel
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let tempURL = viewModel.createTempCSVFileURL()
+        let picker = UIDocumentPickerViewController(forExporting: [tempURL])
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(viewModel)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let viewModel: SessionDetailViewModel
+        
+        init(_ viewModel: SessionDetailViewModel) {
+            self.viewModel = viewModel
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            viewModel.showExportSuccessAlert()
+        }
+    }
+}
+

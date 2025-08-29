@@ -132,21 +132,14 @@ class AddSessionViewModel: ObservableObject {
     
     /// 檢查類別是否有產品（從最新數據源）
     func hasProducts(for categoryId: UUID) -> Bool {
-        guard let sessionId = editingSession?.id else { return false }
-        
-        // 優先使用 ProductDataManager 獲取最新的產品數據
-        if let productManager = productDataManager {
-            let products = productManager.fetchProducts(forSessionId: sessionId)
-            return products.contains { $0.categoryId == categoryId }
+        guard let sessionId = editingSession?.id,
+              let productManager = productDataManager else {
+            return false
         }
-        
-        // 後備方案：使用類別模型中的產品數據
-        if let category = categories.first(where: { $0.id == categoryId }) {
-            return !category.products.isEmpty
-        }
-        
-        return false
+        let products = productManager.fetchProducts(forSessionId: sessionId)
+        return products.contains { $0.categoryId == categoryId }
     }
+
     
     // MARK: - Alert 處理邏輯
     
