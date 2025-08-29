@@ -29,6 +29,8 @@ class SessionDetailViewModel: ObservableObject {
     // Transaction History 相關狀態
     @Published var transactions: [TransactionModel] = []
     @Published var expandedTransactionIds: Set<UUID> = []
+    @Published var showingExportAlert = false
+    @Published var csvContent = ""
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
@@ -202,6 +204,53 @@ class SessionDetailViewModel: ObservableObject {
     func loadTransactions() {
         guard let transactionManager = transactionDataManager else { return }
         transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+    }
+    
+    func generateCSVContent() -> String {
+        var csvContent = "交易編號,日期時間,支付方式,商品名稱,類別,單價,數量,折扣%,小計,總金額\n"
+        
+        for transaction in transactions.sorted { $0.timestamp > $1.timestamp } {
+            let transactionId = formatTransactionId(transaction.id.uuidString)
+            let dateTime = formatDateTime(transaction.timestamp)
+            let paymentMethod = paymentMethodText(transaction.paymentMethod)
+            let totalAmount = formatAmount(transaction.totalAmount)
+            
+            for item in transaction.items {
+                let productName = item.name.replacingOccurrences(of: ",", with: "，") // 避免CSV格式問題
+                let category = item.category.replacingOccurrences(of: ",", with: "，")
+                let unitPrice = formatAmount(item.price)
+                let quantity = "\(item.quantity)"
+                let discount = item.discount > 0 ? "\(item.discount)%" : "0%"
+                let subtotal = formatAmount(item.total)
+                
+                let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(discount),\(subtotal),\(totalAmount)\n"
+                csvContent += row
+            }
+        }
+        
+        return csvContent
+    }
+    
+    func exportCSV() {
+        csvContent = generateCSVContent()
+    }
+    
+    func createTempCSVFileURL() -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "交易明細_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileURL = tempDir.appendingPathComponent(fileName)
+        
+        do {
+            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("Error creating CSV file: \(error)")
+        }
+        
+        return fileURL
+    }
+    
+    func showExportSuccessAlert() {
+        showingExportAlert = true
     }
     
     func toggleTransactionExpansion(_ transactionId: UUID) {
@@ -380,6 +429,56 @@ class SessionDetailViewModel: ObservableObject {
             return .delete
         }
     }
+    
+    // MARK: - Alert 創建方法
+    func createAlert() -> Alert {
+        if productPendingRestore != nil {
+            // 復原操作的警告
+            return Alert(
+                title: Text("確認復原"),
+                message: Text("確定要復原此產品嗎？"),
+                primaryButton: .default(Text("確認")) { [weak self] in
+                    self?.confirmRestoreAction()
+                },
+                secondaryButton: .cancel { [weak self] in
+                    self?.cancelRestoreAction()
+                }
+            )
+        } else if productPendingDeletion != nil {
+            if isDisableAction {
+                // 下架操作的警告
+                return Alert(
+                    title: Text("確認下架"),
+                    message: Text(alertMessage),
+                    primaryButton: .default(Text("確認")) { [weak self] in
+                        self?.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel { [weak self] in
+                        self?.cancelDeletionAction()
+                    }
+                )
+            } else {
+                // 刪除操作的警告
+                return Alert(
+                    title: Text("確認刪除"),
+                    message: Text(alertMessage),
+                    primaryButton: .destructive(Text("刪除")) { [weak self] in
+                        self?.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel { [weak self] in
+                        self?.cancelDeletionAction()
+                    }
+                )
+            }
+        } else {
+            return Alert(
+                title: Text("提醒"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("好"))
+            )
+        }
+    }
+
 }
 
 // MARK: - Helper Enums

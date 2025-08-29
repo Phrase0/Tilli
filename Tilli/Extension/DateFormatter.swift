@@ -15,4 +15,10 @@ extension DateFormatter {
         formatter.timeStyle = .none
         return formatter
     }()
+    
+    static let csvFileDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmm"
+        return formatter
+    }()
 }

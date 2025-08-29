@@ -100,7 +100,7 @@ struct SessionDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .alert(isPresented: $viewModel.showAlert) {
-            createAlert()
+            viewModel.createAlert()
         }
         .onChange(of: checkoutCompleted) {
             viewModel.loadProducts()
@@ -115,56 +115,6 @@ struct SessionDetailView: View {
                 productDataManager: productDataManager
             )
             viewModel.loadProducts()
-        }
-    }
-    
-    // MARK: - Alert 創建方法
-    
-    private func createAlert() -> Alert {
-        if viewModel.productPendingRestore != nil {
-            // 復原操作的警告
-            return Alert(
-                title: Text("確認復原"),
-                message: Text("確定要復原此產品嗎？"),
-                primaryButton: .default(Text("確認")) {
-                    viewModel.confirmRestoreAction()
-                },
-                secondaryButton: .cancel {
-                    viewModel.cancelRestoreAction()
-                }
-            )
-        } else if viewModel.productPendingDeletion != nil {
-            if viewModel.isDisableAction {
-                // 下架操作的警告
-                return Alert(
-                    title: Text("確認下架"),
-                    message: Text(viewModel.alertMessage),
-                    primaryButton: .default(Text("確認")) {
-                        viewModel.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel {
-                        viewModel.cancelDeletionAction()
-                    }
-                )
-            } else {
-                // 刪除操作的警告
-                return Alert(
-                    title: Text("確認刪除"),
-                    message: Text(viewModel.alertMessage),
-                    primaryButton: .destructive(Text("刪除")) {
-                        viewModel.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel {
-                        viewModel.cancelDeletionAction()
-                    }
-                )
-            }
-        } else {
-            return Alert(
-                title: Text("提醒"),
-                message: Text(viewModel.alertMessage),
-                dismissButton: .default(Text("好"))
-            )
         }
     }
 }
