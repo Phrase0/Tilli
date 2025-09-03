@@ -38,14 +38,26 @@ class SessionDetailViewModel: ObservableObject {
     private var productRepository: ProductRepository?
     private var categoryRepository: CategoryRepository?
     
-    // 計算屬性：啟用的產品
+    // 計算屬性：可顯示的產品（Product.isDisabled == false && Category.isDisabled == false）
     var activeProducts: [ProductModel] {
-        products.filter { !$0.isDisabled }
+        products.filter { product in
+            let isProductEnabled = !product.isDisabled
+            let isCategoryEnabled = categories.first(where: { $0.id == product.categoryId })?.isDisabled == false
+            return isProductEnabled && isCategoryEnabled
+        }
     }
     
-    // 計算屬性：下架的產品
+    // 計算屬性：所有已停用的產品（只看 Product.isDisabled）
     var disabledProducts: [ProductModel] {
         products.filter { $0.isDisabled }
+    }
+    
+    // 計算屬性：因為 Category 停用而隱藏的產品
+    var categoryDisabledProducts: [ProductModel] {
+        products.filter { product in
+            let isCategoryDisabled = categories.first(where: { $0.id == product.categoryId })?.isDisabled == true
+            return !product.isDisabled && isCategoryDisabled // Product 本身未停用，但 Category 停用了
+        }
     }
     
     init(session: Binding<SessionModel>) {

@@ -197,10 +197,17 @@ class SessionDataManager: ObservableObject {
             entity.addToProducts(productEntity)
         }
         
-        // 更新現有的 products
+        // 更新現有的 products（但保留 isDisabled 狀態）
         for productModel in productsToUpdate {
             if let productEntity = existingProducts.first(where: { $0.id == productModel.id }) {
+                // 保存現有的 isDisabled 狀態
+                let currentIsDisabled = productEntity.isDisabled
+                
+                // 更新其他屬性
                 productEntity.update(from: productModel, context: context)
+                
+                // 恢復原來的 isDisabled 狀態
+                productEntity.isDisabled = currentIsDisabled
             }
         }
     }

@@ -35,6 +35,10 @@ class AddSessionViewModel: ObservableObject {
         categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
     }
     
+    var disabledSortedCategories: [CategoryModel] {
+        categories.filter { $0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+    }
+    
     var selectedCategory: CategoryModel? {
         sortedCategories.first(where: { $0.id == editingCategoryID })
     }
