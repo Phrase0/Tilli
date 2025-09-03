@@ -65,6 +65,10 @@ class SessionDetailViewModel: ObservableObject {
         }
     }
     
+    var sessionTotalAmount: Double {
+        session.transactions.reduce(0) { $0 + $1.totalAmount }
+    }
+    
     init(session: Binding<SessionModel>) {
         self._session = session
     }

@@ -73,7 +73,7 @@ struct AddSessionView: View {
                 }
             }
         }
-        .navigationTitle(viewModel.editingSession == nil ? "Add Session" : "Edit Session")
+        .navigationTitle(viewModel.editingSession == nil ? "新增場次" : "編輯場次")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") {
