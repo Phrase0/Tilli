@@ -94,7 +94,9 @@ class AddNewProductViewModel: ObservableObject {
     // MARK: - 交易檢查邏輯
     /// 檢查產品是否有交易紀錄
     func hasTransaction(for productId: UUID) -> Bool {
-        guard let sessionId = session.id as UUID? else { return false }
+        guard let sessionId = session.id as UUID? else { 
+            return false 
+        }
         
         // 優先使用 TransactionDataManager 獲取最新的交易數據
         if let transactionManager = transactionDataManager {
@@ -187,7 +189,7 @@ class AddNewProductViewModel: ObservableObject {
     }
     
     // MARK: - 儲存動作
-    func save(using productDataManager: ProductDataManager) -> Bool {
+    func save(using productRepository: ProductRepository) -> Bool {
         guard let product = createProductIfValid() else {
             showValidationError = true
             return false
@@ -195,10 +197,10 @@ class AddNewProductViewModel: ObservableObject {
         
         if editingProduct != nil {
             // 編輯模式 → 更新產品
-            productDataManager.updateProduct(product)
+            productRepository.updateProduct(product.id, productModel: product)
         } else {
             // 新增模式 → 新增產品
-            productDataManager.addProduct(product)
+            productRepository.addProduct(to: product.categoryId, productModel: product)
         }
         return true
     }

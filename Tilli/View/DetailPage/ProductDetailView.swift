@@ -1,140 +1,44 @@
 //
-//  SessionDetailView.swift
+//  ProductDetailView.swift
 //  Tilli
 //
-//  Created by Peiyun on 2025/7/5.
+//  Created by Assistant on 2025/8/27.
 //
 
 import SwiftUI
 
-struct SessionDetailView: View {
-    
-    @EnvironmentObject var productDataManager: ProductDataManager
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var appState: AppState
-    @StateObject private var viewModel: SessionDetailViewModel
-    
+struct ProductDetailView: View {
+    @ObservedObject var viewModel: SessionDetailViewModel
     @Binding var session: SessionModel
-    
+    @Binding var editingProduct: ProductModel?
+    @Binding var showEditProduct: Bool
+    @Binding var showCheckoutSheet: Bool
+    @Binding var checkoutCompleted: Bool
     @State private var showClearAlert = false
-    @State private var showCheckoutSheet = false
-    @State private var selectedTab: Int = 0
-    @State private var checkoutCompleted = false
-    
-    @State private var editingProduct: ProductModel? = nil
-    @State private var showEditProduct = false
-    
-    init(session: Binding<SessionModel>) {
-        self._session = session
-        self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
-    }
     
     var body: some View {
-        VStack {
-            // 當需要編輯產品時，顯示編輯頁面
-            if let product = editingProduct, showEditProduct {
-                AddNewProductView(
-                    session: session,
-                    productToEdit: product,
-                    onSave: {
-                        // 編輯完成
-                        showEditProduct = false
-                        editingProduct = nil
-                        viewModel.loadProducts()
-                    },
-                    onCancel: {
-                        // 取消編輯
-                        showEditProduct = false
-                        editingProduct = nil
-                    }
-                )
-            }
-            // 否則顯示主要的 SessionDetail 內容
-            else {
-                sessionDetailContent
-            }
-        }
-        .navigationBarHidden(showEditProduct)
-    }
-    
-    // 將原本的 body 內容提取為 computed property
-    private var sessionDetailContent: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 4) {
-                Text(viewModel.session.title)
-                    .font(.title2)
-                    .bold()
-                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • NT$\(viewModel.totalAmount())")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            .padding(.top)
-            
-            // Tab Toggle
-            Picker("", selection: $selectedTab) {
-                Text("商品").tag(0)
-                Text("記錄").tag(1)
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding(8)
-            
-            TabView(selection: $selectedTab) {
-                // 商品頁
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // 啟用的產品列表
-                        ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
-                            let items = viewModel.getSortedProductsForCategory(category.id)
-                            if !items.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    // 可點擊的分類標題
-                                    Button(action: {
-                                        viewModel.toggleCategoryExpansion(category.id)
-                                    }) {
-                                        HStack {
-                                            Text(category.name)
-                                                .font(.headline)
-                                                .foregroundColor(.primary)
-                                                .padding(.horizontal)
-                                            
-                                            Spacer()
-                                            
-                                            Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
-                                                .foregroundColor(.gray)
-                                                .font(.caption)
-                                                .padding(.horizontal)
-                                        }
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    
-                                    // 商品列表（可展開/收起）
-                                    if viewModel.isCategoryExpanded(category.id) {
-                                        ForEach(items) { product in
-                                            productCard(product)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 下架商品區
-                        if !viewModel.disabledProducts.isEmpty {
+            // 商品列表
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // 啟用的產品列表
+                    ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
+                        let items = viewModel.getSortedProductsForCategory(category.id)
+                        if !items.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
+                                // 可點擊的分類標題
                                 Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        viewModel.showDisabledProducts.toggle()
-                                    }
+                                    viewModel.toggleCategoryExpansion(category.id)
                                 }) {
                                     HStack {
-                                        Text("下架商品")
+                                        Text(category.name)
                                             .font(.headline)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.primary)
                                             .padding(.horizontal)
                                         
                                         Spacer()
                                         
-                                        Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                                        Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
                                             .foregroundColor(.gray)
                                             .font(.caption)
                                             .padding(.horizontal)
@@ -142,29 +46,52 @@ struct SessionDetailView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 
-                                if viewModel.showDisabledProducts {
-                                    ForEach(viewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
-                                        disabledProductCard(product)
+                                // 商品列表（可展開/收起）
+                                if viewModel.isCategoryExpanded(category.id) {
+                                    ForEach(items) { product in
+                                        productCard(product)
                                     }
                                 }
                             }
                         }
                     }
-                    .padding(.top)
+                    
+                    // 下架商品區
+                    if !viewModel.disabledProducts.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    viewModel.showDisabledProducts.toggle()
+                                }
+                            }) {
+                                HStack {
+                                    Text("下架商品")
+                                        .font(.headline)
+                                        .foregroundColor(.gray)
+                                        .padding(.horizontal)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                        .padding(.horizontal)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if viewModel.showDisabledProducts {
+                                ForEach(viewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
+                                    disabledProductCard(product)
+                                }
+                            }
+                        }
+                    }
                 }
-                .tag(0)
-                
-                // 記錄頁
-                VStack {
-                    Text("記錄頁內容（尚未實作）")
-                        .foregroundColor(.gray)
-                        .padding()
-                }
-                .tag(1)
+                .padding(.top)
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             
-            // Footer
+            // Footer - 總計和結帳按鈕
             VStack(spacing: 12) {
                 HStack {
                     Text("總計")
@@ -191,26 +118,11 @@ struct SessionDetailView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
-        .toolbar {
-            if selectedTab == 0 {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showClearAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .accessibilityLabel("清除所有已選數量")
-                }
-            }
-        }
         .alert("確定要清除所有已選數量嗎？", isPresented: $showClearAlert) {
             Button("取消", role: .cancel) { }
             Button("清除", role: .destructive) {
                 viewModel.clearAllQuantities()
             }
-        }
-        .alert(isPresented: $viewModel.showAlert) {
-            createAlert()
         }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
@@ -221,19 +133,15 @@ struct SessionDetailView: View {
                 checkoutCompleted: $checkoutCompleted
             )
         }
-        .onChange(of: checkoutCompleted) {
-            viewModel.loadProducts()
-            viewModel.clearAllQuantities()
-            checkoutCompleted = false
-        }
-        .onAppear {
-            appState.currentSession = viewModel.session
-            // 每次出現時更新資料管理器
-            viewModel.updateDataManagers(
-                transactionDataManager: transactionDataManager,
-                productDataManager: productDataManager
-            )
-            viewModel.loadProducts()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showClearAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel("清除所有已選數量")
+            }
         }
     }
     
@@ -440,55 +348,6 @@ struct SessionDetailView: View {
             } label: {
                 Label("刪除", systemImage: "trash")
             }
-        }
-    }
-    
-    // Alert 創建方法
-    private func createAlert() -> Alert {
-        if viewModel.productPendingRestore != nil {
-            // 復原操作的警告
-            return Alert(
-                title: Text("確認復原"),
-                message: Text("確定要復原此產品嗎？"),
-                primaryButton: .default(Text("確認")) {
-                    viewModel.confirmRestoreAction()
-                },
-                secondaryButton: .cancel {
-                    viewModel.cancelRestoreAction()
-                }
-            )
-        } else if viewModel.productPendingDeletion != nil {
-            if viewModel.isDisableAction {
-                // 下架操作的警告
-                return Alert(
-                    title: Text("確認下架"),
-                    message: Text(viewModel.alertMessage),
-                    primaryButton: .default(Text("確認")) {
-                        viewModel.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel {
-                        viewModel.cancelDeletionAction()
-                    }
-                )
-            } else {
-                // 刪除操作的警告
-                return Alert(
-                    title: Text("確認刪除"),
-                    message: Text(viewModel.alertMessage),
-                    primaryButton: .destructive(Text("刪除")) {
-                        viewModel.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel {
-                        viewModel.cancelDeletionAction()
-                    }
-                )
-            }
-        } else {
-            return Alert(
-                title: Text("提醒"),
-                message: Text(viewModel.alertMessage),
-                dismissButton: .default(Text("好"))
-            )
         }
     }
 }

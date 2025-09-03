@@ -35,20 +35,6 @@ struct SessionsView: View {
                                 selectedSession = session
                                 appState.currentSession = session
                             }
-                            .contextMenu {
-                                Button {
-                                    editingSession = session
-                                } label: {
-                                    Label("編輯", systemImage: "pencil")
-                                }
-
-                                Button(role: .destructive) {
-                                    sessionToDelete = session
-                                    showDeleteConfirmation = true
-                                } label: {
-                                    Label("刪除", systemImage: "trash")
-                                }
-                            }
                     }
                 }
                 .padding()
@@ -108,7 +94,7 @@ struct SessionsView: View {
     private func sessionCard(_ session: SessionModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(session.title)
                         .font(.headline)
 
@@ -119,13 +105,35 @@ struct SessionsView: View {
 
                 Spacer()
 
-                Text(session.status.rawValue)
-                    .font(.caption)
-                    .foregroundColor(session.status.textColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(session.status.color)
-                    .clipShape(Capsule())
+                VStack(alignment: .trailing, spacing: 12) {
+                    Menu {
+                        Button {
+                            editingSession = session
+                        } label: {
+                            Label("編輯", systemImage: "pencil")
+                        }
+                        
+                        Button(role: .destructive) {
+                            sessionToDelete = session
+                            showDeleteConfirmation = true
+                        } label: {
+                            Label("刪除", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                    
+                    Text(session.status.rawValue)
+                        .font(.caption)
+                        .foregroundColor(session.status.textColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(session.status.color)
+                        .clipShape(Capsule())
+                }
             }
         }
         .padding()
