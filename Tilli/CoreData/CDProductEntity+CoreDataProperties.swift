@@ -15,6 +15,8 @@ extension CDProductEntity {
         return NSFetchRequest<CDProductEntity>(entityName: "CDProductEntity")
     }
     
+    @NSManaged public var categoryId: UUID
+    @NSManaged public var categoryName: String
     @NSManaged public var id: UUID
     @NSManaged public var sessionId: UUID
     @NSManaged public var name: String
@@ -35,6 +37,8 @@ extension CDProductEntity {
         self.name = model.name
         self.price = model.price
         self.stock = Int32(model.stock)
+        self.categoryId = model.categoryId
+        self.categoryName = model.categoryName
         self.note = model.note
         if let imageData = model.imageData {
             self.imageData = imageData

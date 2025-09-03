@@ -94,7 +94,9 @@ class AddNewProductViewModel: ObservableObject {
     // MARK: - 交易檢查邏輯
     /// 檢查產品是否有交易紀錄
     func hasTransaction(for productId: UUID) -> Bool {
-        guard let sessionId = session.id as UUID? else { return false }
+        guard let sessionId = session.id as UUID? else { 
+            return false 
+        }
         
         // 優先使用 TransactionDataManager 獲取最新的交易數據
         if let transactionManager = transactionDataManager {
