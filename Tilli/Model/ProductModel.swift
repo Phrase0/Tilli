@@ -40,8 +40,8 @@ extension ProductModel {
         self.note = entity.note
         self.imageData = entity.imageData
         
-        self.categoryId = entity.category.id
-        self.categoryName = entity.category.name
+        self.categoryId = entity.categoryId
+        self.categoryName = entity.categoryName
         self.isDisabled = entity.isDisabled
     }
 }

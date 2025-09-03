@@ -9,6 +9,8 @@
         <relationship name="session" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="categories" inverseEntity="CDSessionEntity"/>
     </entity>
     <entity name="CDProductEntity" representedClassName="CDProductEntity" syncable="YES">
+        <attribute name="categoryId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="categoryName" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageData" optional="YES" attributeType="Binary"/>
         <attribute name="isDisabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

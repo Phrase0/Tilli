@@ -54,6 +54,10 @@ class ProductRepository: ObservableObject {
                 // 庫存更新需要依照原有業務邏輯判斷
                 updateStockWithBusinessLogic(entity: entity, newStock: productModel.stock)
                 
+                // 更新類別相關屬性
+                entity.categoryId = productModel.categoryId
+                entity.categoryName = productModel.categoryName
+                
                 entity.note = productModel.note
                 if let imageData = productModel.imageData {
                     entity.imageData = imageData
