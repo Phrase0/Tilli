@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 struct TransactionHistoryView: View {
     @ObservedObject var viewModel: SessionDetailViewModel
     @Binding var session: SessionModel
-    @State private var showingDocumentPicker = false
+    @State private var showingShareSheet = false
     
     var body: some View {
         ScrollView {
@@ -51,7 +51,7 @@ struct TransactionHistoryView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     viewModel.exportCSV()
-                    showingDocumentPicker = true
+                    showingShareSheet = true
                 }) {
                     Image(systemName: "square.and.arrow.up")
                 }
@@ -63,9 +63,21 @@ struct TransactionHistoryView: View {
         } message: {
             Text("交易明細已成功導出為 CSV 檔案")
         }
-        .sheet(isPresented: $showingDocumentPicker) {
-            DocumentPicker(viewModel: viewModel)
-        }
+        .shareSheet(
+            isPresented: $showingShareSheet,
+            activityItems: [
+                CustomActivityItemSource(
+                    csvContent: viewModel.csvContent,
+                    csvFileURL: viewModel.createTempCSVFileURL()
+                )
+            ],
+            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
+            onComplete: { completed in
+                if completed {
+                    viewModel.showExportSuccessAlert()
+                }
+            }
+        )
     }
     
     private func transactionCard(_ transaction: TransactionModel) -> some View {
