@@ -9,7 +9,7 @@ import PhotosUI
 
 struct AddNewProductView: View {
     
-    @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @StateObject private var viewModel: AddNewProductViewModel
 
@@ -142,7 +142,7 @@ struct AddNewProductView: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        if viewModel.save(using: productDataManager) {
+                        if viewModel.save(using: productRepository) {
                             viewModel.onSave()
                         } else {
                             print("保存失敗")

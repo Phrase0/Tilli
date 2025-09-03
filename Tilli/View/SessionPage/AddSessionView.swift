@@ -14,7 +14,7 @@ struct AddSessionView: View {
 
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var productRepository: ProductRepository
 
     enum FocusField: Hashable {
         case sessionName
@@ -40,7 +40,7 @@ struct AddSessionView: View {
             DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
 
             Section(header: Text("類別")) {
-                ForEach(viewModel.sortedCategories.filter { !$0.isDisabled }, id: \.id) { category in
+                ForEach(viewModel.activeSortedCategories, id: \.id) { category in
                     categoryRow(for: category)
                         .swipeActions(edge: .trailing) {
                             swipeActionsContent(for: category)
@@ -61,7 +61,7 @@ struct AddSessionView: View {
             }
             
             Section(header: Text("已停用類別")) {
-                ForEach(viewModel.sortedCategories.filter { $0.isDisabled }, id: \.id) { category in
+                ForEach(viewModel.disabledSortedCategories, id: \.id) { category in
                     Text(category.name)
                         .foregroundColor(.gray)
                         .swipeActions(edge: .trailing) {
@@ -97,7 +97,7 @@ struct AddSessionView: View {
             // 每次出現時更新資料管理器
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
-                productDataManager: productDataManager
+                productRepository: productRepository
             )
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

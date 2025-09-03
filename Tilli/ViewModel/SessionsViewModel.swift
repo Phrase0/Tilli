@@ -47,7 +47,7 @@ class SessionViewModel: ObservableObject {
     }
     
     func deleteSession(_ session: SessionModel,using sessionDataManager: SessionDataManager) {
-        sessionDataManager.deleteSession(session)
+        sessionDataManager.deleteSession(session.id)
         sessions = sessionDataManager.sessions
     }
     
