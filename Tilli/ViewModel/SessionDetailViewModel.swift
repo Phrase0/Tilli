@@ -47,9 +47,14 @@ class SessionDetailViewModel: ObservableObject {
         }
     }
     
-    // 計算屬性：所有已停用的產品（只看 Product.isDisabled）
+    // 計算屬性：已停用且 Category 未停用的產品（只顯示在下架區的產品）
     var disabledProducts: [ProductModel] {
-        products.filter { $0.isDisabled }
+        products.filter { product in
+            let isProductDisabled = product.isDisabled
+            let isCategoryEnabled = categories.first(where: { $0.id == product.categoryId })?.isDisabled == false
+            // 只顯示：Product 停用 且 Category 未停用 的產品
+            return isProductDisabled && isCategoryEnabled
+        }
     }
     
     // 計算屬性：因為 Category 停用而隱藏的產品
