@@ -10,8 +10,9 @@ import SwiftUI
 @main
 struct TilliApp: App {
     @StateObject private var sessionDataManager = SessionDataManager()
-    @StateObject private var productDataManager = ProductDataManager()
     @StateObject private var transactionDataManager = TransactionDataManager()
+    @StateObject private var productRepository = ProductRepository()
+    @StateObject private var categoryRepository = CategoryRepository()
     
     @StateObject private var appState = AppState()
     let persistenceController = PersistenceController.shared
@@ -22,8 +23,9 @@ struct TilliApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(appState)
                 .environmentObject(sessionDataManager)
-                .environmentObject(productDataManager)
                 .environmentObject(transactionDataManager)
+                .environmentObject(productRepository)
+                .environmentObject(categoryRepository)
         }
     }
 }

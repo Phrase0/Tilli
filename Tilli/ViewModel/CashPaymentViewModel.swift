@@ -36,22 +36,25 @@ class CashPaymentViewModel: ObservableObject {
     }
 
     func performCheckout(
-        transactionDataManager: TransactionDataManager,
         sessionDataManager: SessionDataManager,
-        productDataManager: ProductDataManager
+        productRepository: ProductRepository
     ) -> SessionModel {
 
+        // 更新產品庫存
         for item in summaryItems {
-            guard let matchedProduct = productDataManager.products.first(where: { $0.id == item.productId }) else {
+            let allProducts = productRepository.fetchProducts(forSessionId: session.id)
+            guard let matchedProduct = allProducts.first(where: { $0.id == item.productId }) else {
                 print("無法在 CoreData 中找到對應的 productId: \(item.productId)")
                 continue
             }
+            
             var updatedProduct = matchedProduct
             updatedProduct.stock = max(updatedProduct.stock - item.quantity, 0)
             
-            productDataManager.updateProduct(updatedProduct)
+            productRepository.updateProduct(updatedProduct.id, productModel: updatedProduct)
         }
 
+        // 創建交易記錄
         let transaction = TransactionModel(
             sessionId: session.id,
             items: summaryItems,
@@ -60,11 +63,11 @@ class CashPaymentViewModel: ObservableObject {
             timestamp: Date()
         )
 
+        // 使用 SessionDataManager 添加交易記錄
+        sessionDataManager.addTransaction(transaction)
         
-        var updatedSession = session
-        updatedSession.transactions.append(transaction)
-        transactionDataManager.addTransaction(transaction)
-        return updatedSession
+        // 返回更新後的 session（通過 SessionDataManager 重新獲取）
+        return sessionDataManager.fetchSession(by: session.id) ?? session
     }
 
 
