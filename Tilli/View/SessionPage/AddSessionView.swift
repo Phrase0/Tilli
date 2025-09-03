@@ -14,7 +14,7 @@ struct AddSessionView: View {
 
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var productRepository: ProductRepository
 
     enum FocusField: Hashable {
         case sessionName
@@ -97,7 +97,7 @@ struct AddSessionView: View {
             // 每次出現時更新資料管理器
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
-                productDataManager: productDataManager
+                productRepository: productRepository
             )
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

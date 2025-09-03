@@ -9,7 +9,9 @@ import SwiftUI
 
 struct SessionDetailView: View {
     
-    @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var productRepository: ProductRepository
+    @EnvironmentObject var categoryRepository: CategoryRepository
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
@@ -112,7 +114,9 @@ struct SessionDetailView: View {
             // 每次出現時更新資料管理器
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
-                productDataManager: productDataManager
+                sessionDataManager: sessionDataManager,
+                productRepository: productRepository,
+                categoryRepository: categoryRepository
             )
             viewModel.loadProducts()
         }

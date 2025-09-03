@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  SessionDataManager.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/27.
@@ -17,21 +17,18 @@ class SessionDataManager: ObservableObject {
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
-        fetchAllSessions()
+        fetchSessions()
     }
 
-    // MARK: - Create
-    func addSession(_ model: SessionModel) {
-        let entity = CDSessionEntity(context: context)
-        entity.update(from: model, context: context)
-        saveContext()
-        fetchAllSessions()
-    }
-
-    // MARK: - Read
-    func fetchAllSessions() {
+    // MARK: - Session CRUD Operations
+    
+    /// 取得所有 Session，包含完整的 Category、Product、Transaction
+    func fetchSessions() {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        
+        // 預先載入相關資料，避免多次查詢
+        request.relationshipKeyPathsForPrefetching = ["categories", "categories.products", "transactions"]
 
         do {
             let result = try context.fetch(request)
@@ -41,9 +38,11 @@ class SessionDataManager: ObservableObject {
         }
     }
 
+    /// 根據 ID 取得特定 Session
     func fetchSession(by id: UUID) -> SessionModel? {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.relationshipKeyPathsForPrefetching = ["categories", "categories.products", "transactions"]
 
         do {
             if let entity = try context.fetch(request).first {
@@ -55,43 +54,278 @@ class SessionDataManager: ObservableObject {
         return nil
     }
 
-    // MARK: - Update
+    /// 新增 Session（僅處理 Session 層級）
+    func addSession(_ model: SessionModel) {
+        let entity = CDSessionEntity(context: context)
+        entity.update(from: model, context: context)
+        
+        // 創建 Categories 和 Products
+        for categoryModel in model.categories {
+            let categoryEntity = CDCategoryEntity(context: context)
+            categoryEntity.update(from: categoryModel, context: context)
+            categoryEntity.session = entity
+            
+            for productModel in categoryModel.products {
+                let productEntity = CDProductEntity(context: context)
+                productEntity.update(from: productModel, context: context)
+                productEntity.category = categoryEntity
+            }
+        }
+        
+        saveContext()
+        fetchSessions()
+    }
+
+    /// 更新 Session（包含 Category 的變更處理）
     func updateSession(_ model: SessionModel) {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+        request.relationshipKeyPathsForPrefetching = ["categories", "categories.products"]
 
         do {
-            if let entity = try context.fetch(request).first {
-                entity.update(from: model, context: context)
-                saveContext()
-                fetchAllSessions()
+            guard let entity = try context.fetch(request).first else {
+                print("Session not found for update")
+                return
             }
+            
+            // 更新 Session 基本屬性
+            entity.title = model.title
+            entity.date = model.date
+            
+            // 處理 Categories 的變更
+            updateCategoriesForSession(entity: entity, newCategories: model.categories)
+            
+            saveContext()
+            fetchSessions()
         } catch {
             print("Update session failed:", error)
         }
     }
+    
+    /// 更新 Session 的 Categories
+    private func updateCategoriesForSession(entity: CDSessionEntity, newCategories: [CategoryModel]) {
+        let existingCategories = entity.categories as? Set<CDCategoryEntity> ?? Set()
+        let existingCategoryIds = Set(existingCategories.map { $0.id })
+        let newCategoryIds = Set(newCategories.map { $0.id })
+        
+        // 找出需要刪除的 categories
+        let categoriesToDelete = existingCategories.filter { !newCategoryIds.contains($0.id) }
+        
+        // 找出需要新增的 categories
+        let categoriesToAdd = newCategories.filter { !existingCategoryIds.contains($0.id) }
+        
+        // 找出需要更新的 categories
+        let categoriesToUpdate = newCategories.filter { existingCategoryIds.contains($0.id) }
+        
+        // 刪除不再需要的 categories（但要檢查是否有交易記錄）
+        for categoryEntity in categoriesToDelete {
+            // 檢查是否有相關交易記錄
+            if hasRelatedTransactionsForCategory(categoryId: categoryEntity.id) {
+                // 有交易記錄，只能停用
+                categoryEntity.isDisabled = true
+                print("Category \(categoryEntity.name) has transactions, disabled instead of deleted")
+            } else {
+                // 無交易記錄，可以硬刪除
+                entity.removeFromCategories(categoryEntity)
+                context.delete(categoryEntity)
+            }
+        }
+        
+        // 新增新的 categories
+        for categoryModel in categoriesToAdd {
+            let categoryEntity = CDCategoryEntity(context: context)
+            categoryEntity.update(from: categoryModel, context: context)
+            categoryEntity.session = entity
+            entity.addToCategories(categoryEntity)
+            
+            // 新增該 category 下的 products
+            for productModel in categoryModel.products {
+                let productEntity = CDProductEntity(context: context)
+                productEntity.update(from: productModel, context: context)
+                productEntity.category = categoryEntity
+                categoryEntity.addToProducts(productEntity)
+            }
+        }
+        
+        // 更新現有的 categories
+        for categoryModel in categoriesToUpdate {
+            if let categoryEntity = existingCategories.first(where: { $0.id == categoryModel.id }) {
+                // 更新基本屬性
+                categoryEntity.name = categoryModel.name
+                categoryEntity.isDisabled = categoryModel.isDisabled
+                
+                // 更新該 category 下的 products
+                updateProductsForCategory(entity: categoryEntity, newProducts: categoryModel.products)
+            }
+        }
+    }
+    
+    /// 更新 Category 的 Products
+    private func updateProductsForCategory(entity: CDCategoryEntity, newProducts: [ProductModel]) {
+        let existingProducts = entity.products as? Set<CDProductEntity> ?? Set()
+        let existingProductIds = Set(existingProducts.map { $0.id })
+        let newProductIds = Set(newProducts.map { $0.id })
+        
+        // 找出需要刪除的 products
+        let productsToDelete = existingProducts.filter { !newProductIds.contains($0.id) }
+        
+        // 找出需要新增的 products
+        let productsToAdd = newProducts.filter { !existingProductIds.contains($0.id) }
+        
+        // 找出需要更新的 products
+        let productsToUpdate = newProducts.filter { existingProductIds.contains($0.id) }
+        
+        // 刪除不再需要的 products（但要檢查是否有交易記錄）
+        for productEntity in productsToDelete {
+            // 檢查是否有相關交易記錄
+            if hasRelatedTransactionsForProduct(productId: productEntity.id) {
+                // 有交易記錄，只能停用
+                productEntity.isDisabled = true
+                print("Product \(productEntity.name) has transactions, disabled instead of deleted")
+            } else {
+                // 無交易記錄，可以硬刪除
+                entity.removeFromProducts(productEntity)
+                context.delete(productEntity)
+            }
+        }
+        
+        // 新增新的 products
+        for productModel in productsToAdd {
+            let productEntity = CDProductEntity(context: context)
+            productEntity.update(from: productModel, context: context)
+            productEntity.category = entity
+            entity.addToProducts(productEntity)
+        }
+        
+        // 更新現有的 products
+        for productModel in productsToUpdate {
+            if let productEntity = existingProducts.first(where: { $0.id == productModel.id }) {
+                productEntity.update(from: productModel, context: context)
+            }
+        }
+    }
 
-    // MARK: - Delete
-    func deleteSession(_ model: SessionModel) {
+    /// 刪除 Session（硬刪除，但保留 Transaction）
+    func deleteSession(_ sessionId: UUID) {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+        request.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
 
         do {
             if let entity = try context.fetch(request).first {
+                // Transaction 會自動保留，因為它們沒有級聯刪除
                 context.delete(entity)
                 saveContext()
-                fetchAllSessions()
+                fetchSessions()
             }
         } catch {
             print("Delete session failed:", error)
         }
     }
 
-    // MARK: - Save
+    // MARK: - Transaction Operations (僅允許新增)
+    
+    /// 新增交易記錄（永久保留）
+    func addTransaction(_ model: TransactionModel) {
+        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        sessionRequest.predicate = NSPredicate(format: "id == %@", model.sessionId as CVarArg)
+
+        do {
+            guard let sessionEntity = try context.fetch(sessionRequest).first else {
+                print("找不到對應 session，無法加入 transaction")
+                return
+            }
+
+            let entity = CDTransactionEntity(context: context)
+            entity.update(from: model, context: context)
+            sessionEntity.addToTransactions(entity)
+
+            saveContext()
+            fetchSessions() // 重新載入以更新交易記錄
+        } catch {
+            print("加入 transaction 失敗:", error)
+        }
+    }
+
+    /// 更新交易記錄（僅允許修改業務欄位）
+    func updateTransaction(_ model: TransactionModel) {
+        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+
+        do {
+            if let entity = try context.fetch(request).first {
+                entity.update(from: model, context: context)
+                saveContext()
+                fetchSessions()
+            }
+        } catch {
+            print("Update transaction failed:", error)
+        }
+    }
+
+    // MARK: - Helper Methods
+    
+    /// 檢查 Category 下是否有相關 Transaction
+    private func hasRelatedTransactionsForCategory(categoryId: UUID) -> Bool {
+        // 先找到該 Category 下的所有 Product
+        let productRequest: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        productRequest.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
+
+        do {
+            let products = try context.fetch(productRequest)
+            let productIds = products.map { $0.id }
+
+            if productIds.isEmpty {
+                return false // 沒有 Product，當然沒有 Transaction
+            }
+
+            // 檢查所有交易的 items 中是否包含這些 productIds
+            let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+            let transactions = try context.fetch(transactionRequest)
+            
+            for transaction in transactions {
+                if let itemsData = transaction.itemsData,
+                   let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
+                    if items.contains(where: { productIds.contains($0.productId) }) {
+                        return true
+                    }
+                }
+            }
+            
+            return false
+        } catch {
+            print("檢查 Transaction 失敗:", error)
+            return true // 發生錯誤時保守處理，假設有 Transaction
+        }
+    }
+    
+    /// 檢查 Product 是否有相關 Transaction
+    private func hasRelatedTransactionsForProduct(productId: UUID) -> Bool {
+        let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+
+        do {
+            let transactions = try context.fetch(transactionRequest)
+            
+            // 檢查所有交易的 items 中是否包含此 productId
+            for transaction in transactions {
+                if let itemsData = transaction.itemsData,
+                   let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
+                    if items.contains(where: { $0.productId == productId }) {
+                        return true
+                    }
+                }
+            }
+            return false
+        } catch {
+            print("檢查 Transaction 失敗:", error)
+            return true // 發生錯誤時保守處理，假設有 Transaction
+        }
+    }
+
+    // MARK: - Save Context
     private func saveContext() {
         do {
             try context.save()
-            print("Session saved to CoreData")
+            print("Session data saved to CoreData")
         } catch {
             print("Core Data save failed:", error)
             context.rollback()

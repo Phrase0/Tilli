@@ -14,7 +14,7 @@ struct CashPaymentView: View {
     
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
-    @EnvironmentObject var productDataManager: ProductDataManager
+    @EnvironmentObject var productRepository: ProductRepository
     
     @Binding var session: SessionModel
     
@@ -100,9 +100,8 @@ struct CashPaymentView: View {
                         //
                         if viewModel.isAmountValid {
                             let updatedSession = viewModel.performCheckout(
-                                transactionDataManager: transactionDataManager,
                                 sessionDataManager: sessionDataManager,
-                                productDataManager: productDataManager
+                                productRepository: productRepository
                             )
                             session = updatedSession  // 直接更新 Binding
                             onComplete(updatedSession)

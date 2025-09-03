@@ -34,7 +34,9 @@ class SessionDetailViewModel: ObservableObject {
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
-    private var productDataManager: ProductDataManager?
+    private var sessionDataManager: SessionDataManager?
+    private var productRepository: ProductRepository?
+    private var categoryRepository: CategoryRepository?
     
     // 計算屬性：啟用的產品
     var activeProducts: [ProductModel] {
@@ -53,9 +55,16 @@ class SessionDetailViewModel: ObservableObject {
     // MARK: - DataManager 管理
     
     /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager, productDataManager: ProductDataManager) {
+    func updateDataManagers(
+        transactionDataManager: TransactionDataManager,
+        sessionDataManager: SessionDataManager,
+        productRepository: ProductRepository,
+        categoryRepository: CategoryRepository
+    ) {
         self.transactionDataManager = transactionDataManager
-        self.productDataManager = productDataManager
+        self.sessionDataManager = sessionDataManager
+        self.productRepository = productRepository
+        self.categoryRepository = categoryRepository
     }
     
     // MARK: - Product Detail 相關方法
@@ -108,8 +117,8 @@ class SessionDetailViewModel: ObservableObject {
     }
     
     func loadProducts() {
-        guard let productManager = productDataManager else { return }
-        products = productManager.fetchProducts(forSessionId: session.id)
+        guard let productRepo = productRepository else { return }
+        products = productRepo.fetchProducts(forSessionId: session.id)
         categories = session.categories
         
         // 首次載入時展開所有分類
@@ -209,7 +218,7 @@ class SessionDetailViewModel: ObservableObject {
     func generateCSVContent() -> String {
         var csvContent = "交易編號,日期時間,支付方式,商品名稱,類別,單價,數量,折扣%,小計,總金額\n"
         
-        for transaction in transactions.sorted { $0.timestamp > $1.timestamp } {
+        for transaction in transactions.sorted(by: { $0.timestamp > $1.timestamp }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
             let dateTime = formatDateTime(transaction.timestamp)
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
@@ -331,29 +340,29 @@ class SessionDetailViewModel: ObservableObject {
     }
     
     func removeProduct(byId productId: UUID) {
-        guard let productManager = productDataManager else { return }
-        let allProducts = productManager.fetchProducts(forSessionId: session.id)
-        if let product = allProducts.first(where: { $0.id == productId }) {
-            productManager.deleteProduct(product)
+        guard let productRepo = productRepository else { return }
+        let result = productRepo.deleteProduct(productId)
+        
+        switch result {
+        case .deleted(let message):
+            print(message)
+        case .disabledInstead(let message):
+            alertMessage = message
+            showAlert = true
+        case .failed(let message):
+            alertMessage = message
+            showAlert = true
         }
     }
     
     func disableProduct(byId productId: UUID) {
-        guard let productManager = productDataManager else { return }
-        let allProducts = productManager.fetchProducts(forSessionId: session.id)
-        if var product = allProducts.first(where: { $0.id == productId }) {
-            product.isDisabled = true
-            productManager.updateProduct(product)
-        }
+        guard let productRepo = productRepository else { return }
+        productRepo.disableProduct(productId)
     }
     
     func restoreProduct(byId productId: UUID) {
-        guard let productManager = productDataManager else { return }
-        let allProducts = productManager.fetchProducts(forSessionId: session.id)
-        if var product = allProducts.first(where: { $0.id == productId }) {
-            product.isDisabled = false
-            productManager.updateProduct(product)
-        }
+        guard let productRepo = productRepository else { return }
+        productRepo.enableProduct(productId)
     }
     
     // MARK: - Alert 處理邏輯

@@ -25,7 +25,7 @@ class AddSessionViewModel: ObservableObject {
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
-    private var productDataManager: ProductDataManager?
+    private var productRepository: ProductRepository?
     
     var sortedCategories: [CategoryModel] {
         categories.sorted(by: { $0.createdAt < $1.createdAt })
@@ -47,9 +47,9 @@ class AddSessionViewModel: ObservableObject {
     }
     
     /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager, productDataManager: ProductDataManager) {
+    func updateDataManagers(transactionDataManager: TransactionDataManager, productRepository: ProductRepository) {
         self.transactionDataManager = transactionDataManager
-        self.productDataManager = productDataManager
+        self.productRepository = productRepository
     }
 
     func updateCategoryName(id: UUID, newName: String) {
@@ -133,10 +133,10 @@ class AddSessionViewModel: ObservableObject {
     /// 檢查類別是否有產品（從最新數據源）
     func hasProducts(for categoryId: UUID) -> Bool {
         guard let sessionId = editingSession?.id,
-              let productManager = productDataManager else {
+              let productRepo = productRepository else {
             return false
         }
-        let products = productManager.fetchProducts(forSessionId: sessionId)
+        let products = productRepo.fetchProducts(forSessionId: sessionId)
         return products.contains { $0.categoryId == categoryId }
     }
 
