@@ -57,14 +57,6 @@ class SessionDetailViewModel: ObservableObject {
         }
     }
     
-    // 計算屬性：因為 Category 停用而隱藏的產品
-    var categoryDisabledProducts: [ProductModel] {
-        products.filter { product in
-            let isCategoryDisabled = categories.first(where: { $0.id == product.categoryId })?.isDisabled == true
-            return !product.isDisabled && isCategoryDisabled // Product 本身未停用，但 Category 停用了
-        }
-    }
-    
     var sessionTotalAmount: Double {
         session.transactions.reduce(0) { $0 + $1.totalAmount }
     }

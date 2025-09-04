@@ -54,5 +54,11 @@ class SessionViewModel: ObservableObject {
     func refresh(using sessionDataManager: SessionDataManager) {
         sessions = sessionDataManager.sessions
     }
+    
+    func duplicateSession(_ originalSession: SessionModel, newTitle: String, using sessionDataManager: SessionDataManager) -> SessionModel? {
+        let duplicatedSession = sessionDataManager.duplicateSession(originalSessionId: originalSession.id, newTitle: newTitle)
+        sessions = sessionDataManager.sessions
+        return duplicatedSession
+    }
 }
 

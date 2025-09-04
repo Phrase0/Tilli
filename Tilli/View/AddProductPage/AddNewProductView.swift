@@ -154,6 +154,11 @@ struct AddNewProductView: View {
             .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {
                 Button("OK", role: .cancel) { }
             }
+            .alert("產品名稱重複", isPresented: $viewModel.showDuplicateNameAlert) {
+                Button("確定", role: .cancel) { }
+            } message: {
+                Text(viewModel.duplicateNameMessage)
+            }
             .onChange(of: viewModel.selectedItem) {
                 viewModel.handleImageSelection()
             }
