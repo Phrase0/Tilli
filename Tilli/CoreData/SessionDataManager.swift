@@ -268,6 +268,66 @@ class SessionDataManager: ObservableObject {
             print("Update transaction failed:", error)
         }
     }
+    
+    /// 複製場次（包含所有類別和產品，但不包含交易記錄）
+    func duplicateSession(originalSessionId: UUID, newTitle: String) -> SessionModel? {
+        let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", originalSessionId as CVarArg)
+        request.relationshipKeyPathsForPrefetching = ["categories", "categories.products"]
+        
+        do {
+            guard let originalEntity = try context.fetch(request).first else {
+                print("找不到要複製的場次")
+                return nil
+            }
+            
+            // 創建新的 Session 實體
+            let newSessionEntity = CDSessionEntity(context: context)
+            newSessionEntity.id = UUID()
+            newSessionEntity.title = newTitle
+            newSessionEntity.date = originalEntity.date
+            newSessionEntity.createdAt = Date()
+            
+            // 複製所有 Categories 和 Products
+            if let originalCategories = originalEntity.categories as? Set<CDCategoryEntity> {
+                for originalCategory in originalCategories {
+                    let newCategoryEntity = CDCategoryEntity(context: context)
+                    newCategoryEntity.id = UUID()
+                    newCategoryEntity.name = originalCategory.name
+                    newCategoryEntity.createdAt = Date()
+                    newCategoryEntity.isDisabled = originalCategory.isDisabled
+                    newCategoryEntity.session = newSessionEntity
+                    
+                    // 複製該 Category 下的所有 Products
+                    if let originalProducts = originalCategory.products as? Set<CDProductEntity> {
+                        for originalProduct in originalProducts {
+                            let newProductEntity = CDProductEntity(context: context)
+                            newProductEntity.id = UUID()
+                            newProductEntity.sessionId = newSessionEntity.id
+                            newProductEntity.name = originalProduct.name
+                            newProductEntity.price = originalProduct.price
+                            newProductEntity.stock = originalProduct.stock
+                            newProductEntity.categoryId = newCategoryEntity.id
+                            newProductEntity.categoryName = newCategoryEntity.name
+                            newProductEntity.note = originalProduct.note
+                            newProductEntity.imageData = originalProduct.imageData
+                            newProductEntity.isDisabled = originalProduct.isDisabled
+                            newProductEntity.category = newCategoryEntity
+                        }
+                    }
+                }
+            }
+            
+            saveContext()
+            fetchSessions()
+            
+            // 返回新建立的 SessionModel
+            return newSessionEntity.toModel()
+        } catch {
+            print("複製場次失敗:", error)
+            return nil
+        }
+    }
 
     // MARK: - Helper Methods
     

@@ -28,6 +28,8 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - UI 驗證狀態
     @Published var showValidationError = false
+    @Published var showDuplicateNameAlert = false
+    @Published var duplicateNameMessage = ""
 
     var editingProduct: ProductModel?
     
@@ -188,8 +190,41 @@ class AddNewProductViewModel: ObservableObject {
         }
     }
     
+    // MARK: - 檢查產品名稱重複
+    func checkDuplicateName(using productRepository: ProductRepository) -> Bool {
+        guard let selectedCategory = selectedCategory,
+              !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let excludingId = editingProduct?.id // 編輯模式時排除自己
+        
+        // 取得該 Session 下所有產品
+        let allProducts = productRepository.fetchProducts(forSessionId: session.id)
+        
+        // 檢查同一個 Category 內是否有同名產品
+        let isDuplicate = allProducts.contains { product in
+            product.categoryId == selectedCategory.id &&
+            product.name == trimmedName &&
+            product.id != excludingId
+        }
+        
+        if isDuplicate {
+            duplicateNameMessage = "「\(selectedCategory.name)」分類已有相同名稱的商品「\(trimmedName)」，請更換名稱"
+            showDuplicateNameAlert = true
+        }
+        
+        return isDuplicate
+    }
+    
     // MARK: - 儲存動作
     func save(using productRepository: ProductRepository) -> Bool {
+        // 先檢查名稱重複
+        if checkDuplicateName(using: productRepository) {
+            return false
+        }
+        
         guard let product = createProductIfValid() else {
             showValidationError = true
             return false

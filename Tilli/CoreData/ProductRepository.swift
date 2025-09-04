@@ -184,6 +184,7 @@ class ProductRepository: ObservableObject {
             return []
         }
     }
+    
 
     /// 取得指定 Session 下的所有 Product
     func fetchProducts(forSessionId sessionId: UUID) -> [ProductModel] {
