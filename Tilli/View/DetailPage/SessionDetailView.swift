@@ -41,7 +41,7 @@ struct SessionDetailView: View {
                         // 編輯完成
                         showEditProduct = false
                         editingProduct = nil
-                        viewModel.loadProducts()
+                        viewModel.productViewModel.loadProducts()
                     },
                     onCancel: {
                         // 取消編輯
@@ -82,7 +82,7 @@ struct SessionDetailView: View {
             TabView(selection: $selectedTab) {
                 // 商品頁 - 使用 ProductDetailView
                 ProductDetailView(
-                    viewModel: viewModel,
+                    productViewModel: viewModel.productViewModel,
                     session: $session,
                     editingProduct: $editingProduct,
                     showEditProduct: $showEditProduct,
@@ -93,7 +93,7 @@ struct SessionDetailView: View {
                 
                 // 記錄頁 - 使用 TransactionHistoryView
                 TransactionHistoryView(
-                    viewModel: viewModel,
+                    transactionViewModel: viewModel.transactionViewModel,
                     session: $session
                 )
                 .tag(1)
@@ -101,12 +101,9 @@ struct SessionDetailView: View {
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
         .background(Color(.systemGroupedBackground))
-        .alert(isPresented: $viewModel.showAlert) {
-            viewModel.createAlert()
-        }
         .onChange(of: checkoutCompleted) {
-            viewModel.loadProducts()
-            viewModel.clearAllQuantities()
+            viewModel.productViewModel.loadProducts()
+            viewModel.productViewModel.clearAllQuantities()
             checkoutCompleted = false
         }
         .onAppear {
@@ -118,7 +115,7 @@ struct SessionDetailView: View {
                 productRepository: productRepository,
                 categoryRepository: categoryRepository
             )
-            viewModel.loadProducts()
+            viewModel.productViewModel.loadProducts()
         }
     }
 }

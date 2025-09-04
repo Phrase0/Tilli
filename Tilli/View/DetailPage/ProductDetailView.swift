@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ProductDetailView: View {
-    @ObservedObject var viewModel: SessionDetailViewModel
+    @ObservedObject var productViewModel: ProductViewModel
     @Binding var session: SessionModel
     @Binding var editingProduct: ProductModel?
     @Binding var showEditProduct: Bool
@@ -22,13 +22,13 @@ struct ProductDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     // 啟用的產品列表
-                    ForEach(viewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
-                        let items = viewModel.getSortedProductsForCategory(category.id)
+                    ForEach(productViewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
+                        let items = productViewModel.getSortedProductsForCategory(category.id)
                         if !items.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 // 可點擊的分類標題
                                 Button(action: {
-                                    viewModel.toggleCategoryExpansion(category.id)
+                                    productViewModel.toggleCategoryExpansion(category.id)
                                 }) {
                                     HStack {
                                         Text(category.name)
@@ -38,7 +38,7 @@ struct ProductDetailView: View {
                                         
                                         Spacer()
                                         
-                                        Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                                        Image(systemName: productViewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
                                             .foregroundColor(.gray)
                                             .font(.caption)
                                             .padding(.horizontal)
@@ -47,7 +47,7 @@ struct ProductDetailView: View {
                                 .buttonStyle(PlainButtonStyle())
                                 
                                 // 商品列表（可展開/收起）
-                                if viewModel.isCategoryExpanded(category.id) {
+                                if productViewModel.isCategoryExpanded(category.id) {
                                     ForEach(items) { product in
                                         productCard(product)
                                     }
@@ -57,11 +57,11 @@ struct ProductDetailView: View {
                     }
                     
                     // 下架商品區
-                    if !viewModel.disabledProducts.isEmpty {
+                    if !productViewModel.disabledProducts.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.3)) {
-                                    viewModel.showDisabledProducts.toggle()
+                                    productViewModel.showDisabledProducts.toggle()
                                 }
                             }) {
                                 HStack {
@@ -72,7 +72,7 @@ struct ProductDetailView: View {
                                     
                                     Spacer()
                                     
-                                    Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                                    Image(systemName: productViewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
                                         .foregroundColor(.gray)
                                         .font(.caption)
                                         .padding(.horizontal)
@@ -80,8 +80,8 @@ struct ProductDetailView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             
-                            if viewModel.showDisabledProducts {
-                                ForEach(viewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
+                            if productViewModel.showDisabledProducts {
+                                ForEach(productViewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
                                     disabledProductCard(product)
                                 }
                             }
@@ -97,7 +97,7 @@ struct ProductDetailView: View {
                     Text("總計")
                         .font(.headline)
                     Spacer()
-                    Text("NT$\(viewModel.totalAmount())")
+                    Text("NT$\(productViewModel.totalAmount())")
                         .font(.headline)
                         .bold()
                 }
@@ -110,10 +110,10 @@ struct ProductDetailView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(viewModel.totalAmount() > 0 ? Color.blue : Color.gray)
+                        .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
                         .cornerRadius(30)
                 }
-                .disabled(viewModel.totalAmount() == 0)
+                .disabled(productViewModel.totalAmount() == 0)
             }
             .padding()
         }
@@ -121,13 +121,16 @@ struct ProductDetailView: View {
         .alert("確定要清除所有已選數量嗎？", isPresented: $showClearAlert) {
             Button("取消", role: .cancel) { }
             Button("清除", role: .destructive) {
-                viewModel.clearAllQuantities()
+                productViewModel.clearAllQuantities()
             }
+        }
+        .alert(isPresented: $productViewModel.showAlert) {
+            productViewModel.createAlert()
         }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
-                selectedItems: viewModel.selectedProductsWithQuantityAndDiscount(),
-                totalAmount: viewModel.totalAmount(),
+                selectedItems: productViewModel.selectedProductsWithQuantityAndDiscount(),
+                totalAmount: productViewModel.totalAmount(),
                 session: $session,
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted
@@ -149,7 +152,7 @@ struct ProductDetailView: View {
     
     // 啟用產品卡片
     private func productCard(_ product: ProductModel) -> some View {
-        let isOutOfStock = viewModel.isOutOfStock(product)
+        let isOutOfStock = productViewModel.isOutOfStock(product)
         
         return HStack(alignment: .top, spacing: 12) {
             if let image = product.image {
@@ -218,7 +221,7 @@ struct ProductDetailView: View {
                 HStack {
                     HStack(spacing: 8) {
                         ForEach([5, 10, 20], id: \.self) { percent in
-                            let isSelected = viewModel.isDiscountSelected(for: product, percent: percent)
+                            let isSelected = productViewModel.isDiscountSelected(for: product, percent: percent)
                             Text("\(percent)%")
                                 .font(.caption)
                                 .padding(.vertical, 4)
@@ -229,7 +232,7 @@ struct ProductDetailView: View {
                                 .opacity(isOutOfStock ? 0.6 : 1.0)
                                 .onTapGesture {
                                     if !isOutOfStock {
-                                        viewModel.toggleDiscount(for: product, percent: percent)
+                                        productViewModel.toggleDiscount(for: product, percent: percent)
                                     }
                                 }
                         }
@@ -238,7 +241,7 @@ struct ProductDetailView: View {
                     HStack(spacing: 16) {
                         Button {
                             if !isOutOfStock {
-                                viewModel.decreaseQuantity(for: product)
+                                productViewModel.decreaseQuantity(for: product)
                             }
                         } label: {
                             Image(systemName: "minus.circle")
@@ -246,13 +249,13 @@ struct ProductDetailView: View {
                         }
                         .disabled(isOutOfStock)
                         
-                        Text("\(viewModel.quantity(for: product))")
+                        Text("\(productViewModel.quantity(for: product))")
                             .frame(width: 24)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
                         
                         Button {
                             if !isOutOfStock {
-                                viewModel.increaseQuantity(for: product)
+                                productViewModel.increaseQuantity(for: product)
                             }
                         } label: {
                             Image(systemName: "plus.circle")
@@ -274,7 +277,7 @@ struct ProductDetailView: View {
         .onTapGesture {
             if isOutOfStock {
                 // 點擊無庫存商品時給予提示
-                viewModel.showOutOfStockAlert(for: product.name)
+                productViewModel.showOutOfStockAlert(for: product.name)
             }
         }
     }
@@ -315,7 +318,7 @@ struct ProductDetailView: View {
                     Spacer()
                     Menu {
                         Button("復原") {
-                            viewModel.handleRestoreAction(for: product.id)
+                            productViewModel.handleRestoreAction(for: product.id)
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -335,16 +338,16 @@ struct ProductDetailView: View {
     
     @ViewBuilder
     private func productActionContent(for product: ProductModel) -> some View {
-        switch viewModel.getActionType(for: product.id) {
+        switch productViewModel.getActionType(for: product.id) {
         case .disable:
             Button {
-                viewModel.handleDisableAction(for: product.id)
+                productViewModel.handleDisableAction(for: product.id)
             } label: {
                 Label("下架", systemImage: "minus.circle")
             }
         case .delete:
             Button(role: .destructive) {
-                viewModel.handleDeleteAction(for: product.id)
+                productViewModel.handleDeleteAction(for: product.id)
             } label: {
                 Label("刪除", systemImage: "trash")
             }

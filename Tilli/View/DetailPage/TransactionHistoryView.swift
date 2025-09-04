@@ -9,14 +9,14 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct TransactionHistoryView: View {
-    @ObservedObject var viewModel: SessionDetailViewModel
+    @ObservedObject var transactionViewModel: TransactionViewModel
     @Binding var session: SessionModel
     @State private var showingShareSheet = false
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                if viewModel.transactions.isEmpty {
+                if transactionViewModel.transactions.isEmpty {
                     // 空狀態
                     VStack(spacing: 16) {
                         Image(systemName: "list.clipboard")
@@ -34,7 +34,7 @@ struct TransactionHistoryView: View {
                     }
                     .padding(.top, 100)
                 } else {
-                    ForEach(viewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
+                    ForEach(transactionViewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
                         transactionCard(transaction)
                     }
                 }
@@ -42,23 +42,23 @@ struct TransactionHistoryView: View {
             .padding()
         }
         .onAppear {
-            viewModel.loadTransactions()
+            transactionViewModel.loadTransactions()
         }
         .refreshable {
-            viewModel.loadTransactions()
+            transactionViewModel.loadTransactions()
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    viewModel.exportCSV()
+                    transactionViewModel.exportCSV()
                     showingShareSheet = true
                 }) {
                     Image(systemName: "square.and.arrow.up")
                 }
-                .disabled(viewModel.transactions.isEmpty)
+                .disabled(transactionViewModel.transactions.isEmpty)
             }
         }
-        .alert("CSV 導出成功", isPresented: $viewModel.showingExportAlert) {
+        .alert("CSV 導出成功", isPresented: $transactionViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {
             Text("交易明細已成功導出為 CSV 檔案")
@@ -67,41 +67,41 @@ struct TransactionHistoryView: View {
             isPresented: $showingShareSheet,
             activityItems: [
                 CustomActivityItemSource(
-                    csvContent: viewModel.csvContent,
-                    csvFileURL: viewModel.createTempCSVFileURL()
+                    csvContent: transactionViewModel.csvContent,
+                    csvFileURL: transactionViewModel.createTempCSVFileURL()
                 )
             ],
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {
-                    viewModel.showExportSuccessAlert()
+                    transactionViewModel.showExportSuccessAlert()
                 }
             }
         )
     }
     
     private func transactionCard(_ transaction: TransactionModel) -> some View {
-        let isExpanded = viewModel.isTransactionExpanded(transaction.id)
+        let isExpanded = transactionViewModel.isTransactionExpanded(transaction.id)
         
         return VStack(spacing: 0) {
             // 交易總覽卡片
             Button(action: {
-                viewModel.toggleTransactionExpansion(transaction.id)
+                transactionViewModel.toggleTransactionExpansion(transaction.id)
             }) {
                 VStack(alignment: .leading, spacing: 8) {
                     // 第一行：交易編號和支付方式
                     HStack {
-                        Text(viewModel.formatTransactionId(transaction.id.uuidString))
+                        Text(transactionViewModel.formatTransactionId(transaction.id.uuidString))
                             .font(.subheadline)
                             .foregroundColor(.blue)
                         
                         Spacer()
                         
-                        Text(viewModel.paymentMethodText(transaction.paymentMethod))
+                        Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(viewModel.paymentMethodColor(transaction.paymentMethod))
+                            .background(transactionViewModel.paymentMethodColor(transaction.paymentMethod))
                             .foregroundColor(.white)
                             .cornerRadius(4)
                     }
@@ -109,7 +109,7 @@ struct TransactionHistoryView: View {
                     // 第二行：日期時間
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2)  {
-                            Text(viewModel.formatDateTime(transaction.timestamp))
+                            Text(transactionViewModel.formatDateTime(transaction.timestamp))
                                 .font(.caption)
                                 .foregroundColor(.gray)
                             
@@ -122,7 +122,7 @@ struct TransactionHistoryView: View {
                         Spacer()
                         
                         HStack(alignment: .center)  {
-                            Text("NT$\(viewModel.formatAmount(transaction.totalAmount))")
+                            Text("NT$\(transactionViewModel.formatAmount(transaction.totalAmount))")
                                 .font(.headline)
                                 .bold()
                                 .foregroundColor(.primary)
@@ -206,7 +206,7 @@ struct TransactionHistoryView: View {
                 .lineLimit(1)
             
             
-            Text("\(viewModel.formatAmount(item.price))")
+            Text("\(transactionViewModel.formatAmount(item.price))")
                 .font(.subheadline)
                 .foregroundColor(.blue)
                 .frame(width: 50, alignment: .center)
@@ -225,7 +225,7 @@ struct TransactionHistoryView: View {
                 .frame(width: 50, alignment: .center)
             
             // 小計
-            Text("\(viewModel.formatAmount(item.total))")
+            Text("\(transactionViewModel.formatAmount(item.total))")
                 .font(.subheadline)
                 .bold()
                 .foregroundColor(.primary)
@@ -240,10 +240,10 @@ struct TransactionHistoryView: View {
 // MARK: - Document Picker for CSV Export
 
 struct DocumentPicker: UIViewControllerRepresentable {
-    let viewModel: SessionDetailViewModel
+    let transactionViewModel: TransactionViewModel
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let tempURL = viewModel.createTempCSVFileURL()
+        let tempURL = transactionViewModel.createTempCSVFileURL()
         let picker = UIDocumentPickerViewController(forExporting: [tempURL])
         picker.delegate = context.coordinator
         return picker
@@ -252,19 +252,18 @@ struct DocumentPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(viewModel)
+        Coordinator(transactionViewModel)
     }
     
     class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let viewModel: SessionDetailViewModel
+        let transactionViewModel: TransactionViewModel
         
-        init(_ viewModel: SessionDetailViewModel) {
-            self.viewModel = viewModel
+        init(_ transactionViewModel: TransactionViewModel) {
+            self.transactionViewModel = transactionViewModel
         }
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            viewModel.showExportSuccessAlert()
+            transactionViewModel.showExportSuccessAlert()
         }
     }
 }
-
