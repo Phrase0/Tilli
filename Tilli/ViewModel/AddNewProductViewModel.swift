@@ -55,7 +55,7 @@ class AddNewProductViewModel: ObservableObject {
         selectedCategory != nil // 直接使用 selectedCategory 而不是 selectedCategoryID
     }
     
-    /// 檢查編輯中的產品是否有交易紀錄（限制編輯）
+    /// 檢查編輯中的產品是否有交易記錄（限制編輯）
     var isEditingWithTransaction: Bool {
         guard let product = editingProduct else { return false }
         return hasTransaction(for: product.id)
@@ -94,7 +94,7 @@ class AddNewProductViewModel: ObservableObject {
      }
     
     // MARK: - 交易檢查邏輯
-    /// 檢查產品是否有交易紀錄
+    /// 檢查產品是否有交易記錄
     func hasTransaction(for productId: UUID) -> Bool {
         guard let sessionId = session.id as UUID? else { 
             return false 
@@ -143,9 +143,9 @@ class AddNewProductViewModel: ObservableObject {
         }
         
         if let editing = editingProduct {
-            // 編輯模式：檢查是否有交易紀錄
+            // 編輯模式：檢查是否有交易記錄
             if hasTransaction(for: editing.id) {
-                // 有交易紀錄時，保持原有的名稱、價格和類別不變
+                // 有交易記錄時，保持原有的名稱、價格和類別不變
                 return ProductModel(
                     id: editing.id,                    // 保留原 ID
                     sessionId: editing.sessionId,      // 保留原 sessionId
@@ -160,7 +160,7 @@ class AddNewProductViewModel: ObservableObject {
 
                 )
             } else {
-                // 無交易紀錄時，允許更新所有欄位
+                // 無交易記錄時，允許更新所有欄位
                 return ProductModel(
                     id: editing.id,                    // 保留原 ID
                     sessionId: editing.sessionId,      // 保留原 sessionId
