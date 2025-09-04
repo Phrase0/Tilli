@@ -235,8 +235,6 @@ struct TransactionHistoryView: View {
         .padding(.vertical, 12)
         .background(Color.white)
     }
-    
-    // MARK: - 移除 CSV Export Methods（已移到 ViewModel）
 }
 
 // MARK: - Document Picker for CSV Export

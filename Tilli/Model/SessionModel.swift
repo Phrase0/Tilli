@@ -13,7 +13,7 @@ struct SessionModel: Identifiable, Codable, Hashable {
     var date: Date                    // 場次日期，主要報表依據
     var categories: [CategoryModel]         // 類別選單，用於過濾商品或報表
     var createdAt: Date              // 場次建立時間
-    var transactions: [TransactionModel] = []  // 場次中發生的交易紀錄（新增）
+    var transactions: [TransactionModel] = []  // 場次中發生的交易記錄（新增）
     
     var status: SessionStatus {  // 進行中 / 已結束
         let today = Calendar.current.startOfDay(for: Date())

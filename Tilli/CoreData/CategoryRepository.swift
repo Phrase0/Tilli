@@ -101,7 +101,7 @@ class CategoryRepository: ObservableObject {
                 // 有 Transaction，只能停用
                 categoryEntity.isDisabled = true
                 saveContext()
-                return .disabledInstead("此分類已有交易紀錄，已改為停用狀態")
+                return .disabledInstead("此分類已有交易記錄，已改為停用狀態")
             } else {
                 // 沒有 Transaction，可以硬刪除
                 context.delete(categoryEntity) // 這會連帶刪除 Products

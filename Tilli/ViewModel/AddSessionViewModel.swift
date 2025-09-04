@@ -149,7 +149,7 @@ class AddSessionViewModel: ObservableObject {
     
     /// 處理停用操作
     func handleDisableAction(for categoryId: UUID) {
-        alertMessage = "已有交易紀錄不可刪除，只能停用"
+        alertMessage = "已有交易記錄不可刪除，只能停用"
         categoryPendingDeletion = categoryId
         isDisableAction = true
         showAlert = true

@@ -74,7 +74,7 @@ struct SessionDetailView: View {
             // Tab Toggle
             Picker("", selection: $selectedTab) {
                 Text("商品").tag(0)
-                Text("記錄").tag(1)
+                Text("交易明細").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(8)

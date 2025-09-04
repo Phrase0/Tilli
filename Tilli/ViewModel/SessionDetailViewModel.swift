@@ -382,7 +382,7 @@ class SessionDetailViewModel: ObservableObject {
     
     /// 處理下架操作
     func handleDisableAction(for productId: UUID) {
-        alertMessage = "已有交易紀錄不可刪除，只能下架"
+        alertMessage = "已有交易記錄不可刪除，只能下架"
         productPendingDeletion = productId
         isDisableAction = true
         showAlert = true

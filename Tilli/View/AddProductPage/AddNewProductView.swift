@@ -118,7 +118,7 @@ struct AddNewProductView: View {
                         HStack {
                             Image(systemName: "info.circle")
                                 .foregroundColor(.orange)
-                            Text("此產品已有交易紀錄，無法更改名稱、價格和類別")
+                            Text("此產品已有交易記錄，無法更改名稱、價格和類別")
                                 .font(.caption)
                                 .foregroundColor(.orange)
                         }

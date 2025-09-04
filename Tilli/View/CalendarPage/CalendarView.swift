@@ -110,7 +110,7 @@ struct CalendarView: View {
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    hasTransactions: hasTransactions(on: date),
+                    hasSessions: hasSessions(on: date),
                     onTap: { selectedDate = date }
                 )
             }
@@ -185,9 +185,9 @@ struct CalendarView: View {
         }
     }
     
-    private func hasTransactions(on date: Date) -> Bool {
+    private func hasSessions(on date: Date) -> Bool {
         viewModel.sessions.contains { session in
-            calendar.isDate(session.date, inSameDayAs: date) && !session.transactions.isEmpty
+            calendar.isDate(session.date, inSameDayAs: date)
         }
     }
     
@@ -203,7 +203,7 @@ struct DayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-    let hasTransactions: Bool
+    let hasSessions: Bool
     let onTap: () -> Void
     
     private let calendar = Calendar.current
@@ -223,7 +223,7 @@ struct DayCell: View {
                         .foregroundColor(textColor)
                 }
                 
-                if hasTransactions {
+                if hasSessions {
                     Circle()
                         .fill(Color.blue)
                         .frame(width: 5, height: 5)
