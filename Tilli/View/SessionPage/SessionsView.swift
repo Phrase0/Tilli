@@ -19,14 +19,12 @@ struct SessionsView: View {
     @State private var showDeleteConfirmation = false
 
     @State private var selectedSession: SessionModel? = nil
-    @State private var showDuplicateSessionDialog = false
-    @State private var sessionToDuplicate: SessionModel? = nil
-    @State private var duplicateSessionName = ""
 
     @StateObject private var viewModel: SessionViewModel
     init() {
         _viewModel = StateObject(wrappedValue: SessionViewModel())
     }
+    
 
     var body: some View {
         NavigationStack {
@@ -90,28 +88,43 @@ struct SessionsView: View {
         } message: { session in
             Text("刪除後將同時移除底下的所有類別、商品與交易紀錄，且無法復原，是否確定？")
         }
-        .alert("複製場次", isPresented: $showDuplicateSessionDialog, presenting: sessionToDuplicate) { session in
-            TextField("場次名稱", text: $duplicateSessionName)
-            Button("取消", role: .cancel) {
-                sessionToDuplicate = nil
-                duplicateSessionName = ""
-            }
-            Button("確定") {
-                if let sessionToDuplicate = sessionToDuplicate,
-                   !duplicateSessionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    let _ = viewModel.duplicateSession(sessionToDuplicate, 
-                                                    newTitle: duplicateSessionName.trimmingCharacters(in: .whitespacesAndNewlines), 
-                                                    using: sessionDataManager)
-                }
-                sessionToDuplicate = nil
-                duplicateSessionName = ""
-            }
-            .disabled(duplicateSessionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } message: { session in
-            Text("複製場次")
+        .sheet(isPresented: $viewModel.showDuplicateSessionDialog) {
+            duplicateSessionView
         }
     }
 
+    // MARK: - 複製場次 View
+    @ViewBuilder
+    private var duplicateSessionView: some View {
+        NavigationView {
+            Form {
+                TextField("Session Name", text: $viewModel.duplicateSessionName)
+                    .onChange(of: viewModel.duplicateSessionName) {
+                        viewModel.onSessionNameChanged()
+                    }
+                
+                DatePicker("Date", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+            }
+            .navigationTitle("複製場次")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        viewModel.cancelDuplicateSession()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("確定") {
+                        viewModel.confirmDuplicateSession(using: sessionDataManager)
+                    }
+                    .disabled(viewModel.isDuplicateButtonDisabled)
+                }
+            }
+        }
+        .presentationDetents([.fraction(0.35)])
+    }
+    
     // MARK: - 卡片 View
     @ViewBuilder
     private func sessionCard(_ session: SessionModel) -> some View {
@@ -131,9 +144,7 @@ struct SessionsView: View {
                 VStack(alignment: .trailing, spacing: 12) {
                     Menu {
                         Button {
-                            sessionToDuplicate = session
-                            duplicateSessionName = session.title
-                            showDuplicateSessionDialog = true
+                            viewModel.startDuplicateSession(session)
                         } label: {
                             Label("複製場次", systemImage: "doc.on.doc")
                         }
