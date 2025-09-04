@@ -270,7 +270,7 @@ class SessionDataManager: ObservableObject {
     }
     
     /// 複製場次（包含所有類別和產品，但不包含交易記錄）
-    func duplicateSession(originalSessionId: UUID, newTitle: String) -> SessionModel? {
+    func duplicateSession(originalSessionId: UUID, newTitle: String, newDate: Date) -> SessionModel? {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", originalSessionId as CVarArg)
         request.relationshipKeyPathsForPrefetching = ["categories", "categories.products"]
@@ -285,7 +285,7 @@ class SessionDataManager: ObservableObject {
             let newSessionEntity = CDSessionEntity(context: context)
             newSessionEntity.id = UUID()
             newSessionEntity.title = newTitle
-            newSessionEntity.date = originalEntity.date
+            newSessionEntity.date = newDate
             newSessionEntity.createdAt = Date()
             
             // 複製所有 Categories 和 Products
