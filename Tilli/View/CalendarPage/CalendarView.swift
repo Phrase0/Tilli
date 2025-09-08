@@ -9,13 +9,17 @@ import SwiftUI
 
 struct CalendarView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
-    @StateObject private var viewModel: SessionViewModel
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @StateObject private var viewModel: CalendarViewModel
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @State private var showingMonthYearPicker = false
+    @State private var selectedSession: SessionModel = SessionModel(id: UUID(), title: "", date: Date(), categories: [], createdAt: Date(), transactions: [])
     
     init() {
-        _viewModel = StateObject(wrappedValue: SessionViewModel())
+        let defaultSession = SessionModel(id: UUID(), title: "", date: Date(), categories: [], createdAt: Date(), transactions: [])
+        _selectedSession = State(initialValue: defaultSession)
+        _viewModel = StateObject(wrappedValue: CalendarViewModel(session: .constant(defaultSession)))
     }
     
     private let calendar = Calendar.current
@@ -43,6 +47,10 @@ struct CalendarView: View {
                 Spacer()
             }
             .onAppear {
+                viewModel.updateDataManagers(
+                    transactionDataManager: transactionDataManager,
+                    sessionDataManager: sessionDataManager
+                )
                 viewModel.refresh(using: sessionDataManager)
             }
             .navigationTitle("我的行事曆")
@@ -63,7 +71,7 @@ struct CalendarView: View {
             Spacer()
             
             Button(action: { showingMonthYearPicker = true }) {
-                Text(monthYearString)
+                Text(viewModel.monthYearString(for: currentDate))
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(.black)
@@ -91,7 +99,7 @@ struct CalendarView: View {
     // 星期標頭
     private var weekHeader: some View {
         HStack {
-            ForEach(weekdays, id: \.self) { day in
+            ForEach(viewModel.weekdays, id: \.self) { day in
                 Text(day)
                     .font(.subheadline)
                     .foregroundColor(.gray)
@@ -105,12 +113,12 @@ struct CalendarView: View {
     // 日曆格子
     private var calendarGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
-            ForEach(daysInMonth, id: \.self) { date in
+            ForEach(viewModel.daysInMonth(for: currentDate), id: \.self) { date in
                 DayCell(
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    hasSessions: hasSessions(on: date),
+                    hasSessions: viewModel.hasSessions(on: date),
                     onTap: { selectedDate = date }
                 )
             }
@@ -131,11 +139,15 @@ struct CalendarView: View {
     // Session 列表
     private var sessionList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !sessionsForSelectedDate.isEmpty {
+            if !viewModel.sessionsForDate(selectedDate).isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(sessionsForSelectedDate) { session in
-                            SessionRowView(session: session)
+                        ForEach(viewModel.sessionsForDate(selectedDate)) { session in
+                            NavigationLink(destination: SessionDetailFromCalendarView(
+                                session: .constant(session)
+                            )) {
+                                SessionRowView(session: session)
+                            }
                         }
                     }
                     .padding(.horizontal, 30)
@@ -145,54 +157,9 @@ struct CalendarView: View {
         }
     }
     
-    // 輔助計算屬性
-    private var monthYearString: String {
-        dateFormatter.dateFormat = "yyyy年 M月"
-        return dateFormatter.string(from: currentDate)
-    }
-    
-    private var weekdays: [String] {
-        ["一", "二", "三", "四", "五", "六", "日"]
-    }
-    
-    private var daysInMonth: [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: currentDate) else {
-            return []
-        }
-        
-        let firstOfMonth = monthInterval.start
-        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
-        
-        // 調整為星期一開始 (weekday: 1=Sunday, 2=Monday, ...)
-        let adjustedFirstWeekday = firstWeekday == 1 ? 6 : firstWeekday - 2
-        let startDate = calendar.date(byAdding: .day, value: -(adjustedFirstWeekday), to: firstOfMonth)!
-        
-        var dates: [Date] = []
-        var date = startDate
-        
-        // 生成6週的日期
-        for _ in 0..<42 {
-            dates.append(date)
-            date = calendar.date(byAdding: .day, value: 1, to: date)!
-        }
-        
-        return dates
-    }
-    
-    private var sessionsForSelectedDate: [SessionModel] {
-        viewModel.sessions.filter { session in
-            calendar.isDate(session.date, inSameDayAs: selectedDate)
-        }
-    }
-    
-    private func hasSessions(on date: Date) -> Bool {
-        viewModel.sessions.contains { session in
-            calendar.isDate(session.date, inSameDayAs: date)
-        }
-    }
     
     private func changeMonth(_ direction: Int) {
-        if let newDate = calendar.date(byAdding: .month, value: direction, to: currentDate) {
+        if let newDate = viewModel.changeMonth(direction, currentDate: currentDate) {
             currentDate = newDate
         }
     }
@@ -256,17 +223,13 @@ struct SessionRowView: View {
     let session: SessionModel
     
     var body: some View {
-        Button(action: {
-            // 未來可以導航到 Session 詳細頁面
-        }) {
-            HStack(alignment: .top)  {
-                
-                    Text(session.title)
-                        .font(.headline)
-                        .foregroundColor(.black)
+        HStack(alignment: .top) {
+            Text(session.title)
+                .font(.headline)
+                .foregroundColor(.black)
 
-                Spacer()
-                
+            Spacer()
+            
             VStack(alignment: .trailing, spacing: 6) {
                 Text("NT$\(totalAmount, specifier: "%.0f")")
                     .font(.headline)
@@ -276,14 +239,12 @@ struct SessionRowView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.1))
-            )
         }
-        .buttonStyle(PlainButtonStyle())
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.gray.opacity(0.1))
+        )
     }
     
     private var totalAmount: Double {
