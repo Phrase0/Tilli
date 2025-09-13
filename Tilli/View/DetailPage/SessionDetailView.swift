@@ -71,13 +71,33 @@ struct SessionDetailView: View {
             }
             .padding(.top)
             
-            // Tab Toggle
-            Picker("", selection: $selectedTab) {
-                Text("商品").tag(0)
-                Text("交易明細").tag(1)
+            // 自定義 Picker
+            HStack {
+                ForEach(0..<2, id: \.self) { index in
+                    Button(action: {
+                        selectedTab = index
+                    }) {
+                        VStack(spacing: 6) {
+                            Text(index == 0 ? "商品" : "交易明細")
+                                .font(.subheadline)
+                                .foregroundColor(selectedTab == index ? .blue : .gray)
+                                .fontWeight(selectedTab == index ? .semibold : .regular)
+                            
+                            Rectangle()
+                                .fill(selectedTab == index ? Color.blue : Color.clear)
+                                .frame(height: 2)
+                                .scaleEffect(x: selectedTab == index ? 1.0 : 0.8, y: 1.0)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedTab)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
             }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding(8)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            
+            Divider()
             
             TabView(selection: $selectedTab) {
                 // 商品頁 - 使用 ProductDetailView

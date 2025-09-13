@@ -24,7 +24,7 @@ struct SessionDetailFromCalendarView: View {
                     Button(action: {
                         viewModel.selectTab(index)
                     }) {
-                        VStack {
+                        VStack(spacing: 6) {
                             Text(viewModel.tabTitles[index])
                                 .font(.subheadline)
                                 .foregroundColor(viewModel.selectedTab == index ? .blue : .gray)
@@ -33,9 +33,12 @@ struct SessionDetailFromCalendarView: View {
                             Rectangle()
                                 .fill(viewModel.selectedTab == index ? Color.blue : Color.clear)
                                 .frame(height: 2)
+                                .scaleEffect(x: viewModel.selectedTab == index ? 1.0 : 0.8, y: 1.0)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.selectedTab)
                         }
                     }
                     .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
                 }
             }
             .padding(.horizontal)
@@ -59,6 +62,7 @@ struct SessionDetailFromCalendarView: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
+        .background(Color(.systemGroupedBackground))
         .navigationTitle(viewModel.session.title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
