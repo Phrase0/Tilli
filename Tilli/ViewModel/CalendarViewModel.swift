@@ -54,15 +54,26 @@ class CalendarViewModel: ObservableObject {
         let firstOfMonth = monthInterval.start
         let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
         
-        // 調整為星期一開始 (weekday: 1=Sunday, 2=Monday, ...)
-        let adjustedFirstWeekday = firstWeekday == 1 ? 6 : firstWeekday - 2
+        // 調整為星期日開始 (weekday: 1=Sunday, 2=Monday, ...)
+        let adjustedFirstWeekday = firstWeekday - 1
         let startDate = calendar.date(byAdding: .day, value: -(adjustedFirstWeekday), to: firstOfMonth)!
+        
+        // 計算這個月有多少天
+        let range = calendar.range(of: .day, in: .month, for: currentDate)!
+        let daysInCurrentMonth = range.count
+        
+        // 計算需要的總格數
+        let totalCellsNeeded = adjustedFirstWeekday + daysInCurrentMonth
+        
+        // 決定需要多少週 (最少5週，最多6週)
+        let weeksNeeded = totalCellsNeeded <= 35 ? 5 : 6
+        let totalDays = weeksNeeded * 7
         
         var dates: [Date] = []
         var date = startDate
         
-        // 生成6週的日期
-        for _ in 0..<42 {
+        // 生成指定週數的日期
+        for _ in 0..<totalDays {
             dates.append(date)
             date = calendar.date(byAdding: .day, value: 1, to: date)!
         }
@@ -99,6 +110,6 @@ class CalendarViewModel: ObservableObject {
     
     /// 週日標題
     var weekdays: [String] {
-        ["一", "二", "三", "四", "五", "六", "日"]
+        ["日", "一", "二", "三", "四", "五", "六"]
     }
 }
