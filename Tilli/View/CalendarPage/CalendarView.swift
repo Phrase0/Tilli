@@ -119,6 +119,7 @@ struct CalendarView: View {
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
                     hasSessions: viewModel.hasSessions(on: date),
+                    currentMonth: currentDate,
                     onTap: { selectedDate = date }
                 )
             }
@@ -171,6 +172,7 @@ struct DayCell: View {
     let isSelected: Bool
     let isToday: Bool
     let hasSessions: Bool
+    let currentMonth: Date
     let onTap: () -> Void
     
     private let calendar = Calendar.current
@@ -209,7 +211,7 @@ struct DayCell: View {
             return .white
         } else if isToday {
             return .blue
-        } else if !calendar.isDate(date, equalTo: Date(), toGranularity: .month) {
+        } else if !calendar.isDate(date, equalTo: currentMonth, toGranularity: .month) {
             return .gray.opacity(0.4)
         } else {
             return .black
