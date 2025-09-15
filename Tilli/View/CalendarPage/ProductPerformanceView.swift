@@ -18,7 +18,7 @@ struct ProductPerformanceView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            LazyVStack(spacing: 12) {
                 if viewModel.isLoading {
                     ProgressView("載入中...")
                         .frame(maxWidth: .infinity, minHeight: 200)
@@ -85,7 +85,6 @@ struct ProductPerformanceView: View {
                         originalPrice: product.originalPrice,
                         discount: product.discount,
                         actualRevenue: product.actualRevenue,
-                        averageDiscount: product.averageDiscount,
                         isExpanded: expandedProducts.contains(product.rank)
                     ) {
                         toggleExpansion(for: product.rank)
