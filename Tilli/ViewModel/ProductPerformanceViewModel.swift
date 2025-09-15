@@ -1,0 +1,335 @@
+//
+//  ProductPerformanceViewModel.swift
+//  Tilli
+//
+//  Created by Peiyun on 2025/9/15.
+//
+
+import SwiftUI
+
+class ProductPerformanceViewModel: ObservableObject {
+    // MARK: - Published Properties
+    @Published var topProducts: [ProductPerformanceData] = []
+    @Published var categoryAnalysis: [CategoryAnalysisData] = []
+    @Published var salesInsights: SalesInsightsData = SalesInsightsData()
+    @Published var isLoading = false
+    
+    // MARK: - Dependencies
+    private var transactionDataManager: TransactionDataManager?
+    private var sessionDataManager: SessionDataManager?
+    @Binding var session: SessionModel
+    
+    // MARK: - Initialization
+    init(session: Binding<SessionModel>) {
+        self._session = session
+    }
+    
+    // MARK: - DataManager 管理
+    
+    /// 更新 DataManager 引用
+    func updateDataManagers(
+        transactionDataManager: TransactionDataManager,
+        sessionDataManager: SessionDataManager
+    ) {
+        self.transactionDataManager = transactionDataManager
+        self.sessionDataManager = sessionDataManager
+    }
+    
+    // MARK: - Public Methods
+    func loadData() {
+        guard transactionDataManager != nil else { return }
+        
+        isLoading = true
+        
+        Task {
+            await MainActor.run {
+                calculateTopProducts()
+                calculateCategoryAnalysis() 
+                generateSalesInsights()
+                isLoading = false
+            }
+        }
+    }
+    
+    func refreshData() {
+        loadData()
+    }
+}
+
+// MARK: - Business Logic Calculations
+private extension ProductPerformanceViewModel {
+    
+    /// 計算商品銷售排行榜
+    func calculateTopProducts() {
+        guard let transactionDataManager = transactionDataManager else { return }
+        
+        let startDate = Calendar.current.startOfDay(for: session.date)
+        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+        let transactions = transactionDataManager.fetchTransactions(from: startDate, to: endDate)
+            .filter { $0.sessionId == session.id }
+        
+        // 建立商品銷售統計字典
+        var productStats: [UUID: ProductSalesStats] = [:]
+        
+        for transaction in transactions {
+            for item in transaction.items {
+                let productId = item.productId
+                
+                if productStats[productId] == nil {
+                    productStats[productId] = ProductSalesStats(
+                        productId: productId,
+                        name: item.name,
+                        category: item.category,
+                        categoryId: item.categoryId
+                    )
+                }
+                
+                productStats[productId]?.addSale(
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    discount: item.discount,
+                    actualTotal: item.total
+                )
+            }
+        }
+        
+        // 計算總營收用於百分比計算
+        let totalRevenue = productStats.values.reduce(0) { $0 + $1.actualRevenue }
+        
+        // 轉換為 ProductPerformanceData 並排序
+        let performanceData = productStats.values.map { stats in
+            let contributionRate = totalRevenue > 0 ? Int((stats.actualRevenue / totalRevenue) * 100) : 0
+            let averageDiscount = stats.totalQuantity > 0 ? stats.totalDiscount / Double(stats.totalQuantity) : 0
+            
+            return ProductPerformanceData(
+                productId: stats.productId,
+                rank: 0, // 稍後設定
+                name: stats.name,
+                category: stats.category,
+                salesCount: stats.totalQuantity,
+                revenue: Int(stats.actualRevenue),
+                contributionRate: contributionRate,
+                unitPrice: Int(stats.unitPrice),
+                originalPrice: Int(stats.originalRevenue),
+                discount: Int(stats.originalRevenue - stats.actualRevenue),
+                actualRevenue: Int(stats.actualRevenue),
+                averageDiscount: Int(averageDiscount)
+            )
+        }
+        .sorted { $0.revenue > $1.revenue }
+        .prefix(5)
+        .enumerated()
+        .map { index, data in
+            var updatedData = data
+            updatedData.rank = index + 1
+            return updatedData
+        }
+        
+        topProducts = Array(performanceData)
+    }
+    
+    /// 計算分類銷售分析
+    func calculateCategoryAnalysis() {
+        guard let transactionDataManager = transactionDataManager else { return }
+        
+        let startDate = Calendar.current.startOfDay(for: session.date)
+        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+        let transactions = transactionDataManager.fetchTransactions(from: startDate, to: endDate)
+            .filter { $0.sessionId == session.id }
+        
+        // 建立分類銷售統計字典
+        var categoryStats: [UUID: CategorySalesStats] = [:]
+        
+        for transaction in transactions {
+            for item in transaction.items {
+                let categoryId = item.categoryId
+                
+                if categoryStats[categoryId] == nil {
+                    categoryStats[categoryId] = CategorySalesStats(
+                        categoryId: categoryId,
+                        name: item.category
+                    )
+                }
+                
+                categoryStats[categoryId]?.addSale(amount: item.total)
+            }
+        }
+        
+        // 計算總營收
+        let totalRevenue = categoryStats.values.reduce(0) { $0 + $1.totalAmount }
+        
+        // 轉換為 CategoryAnalysisData，先不設定顏色
+        let analysisData = categoryStats.values.map { stats in
+            let percentage = totalRevenue > 0 ? Int((stats.totalAmount / totalRevenue) * 100) : 0
+            
+            return CategoryAnalysisData(
+                name: stats.name,
+                amount: Int(stats.totalAmount),
+                percentage: percentage,
+                color: .gray  // 暫時設定為灰色
+            )
+        }
+        .sorted { $0.amount > $1.amount }
+        
+        // 先設定 categoryAnalysis
+        categoryAnalysis = analysisData
+        
+        // 然後重新設定正確的顏色
+        categoryAnalysis = categoryAnalysis.enumerated().map { index, category in
+            CategoryAnalysisData(
+                name: category.name,
+                amount: category.amount,
+                percentage: category.percentage,
+                color: getPredefinedColor(for: index)
+            )
+        }
+    }
+    
+    /// 生成銷售洞察
+    func generateSalesInsights() {
+        guard !topProducts.isEmpty, !categoryAnalysis.isEmpty else {
+            salesInsights = SalesInsightsData()
+            return
+        }
+        
+        let bestProduct = topProducts.first!
+        let bestCategory = categoryAnalysis.first!
+        let lowestCategory = categoryAnalysis.last!
+        
+        let hotProductInsight = "熱銷商品"
+        let hotProductDescription = "\(bestProduct.name)表現最佳，佔總銷售額 \(bestProduct.contributionRate)%"
+        
+        let discountInsight = "折扣效果"
+        let averageDiscount = topProducts.reduce(0) { $0 + $1.averageDiscount } / topProducts.count
+        let discountDescription = "\(bestCategory.name)類商品表現優異，平均折扣 \(averageDiscount)%"
+        
+        let suggestionInsight = "優化建議"
+        let suggestionDescription = "可考慮增加\(lowestCategory.name)類商品的促銷活動"
+        
+        salesInsights = SalesInsightsData(
+            hotProductTitle: hotProductInsight,
+            hotProductDescription: hotProductDescription,
+            discountTitle: discountInsight,
+            discountDescription: discountDescription,
+            suggestionTitle: suggestionInsight,
+            suggestionDescription: suggestionDescription
+        )
+    }
+    
+    /// 根據索引獲取預設顏色
+    private func getPredefinedColor(for index: Int) -> Color {
+        let predefinedColors: [Color] = [
+            .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple,
+            .pink, .brown, Color(.systemRed), Color(.systemOrange), Color(.systemYellow), 
+            Color(.systemGreen), Color(.systemMint), Color(.systemTeal), Color(.systemCyan),
+            Color(.systemBlue), Color(.systemIndigo), Color(.systemPurple), Color(.systemPink),
+            Color(.systemBrown), Color(.systemGray), Color(.systemGray2), Color(.systemGray3),
+            Color(.systemGray4), Color(.systemGray5), Color(.systemGray6)
+        ]
+        
+        if index < predefinedColors.count {
+            return predefinedColors[index]
+        } else {
+            // 超出30個顏色時，使用deterministic方式生成顏色
+            let hue = Double((index * 137) % 360) / 360.0  // 使用黃金角度確保顏色分散
+            return Color(hue: hue, saturation: 0.7, brightness: 0.8)
+        }
+    }
+}
+
+// MARK: - Data Models
+struct ProductPerformanceData: Identifiable {
+    let id = UUID()
+    let productId: UUID
+    var rank: Int
+    let name: String
+    let category: String
+    let salesCount: Int
+    let revenue: Int
+    let contributionRate: Int
+    let unitPrice: Int
+    let originalPrice: Int
+    let discount: Int
+    let actualRevenue: Int
+    let averageDiscount: Int
+}
+
+struct CategoryAnalysisData: Identifiable {
+    let id = UUID()
+    let name: String
+    let amount: Int
+    let percentage: Int
+    let color: Color
+}
+
+struct SalesInsightsData {
+    let hotProductTitle: String
+    let hotProductDescription: String
+    let discountTitle: String
+    let discountDescription: String
+    let suggestionTitle: String
+    let suggestionDescription: String
+    
+    init() {
+        self.hotProductTitle = "熱銷商品"
+        self.hotProductDescription = "暫無資料"
+        self.discountTitle = "折扣效果"
+        self.discountDescription = "暫無資料"
+        self.suggestionTitle = "優化建議"
+        self.suggestionDescription = "暫無資料"
+    }
+    
+    init(hotProductTitle: String, hotProductDescription: String, discountTitle: String, discountDescription: String, suggestionTitle: String, suggestionDescription: String) {
+        self.hotProductTitle = hotProductTitle
+        self.hotProductDescription = hotProductDescription
+        self.discountTitle = discountTitle
+        self.discountDescription = discountDescription
+        self.suggestionTitle = suggestionTitle
+        self.suggestionDescription = suggestionDescription
+    }
+}
+
+
+// MARK: - Helper Classes for Statistics
+private class ProductSalesStats {
+    let productId: UUID
+    let name: String
+    let category: String
+    let categoryId: UUID
+    var totalQuantity: Int = 0
+    var originalRevenue: Double = 0
+    var actualRevenue: Double = 0
+    var totalDiscount: Double = 0
+    var unitPrice: Double = 0
+    
+    init(productId: UUID, name: String, category: String, categoryId: UUID) {
+        self.productId = productId
+        self.name = name
+        self.category = category
+        self.categoryId = categoryId
+    }
+    
+    func addSale(quantity: Int, unitPrice: Double, discount: Int, actualTotal: Double) {
+        self.totalQuantity += quantity
+        self.unitPrice = unitPrice // 假設同商品單價一致
+        let originalTotal = unitPrice * Double(quantity)
+        self.originalRevenue += originalTotal
+        self.actualRevenue += actualTotal
+        self.totalDiscount += Double(discount)
+    }
+}
+
+private class CategorySalesStats {
+    let categoryId: UUID
+    let name: String
+    var totalAmount: Double = 0
+    
+    init(categoryId: UUID, name: String) {
+        self.categoryId = categoryId
+        self.name = name
+    }
+    
+    func addSale(amount: Double) {
+        self.totalAmount += amount
+    }
+}
