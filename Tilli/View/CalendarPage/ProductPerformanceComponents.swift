@@ -20,11 +20,10 @@ struct ProductRankingCard: View {
     let originalPrice: Int?
     let discount: Int?
     let actualRevenue: Int?
-    let averageDiscount: Int?
     let isExpanded: Bool
     let onToggle: () -> Void
     
-    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Int, contributionRate: Int, unitPrice: Int? = nil, originalPrice: Int? = nil, discount: Int? = nil, actualRevenue: Int? = nil, averageDiscount: Int? = nil, isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
+    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Int, contributionRate: Int, unitPrice: Int? = nil, originalPrice: Int? = nil, discount: Int? = nil, actualRevenue: Int? = nil, isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
         self.rank = rank
         self.name = name
         self.category = category
@@ -35,7 +34,6 @@ struct ProductRankingCard: View {
         self.originalPrice = originalPrice
         self.discount = discount
         self.actualRevenue = actualRevenue
-        self.averageDiscount = averageDiscount
         self.isExpanded = isExpanded
         self.onToggle = onToggle
     }
@@ -144,16 +142,6 @@ struct ProductRankingCard: View {
                                 Text("NT$ \(discount)")
                                     .fontWeight(.medium)
                                     .foregroundColor(.red)
-                            }
-                        }
-                        
-                        if let averageDiscount = averageDiscount {
-                            HStack {
-                                Text("平均折扣")
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text("\(averageDiscount)%")
-                                    .fontWeight(.medium)
                             }
                         }
                         

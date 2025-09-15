@@ -99,7 +99,6 @@ private extension ProductPerformanceViewModel {
         // 轉換為 ProductPerformanceData 並排序
         let performanceData = productStats.values.map { stats in
             let contributionRate = totalRevenue > 0 ? Int((stats.actualRevenue / totalRevenue) * 100) : 0
-            let averageDiscount = stats.totalQuantity > 0 ? stats.totalDiscount / Double(stats.totalQuantity) : 0
             
             return ProductPerformanceData(
                 productId: stats.productId,
@@ -112,8 +111,7 @@ private extension ProductPerformanceViewModel {
                 unitPrice: Int(stats.unitPrice),
                 originalPrice: Int(stats.originalRevenue),
                 discount: Int(stats.originalRevenue - stats.actualRevenue),
-                actualRevenue: Int(stats.actualRevenue),
-                averageDiscount: Int(averageDiscount)
+                actualRevenue: Int(stats.actualRevenue)
             )
         }
         .sorted { $0.revenue > $1.revenue }
@@ -199,9 +197,12 @@ private extension ProductPerformanceViewModel {
         let hotProductInsight = "熱銷商品"
         let hotProductDescription = "\(bestProduct.name)表現最佳，佔總銷售額 \(bestProduct.contributionRate)%"
         
+        // 找出折扣最多的商品
+        let highestDiscountProduct = findHighestDiscountProduct()
         let discountInsight = "折扣效果"
-        let averageDiscount = topProducts.reduce(0) { $0 + $1.averageDiscount } / topProducts.count
-        let discountDescription = "\(bestCategory.name)類商品表現優異，平均折扣 \(averageDiscount)%"
+        let discountDescription = highestDiscountProduct.isEmpty ? 
+            "\(bestCategory.name)類商品表現優異，銷售狀況良好" :
+            "\(highestDiscountProduct.name)折扣最多，平均折扣達 \(highestDiscountProduct.averageDiscountRate)%"
         
         let suggestionInsight = "優化建議"
         let suggestionDescription = "可考慮增加\(lowestCategory.name)類商品的促銷活動"
@@ -213,6 +214,57 @@ private extension ProductPerformanceViewModel {
             discountDescription: discountDescription,
             suggestionTitle: suggestionInsight,
             suggestionDescription: suggestionDescription
+        )
+    }
+    
+    /// 找出折扣最多的商品
+    private func findHighestDiscountProduct() -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
+        guard let transactionDataManager = transactionDataManager else { 
+            return (name: "", averageDiscountRate: 0, isEmpty: true) 
+        }
+        
+        let startDate = Calendar.current.startOfDay(for: session.date)
+        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+        let transactions = transactionDataManager.fetchTransactions(from: startDate, to: endDate)
+            .filter { $0.sessionId == session.id }
+        
+        // 建立商品折扣統計
+        var productDiscountStats: [UUID: (name: String, totalDiscount: Double, totalQuantity: Int)] = [:]
+        
+        for transaction in transactions {
+            for item in transaction.items {
+                let productId = item.productId
+                
+                if productDiscountStats[productId] == nil {
+                    productDiscountStats[productId] = (name: item.name, totalDiscount: 0, totalQuantity: 0)
+                }
+                
+                // 計算該項目的折扣率
+                let originalItemTotal = item.price * Double(item.quantity)
+                let discountAmount = originalItemTotal - item.total
+                let discountRate = originalItemTotal > 0 ? (discountAmount / originalItemTotal) * 100 : 0
+                
+                productDiscountStats[productId]?.totalDiscount += discountRate
+                productDiscountStats[productId]?.totalQuantity += 1
+            }
+        }
+        
+        // 找出平均折扣率最高的商品
+        var maxDiscountProduct = ""
+        var maxAverageDiscountRate = 0.0
+        
+        for (_, stats) in productDiscountStats {
+            let averageDiscountRate = stats.totalQuantity > 0 ? stats.totalDiscount / Double(stats.totalQuantity) : 0
+            if averageDiscountRate > maxAverageDiscountRate {
+                maxAverageDiscountRate = averageDiscountRate
+                maxDiscountProduct = stats.name
+            }
+        }
+        
+        return (
+            name: maxDiscountProduct, 
+            averageDiscountRate: Int(maxAverageDiscountRate), 
+            isEmpty: maxDiscountProduct.isEmpty || maxAverageDiscountRate <= 0
         )
     }
     
@@ -251,7 +303,6 @@ struct ProductPerformanceData: Identifiable {
     let originalPrice: Int
     let discount: Int
     let actualRevenue: Int
-    let averageDiscount: Int
 }
 
 struct CategoryAnalysisData: Identifiable {
