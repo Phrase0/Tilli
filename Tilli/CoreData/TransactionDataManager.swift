@@ -71,37 +71,4 @@ class TransactionDataManager: ObservableObject {
         }
     }
 
-    // MARK: - Statistics Methods
-    
-    /// 計算指定 Session 的總營收
-    func calculateTotalRevenue(forSessionId sessionId: UUID) -> Double {
-        let transactions = fetchTransactions(forSessionId: sessionId)
-        return transactions.reduce(0) { $0 + $1.totalAmount }
-    }
-    
-    /// 計算指定日期範圍的總營收
-    func calculateTotalRevenue(from startDate: Date, to endDate: Date) -> Double {
-        let transactions = fetchTransactions(from: startDate, to: endDate)
-        return transactions.reduce(0) { $0 + $1.totalAmount }
-    }
-    
-    /// 計算最受歡迎的產品（根據銷售數量）
-    func getMostPopularProducts(limit: Int = 10) -> [(productId: UUID, productName: String, totalQuantity: Int)] {
-        var productStats: [UUID: (name: String, quantity: Int)] = [:]
-        
-        for transaction in self.transactions {
-            for item in transaction.items {
-                if let existing = productStats[item.productId] {
-                    productStats[item.productId] = (existing.name, existing.quantity + item.quantity)
-                } else {
-                    productStats[item.productId] = (item.name, item.quantity)
-                }
-            }
-        }
-        
-        return productStats.map { (productId: $0.key, productName: $0.value.name, totalQuantity: $0.value.quantity) }
-                          .sorted { $0.totalQuantity > $1.totalQuantity }
-                          .prefix(limit)
-                          .map { $0 }
-    }
 }

@@ -10,6 +10,7 @@ import SwiftUI
 class SessionDetailFromCalendarViewModel: ObservableObject {
     
     @Published var transactionViewModel: TransactionViewModel
+    @Published var productPerformanceViewModel: ProductPerformanceViewModel
     @Published var selectedTab = 0
     
     @Binding var session: SessionModel
@@ -19,6 +20,7 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     init(session: Binding<SessionModel>) {
         self._session = session
         self.transactionViewModel = TransactionViewModel(session: session)
+        self.productPerformanceViewModel = ProductPerformanceViewModel(session: session)
     }
     
     // MARK: - DataManager 管理
@@ -30,6 +32,10 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     ) {
         transactionViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager
+        )
+        productPerformanceViewModel.updateDataManagers(
+            transactionDataManager: transactionDataManager,
+            sessionDataManager: sessionDataManager
         )
     }
     
@@ -43,5 +49,6 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     /// 載入數據
     func loadData() {
         transactionViewModel.loadTransactions()
+        productPerformanceViewModel.loadData()
     }
 }
