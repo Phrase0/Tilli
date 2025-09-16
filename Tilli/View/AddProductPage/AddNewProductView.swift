@@ -84,11 +84,32 @@ struct AddNewProductView: View {
                         
                         VStack {
                             if let image = viewModel.image {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 140)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 140)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.blue.opacity(0.3), lineWidth: 2)
+                                        )
+                                        .overlay(
+                                            VStack {
+                                                Spacer()
+                                                HStack {
+                                                    Spacer()
+                                                    Image(systemName: "camera.fill")
+                                                        .foregroundColor(.white)
+                                                        .background(Circle().fill(Color.blue))
+                                                        .font(.caption)
+                                                        .padding(4)
+                                                        .padding(.trailing, 8)
+                                                        .padding(.bottom, 8)
+                                                }
+                                            }
+                                        )
+                                }
                             } else {
                                 PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
                                     VStack(spacing: 4) {
