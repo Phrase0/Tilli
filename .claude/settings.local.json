@@ -3,7 +3,8 @@
     "allow": [
       "Bash(xcodebuild:*)",
       "Bash(swift:*)",
-      "Bash(xcrun simctl boot:*)"
+      "Bash(xcrun simctl boot:*)",
+      "Read(//Users/ruiting/Documents/Tilli/ChartsRecord/**)"
     ],
     "deny": [],
     "ask": []
