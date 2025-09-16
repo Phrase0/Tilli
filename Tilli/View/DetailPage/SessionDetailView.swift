@@ -124,6 +124,7 @@ struct SessionDetailView: View {
         .onChange(of: checkoutCompleted) {
             viewModel.productViewModel.loadProducts()
             viewModel.productViewModel.clearAllQuantities()
+            viewModel.updateSessionTotalAmount()
             checkoutCompleted = false
         }
         .onAppear {

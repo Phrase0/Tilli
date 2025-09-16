@@ -8,20 +8,19 @@
 import SwiftUI
 
 class SessionDetailViewModel: ObservableObject {
-    
+
     @Published var productViewModel: ProductViewModel
     @Published var transactionViewModel: TransactionViewModel
-    
+    @Published var sessionTotalAmount: Double = 0
+
     @Binding var session: SessionModel
-    
-    var sessionTotalAmount: Double {
-        session.transactions.reduce(0) { $0 + $1.totalAmount }
-    }
+    private var transactionDataManager: TransactionDataManager?
     
     init(session: Binding<SessionModel>) {
         self._session = session
         self.productViewModel = ProductViewModel(session: session)
         self.transactionViewModel = TransactionViewModel(session: session)
+        self.sessionTotalAmount = session.wrappedValue.transactions.reduce(0) { $0 + $1.totalAmount }
     }
     
     // MARK: - DataManager 管理
@@ -33,15 +32,30 @@ class SessionDetailViewModel: ObservableObject {
         productRepository: ProductRepository,
         categoryRepository: CategoryRepository
     ) {
+        self.transactionDataManager = transactionDataManager
+
         productViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager,
             sessionDataManager: sessionDataManager,
             productRepository: productRepository,
             categoryRepository: categoryRepository
         )
-        
+
         transactionViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager
         )
+
+        updateSessionTotalAmount()
+    }
+
+    /// 更新 sessionTotalAmount
+    func updateSessionTotalAmount() {
+        guard let transactionDataManager = transactionDataManager else {
+            sessionTotalAmount = session.transactions.reduce(0) { $0 + $1.totalAmount }
+            return
+        }
+
+        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        sessionTotalAmount = transactions.reduce(0) { $0 + $1.totalAmount }
     }
 }

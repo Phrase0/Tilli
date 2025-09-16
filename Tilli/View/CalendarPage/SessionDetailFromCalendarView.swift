@@ -54,7 +54,10 @@ struct SessionDetailFromCalendarView: View {
                 )
                 .tag(0)
                 
-                ProductPerformanceView(viewModel: viewModel.productPerformanceViewModel)
+                ProductPerformanceView(
+                    viewModel: viewModel.productPerformanceViewModel,
+                    session: $viewModel.session
+                )
                     .tag(1)
                 
                 SalesAnalyticsView()
