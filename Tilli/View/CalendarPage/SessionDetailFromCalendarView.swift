@@ -60,7 +60,10 @@ struct SessionDetailFromCalendarView: View {
                 )
                     .tag(1)
                 
-                SalesAnalyticsView()
+                SalesAnalyticsView(
+                    viewModel: viewModel.salesAnalyticsViewModel,
+                    session: $viewModel.session
+                )
                     .tag(2)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
