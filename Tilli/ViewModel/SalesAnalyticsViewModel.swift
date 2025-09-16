@@ -35,7 +35,7 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     // MARK: - Public Methods
     func loadData() {
-        guard let transactionDataManager = transactionDataManager else { return }
+        guard transactionDataManager != nil else { return }
 
         isLoading = true
 
@@ -45,10 +45,6 @@ class SalesAnalyticsViewModel: ObservableObject {
                 isLoading = false
             }
         }
-    }
-
-    func refreshData() {
-        loadData()
     }
 
     // MARK: - CSV Export Methods

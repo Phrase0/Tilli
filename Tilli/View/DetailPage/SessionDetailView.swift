@@ -122,21 +122,28 @@ struct SessionDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .onChange(of: checkoutCompleted) {
-            viewModel.productViewModel.loadProducts()
-            viewModel.productViewModel.clearAllQuantities()
-            viewModel.updateSessionTotalAmount()
-            checkoutCompleted = false
+//            completed in
+//            if completed {
+                // 結帳完成後的處理
+                viewModel.loadData()
+                viewModel.productViewModel.clearAllQuantities()
+                viewModel.updateSessionTotalAmount()
+                
+                // 重置標記
+                DispatchQueue.main.async {
+                    checkoutCompleted = false
+                }
+//            }
         }
         .onAppear {
             appState.currentSession = viewModel.session
-            // 每次出現時更新資料管理器
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager,
                 productRepository: productRepository,
                 categoryRepository: categoryRepository
             )
-            viewModel.productViewModel.loadProducts()
+            viewModel.loadData()
         }
     }
 }

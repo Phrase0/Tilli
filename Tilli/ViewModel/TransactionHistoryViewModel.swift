@@ -39,7 +39,7 @@ class TransactionViewModel: ObservableObject {
     
     // MARK: - Transaction History 相關方法
     
-    func loadTransactions() {
+    func loadData() {
         guard let transactionManager = transactionDataManager else { return }
         transactions = transactionManager.fetchTransactions(forSessionId: session.id)
     }
@@ -132,9 +132,9 @@ class TransactionViewModel: ObservableObject {
     func paymentMethodColor(_ method: PaymentMethod) -> Color {
         switch method {
         case .cash:
-            return .green
+            return .pink
         case .ePayment:
-            return .blue
+            return .purple
         }
     }
 }
