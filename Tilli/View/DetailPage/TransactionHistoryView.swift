@@ -30,9 +30,6 @@ struct TransactionHistoryView: View {
             }
             .padding()
         }
-        .onAppear {
-            transactionViewModel.loadTransactions()
-        }
         .refreshable {
             transactionViewModel.loadTransactions()
         }
