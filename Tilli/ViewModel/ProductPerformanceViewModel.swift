@@ -53,10 +53,6 @@ class ProductPerformanceViewModel: ObservableObject {
             }
         }
     }
-    
-    func refreshData() {
-        loadData()
-    }
 
     // MARK: - CSV Export Methods
 

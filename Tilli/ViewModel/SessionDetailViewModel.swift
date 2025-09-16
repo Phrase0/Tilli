@@ -58,4 +58,10 @@ class SessionDetailViewModel: ObservableObject {
         let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
         sessionTotalAmount = transactions.reduce(0) { $0 + $1.totalAmount }
     }
+    
+    /// 載入數據
+    func loadData() {
+        productViewModel.loadProducts()
+        transactionViewModel.loadData()
+    }
 }

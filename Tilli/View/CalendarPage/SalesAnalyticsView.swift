@@ -388,12 +388,12 @@ struct SalesAnalyticsView: View {
         return ZStack {
             Circle()
                 .trim(from: 0, to: ratio)
-                .stroke(Color.red, lineWidth: 40)
+                .stroke(Color.pink, lineWidth: 40)
                 .rotationEffect(.degrees(-90))
 
             Circle()
                 .trim(from: ratio, to: 1.0)
-                .stroke(Color.yellow, lineWidth: 40)
+                .stroke(Color.purple, lineWidth: 40)
                 .rotationEffect(.degrees(-90))
         }
         .frame(width: 150, height: 150)

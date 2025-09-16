@@ -31,7 +31,7 @@ struct TransactionHistoryView: View {
             .padding()
         }
         .refreshable {
-            transactionViewModel.loadTransactions()
+            transactionViewModel.loadData()
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

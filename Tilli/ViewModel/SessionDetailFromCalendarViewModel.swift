@@ -53,7 +53,7 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     
     /// 載入數據
     func loadData() {
-        transactionViewModel.loadTransactions()
+        transactionViewModel.loadData()
         productPerformanceViewModel.loadData()
         salesAnalyticsViewModel.loadData()
     }
