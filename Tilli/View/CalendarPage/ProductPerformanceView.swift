@@ -9,20 +9,19 @@ import SwiftUI
 import Charts
 
 struct ProductPerformanceView: View {
-    @ObservedObject var viewModel: ProductPerformanceViewModel
+    @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
+    @Binding var session: SessionModel
     @State private var expandedProducts: Set<Int> = []
-    
-    init(viewModel: ProductPerformanceViewModel) {
-        self.viewModel = viewModel
+
+    init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>) {
+        self.productPerformanceViewModel = viewModel
+        self._session = session
     }
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                if viewModel.isLoading {
-                    ProgressView("載入中...")
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                } else if viewModel.topProducts.isEmpty && viewModel.categoryAnalysis.isEmpty {
+                if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
                     // 空狀態
                     VStack(spacing: 16) {
                         Image(systemName: "chart.bar.fill")
@@ -54,10 +53,17 @@ struct ProductPerformanceView: View {
             }
             .padding()
         }
-        .background(Color(.systemGray6))
-        .refreshable {
-            viewModel.loadData()
+        
+        .onAppear {
+            productPerformanceViewModel.loadData()
         }
+        .refreshable {
+            productPerformanceViewModel.loadData()
+        }
+        .onChange(of: session.transactions) {
+            productPerformanceViewModel.loadData()
+        }
+        .background(Color(.systemGray6))
     }
     
     
@@ -73,7 +79,7 @@ struct ProductPerformanceView: View {
             }
             
             VStack(spacing: 16) {
-                ForEach(viewModel.topProducts) { product in
+                ForEach(productPerformanceViewModel.topProducts) { product in
                     ProductRankingCard(
                         rank: product.rank,
                         name: product.name,
@@ -106,12 +112,12 @@ struct ProductPerformanceView: View {
             
             VStack(spacing: 16) {
                 // Pie Chart
-                PieChartView(categories: viewModel.categoryAnalysis)
+                PieChartView(categories: productPerformanceViewModel.categoryAnalysis)
                     .frame(height: 250)
                 
                 // Category Details
                 VStack(spacing: 8) {
-                    ForEach(viewModel.categoryAnalysis) { category in
+                    ForEach(productPerformanceViewModel.categoryAnalysis) { category in
                         CategoryCard(
                             color: category.color,
                             name: category.name,
@@ -138,22 +144,22 @@ struct ProductPerformanceView: View {
                 InsightCard(
                     icon: "chart.line.uptrend.xyaxis",
                     iconColor: .blue,
-                    title: viewModel.salesInsights.hotProductTitle,
-                    description: viewModel.salesInsights.hotProductDescription
+                    title: productPerformanceViewModel.salesInsights.hotProductTitle,
+                    description: productPerformanceViewModel.salesInsights.hotProductDescription
                 )
                 
                 InsightCard(
                     icon: "percent",
                     iconColor: .green,
-                    title: viewModel.salesInsights.discountTitle,
-                    description: viewModel.salesInsights.discountDescription
+                    title: productPerformanceViewModel.salesInsights.discountTitle,
+                    description: productPerformanceViewModel.salesInsights.discountDescription
                 )
                 
                 InsightCard(
                     icon: "lightbulb.fill",
                     iconColor: .orange,
-                    title: viewModel.salesInsights.suggestionTitle,
-                    description: viewModel.salesInsights.suggestionDescription
+                    title: productPerformanceViewModel.salesInsights.suggestionTitle,
+                    description: productPerformanceViewModel.salesInsights.suggestionDescription
                 )
             }
         }
