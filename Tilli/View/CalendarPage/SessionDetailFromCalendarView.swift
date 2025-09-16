@@ -11,6 +11,9 @@ struct SessionDetailFromCalendarView: View {
     @StateObject private var viewModel: SessionDetailFromCalendarViewModel
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var showingShareSheet = false
     
     init(session: Binding<SessionModel>) {
         self._viewModel = StateObject(wrappedValue: SessionDetailFromCalendarViewModel(session: session))
@@ -71,6 +74,26 @@ struct SessionDetailFromCalendarView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(viewModel.session.title)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.blue)
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingShareSheet = true
+                }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(viewModel.isCurrentTabExportDisabled())
+            }
+        }
         .onAppear {
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
@@ -78,5 +101,16 @@ struct SessionDetailFromCalendarView: View {
             )
             viewModel.loadData()
         }
+        .shareSheet(
+            isPresented: $showingShareSheet,
+            activityItems: viewModel.getCurrentTabShareItems(),
+            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
+            onComplete: { completed in
+                if completed {
+                    viewModel.handleCurrentTabExportSuccess()
+                }
+            }
+        )
     }
+
 }

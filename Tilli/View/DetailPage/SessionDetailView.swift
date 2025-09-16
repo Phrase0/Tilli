@@ -15,8 +15,10 @@ struct SessionDetailView: View {
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
+    @Environment(\.dismiss) private var dismiss
     
     @Binding var session: SessionModel
+    @State private var showingShareSheet = false
     
     @State private var selectedTab: Int = 0
     @State private var checkoutCompleted = false
@@ -56,6 +58,29 @@ struct SessionDetailView: View {
             }
         }
         .navigationBarHidden(showEditProduct)
+        .navigationBarBackButtonHidden(!showEditProduct)
+        .toolbar {
+            if !showEditProduct {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(.blue)
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        viewModel.exportTabCSV(tabIndex: selectedTab)
+                        showingShareSheet = true
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(viewModel.isTabExportDisabled(tabIndex: selectedTab))
+                }
+            }
+        }
     }
     
     private var sessionDetailContent: some View {
@@ -122,8 +147,6 @@ struct SessionDetailView: View {
         }
         .background(Color(.systemGroupedBackground))
         .onChange(of: checkoutCompleted) {
-//            completed in
-//            if completed {
                 // 結帳完成後的處理
                 viewModel.loadData()
                 viewModel.productViewModel.clearAllQuantities()
@@ -133,7 +156,6 @@ struct SessionDetailView: View {
                 DispatchQueue.main.async {
                     checkoutCompleted = false
                 }
-//            }
         }
         .onAppear {
             appState.currentSession = viewModel.session
@@ -145,5 +167,15 @@ struct SessionDetailView: View {
             )
             viewModel.loadData()
         }
+        .shareSheet(
+            isPresented: $showingShareSheet,
+            activityItems: viewModel.currentShareItems,
+            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
+            onComplete: { completed in
+                if completed {
+                    viewModel.handleCurrentTabExportSuccess()
+                }
+            }
+        )
     }
 }

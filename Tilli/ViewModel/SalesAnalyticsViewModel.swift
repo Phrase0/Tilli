@@ -81,9 +81,6 @@ class SalesAnalyticsViewModel: ObservableObject {
         return csvContent
     }
 
-    func exportCSV() {
-        // 不再需要單一 csvContent，現在分別處理兩個檔案
-    }
 
     func createHourlyAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory

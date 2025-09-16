@@ -47,16 +47,6 @@ struct SalesAnalyticsView: View {
             salesAnalyticsViewModel.loadData()
         }
         .background(Color(.systemGray6))
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingShareSheet = true
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(salesAnalyticsViewModel.salesOverview?.totalTransactions == 0 || salesAnalyticsViewModel.salesOverview == nil)
-            }
-        }
         .alert("CSV 導出成功", isPresented: $salesAnalyticsViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {

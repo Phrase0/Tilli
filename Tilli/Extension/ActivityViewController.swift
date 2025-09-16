@@ -104,10 +104,12 @@ extension UIActivity.ActivityType {
 class CustomActivityItemSource: NSObject, UIActivityItemSource {
     let csvContent: String
     let csvFileURL: URL
+    let reportTitle: String
     
-    init(csvContent: String, csvFileURL: URL) {
+    init(csvContent: String, csvFileURL: URL, reportTitle: String = "CSV 報表") {
         self.csvContent = csvContent
         self.csvFileURL = csvFileURL
+        self.reportTitle = reportTitle
         super.init()
     }
     
@@ -129,6 +131,6 @@ class CustomActivityItemSource: NSObject, UIActivityItemSource {
     }
     
     func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
-        return "交易明細報表"
+        return reportTitle
     }
 }
