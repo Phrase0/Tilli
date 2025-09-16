@@ -33,17 +33,6 @@ struct TransactionHistoryView: View {
         .refreshable {
             transactionViewModel.loadData()
         }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    transactionViewModel.exportCSV()
-                    showingShareSheet = true
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(transactionViewModel.transactions.isEmpty)
-            }
-        }
         .alert("CSV 導出成功", isPresented: $transactionViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {

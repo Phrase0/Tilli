@@ -48,16 +48,6 @@ struct ProductPerformanceView: View {
             productPerformanceViewModel.loadData()
         }
         .background(Color(.systemGray6))
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingShareSheet = true
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty)
-            }
-        }
         .alert("CSV 導出成功", isPresented: $productPerformanceViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {

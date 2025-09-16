@@ -12,9 +12,11 @@ class SessionDetailViewModel: ObservableObject {
     @Published var productViewModel: ProductViewModel
     @Published var transactionViewModel: TransactionViewModel
     @Published var sessionTotalAmount: Double = 0
+    @Published var currentShareItems: [Any] = []
 
     @Binding var session: SessionModel
     private var transactionDataManager: TransactionDataManager?
+    private var currentExportTab: Int = 0
     
     init(session: Binding<SessionModel>) {
         self._session = session
@@ -63,5 +65,52 @@ class SessionDetailViewModel: ObservableObject {
     func loadData() {
         productViewModel.loadProducts()
         transactionViewModel.loadData()
+    }
+    
+    // MARK: - CSV Export Management
+    
+    /// 執行指定 tab 的 CSV 導出準備
+    func exportTabCSV(tabIndex: Int) {
+        currentExportTab = tabIndex
+        // 準備分享內容 - 所有 tab 都直接準備分享
+        currentShareItems = getTabShareItems(tabIndex: tabIndex)
+    }
+    
+    /// 檢查指定 tab 是否可以導出
+    func isTabExportDisabled(tabIndex: Int) -> Bool {
+        switch tabIndex {
+        case 0: // 商品頁
+            return true
+        case 1: // 交易明細
+            return transactionViewModel.transactions.isEmpty
+        default:
+            return true
+        }
+    }
+    
+    /// 獲取指定 tab 的分享內容
+    func getTabShareItems(tabIndex: Int) -> [Any] {
+        switch tabIndex {
+        case 1: // 交易明細
+            return [
+                CustomActivityItemSource(
+                    csvContent: transactionViewModel.generateCSVContent(),
+                    csvFileURL: transactionViewModel.createTempCSVFileURL(),
+                    reportTitle: "交易明細報表"
+                )
+            ]
+        default:
+            return []
+        }
+    }
+    
+    /// 處理導出成功回調
+    func handleCurrentTabExportSuccess() {
+        switch currentExportTab {
+        case 1: // 交易明細
+            transactionViewModel.showExportSuccessAlert()
+        default:
+            break
+        }
     }
 }

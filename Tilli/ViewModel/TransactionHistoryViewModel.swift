@@ -79,13 +79,15 @@ class TransactionViewModel: ObservableObject {
         let fileURL = tempDir.appendingPathComponent(fileName)
         
         do {
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            let content = generateCSVContent()  // 自動生成內容
+            try content.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
             print("Error creating CSV file: \(error)")
         }
         
         return fileURL
     }
+    
     
     func showExportSuccessAlert() {
         showingExportAlert = true
