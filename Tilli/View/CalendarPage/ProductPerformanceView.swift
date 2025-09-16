@@ -22,22 +22,11 @@ struct ProductPerformanceView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
-                    // 空狀態
-                    VStack(spacing: 16) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.system(size: 48))
-                            .foregroundColor(.gray)
-                        
-                        Text("尚無銷售紀錄")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                        
-                        Text("完成結帳後，產品績效會顯示在這裡")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 100)
+                    EmptyStateView(
+                        systemImage: "chart.bar.fill",
+                        title: "尚無銷售紀錄",
+                        message: "完成結帳後，產品績效會顯示在這裡"
+                    )
                 } else {
                     VStack(spacing: 24) {
                         // TOP 5 商品榜單

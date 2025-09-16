@@ -17,22 +17,11 @@ struct TransactionHistoryView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 if transactionViewModel.transactions.isEmpty {
-                    // 空狀態
-                    VStack(spacing: 16) {
-                        Image(systemName: "list.clipboard")
-                            .font(.system(size: 48))
-                            .foregroundColor(.gray)
-                        
-                        Text("尚無交易記錄")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                        
-                        Text("完成結帳後，交易記錄會顯示在這裡")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 100)
+                    EmptyStateView(
+                        systemImage: "list.clipboard",
+                        title: "尚無交易記錄",
+                        message: "完成結帳後，交易記錄會顯示在這裡"
+                    )
                 } else {
                     ForEach(transactionViewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
                         transactionCard(transaction)
