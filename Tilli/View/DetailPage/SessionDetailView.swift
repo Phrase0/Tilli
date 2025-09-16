@@ -19,6 +19,7 @@ struct SessionDetailView: View {
     
     @Binding var session: SessionModel
     @State private var showingShareSheet = false
+    @State private var showClearAlert = false
     
     @State private var selectedTab: Int = 0
     @State private var checkoutCompleted = false
@@ -71,13 +72,27 @@ struct SessionDetailView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        viewModel.exportTabCSV(tabIndex: selectedTab)
-                        showingShareSheet = true
-                    }) {
-                        Image(systemName: "square.and.arrow.up")
+                    switch selectedTab {
+                    case 0: // 商品頁 - 顯示清除按鈕
+                        Button(action: {
+                            showClearAlert = true
+                        }) {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel("清除所有已選數量")
+                        
+                    case 1: // 交易明細頁 - 顯示導出按鈕
+                        Button(action: {
+                            viewModel.exportTabCSV(tabIndex: selectedTab)
+                            showingShareSheet = true
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .disabled(viewModel.isTabExportDisabled(tabIndex: selectedTab))
+                        
+                    default:
+                        EmptyView()
                     }
-                    .disabled(viewModel.isTabExportDisabled(tabIndex: selectedTab))
                 }
             }
         }
@@ -177,5 +192,11 @@ struct SessionDetailView: View {
                 }
             }
         )
+        .alert("確定要清除所有已選數量嗎？", isPresented: $showClearAlert) {
+            Button("取消", role: .cancel) { }
+            Button("清除", role: .destructive) {
+                viewModel.productViewModel.clearAllQuantities()
+            }
+        }
     }
 }
