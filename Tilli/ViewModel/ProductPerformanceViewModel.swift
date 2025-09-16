@@ -62,11 +62,8 @@ private extension ProductPerformanceViewModel {
     /// 計算商品銷售排行榜
     func calculateTopProducts() {
         guard let transactionDataManager = transactionDataManager else { return }
-        
-        let startDate = Calendar.current.startOfDay(for: session.date)
-        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
-        let transactions = transactionDataManager.fetchTransactions(from: startDate, to: endDate)
-            .filter { $0.sessionId == session.id }
+
+        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
         
         // 建立商品銷售統計字典
         var productStats: [UUID: ProductSalesStats] = [:]
@@ -129,11 +126,8 @@ private extension ProductPerformanceViewModel {
     /// 計算分類銷售分析
     func calculateCategoryAnalysis() {
         guard let transactionDataManager = transactionDataManager else { return }
-        
-        let startDate = Calendar.current.startOfDay(for: session.date)
-        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
-        let transactions = transactionDataManager.fetchTransactions(from: startDate, to: endDate)
-            .filter { $0.sessionId == session.id }
+
+        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
         
         // 建立分類銷售統計字典
         var categoryStats: [UUID: CategorySalesStats] = [:]
@@ -219,14 +213,11 @@ private extension ProductPerformanceViewModel {
     
     /// 找出折扣最多的商品
     private func findHighestDiscountProduct() -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
-        guard let transactionDataManager = transactionDataManager else { 
-            return (name: "", averageDiscountRate: 0, isEmpty: true) 
+        guard let transactionDataManager = transactionDataManager else {
+            return (name: "", averageDiscountRate: 0, isEmpty: true)
         }
-        
-        let startDate = Calendar.current.startOfDay(for: session.date)
-        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
-        let transactions = transactionDataManager.fetchTransactions(from: startDate, to: endDate)
-            .filter { $0.sessionId == session.id }
+
+        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
         
         // 建立商品折扣統計
         var productDiscountStats: [UUID: (name: String, totalDiscount: Double, totalQuantity: Int)] = [:]
