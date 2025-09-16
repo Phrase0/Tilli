@@ -31,15 +31,15 @@ struct AddNewProductView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Group {
-                        Text("Product Name")
+                        Text("產品名稱")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("Enter product name", text: $viewModel.name)
+                        TextField("請輸入產品名稱", text: $viewModel.name)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                         
-                        Text("Price")
+                        Text("價格")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         TextField("$ 0", text: $viewModel.price)
@@ -48,14 +48,14 @@ struct AddNewProductView: View {
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                             
-                        Text("Stock Quantity")
+                        Text("庫存數量")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("Enter quantity", text: $viewModel.quantity)
+                        TextField("請輸入數量", text: $viewModel.quantity)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                         
-                        Text("Category")
+                        Text("類別")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         
@@ -73,22 +73,23 @@ struct AddNewProductView: View {
                         .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                     }
                     
-                    Text("Product Image")
+                    Text("產品圖片")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
                             .foregroundColor(.gray.opacity(0.4))
-                            .frame(height: 140)
+                            .aspectRatio(1, contentMode: .fit)
                         
                         VStack {
                             if let image = viewModel.image {
                                 PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
                                     Image(uiImage: image)
                                         .resizable()
-                                        .scaledToFit()
-                                        .frame(height: 140)
+                                        .scaledToFill()
+                                        .aspectRatio(1, contentMode: .fit)
+                                        .frame(maxHeight: 140)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 8)
@@ -116,7 +117,7 @@ struct AddNewProductView: View {
                                         Image(systemName: "camera")
                                             .font(.title2)
                                             .foregroundColor(.gray)
-                                        Text("Upload Image")
+                                        Text("上傳圖片")
                                             .foregroundColor(.gray)
                                             .font(.caption)
                                     }
@@ -125,7 +126,7 @@ struct AddNewProductView: View {
                         }
                     }
                     
-                    Text("Description")
+                    Text("產品描述")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                     TextEditor(text: $viewModel.description)
@@ -156,13 +157,13 @@ struct AddNewProductView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("取消") {
                         viewModel.onCancel?()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("儲存") {
                         if viewModel.save(using: productRepository) {
                             viewModel.onSave()
                         } else {
@@ -172,8 +173,8 @@ struct AddNewProductView: View {
                     .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
                 }
             }
-            .alert("Please complete all required fields", isPresented: $viewModel.showValidationError) {
-                Button("OK", role: .cancel) { }
+            .alert("請完成所有必填欄位", isPresented: $viewModel.showValidationError) {
+                Button("確定", role: .cancel) { }
             }
             .alert("產品名稱重複", isPresented: $viewModel.showDuplicateNameAlert) {
                 Button("確定", role: .cancel) { }
