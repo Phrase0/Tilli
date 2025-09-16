@@ -1,0 +1,58 @@
+//
+//  ProductPerformanceModel.swift
+//  Tilli
+//
+//  Created by Peiyun on 2025/9/16.
+//
+
+import SwiftUI
+
+// MARK: - Data Models
+struct ProductPerformanceData: Identifiable {
+    let id = UUID()
+    let productId: UUID
+    var rank: Int
+    let name: String
+    let category: String
+    let salesCount: Int
+    let contributionRate: Int
+    let unitPrice: Int
+    let originalPrice: Int
+    let discount: Int
+    let actualRevenue: Int
+}
+
+struct CategoryAnalysisData: Identifiable {
+    let id = UUID()
+    let name: String
+    let amount: Int
+    let percentage: Int
+    let color: Color
+}
+
+struct SalesInsightsData {
+    let hotProductTitle: String
+    let hotProductDescription: String
+    let discountTitle: String
+    let discountDescription: String
+    let suggestionTitle: String
+    let suggestionDescription: String
+
+    init() {
+        self.hotProductTitle = "熱銷商品"
+        self.hotProductDescription = "暫無資料"
+        self.discountTitle = "折扣效果"
+        self.discountDescription = "暫無資料"
+        self.suggestionTitle = "優化建議"
+        self.suggestionDescription = "暫無資料"
+    }
+
+    init(hotProductTitle: String, hotProductDescription: String, discountTitle: String, discountDescription: String, suggestionTitle: String, suggestionDescription: String) {
+        self.hotProductTitle = hotProductTitle
+        self.hotProductDescription = hotProductDescription
+        self.discountTitle = discountTitle
+        self.discountDescription = discountDescription
+        self.suggestionTitle = suggestionTitle
+        self.suggestionDescription = suggestionDescription
+    }
+}
