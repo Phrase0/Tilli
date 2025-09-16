@@ -14,7 +14,6 @@ struct ProductDetailView: View {
     @Binding var showEditProduct: Bool
     @Binding var showCheckoutSheet: Bool
     @Binding var checkoutCompleted: Bool
-    @State private var showClearAlert = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -118,12 +117,6 @@ struct ProductDetailView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
-        .alert("確定要清除所有已選數量嗎？", isPresented: $showClearAlert) {
-            Button("取消", role: .cancel) { }
-            Button("清除", role: .destructive) {
-                productViewModel.clearAllQuantities()
-            }
-        }
         .alert(isPresented: $productViewModel.showAlert) {
             productViewModel.createAlert()
         }
@@ -135,16 +128,6 @@ struct ProductDetailView: View {
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted
             )
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showClearAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .accessibilityLabel("清除所有已選數量")
-            }
         }
     }
     
