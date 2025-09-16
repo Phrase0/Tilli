@@ -43,14 +43,7 @@ struct SalesAnalyticsView: View {
             }
             .padding()
         }
-
-        .onAppear {
-            salesAnalyticsViewModel.loadData()
-        }
         .refreshable {
-            salesAnalyticsViewModel.loadData()
-        }
-        .onChange(of: session.transactions) {
             salesAnalyticsViewModel.loadData()
         }
         .background(Color(.systemGray6))

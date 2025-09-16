@@ -44,14 +44,7 @@ struct ProductPerformanceView: View {
             }
             .padding()
         }
-        
-        .onAppear {
-            productPerformanceViewModel.loadData()
-        }
         .refreshable {
-            productPerformanceViewModel.loadData()
-        }
-        .onChange(of: session.transactions) {
             productPerformanceViewModel.loadData()
         }
         .background(Color(.systemGray6))
