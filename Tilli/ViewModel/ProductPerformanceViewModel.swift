@@ -13,6 +13,8 @@ class ProductPerformanceViewModel: ObservableObject {
     @Published var categoryAnalysis: [CategoryAnalysisData] = []
     @Published var salesInsights: SalesInsightsData = SalesInsightsData()
     @Published var isLoading = false
+    @Published var showingExportAlert = false
+    @Published var csvContent = ""
     
     // MARK: - Dependencies
     private var transactionDataManager: TransactionDataManager?
@@ -53,6 +55,78 @@ class ProductPerformanceViewModel: ObservableObject {
     
     func refreshData() {
         loadData()
+    }
+
+    // MARK: - CSV Export Methods
+
+    func generateTopProductsCSV() -> String {
+        var csvContent = "排名,商品名稱,類別,單價,銷售數量,原價,折扣金額,實際營收,貢獻率%\n"
+
+        for product in topProducts {
+            let rank = "\(product.rank)"
+            let name = product.name.replacingOccurrences(of: ",", with: "，")
+            let category = product.category.replacingOccurrences(of: ",", with: "，")
+            let unitPrice = "\(product.unitPrice)"
+            let salesCount = "\(product.salesCount)"
+            let originalPrice = "\(product.originalPrice)"
+            let discount = "\(product.discount)"
+            let actualRevenue = "\(product.actualRevenue)"
+            let contributionRate = "\(product.contributionRate)%"
+
+            let row = "\(rank),\(name),\(category),\(unitPrice),\(salesCount),\(originalPrice),\(discount),\(actualRevenue),\(contributionRate)\n"
+            csvContent += row
+        }
+
+        return csvContent
+    }
+
+    func generateCategoryAnalysisCSV() -> String {
+        var csvContent = "類別名稱,銷售金額,佔比%\n"
+
+        for category in categoryAnalysis {
+            let name = category.name.replacingOccurrences(of: ",", with: "，")
+            let amount = "\(category.amount)"
+            let percentage = "\(category.percentage)%"
+
+            let row = "\(name),\(amount),\(percentage)\n"
+            csvContent += row
+        }
+
+        return csvContent
+    }
+
+    func createTopProductsCSVFileURL() -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "熱門商品排行_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileURL = tempDir.appendingPathComponent(fileName)
+
+        do {
+            let csvContent = generateTopProductsCSV()
+            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("Error creating Top Products CSV file: \(error)")
+        }
+
+        return fileURL
+    }
+
+    func createCategoryAnalysisCSVFileURL() -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "類別銷售匯總_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileURL = tempDir.appendingPathComponent(fileName)
+
+        do {
+            let csvContent = generateCategoryAnalysisCSV()
+            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("Error creating Category Analysis CSV file: \(error)")
+        }
+
+        return fileURL
+    }
+
+    func showExportSuccessAlert() {
+        showingExportAlert = true
     }
 }
 
@@ -103,7 +177,6 @@ private extension ProductPerformanceViewModel {
                 name: stats.name,
                 category: stats.category,
                 salesCount: stats.totalQuantity,
-                revenue: Int(stats.actualRevenue),
                 contributionRate: contributionRate,
                 unitPrice: Int(stats.unitPrice),
                 originalPrice: Int(stats.originalRevenue),
@@ -111,7 +184,7 @@ private extension ProductPerformanceViewModel {
                 actualRevenue: Int(stats.actualRevenue)
             )
         }
-        .sorted { $0.revenue > $1.revenue }
+        .sorted { $0.actualRevenue > $1.actualRevenue }
         .prefix(5)
         .enumerated()
         .map { index, data in
@@ -288,7 +361,6 @@ struct ProductPerformanceData: Identifiable {
     let name: String
     let category: String
     let salesCount: Int
-    let revenue: Int
     let contributionRate: Int
     let unitPrice: Int
     let originalPrice: Int

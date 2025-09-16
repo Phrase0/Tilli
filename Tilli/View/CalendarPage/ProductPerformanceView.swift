@@ -7,11 +7,13 @@
 
 import SwiftUI
 import Charts
+import UniformTypeIdentifiers
 
 struct ProductPerformanceView: View {
     @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
     @Binding var session: SessionModel
     @State private var expandedProducts: Set<Int> = []
+    @State private var showingShareSheet = false
 
     init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>) {
         self.productPerformanceViewModel = viewModel
@@ -53,15 +55,43 @@ struct ProductPerformanceView: View {
             productPerformanceViewModel.loadData()
         }
         .background(Color(.systemGray6))
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingShareSheet = true
+                }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty)
+            }
+        }
+        .alert("CSV 導出成功", isPresented: $productPerformanceViewModel.showingExportAlert) {
+            Button("確定") { }
+        } message: {
+            Text("產品績效報告已成功導出為 CSV 檔案")
+        }
+        .shareSheet(
+            isPresented: $showingShareSheet,
+            activityItems: [
+                productPerformanceViewModel.createTopProductsCSVFileURL(),
+                productPerformanceViewModel.createCategoryAnalysisCSVFileURL()
+            ],
+            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
+            onComplete: { completed in
+                if completed {
+                    productPerformanceViewModel.showExportSuccessAlert()
+                }
+            }
+        )
     }
     
     
     // MARK: - Top Products View
     private var topProductsView: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // TOP 5 商品榜單 Header
+            // 熱門商品榜單 Header
             HStack {
-                Text("TOP 5 商品榜單")
+                Text("熱門商品榜單")
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -74,7 +104,7 @@ struct ProductPerformanceView: View {
                         name: product.name,
                         category: product.category,
                         salesCount: product.salesCount,
-                        revenue: product.revenue,
+                        revenue: product.actualRevenue,
                         contributionRate: product.contributionRate,
                         unitPrice: product.unitPrice,
                         originalPrice: product.originalPrice,

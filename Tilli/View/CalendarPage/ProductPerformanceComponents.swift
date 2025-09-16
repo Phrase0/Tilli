@@ -113,6 +113,16 @@ struct ProductRankingCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(spacing: 8) {
+ 
+                        if let unitPrice = unitPrice {
+                            HStack {
+                                Text("單價")
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text("NT$ \(unitPrice)")
+                                    .fontWeight(.medium)
+                            }
+                        }
                         
                         if let originalPrice = originalPrice {
                             HStack {
@@ -120,16 +130,6 @@ struct ProductRankingCard: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                                 Text("NT$ \(String(originalPrice).addingThousandsSeparator)")
-                                    .fontWeight(.medium)
-                            }
-                        }
-                        
-                        if let unitPrice = unitPrice {
-                            HStack {
-                                Text("單價")
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text("NT$ \(unitPrice)")
                                     .fontWeight(.medium)
                             }
                         }
