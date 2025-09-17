@@ -33,6 +33,7 @@ struct TransactionHistoryView: View {
         .refreshable {
             transactionViewModel.loadData()
         }
+        .background(Color(.systemGray6))
         .alert("CSV 導出成功", isPresented: $transactionViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {

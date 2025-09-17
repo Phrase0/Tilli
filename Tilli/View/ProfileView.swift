@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ProfileView: View {
     var body: some View {
-        Text("Profile Page")
+        Text("個人頁面")
             .font(.largeTitle)
     }
 }

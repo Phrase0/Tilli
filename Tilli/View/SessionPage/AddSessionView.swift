@@ -30,14 +30,14 @@ struct AddSessionView: View {
 
     var body: some View {
         Form {
-            TextField("Session Name", text: $viewModel.sessionName)
+            TextField("場次名稱", text: $viewModel.sessionName)
                 .focused($focusedField, equals: .sessionName)
                 .submitLabel(.next)
                 .onSubmit {
                     focusedField = .newCategory
                 }
 
-            DatePicker("Date", selection: $viewModel.sessionDate, displayedComponents: .date)
+            DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
 
             Section(header: Text("類別")) {
                 ForEach(viewModel.activeSortedCategories, id: \.id) { category in
@@ -76,7 +76,7 @@ struct AddSessionView: View {
         .navigationTitle(viewModel.editingSession == nil ? "新增場次" : "編輯場次")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Save") {
+                Button("儲存") {
                     switch viewModel.validateSave() {
                     case .success:
                         let session = viewModel.save()
@@ -111,7 +111,7 @@ struct AddSessionView: View {
     @ViewBuilder
     private func categoryRow(for category: CategoryModel) -> some View {
         if viewModel.editingCategoryID == category.id {
-            TextField("Category Name", text: Binding(
+            TextField("類別名稱", text: Binding(
                 get: {
                     viewModel.selectedCategory?.name ?? ""
                 },

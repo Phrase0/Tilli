@@ -28,7 +28,7 @@ struct SessionCardView: View {
 
                     Spacer()
 
-                    Text(session.status.rawValue)
+                    Text(session.status.localizedDescription)
                         .font(.caption)
                         .foregroundColor(session.status.textColor)
                         .padding(.horizontal, 8)

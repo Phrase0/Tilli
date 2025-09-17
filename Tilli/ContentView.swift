@@ -15,17 +15,17 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             CalendarView()
-                .tabItem { Label("Calendar", systemImage: "calendar") }
+                .tabItem { Label("日曆", systemImage: "calendar") }
                 .tag(0)
 
             SessionsView()
                 .environmentObject(appState)
-                .tabItem { Label("Sessions", systemImage: "list.bullet") }
+                .tabItem { Label("場次", systemImage: "list.bullet") }
                 .tag(1)
 
             MainAddProductFlowView(selectedTab: $selectedTab)
                 .environmentObject(appState)
-                .tabItem { Label("Add", systemImage: "plus.circle") }
+                .tabItem { Label("新增", systemImage: "plus.circle") }
                 .tag(2)
 
             QRCodeView()
@@ -33,7 +33,7 @@ struct ContentView: View {
                 .tag(3)
 
             ProfileView()
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                .tabItem { Label("個人", systemImage: "person.crop.circle") }
                 .tag(4)
         }
     }

@@ -41,7 +41,7 @@ struct SessionsView: View {
                 .padding()
             }
             .navigationTitle("場次")
-            .searchable(text: $searchText)
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋場次")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -98,12 +98,12 @@ struct SessionsView: View {
     private var duplicateSessionView: some View {
         NavigationView {
             Form {
-                TextField("Session Name", text: $viewModel.duplicateSessionName)
+                TextField("場次名稱", text: $viewModel.duplicateSessionName)
                     .onChange(of: viewModel.duplicateSessionName) {
                         viewModel.onSessionNameChanged()
                     }
                 
-                DatePicker("Date", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+                DatePicker("日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
             }
             .navigationTitle("複製場次")
             .navigationBarTitleDisplayMode(.inline)
@@ -168,7 +168,7 @@ struct SessionsView: View {
                             .padding(8)
                     }
                     
-                    Text(session.status.rawValue)
+                    Text(session.status.localizedDescription)
                         .font(.caption)
                         .foregroundColor(session.status.textColor)
                         .padding(.horizontal, 8)
