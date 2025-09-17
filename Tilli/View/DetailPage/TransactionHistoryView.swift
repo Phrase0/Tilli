@@ -213,33 +213,3 @@ struct TransactionHistoryView: View {
     }
 }
 
-// MARK: - Document Picker for CSV Export
-
-struct DocumentPicker: UIViewControllerRepresentable {
-    let transactionViewModel: TransactionViewModel
-    
-    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let tempURL = transactionViewModel.createTempCSVFileURL()
-        let picker = UIDocumentPickerViewController(forExporting: [tempURL])
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(transactionViewModel)
-    }
-    
-    class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let transactionViewModel: TransactionViewModel
-        
-        init(_ transactionViewModel: TransactionViewModel) {
-            self.transactionViewModel = transactionViewModel
-        }
-        
-        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            transactionViewModel.showExportSuccessAlert()
-        }
-    }
-}

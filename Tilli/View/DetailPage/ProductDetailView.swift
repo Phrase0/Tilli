@@ -104,7 +104,6 @@ struct ProductDetailView: View {
                     }
                     
                     // Footer - 總計和結帳按鈕
-                        
                         VStack(spacing: 12) {
                             HStack {
                                 Text("總計")
