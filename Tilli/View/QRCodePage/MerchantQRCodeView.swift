@@ -64,7 +64,7 @@ struct MerchantQRCodeView: View {
                     Spacer()
                 }
 
-                // Line Pay Button (Fixed at bottom)
+                // Line Pay Button
                 VStack(spacing: 12) {
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.3)) {
@@ -93,7 +93,7 @@ struct MerchantQRCodeView: View {
                 }
                 .padding()
             }
-            .navigationTitle("我的收款 QR Code")
+            .navigationTitle("我的收款碼")
             .navigationBarTitleDisplayMode(.large)
         }
         .background(Color(.systemGroupedBackground))
