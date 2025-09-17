@@ -245,4 +245,16 @@ class AddNewProductViewModel: ObservableObject {
     func selectImage() {
         showImagePicker = true
     }
+
+    /// 清除圖片暫存狀態，每次開啟頁面時重置
+    func clearImageTempState() {
+        // 永遠重置為原始狀態，不保留暫存
+        if let editingProduct = editingProduct {
+            // 編輯模式：重置為產品原始圖片
+            image = editingProduct.image
+        } else {
+            // 新增模式：清除圖片
+            image = nil
+        }
+    }
 }
