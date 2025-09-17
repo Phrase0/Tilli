@@ -25,10 +25,10 @@ struct ContentView: View {
 
             MainAddProductFlowView(selectedTab: $selectedTab)
                 .environmentObject(appState)
-                .tabItem { Label("新增", systemImage: "plus.circle") }
+                .tabItem { Label("新增", systemImage: "plus.circle.fill") }
                 .tag(2)
 
-            QRCodeView()
+            MerchantQRCodeView()
                 .tabItem { Label("QRCode", systemImage: "qrcode") }
                 .tag(3)
 
