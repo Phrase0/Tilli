@@ -188,8 +188,8 @@ struct AddNewProductView: View {
                 )
                 viewModel.ensureValidCategorySelection()
 
-                // 預先載入圖片選擇器
-                CustomImagePicker.preloadImagePicker()
+                // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
+                viewModel.clearImageTempState()
             }
         }
     }
