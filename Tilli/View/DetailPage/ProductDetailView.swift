@@ -16,24 +16,27 @@ struct ProductDetailView: View {
     @Binding var checkoutCompleted: Bool
     
     var body: some View {
-        VStack(spacing: 0) {
-            // 商品列表
-            ScrollView {
-                let activeCategories = productViewModel.session.categories.filter { !$0.isDisabled }
-                let hasAnyProducts = activeCategories.contains { category in
-                    !productViewModel.getSortedProductsForCategory(category.id).isEmpty
-                }
+        let activeCategories = productViewModel.session.categories.filter { !$0.isDisabled }
+        let hasAnyProducts = activeCategories.contains { category in
+            !productViewModel.getSortedProductsForCategory(category.id).isEmpty
+        }
 
-                if !hasAnyProducts && productViewModel.disabledProducts.isEmpty {
-                    // 完全沒有商品時顯示空狀態
-                    LazyVStack(spacing: 12) {
-                        EmptyStateView(
-                            systemImage: "cube.box",
-                            title: "尚無商品",
-                            message: "請先新增商品後再開始銷售"
-                        )
-                    }
-                } else {
+        Group {
+            if !hasAnyProducts && productViewModel.disabledProducts.isEmpty {
+            // 完全沒有商品時顯示空狀態
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    EmptyStateView(
+                        systemImage: "cube.box",
+                        title: "尚無商品",
+                        message: "請先新增商品後再開始銷售"
+                    )
+                }
+            }
+        } else {
+            // 有商品時顯示正常的商品列表和結帳功能
+            VStack(spacing: 0) {
+                ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         // 啟用的產品列表
                         ForEach(activeCategories.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
@@ -104,33 +107,34 @@ struct ProductDetailView: View {
                     }
                     .padding(.top)
                 }
-            }
-            
-            // Footer - 總計和結帳按鈕
-            VStack(spacing: 12) {
-                HStack {
-                    Text("總計")
-                        .font(.headline)
-                    Spacer()
-                    Text("NT$\(productViewModel.totalAmount())")
-                        .font(.headline)
-                        .bold()
+
+                // Footer - 總計和結帳按鈕
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("總計")
+                            .font(.headline)
+                        Spacer()
+                        Text("NT$\(productViewModel.totalAmount())")
+                            .font(.headline)
+                            .bold()
+                    }
+
+                    Button {
+                        showCheckoutSheet = true
+                    } label: {
+                        Text("結帳")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
+                            .cornerRadius(30)
+                    }
+                    .disabled(productViewModel.totalAmount() == 0)
                 }
-                
-                Button {
-                    showCheckoutSheet = true
-                } label: {
-                    Text("結帳")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
-                        .cornerRadius(30)
-                }
-                .disabled(productViewModel.totalAmount() == 0)
+                .padding()
             }
-            .padding()
+        }
         }
         .background(Color(.systemGroupedBackground))
         .alert(isPresented: $productViewModel.showAlert) {
