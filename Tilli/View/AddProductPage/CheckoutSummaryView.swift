@@ -23,7 +23,7 @@ struct CheckoutSummaryView: View {
             VStack(spacing: 0) {
                 // MARK: Header
                 HStack {
-                    Text("Order Summary")
+                    Text("訂單摘要")
                         .font(.headline)
                     Spacer()
                     Button {
@@ -86,7 +86,7 @@ struct CheckoutSummaryView: View {
 
                 // MARK: 總金額
                 HStack {
-                    Text("Total")
+                    Text("總計")
                         .font(.headline)
                     Spacer()
                     Text("NT$\(totalAmount)")
@@ -104,8 +104,8 @@ struct CheckoutSummaryView: View {
                         HStack {
                             Image(systemName: "banknote")
                             VStack(alignment: .leading) {
-                                Text("Cash Payment")
-                                Text("Pay with cash")
+                                Text("現金付款")
+                                Text("使用現金付款")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
@@ -123,8 +123,8 @@ struct CheckoutSummaryView: View {
                         HStack {
                             Image(systemName: "creditcard")
                             VStack(alignment: .leading) {
-                                Text("E-Payment")
-                                Text("Pay with digital wallet")
+                                Text("電子支付")
+                                Text("使用數位錢包付款")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }

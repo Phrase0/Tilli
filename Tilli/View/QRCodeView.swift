@@ -9,7 +9,7 @@ import SwiftUI
 
 struct QRCodeView: View {
     var body: some View {
-        Text("QRCode Page")
+        Text("掃描頁面")
             .font(.largeTitle)
     }
 }

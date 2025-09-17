@@ -93,7 +93,7 @@ class CategoryRepository: ObservableObject {
 
         do {
             guard let categoryEntity = try context.fetch(request).first else {
-                return .failed("找不到要刪除的 Category")
+                return .failed("找不到要刪除的類別")
             }
 
             // 檢查是否有相關 Transaction

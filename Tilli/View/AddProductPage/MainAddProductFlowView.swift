@@ -66,7 +66,7 @@ struct MainAddProductFlowView: View {
                         .padding()
                     }
                     .navigationTitle("選擇場次")
-                    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+                    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋場次")
                 }
             }
             else {

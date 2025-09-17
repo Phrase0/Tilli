@@ -237,7 +237,7 @@ struct SessionRowView: View {
                     .font(.headline)
                     .foregroundColor(.blue)
                 
-                Text("\(session.transactions.count) transactions")
+                Text("\(session.transactions.count) 筆交易")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -279,14 +279,14 @@ struct MonthYearPickerView: View {
     var body: some View {
         NavigationView {
             HStack {
-                Picker("Year", selection: $selectedYear) {
+                Picker("年份", selection: $selectedYear) {
                     ForEach(years, id: \.self) { year in
                         Text("\(year)年").tag(year)
                     }
                 }
                 .pickerStyle(WheelPickerStyle())
                 
-                Picker("Month", selection: $selectedMonth) {
+                Picker("月份", selection: $selectedMonth) {
                     ForEach(months, id: \.self) { month in
                         Text("\(month)月").tag(month)
                     }

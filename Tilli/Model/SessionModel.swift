@@ -50,4 +50,12 @@ enum SessionStatus: String, Codable {
         case .upcoming: return .blue
         }
     }
+
+    var localizedDescription: String {
+        switch self {
+        case .ongoing: return "進行中"
+        case .completed: return "已完成"
+        case .upcoming: return "即將到來"
+        }
+    }
 }
