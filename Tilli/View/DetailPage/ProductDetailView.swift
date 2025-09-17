@@ -104,9 +104,6 @@ struct ProductDetailView: View {
                     }
                     
                     // Footer - 總計和結帳按鈕
-                    VStack(spacing: 0) {
-                        Divider()
-                            .background(Color(.systemGray4))
                         
                         VStack(spacing: 12) {
                             HStack {
@@ -132,7 +129,6 @@ struct ProductDetailView: View {
                             .disabled(productViewModel.totalAmount() == 0)
                         }
                         .padding()
-                    }
                 }
             }
         }
