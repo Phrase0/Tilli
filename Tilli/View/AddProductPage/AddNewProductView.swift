@@ -5,7 +5,6 @@
 //  Created by Peiyun on 2025/7/3.
 //
 import SwiftUI
-import PhotosUI
 
 struct AddNewProductView: View {
     
@@ -76,54 +75,53 @@ struct AddNewProductView: View {
                     Text("產品圖片")
                         .font(.subheadline)
                         .fontWeight(.semibold)
+
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
                             .foregroundColor(.gray.opacity(0.4))
                             .aspectRatio(1, contentMode: .fit)
-                        
-                        VStack {
-                            if let image = viewModel.image {
-                                PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
-                                    Image(uiImage: image)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .aspectRatio(1, contentMode: .fit)
-                                        .frame(maxHeight: 140)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(Color.blue.opacity(0.3), lineWidth: 2)
-                                        )
-                                        .overlay(
-                                            VStack {
-                                                Spacer()
-                                                HStack {
-                                                    Spacer()
-                                                    Image(systemName: "camera.fill")
-                                                        .foregroundColor(.white)
-                                                        .background(Circle().fill(Color.blue))
-                                                        .font(.caption)
-                                                        .padding(4)
-                                                        .padding(.trailing, 8)
-                                                        .padding(.bottom, 8)
-                                                }
-                                            }
-                                        )
-                                }
-                            } else {
-                                PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: "camera")
-                                            .font(.title2)
-                                            .foregroundColor(.gray)
-                                        Text("上傳圖片")
-                                            .foregroundColor(.gray)
-                                            .font(.caption)
+
+                        if let image = viewModel.image {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .clipped()
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.blue.opacity(0.3), lineWidth: 2)
+                                )
+                                .overlay(
+                                    VStack {
+                                        Spacer()
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "camera.fill")
+                                                .foregroundColor(.white)
+                                                .background(Circle().fill(Color.blue))
+                                                .font(.caption)
+                                                .padding(4)
+                                                .padding(.trailing, 8)
+                                                .padding(.bottom, 8)
+                                        }
                                     }
-                                }
+                                )
+                        } else {
+                            VStack(spacing: 4) {
+                                Image(systemName: "camera")
+                                    .font(.title2)
+                                    .foregroundColor(.gray)
+                                Text("上傳圖片")
+                                    .foregroundColor(.gray)
+                                    .font(.caption)
                             }
                         }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.selectImage()
                     }
                     
                     Text("產品描述")
@@ -181,8 +179,8 @@ struct AddNewProductView: View {
             } message: {
                 Text(viewModel.duplicateNameMessage)
             }
-            .onChange(of: viewModel.selectedItem) {
-                viewModel.handleImageSelection()
+            .sheet(isPresented: $viewModel.showImagePicker) {
+                CustomImagePicker(image: $viewModel.image, isPresented: $viewModel.showImagePicker)
             }
             .onAppear {
                 // 每次出現時更新資料管理器

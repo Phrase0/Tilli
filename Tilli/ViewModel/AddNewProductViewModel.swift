@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import PhotosUI
 
 class AddNewProductViewModel: ObservableObject {
     
@@ -24,7 +23,7 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 圖片選擇
     @Published var image: UIImage?
-    @Published var selectedItem: PhotosPickerItem?
+    @Published var showImagePicker = false
     
     // MARK: - UI 驗證狀態
     @Published var showValidationError = false
@@ -242,17 +241,8 @@ class AddNewProductViewModel: ObservableObject {
 
     
     
-    // MARK: - 處理 PhotosPicker 圖片選擇
-    func handleImageSelection() {
-        guard let item = selectedItem else { return }
-        
-        Task {
-            if let data = try? await item.loadTransferable(type: Data.self),
-               let uiImage = UIImage(data: data) {
-                await MainActor.run {
-                    self.image = uiImage
-                }
-            }
-        }
+    // MARK: - 處理圖片選擇
+    func selectImage() {
+        showImagePicker = true
     }
 }
