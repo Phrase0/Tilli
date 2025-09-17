@@ -16,125 +16,125 @@ struct ProductDetailView: View {
     @Binding var checkoutCompleted: Bool
     
     var body: some View {
-        let activeCategories = productViewModel.session.categories.filter { !$0.isDisabled }
-        let hasAnyProducts = activeCategories.contains { category in
-            !productViewModel.getSortedProductsForCategory(category.id).isEmpty
-        }
-
         Group {
-            if !hasAnyProducts && productViewModel.disabledProducts.isEmpty {
-            // 完全沒有商品時顯示空狀態
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    EmptyStateView(
-                        systemImage: "cube.box",
-                        title: "尚無商品",
-                        message: "請先新增商品後再開始銷售"
-                    )
-                }
-            }
-        } else {
-            // 有商品時顯示正常的商品列表和結帳功能
-            VStack(spacing: 0) {
+            if productViewModel.shouldShowEmptyState {
+                // 完全沒有商品時顯示空狀態
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // 啟用的產品列表
-                        ForEach(activeCategories.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
-                            let items = productViewModel.getSortedProductsForCategory(category.id)
-                            if !items.isEmpty {
+                    LazyVStack(spacing: 12) {
+                        EmptyStateView(
+                            systemImage: "cube.box",
+                            title: "尚無商品",
+                            message: "請先新增商品後再開始銷售"
+                        )
+                    }
+                }
+            } else {
+                // 有商品時顯示正常的商品列表和結帳功能
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            // 啟用的產品列表
+                            ForEach(productViewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
+                                let items = productViewModel.getSortedProductsForCategory(category.id)
+                                if !items.isEmpty {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // 可點擊的分類標題
+                                        Button(action: {
+                                            productViewModel.toggleCategoryExpansion(category.id)
+                                        }) {
+                                            HStack {
+                                                Text(category.name)
+                                                    .font(.headline)
+                                                    .foregroundColor(.primary)
+                                                    .padding(.horizontal)
+                                                
+                                                Spacer()
+                                                
+                                                Image(systemName: productViewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                                                    .foregroundColor(.gray)
+                                                    .font(.caption)
+                                                    .padding(.horizontal)
+                                            }
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        
+                                        // 商品列表（可展開/收起）
+                                        if productViewModel.isCategoryExpanded(category.id) {
+                                            ForEach(items) { product in
+                                                productCard(product)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 下架商品區
+                            if !productViewModel.disabledProducts.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    // 可點擊的分類標題
                                     Button(action: {
-                                        productViewModel.toggleCategoryExpansion(category.id)
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            productViewModel.showDisabledProducts.toggle()
+                                        }
                                     }) {
                                         HStack {
-                                            Text(category.name)
+                                            Text("下架商品")
                                                 .font(.headline)
-                                                .foregroundColor(.primary)
+                                                .foregroundColor(.gray)
                                                 .padding(.horizontal)
-
+                                            
                                             Spacer()
-
-                                            Image(systemName: productViewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                                            
+                                            Image(systemName: productViewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
                                                 .foregroundColor(.gray)
                                                 .font(.caption)
                                                 .padding(.horizontal)
                                         }
                                     }
                                     .buttonStyle(PlainButtonStyle())
-
-                                    // 商品列表（可展開/收起）
-                                    if productViewModel.isCategoryExpanded(category.id) {
-                                        ForEach(items) { product in
-                                            productCard(product)
+                                    
+                                    if productViewModel.showDisabledProducts {
+                                        ForEach(productViewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
+                                            disabledProductCard(product)
                                         }
                                     }
                                 }
                             }
                         }
-
-                        // 下架商品區
-                        if !productViewModel.disabledProducts.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        productViewModel.showDisabledProducts.toggle()
-                                    }
-                                }) {
-                                    HStack {
-                                        Text("下架商品")
-                                            .font(.headline)
-                                            .foregroundColor(.gray)
-                                            .padding(.horizontal)
-
-                                        Spacer()
-
-                                        Image(systemName: productViewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
-                                            .foregroundColor(.gray)
-                                            .font(.caption)
-                                            .padding(.horizontal)
-                                    }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-
-                                if productViewModel.showDisabledProducts {
-                                    ForEach(productViewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
-                                        disabledProductCard(product)
-                                    }
-                                }
+                        .padding(.top)
+                    }
+                    
+                    // Footer - 總計和結帳按鈕
+                    VStack(spacing: 0) {
+                        Divider()
+                            .background(Color(.systemGray4))
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("總計")
+                                    .font(.headline)
+                                Spacer()
+                                Text("NT$\(productViewModel.totalAmount())")
+                                    .font(.headline)
+                                    .bold()
                             }
+                            
+                            Button {
+                                showCheckoutSheet = true
+                            } label: {
+                                Text("結帳")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
+                                    .cornerRadius(30)
+                            }
+                            .disabled(productViewModel.totalAmount() == 0)
                         }
+                        .padding()
                     }
-                    .padding(.top)
                 }
-
-                // Footer - 總計和結帳按鈕
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("總計")
-                            .font(.headline)
-                        Spacer()
-                        Text("NT$\(productViewModel.totalAmount())")
-                            .font(.headline)
-                            .bold()
-                    }
-
-                    Button {
-                        showCheckoutSheet = true
-                    } label: {
-                        Text("結帳")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
-                            .cornerRadius(30)
-                    }
-                    .disabled(productViewModel.totalAmount() == 0)
-                }
-                .padding()
             }
-        }
         }
         .background(Color(.systemGroupedBackground))
         .alert(isPresented: $productViewModel.showAlert) {

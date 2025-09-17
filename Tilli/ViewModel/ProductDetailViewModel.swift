@@ -50,6 +50,21 @@ class ProductViewModel: ObservableObject {
             return isProductDisabled && isCategoryEnabled
         }
     }
+
+    // MARK: - 商品狀態邏輯
+
+    /// 檢查是否有任何可用商品（用於判斷是否顯示空狀態）
+    var hasAnyProducts: Bool {
+        let activeCategories = session.categories.filter { !$0.isDisabled }
+        return activeCategories.contains { category in
+            !getSortedProductsForCategory(category.id).isEmpty
+        }
+    }
+
+    /// 是否應該顯示空狀態（沒有任何商品包括下架商品）
+    var shouldShowEmptyState: Bool {
+        return !hasAnyProducts && disabledProducts.isEmpty
+    }
     
     init(session: Binding<SessionModel>) {
         self._session = session
