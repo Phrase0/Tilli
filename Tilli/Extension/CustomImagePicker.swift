@@ -12,6 +12,9 @@ struct CustomImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Binding var isPresented: Bool
 
+    // 預先初始化的 picker，避免每次點擊都重新建立
+    private static var sharedPicker: UIImagePickerController?
+
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: CustomImagePicker
 
@@ -58,11 +61,32 @@ struct CustomImagePicker: UIViewControllerRepresentable {
     }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
+        // 如果已經有預先初始化的 picker，直接使用
+        if let existingPicker = Self.sharedPicker {
+            existingPicker.delegate = context.coordinator
+            return existingPicker
+        }
+
+        // 首次建立 picker 並快取
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         picker.sourceType = .photoLibrary
         picker.allowsEditing = true
+
+        Self.sharedPicker = picker
         return picker
+    }
+
+    // 靜態方法用於預先初始化
+    static func preloadImagePicker() {
+        if sharedPicker == nil {
+            DispatchQueue.main.async {
+                let picker = UIImagePickerController()
+                picker.sourceType = .photoLibrary
+                picker.allowsEditing = true
+                sharedPicker = picker
+            }
+        }
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}

@@ -86,7 +86,6 @@ struct AddNewProductView: View {
                             Image(uiImage: image)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .clipped()
                                 .cornerRadius(8)
                                 .overlay(
@@ -129,7 +128,7 @@ struct AddNewProductView: View {
                         .fontWeight(.semibold)
                     TextEditor(text: $viewModel.description)
                         .frame(height: 100)
-                        .padding(8)
+                        .padding(3)
                         .background(Color(UIColor.systemGray6))
                         .cornerRadius(8)
                     
@@ -188,6 +187,9 @@ struct AddNewProductView: View {
                     transactionDataManager: transactionDataManager
                 )
                 viewModel.ensureValidCategorySelection()
+
+                // 預先載入圖片選擇器
+                CustomImagePicker.preloadImagePicker()
             }
         }
     }
