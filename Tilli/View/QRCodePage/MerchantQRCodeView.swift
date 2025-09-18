@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct MerchantQRCodeView: View {
-    @State private var selectedQRImage: UIImage?
+    
+    @EnvironmentObject var qrCodeDataManager: QRCodeDataManager
     @State private var isLinePayLinked = false
     @State private var showingImagePicker = false
+    @State private var tempSelectedImage: UIImage?
     
     var body: some View {
         NavigationView {
@@ -29,7 +31,7 @@ struct MerchantQRCodeView: View {
                                     .frame(width: 300, height: 300)
                                     .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
                         
-                                if let qrImage = selectedQRImage {
+                                if let qrImage = qrCodeDataManager.qrCodeImage {
                                     Image(uiImage: qrImage)
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
@@ -98,7 +100,13 @@ struct MerchantQRCodeView: View {
         }
         .background(Color(.systemGroupedBackground))
         .sheet(isPresented: $showingImagePicker) {
-            CustomImagePicker(image: $selectedQRImage, isPresented: $showingImagePicker)
+            CustomImagePicker(image: $tempSelectedImage, isPresented: $showingImagePicker)
+        }
+        .onChange(of: tempSelectedImage) { newImage in
+            if let image = newImage {
+                qrCodeDataManager.saveQRCode(image)
+                tempSelectedImage = nil
+            }
         }
     }
 }

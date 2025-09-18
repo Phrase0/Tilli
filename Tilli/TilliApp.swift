@@ -13,6 +13,7 @@ struct TilliApp: App {
     @StateObject private var transactionDataManager = TransactionDataManager()
     @StateObject private var productRepository = ProductRepository()
     @StateObject private var categoryRepository = CategoryRepository()
+    @StateObject private var qRCodeDataManager = QRCodeDataManager()
     
     @StateObject private var appState = AppState()
     let persistenceController = PersistenceController.shared
@@ -26,6 +27,7 @@ struct TilliApp: App {
                 .environmentObject(transactionDataManager)
                 .environmentObject(productRepository)
                 .environmentObject(categoryRepository)
+                .environmentObject(qRCodeDataManager)
         }
     }
 }
