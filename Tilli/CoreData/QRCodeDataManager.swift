@@ -7,7 +7,6 @@
 
 import CoreData
 import SwiftUI
-import UIKit
 
 class QRCodeDataManager: ObservableObject {
 
