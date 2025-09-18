@@ -38,4 +38,9 @@
         <attribute name="totalAmount" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <relationship name="session" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="transactions" inverseEntity="CDSessionEntity"/>
     </entity>
+    <entity name="CDQRCodeEntity" representedClassName="CDQRCodeEntity" syncable="YES">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageData" attributeType="Binary"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
 </model>
