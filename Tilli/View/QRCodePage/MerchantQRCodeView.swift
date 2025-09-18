@@ -102,8 +102,8 @@ struct MerchantQRCodeView: View {
         .sheet(isPresented: $showingImagePicker) {
             CustomImagePicker(image: $tempSelectedImage, isPresented: $showingImagePicker)
         }
-        .onChange(of: tempSelectedImage) { newImage in
-            if let image = newImage {
+        .onChange(of: tempSelectedImage) {
+            if let image = tempSelectedImage {
                 qrCodeDataManager.saveQRCode(image)
                 tempSelectedImage = nil
             }
