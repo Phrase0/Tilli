@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct SessionDetailView: View {
     
@@ -105,7 +106,7 @@ struct SessionDetailView: View {
                 Text(viewModel.session.title)
                     .font(.title2)
                     .bold()
-                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • NT$\(viewModel.sessionTotalAmount, specifier: "%.0f")")
+                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • \(viewModel.sessionTotalAmount.money)")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }

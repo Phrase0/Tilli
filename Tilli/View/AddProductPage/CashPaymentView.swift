@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct CashPaymentView: View {
     
@@ -23,7 +24,7 @@ struct CashPaymentView: View {
     @ObservedObject var viewModel: CashPaymentViewModel
     
     init(
-        totalAmount: Int,
+        totalAmount: Decimal,
         session: Binding<SessionModel>,
         summaryItems: [SummaryItemModel],
         onComplete: @escaping (SessionModel) -> Void
@@ -47,7 +48,7 @@ struct CashPaymentView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "tag.fill")
                         .foregroundColor(.blue)
-                    Text("NT$\(viewModel.totalAmount)")
+                    Text(viewModel.totalAmount.money)
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.black)
@@ -73,7 +74,7 @@ struct CashPaymentView: View {
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text("NT$\(max(viewModel.change, 0))")
+                Text(max(viewModel.change, 0).money)
                     .font(.title)
                     .foregroundColor(.blue)
                     .bold()

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 class ProductViewModel: ObservableObject {
     
@@ -196,13 +197,16 @@ class ProductViewModel: ObservableObject {
         selectedDiscounts.removeAll()
     }
     
-    func totalAmount() -> Int {
+    func totalAmount() -> Decimal {
         activeProducts.reduce(0) { result, product in
             let qty = quantities[product.id, default: 0]
             let discount = selectedDiscounts[product.id] ?? 0
-            let discountedPrice = product.price * (1 - Double(discount) / 100)
-            let roundedTotal = (discountedPrice * Double(qty)).rounded()
-            return result + Int(roundedTotal)
+            let total = MoneyHelper.calculateTotal(
+                price: product.price,
+                quantity: qty,
+                discountPercentage: discount
+            )
+            return MoneyHelper.add(result, total)
         }
     }
     

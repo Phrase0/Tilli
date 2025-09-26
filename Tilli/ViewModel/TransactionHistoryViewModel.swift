@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 class TransactionViewModel: ObservableObject {
     
@@ -20,8 +21,8 @@ class TransactionViewModel: ObservableObject {
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
     
-    var sessionTotalAmount: Double {
-        session.transactions.reduce(0) { $0 + $1.totalAmount }
+    var sessionTotalAmount: Decimal {
+        session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
     }
     
     init(session: Binding<SessionModel>) {
@@ -118,8 +119,8 @@ class TransactionViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
-    func formatAmount(_ amount: Double) -> String {
-        return String(format: "%.0f", amount)
+    func formatAmount(_ amount: Decimal) -> String {
+        return MoneyHelper.toDouble(amount).formatted(.number.precision(.fractionLength(0)))
     }
     
     func paymentMethodText(_ method: PaymentMethod) -> String {

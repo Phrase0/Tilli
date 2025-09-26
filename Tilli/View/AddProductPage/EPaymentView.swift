@@ -6,15 +6,16 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct EPaymentView: View {
-    let totalAmount: Int
+    let totalAmount: Decimal
 
     var body: some View {
         VStack(spacing: 20) {
             Text("E-Payment")
                 .font(.largeTitle)
-            Text("Total: NT$\(totalAmount)")
+            Text("Total: \(totalAmount.money)")
                 .font(.title2)
         }
         .padding()

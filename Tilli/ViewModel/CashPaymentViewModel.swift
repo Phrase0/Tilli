@@ -10,26 +10,26 @@ import SwiftUI
 
 class CashPaymentViewModel: ObservableObject {
     
-    let totalAmount: Int
+    let totalAmount: Decimal
     let session: SessionModel
     let summaryItems: [SummaryItemModel]
 
     @Published var receivedAmountText: String = ""
     @Published var errorMessage: String? = nil
     
-    var receivedAmount: Int {
-        Int(receivedAmountText) ?? 0
+    var receivedAmount: Decimal {
+        Decimal(string: receivedAmountText) ?? 0
     }
     
-    var change: Int {
-        receivedAmount - totalAmount
+    var change: Decimal {
+        MoneyHelper.subtract(receivedAmount, totalAmount)
     }
     
     var isAmountValid: Bool {
         receivedAmount >= totalAmount
     }
     
-    init(totalAmount: Int, session: SessionModel, summaryItems: [SummaryItemModel]) {
+    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
         self.totalAmount = totalAmount
         self.session = session
         self.summaryItems = summaryItems
@@ -58,7 +58,7 @@ class CashPaymentViewModel: ObservableObject {
         let transaction = TransactionModel(
             sessionId: session.id,
             items: summaryItems,
-            totalAmount: Double(totalAmount),
+            totalAmount: totalAmount,
             paymentMethod: .cash,
             timestamp: Date()
         )

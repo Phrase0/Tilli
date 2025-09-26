@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 class AddNewProductViewModel: ObservableObject {
     
@@ -48,7 +49,7 @@ class AddNewProductViewModel: ObservableObject {
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !price.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        Double(price) != nil &&
+        Decimal(string: price) != nil &&
         !quantity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         Int(quantity) != nil &&
         selectedCategory != nil // 直接使用 selectedCategory 而不是 selectedCategoryID
@@ -77,7 +78,7 @@ class AddNewProductViewModel: ObservableObject {
         // 如果有編輯的產品，填入現有資料
         if let product = editingProduct {
             self.name = product.name
-            self.price = String(Int(product.price.rounded()))
+            self.price = MoneyHelper.toDouble(product.price).formatted(.number.precision(.fractionLength(0)))
             self.quantity = String(product.stock)
             self.selectedCategoryID = product.categoryId
             // optional 欄位
@@ -135,7 +136,7 @@ class AddNewProductViewModel: ObservableObject {
         ensureValidCategorySelection()
         
         guard let category = selectedCategory,
-              let priceValue = Double(price),
+              let priceValue = Decimal(string: price),
               let quantityValue = Int(quantity),
               !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return nil

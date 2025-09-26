@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
-    let totalAmount: Int
+    let totalAmount: Decimal
 
     @Binding var session: SessionModel
     @Binding var isPresented: Bool
@@ -59,12 +60,12 @@ struct CheckoutSummaryView: View {
                                                 .background(Color.blue.opacity(0.2))
                                                 .cornerRadius(4)
 
-                                            let discountedPrice = Int((item.price * (1 - Double(item.discount) / 100)).rounded())
-                                            Text("NT$\(discountedPrice)")
+                                            let discountedPrice = MoneyHelper.applyDiscount(price: item.price, discountPercentage: item.discount)
+                                            Text(discountedPrice.money)
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         } else {
-                                            Text("NT$\(Int(item.price))")
+                                            Text(item.price.money)
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         }
@@ -73,7 +74,7 @@ struct CheckoutSummaryView: View {
 
                                 Spacer()
 
-                                Text("NT$\(Int(item.total))")
+                                Text(item.total.money)
                                     .font(.body)
                                     .fontWeight(.semibold)
                             }
@@ -89,7 +90,7 @@ struct CheckoutSummaryView: View {
                     Text("總計")
                         .font(.headline)
                     Spacer()
-                    Text("NT$\(totalAmount)")
+                    Text(totalAmount.money)
                         .font(.headline)
                         .bold()
                 }
