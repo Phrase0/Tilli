@@ -14,7 +14,43 @@ enum RoundingMode {
     case up
 }
 
+enum Currency: String, CaseIterable {
+    case twd = "TWD"
+    case usd = "USD"
+    case eur = "EUR"
+    case jpy = "JPY"
+
+    var symbol: String {
+        switch self {
+        case .twd: return "NT$"
+        case .usd: return "$"
+        case .eur: return "€"
+        case .jpy: return "¥"
+        }
+    }
+
+    var decimalPlaces: Int {
+        switch self {
+        case .twd: return 0
+        case .usd: return 2
+        case .eur: return 2
+        case .jpy: return 0
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .twd: return "新台幣"
+        case .usd: return "美金"
+        case .eur: return "歐元"
+        case .jpy: return "日幣"
+        }
+    }
+}
+
 class MoneyHelper {
+    static var currentCurrency: Currency = .twd
+
     private static let handler = NSDecimalNumberHandler(
         roundingMode: .bankers,
         scale: 2,
@@ -114,6 +150,22 @@ class MoneyHelper {
 
     static func toDouble(_ value: Decimal) -> Double {
         return NSDecimalNumber(decimal: value).doubleValue
+    }
+
+    static func switchToCurrency(_ currency: Currency) {
+        currentCurrency = currency
+    }
+
+    static func format(_ value: Decimal, currency: Currency) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = currency.decimalPlaces
+        formatter.maximumFractionDigits = currency.decimalPlaces
+
+        if let formattedNumber = formatter.string(from: NSDecimalNumber(decimal: value)) {
+            return "\(currency.symbol)\(formattedNumber)"
+        }
+        return "\(currency.symbol)0"
     }
 
     private static func getHandler(for mode: RoundingMode) -> NSDecimalNumberHandler {
