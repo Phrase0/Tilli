@@ -46,6 +46,10 @@ enum Currency: String, CaseIterable {
         case .jpy: return "日幣"
         }
     }
+
+    var roundingMode: RoundingMode {
+        return .plain  // 所有貨幣都使用一般四捨五入
+    }
 }
 
 class MoneyHelper {
@@ -133,15 +137,8 @@ class MoneyHelper {
     }
 
     static func format(_ value: Decimal, currency: String = "NT$") -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-
-        if let formattedNumber = formatter.string(from: NSDecimalNumber(decimal: value)) {
-            return "\(currency)\(formattedNumber)"
-        }
-        return "\(currency)0"
+        // 使用當前貨幣設定的規則
+        return format(value, currency: currentCurrency)
     }
 
     static func fromDouble(_ value: Double) -> Decimal {
@@ -157,12 +154,16 @@ class MoneyHelper {
     }
 
     static func format(_ value: Decimal, currency: Currency) -> String {
+        // 先根據貨幣規則四捨五入
+        let handler = getHandlerForCurrency(currency)
+        let roundedValue = NSDecimalNumber(decimal: value).rounding(accordingToBehavior: handler).decimalValue
+
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = currency.decimalPlaces
         formatter.maximumFractionDigits = currency.decimalPlaces
 
-        if let formattedNumber = formatter.string(from: NSDecimalNumber(decimal: value)) {
+        if let formattedNumber = formatter.string(from: NSDecimalNumber(decimal: roundedValue)) {
             return "\(currency.symbol)\(formattedNumber)"
         }
         return "\(currency.symbol)0"
@@ -179,6 +180,29 @@ class MoneyHelper {
         case .up:
             return upRoundingHandler
         }
+    }
+
+    private static func getHandlerForCurrency(_ currency: Currency) -> NSDecimalNumberHandler {
+        let nsRoundingMode: NSDecimalNumber.RoundingMode
+        switch currency.roundingMode {
+        case .bankers:
+            nsRoundingMode = .bankers
+        case .plain:
+            nsRoundingMode = .plain
+        case .down:
+            nsRoundingMode = .down
+        case .up:
+            nsRoundingMode = .up
+        }
+
+        return NSDecimalNumberHandler(
+            roundingMode: nsRoundingMode,
+            scale: Int16(currency.decimalPlaces),
+            raiseOnExactness: false,
+            raiseOnOverflow: false,
+            raiseOnUnderflow: false,
+            raiseOnDivideByZero: false
+        )
     }
 }
 
