@@ -14,10 +14,10 @@ class ProductSalesStats {
     let category: String
     let categoryId: UUID
     var totalQuantity: Int = 0
-    var originalRevenue: Double = 0
-    var actualRevenue: Double = 0
-    var totalDiscount: Double = 0
-    var unitPrice: Double = 0
+    var originalRevenue: Decimal = 0
+    var actualRevenue: Decimal = 0
+    var totalDiscount: Decimal = 0
+    var unitPrice: Decimal = 0
 
     init(productId: UUID, name: String, category: String, categoryId: UUID) {
         self.productId = productId
@@ -26,27 +26,27 @@ class ProductSalesStats {
         self.categoryId = categoryId
     }
 
-    func addSale(quantity: Int, unitPrice: Double, discount: Int, actualTotal: Double) {
+    func addSale(quantity: Int, unitPrice: Decimal, discount: Int, actualTotal: Decimal) {
         self.totalQuantity += quantity
         self.unitPrice = unitPrice // 假設同商品單價一致
-        let originalTotal = unitPrice * Double(quantity)
-        self.originalRevenue += originalTotal
-        self.actualRevenue += actualTotal
-        self.totalDiscount += Double(discount)
+        let originalTotal = MoneyHelper.multiply(unitPrice, Decimal(quantity))
+        self.originalRevenue = MoneyHelper.add(self.originalRevenue, originalTotal)
+        self.actualRevenue = MoneyHelper.add(self.actualRevenue, actualTotal)
+        self.totalDiscount = MoneyHelper.add(self.totalDiscount, Decimal(discount))
     }
 }
 
 class CategorySalesStats {
     let categoryId: UUID
     let name: String
-    var totalAmount: Double = 0
+    var totalAmount: Decimal = 0
 
     init(categoryId: UUID, name: String) {
         self.categoryId = categoryId
         self.name = name
     }
 
-    func addSale(amount: Double) {
-        self.totalAmount += amount
+    func addSale(amount: Decimal) {
+        self.totalAmount = MoneyHelper.add(self.totalAmount, amount)
     }
 }

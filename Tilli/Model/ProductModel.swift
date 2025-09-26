@@ -11,7 +11,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var id: UUID = UUID()
     var sessionId: UUID               // 所屬 Session 的 ID
     var name: String
-    var price: Double
+    var price: Decimal
     var stock: Int                   // 初始庫存
     var categoryId: UUID
     var categoryName: String
@@ -35,7 +35,7 @@ extension ProductModel {
         self.id = entity.id
         self.sessionId = entity.sessionId
         self.name = entity.name
-        self.price = entity.price
+        self.price = entity.price.decimalValue
         self.stock = Int(entity.stock)
         self.note = entity.note
         self.imageData = entity.imageData

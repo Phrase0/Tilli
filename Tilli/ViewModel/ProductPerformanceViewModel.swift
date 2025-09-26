@@ -162,12 +162,29 @@ private extension ProductPerformanceViewModel {
         }
         
         // 計算總營收用於百分比計算
-        let totalRevenue = productStats.values.reduce(0) { $0 + $1.actualRevenue }
-        
+        let totalRevenue = productStats.values.reduce(0) { result, stats in
+            MoneyHelper.add(result, stats.actualRevenue)
+        }
+
         // 轉換為 ProductPerformanceData 並排序
         let performanceData = productStats.values.map { stats in
-            let contributionRate = totalRevenue > 0 ? Int((stats.actualRevenue / totalRevenue) * 100) : 0
-            
+            // 分解複雜的貢獻率計算
+            let contributionRate: Int
+            if totalRevenue > 0 {
+                let ratio = MoneyHelper.divide(stats.actualRevenue, totalRevenue)
+                let percentage = MoneyHelper.multiply(ratio, Decimal(100))
+                contributionRate = Int(MoneyHelper.toDouble(percentage))
+            } else {
+                contributionRate = 0
+            }
+
+            // 分解其他複雜計算
+            let unitPriceInt = Int(MoneyHelper.toDouble(stats.unitPrice))
+            let originalPriceInt = Int(MoneyHelper.toDouble(stats.originalRevenue))
+            let discountAmount = MoneyHelper.subtract(stats.originalRevenue, stats.actualRevenue)
+            let discountInt = Int(MoneyHelper.toDouble(discountAmount))
+            let actualRevenueInt = Int(MoneyHelper.toDouble(stats.actualRevenue))
+
             return ProductPerformanceData(
                 productId: stats.productId,
                 rank: 0, // 稍後設定
@@ -175,10 +192,10 @@ private extension ProductPerformanceViewModel {
                 category: stats.category,
                 salesCount: stats.totalQuantity,
                 contributionRate: contributionRate,
-                unitPrice: Int(stats.unitPrice),
-                originalPrice: Int(stats.originalRevenue),
-                discount: Int(stats.originalRevenue - stats.actualRevenue),
-                actualRevenue: Int(stats.actualRevenue)
+                unitPrice: unitPriceInt,
+                originalPrice: originalPriceInt,
+                discount: discountInt,
+                actualRevenue: actualRevenueInt
             )
         }
         .sorted { $0.actualRevenue > $1.actualRevenue }
@@ -218,15 +235,25 @@ private extension ProductPerformanceViewModel {
         }
         
         // 計算總營收
-        let totalRevenue = categoryStats.values.reduce(0) { $0 + $1.totalAmount }
+        let totalRevenue = categoryStats.values.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
         
         // 轉換為 CategoryAnalysisData，先不設定顏色
         let analysisData = categoryStats.values.map { stats in
-            let percentage = totalRevenue > 0 ? Int((stats.totalAmount / totalRevenue) * 100) : 0
-            
+            // 分解複雜的百分比計算
+            let percentage: Int
+            if totalRevenue > 0 {
+                let ratio = MoneyHelper.divide(stats.totalAmount, totalRevenue)
+                let percentageDecimal = MoneyHelper.multiply(ratio, Decimal(100))
+                percentage = Int(MoneyHelper.toDouble(percentageDecimal))
+            } else {
+                percentage = 0
+            }
+
+            let amountInt = Int(MoneyHelper.toDouble(stats.totalAmount))
+
             return CategoryAnalysisData(
                 name: stats.name,
-                amount: Int(stats.totalAmount),
+                amount: amountInt,
                 percentage: percentage,
                 color: .gray  // 暫時設定為灰色
             )
@@ -301,9 +328,17 @@ private extension ProductPerformanceViewModel {
                 }
                 
                 // 計算該項目的折扣率
-                let originalItemTotal = item.price * Double(item.quantity)
-                let discountAmount = originalItemTotal - item.total
-                let discountRate = originalItemTotal > 0 ? (discountAmount / originalItemTotal) * 100 : 0
+                let originalItemTotal = MoneyHelper.multiply(item.price, Decimal(item.quantity))
+                let discountAmount = MoneyHelper.subtract(originalItemTotal, item.total)
+
+                // 分解複雜的折扣率計算
+                let discountRate: Double
+                if originalItemTotal > 0 {
+                    let discountRatio = MoneyHelper.divide(discountAmount, originalItemTotal)
+                    discountRate = MoneyHelper.toDouble(discountRatio) * 100
+                } else {
+                    discountRate = 0
+                }
                 
                 productDiscountStats[productId]?.totalDiscount += discountRate
                 productDiscountStats[productId]?.totalQuantity += 1

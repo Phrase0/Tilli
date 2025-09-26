@@ -134,12 +134,12 @@ private extension SalesAnalyticsViewModel {
         for transaction in transactions {
             hourlyHelper.addTransaction(
                 timestamp: transaction.timestamp,
-                amount: transaction.totalAmount
+                amount: MoneyHelper.toDouble(transaction.totalAmount)
             )
 
             paymentHelper.addTransaction(
                 paymentMethod: transaction.paymentMethod,
-                amount: transaction.totalAmount
+                amount: MoneyHelper.toDouble(transaction.totalAmount)
             )
         }
 

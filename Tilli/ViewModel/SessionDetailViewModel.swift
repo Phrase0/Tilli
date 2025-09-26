@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
+import Foundation
 
 class SessionDetailViewModel: ObservableObject {
 
     @Published var productViewModel: ProductViewModel
     @Published var transactionViewModel: TransactionViewModel
-    @Published var sessionTotalAmount: Double = 0
+    @Published var sessionTotalAmount: Decimal = 0
     @Published var currentShareItems: [Any] = []
 
     @Binding var session: SessionModel
@@ -22,7 +23,7 @@ class SessionDetailViewModel: ObservableObject {
         self._session = session
         self.productViewModel = ProductViewModel(session: session)
         self.transactionViewModel = TransactionViewModel(session: session)
-        self.sessionTotalAmount = session.wrappedValue.transactions.reduce(0) { $0 + $1.totalAmount }
+        self.sessionTotalAmount = session.wrappedValue.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
     }
     
     // MARK: - DataManager 管理
@@ -53,12 +54,12 @@ class SessionDetailViewModel: ObservableObject {
     /// 更新 sessionTotalAmount
     func updateSessionTotalAmount() {
         guard let transactionDataManager = transactionDataManager else {
-            sessionTotalAmount = session.transactions.reduce(0) { $0 + $1.totalAmount }
+            sessionTotalAmount = session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
             return
         }
 
         let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
-        sessionTotalAmount = transactions.reduce(0) { $0 + $1.totalAmount }
+        sessionTotalAmount = transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
     }
     
     /// 載入數據

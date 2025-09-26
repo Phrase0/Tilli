@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct ProductDetailView: View {
     @ObservedObject var productViewModel: ProductViewModel
@@ -178,7 +179,7 @@ struct ProductDetailView: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
-                        Text("NT$\(Int(product.price))")
+                        Text(product.price.money)
                             .font(.subheadline)
                             .foregroundColor(isOutOfStock ? .gray : .blue)
                         HStack(spacing: 8) {
@@ -306,7 +307,7 @@ struct ProductDetailView: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundColor(.gray)
-                        Text("NT$\(Int(product.price))")
+                        Text(product.price.money)
                             .font(.subheadline)
                             .foregroundColor(.gray)
                         Text("庫存: \(product.stock)")

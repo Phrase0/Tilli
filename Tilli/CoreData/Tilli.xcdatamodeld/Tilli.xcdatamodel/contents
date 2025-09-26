@@ -16,7 +16,7 @@
         <attribute name="isDisabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="note" optional="YES" attributeType="String"/>
-        <attribute name="price" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="price" attributeType="Decimal" defaultValueString="0" usesScalarValueType="NO"/>
         <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="stock" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="category" maxCount="1" deletionRule="Nullify" destinationEntity="CDCategoryEntity" inverseName="products" inverseEntity="CDCategoryEntity"/>
@@ -35,7 +35,7 @@
         <attribute name="paymentMethod" attributeType="String"/>
         <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="totalAmount" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="totalAmount" attributeType="Decimal" defaultValueString="0" usesScalarValueType="NO"/>
         <relationship name="session" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="transactions" inverseEntity="CDSessionEntity"/>
     </entity>
     <entity name="CDQRCodeEntity" representedClassName="CDQRCodeEntity" syncable="YES">

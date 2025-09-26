@@ -20,7 +20,7 @@ extension CDProductEntity {
     @NSManaged public var id: UUID
     @NSManaged public var sessionId: UUID
     @NSManaged public var name: String
-    @NSManaged public var price: Double
+    @NSManaged public var price: NSDecimalNumber
     @NSManaged public var stock: Int32
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
@@ -35,7 +35,7 @@ extension CDProductEntity {
         self.id = model.id
         self.sessionId = model.sessionId
         self.name = model.name
-        self.price = model.price
+        self.price = NSDecimalNumber(decimal: model.price)
         self.stock = Int32(model.stock)
         self.categoryId = model.categoryId
         self.categoryName = model.categoryName

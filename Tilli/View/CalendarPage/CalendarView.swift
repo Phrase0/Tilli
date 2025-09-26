@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct CalendarView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
@@ -233,7 +234,7 @@ struct SessionRowView: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 6) {
-                Text("NT$\(totalAmount, specifier: "%.0f")")
+                Text(totalAmount.money)
                     .font(.headline)
                     .foregroundColor(.blue)
                 
@@ -249,8 +250,8 @@ struct SessionRowView: View {
         )
     }
     
-    private var totalAmount: Double {
-        session.transactions.reduce(0) { $0 + $1.totalAmount }
+    private var totalAmount: Decimal {
+        session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
     }
 }
 
