@@ -21,28 +21,34 @@ struct ProductPerformanceView: View {
     }
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
-                    EmptyStateView(
-                        systemImage: "chart.bar.fill",
-                        title: "尚無銷售紀錄",
-                        message: "完成結帳後，產品績效會顯示在這裡"
-                    )
-                } else {
-                    VStack(spacing: 24) {
-                        // TOP 5 商品榜單
-                        topProductsView
-                        
-                        // 類別銷售彙總
-                        categoryAnalysisView
-                        
-                        // 銷售洞察
-                        salesInsightsView
+        Group {
+            if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        EmptyStateView(
+                            systemImage: "chart.bar.fill",
+                            title: "尚無銷售紀錄",
+                            message: "完成結帳後，產品績效會顯示在這裡"
+                        )
                     }
                 }
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        VStack(spacing: 24) {
+                            // TOP 5 商品榜單
+                            topProductsView
+
+                            // 類別銷售彙總
+                            categoryAnalysisView
+
+                            // 銷售洞察
+                            salesInsightsView
+                        }
+                    }
+                    .padding()
+                }
             }
-            .padding()
         }
         .refreshable {
             productPerformanceViewModel.loadData()

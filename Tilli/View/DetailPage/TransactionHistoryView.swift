@@ -14,21 +14,28 @@ struct TransactionHistoryView: View {
     @State private var showingShareSheet = false
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                if transactionViewModel.transactions.isEmpty {
-                    EmptyStateView(
-                        systemImage: "list.clipboard",
-                        title: "尚無交易記錄",
-                        message: "完成結帳後，交易記錄會顯示在這裡"
-                    )
-                } else {
-                    ForEach(transactionViewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
-                        transactionCard(transaction)
+        Group {
+            if transactionViewModel.transactions.isEmpty {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        EmptyStateView(
+                            systemImage: "list.clipboard",
+                            title: "尚無交易記錄",
+                            message: "完成結帳後，交易記錄會顯示在這裡",
+                            topPadding: 85
+                        )
                     }
                 }
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(transactionViewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
+                            transactionCard(transaction)
+                        }
+                    }
+                    .padding()
+                }
             }
-            .padding()
         }
         .refreshable {
             transactionViewModel.loadData()

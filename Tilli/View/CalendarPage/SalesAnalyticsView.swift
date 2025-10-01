@@ -20,28 +20,34 @@ struct SalesAnalyticsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                if salesAnalyticsViewModel.salesOverview?.totalTransactions == 0 || salesAnalyticsViewModel.salesOverview == nil {
-                    EmptyStateView(
-                        systemImage: "chart.line.uptrend.xyaxis",
-                        title: "尚無銷售分析",
-                        message: "完成結帳後，銷售分析會顯示在這裡"
-                    )
-                } else {
-                    VStack(spacing: 20) {
-                        // 總銷售額區塊
-                        salesSummaryView
-
-                        // 時間分布圖與詳細記錄（合併為一個卡片）
-                        timeDistributionWithDetailView
-
-                        // 支付方式分布
-                        paymentMethodDistribution
+        Group {
+            if salesAnalyticsViewModel.salesOverview?.totalTransactions == 0 || salesAnalyticsViewModel.salesOverview == nil {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        EmptyStateView(
+                            systemImage: "chart.line.uptrend.xyaxis",
+                            title: "尚無銷售分析",
+                            message: "完成結帳後，銷售分析會顯示在這裡"
+                        )
                     }
                 }
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        VStack(spacing: 20) {
+                            // 總銷售額區塊
+                            salesSummaryView
+
+                            // 時間分布圖與詳細記錄（合併為一個卡片）
+                            timeDistributionWithDetailView
+
+                            // 支付方式分布
+                            paymentMethodDistribution
+                        }
+                    }
+                    .padding()
+                }
             }
-            .padding()
         }
         .refreshable {
             salesAnalyticsViewModel.loadData()

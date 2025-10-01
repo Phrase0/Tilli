@@ -25,7 +25,8 @@ struct ProductDetailView: View {
                         EmptyStateView(
                             systemImage: "cube.box",
                             title: "尚無商品",
-                            message: "請先新增商品後再開始銷售"
+                            message: "請先新增商品後再開始銷售",
+                            topPadding: 90
                         )
                     }
                 }
