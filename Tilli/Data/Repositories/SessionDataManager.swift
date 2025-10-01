@@ -91,7 +91,8 @@ class SessionDataManager: ObservableObject {
             // 更新 Session 基本屬性
             entity.title = model.title
             entity.date = model.date
-            
+            entity.currency = model.currency
+
             // 處理 Categories 的變更
             updateCategoriesForSession(entity: entity, newCategories: model.categories)
             
@@ -287,6 +288,7 @@ class SessionDataManager: ObservableObject {
             newSessionEntity.title = newTitle
             newSessionEntity.date = newDate
             newSessionEntity.createdAt = Date()
+            newSessionEntity.currency = originalEntity.currency
             
             // 複製所有 Categories 和 Products
             if let originalCategories = originalEntity.categories as? Set<CDCategoryEntity> {
