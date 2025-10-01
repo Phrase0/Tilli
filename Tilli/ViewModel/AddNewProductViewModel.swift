@@ -100,33 +100,27 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 交易檢查邏輯
     /// 檢查產品是否有交易記錄
-    func hasTransaction(for productId: UUID) -> Bool {
+    func hasTransaction(for productId: UUID? = nil) -> Bool {
         guard let sessionId = session.id as UUID? else { 
             return false 
         }
         
-        // 優先使用 TransactionDataManager 獲取最新的交易數據
+        let transactions: [TransactionModel]
         if let transactionManager = transactionDataManager {
-            let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
-            for transaction in transactions {
-                for item in transaction.items {
-                    if item.productId == productId {
-                        return true
-                    }
-                }
-            }
-            return false
+            transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+        } else {
+            transactions = session.transactions
         }
         
-        // 後備方案：使用初始的 session 數據
-        for transaction in session.transactions {
-            for item in transaction.items {
-                if item.productId == productId {
-                    return true
-                }
-            }
+        // 如果沒有指定 productId，檢查是否有任何交易
+        guard let productId = productId else {
+            return !transactions.isEmpty
         }
-        return false
+        
+        // 檢查特定產品的交易
+        return transactions.contains { transaction in
+            transaction.items.contains { $0.productId == productId }
+        }
     }
     
     // MARK: - 確保選中的類別是有效的
