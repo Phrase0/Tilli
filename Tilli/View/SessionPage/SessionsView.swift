@@ -30,12 +30,32 @@ struct SessionsView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(viewModel.sortedFilteredSessions(by: searchText)) { session in
-                        sessionCard(session)
-                            .onTapGesture {
-                                selectedSession = session
-                                appState.currentSession = session
-                            }
+                    if viewModel.sortedFilteredSessions(by: searchText).isEmpty {
+                        // 空狀態顯示
+                        if searchText.isEmpty {
+                            // 完全沒有場次
+                            EmptyStateView(
+                                systemImage: "calendar.badge.plus",
+                                title: "尚無場次",
+                                message: "點擊右上角「+」按鈕新增第一個場次"
+                            )
+                        } else {
+                            // 搜尋無結果
+                            EmptyStateView(
+                                systemImage: "magnifyingglass",
+                                title: "查無結果",
+                                message: "找不到符合「\(searchText)」的場次"
+                            )
+                        }
+                    } else {
+                        // 有場次時顯示列表
+                        ForEach(viewModel.sortedFilteredSessions(by: searchText)) { session in
+                            sessionCard(session)
+                                .onTapGesture {
+                                    selectedSession = session
+                                    appState.currentSession = session
+                                }
+                        }
                     }
                 }
                 .padding()
