@@ -18,6 +18,7 @@ enum Currency: String, CaseIterable {
     case twd = "TWD"
     case usd = "USD"
     case eur = "EUR"
+    case gbp = "GBP"
     case jpy = "JPY"
 
     var symbol: String {
@@ -25,6 +26,7 @@ enum Currency: String, CaseIterable {
         case .twd: return "NT$"
         case .usd: return "$"
         case .eur: return "€"
+        case .gbp: return "£"
         case .jpy: return "¥"
         }
     }
@@ -34,6 +36,7 @@ enum Currency: String, CaseIterable {
         case .twd: return 0
         case .usd: return 2
         case .eur: return 2
+        case .gbp: return 2
         case .jpy: return 0
         }
     }
@@ -43,6 +46,7 @@ enum Currency: String, CaseIterable {
         case .twd: return "新台幣"
         case .usd: return "美金"
         case .eur: return "歐元"
+        case .gbp: return "英鎊"
         case .jpy: return "日幣"
         }
     }
