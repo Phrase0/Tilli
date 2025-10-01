@@ -9,19 +9,25 @@ import SwiftUI
 import Foundation
 
 struct CashPaymentView: View {
-    
+
     @Environment(\.presentationMode) private var presentationMode
     @Environment(\.dismiss) private var dismiss
-    
+
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var productRepository: ProductRepository
-    
+
     @Binding var session: SessionModel
-    
+
     var onComplete: (SessionModel) -> Void
-    
+
     @ObservedObject var viewModel: CashPaymentViewModel
+
+    enum FocusField: Hashable {
+        case receivedAmount
+    }
+
+    @FocusState private var focusedField: FocusField?
     
     init(
         totalAmount: Decimal,
@@ -61,11 +67,24 @@ struct CashPaymentView: View {
                 Text("支付")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                
+
                 TextField("NT$", text: $viewModel.receivedAmountText)
                     .keyboardType(.numberPad)
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                    .focused($focusedField, equals: .receivedAmount)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        if viewModel.isAmountValid {
+                            let updatedSession = viewModel.performCheckout(
+                                sessionDataManager: sessionDataManager,
+                                productRepository: productRepository
+                            )
+                            session = updatedSession
+                            onComplete(updatedSession)
+                            dismiss()
+                        }
+                    }
             }
             
             VStack(alignment: .leading, spacing: 8) {
@@ -132,5 +151,11 @@ struct CashPaymentView: View {
             }
         }
         .padding()
+        .onAppear {
+            // 自動聚焦到金額輸入欄位
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.focusedField = .receivedAmount
+            }
+        }
     }
 }

@@ -7,16 +7,24 @@
 import SwiftUI
 
 struct AddNewProductView: View {
-    
+
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @StateObject private var viewModel: AddNewProductViewModel
+
+    enum FocusField: Hashable {
+        case name
+        case price
+        case quantity
+    }
+
+    @FocusState private var focusedField: FocusField?
 
     init(session: SessionModel,
          productToEdit: ProductModel? = nil,
          onSave: @escaping () -> Void,
          onCancel: (() -> Void)? = nil) {
-        
+
         _viewModel = StateObject(wrappedValue: AddNewProductViewModel(
             session: session,
             productToEdit: productToEdit,
@@ -37,7 +45,12 @@ struct AddNewProductView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                        
+                            .focused($focusedField, equals: .name)
+                            .submitLabel(.next)
+                            .onSubmit {
+                                focusedField = .price
+                            }
+
                         Text("價格")
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -46,13 +59,23 @@ struct AddNewProductView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                            
+                            .focused($focusedField, equals: .price)
+                            .submitLabel(.next)
+                            .onSubmit {
+                                focusedField = .quantity
+                            }
+
                         Text("庫存數量")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         TextField("請輸入數量", text: $viewModel.quantity)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .focused($focusedField, equals: .quantity)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                UIApplication.shared.endEditing()
+                            }
                         
                         Text("類別")
                             .font(.subheadline)
@@ -190,6 +213,11 @@ struct AddNewProductView: View {
 
                 // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
                 viewModel.clearImageTempState()
+
+                // 自動聚焦到第一個欄位
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.focusedField = .name
+                }
             }
         }
     }
