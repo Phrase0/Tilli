@@ -22,7 +22,7 @@ struct HourlyAnalysisData: Identifiable {
         self.hourString = String(format: "%02d:00", hour)
         self.amount = amount
         self.transactions = transactions
-        self.avgPrice = transactions > 0 ? amount / Decimal(transactions) : 0
+        self.avgPrice = transactions > 0 ? MoneyHelper.divide(amount, Decimal(transactions)) : 0
     }
 }
 
@@ -63,7 +63,7 @@ struct SalesOverviewData {
     init(totalAmount: Decimal, totalTransactions: Int, peakHour: Int, peakHourAmount: Decimal, paymentMethodStats: [PaymentMethodAnalysisData]) {
         self.totalAmount = totalAmount
         self.totalTransactions = totalTransactions
-        self.avgTransactionValue = totalTransactions > 0 ? totalAmount / Decimal(totalTransactions) : 0
+        self.avgTransactionValue = totalTransactions > 0 ? MoneyHelper.divide(totalAmount, Decimal(totalTransactions)) : 0
         self.peakHour = peakHour
         self.peakHourAmount = peakHourAmount
         self.paymentMethodStats = paymentMethodStats
