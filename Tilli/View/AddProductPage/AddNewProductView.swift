@@ -54,7 +54,7 @@ struct AddNewProductView: View {
                         Text("價格")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        TextField("$ 0", text: $viewModel.price)
+                        TextField(viewModel.pricePlaceholder, text: $viewModel.price)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)

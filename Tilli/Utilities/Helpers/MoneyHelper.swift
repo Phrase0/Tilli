@@ -178,9 +178,10 @@ class MoneyHelper {
         return nsValue.rounding(accordingToBehavior: handler).decimalValue
     }
 
-    static func format(_ value: Decimal, currency: String = "NT$") -> String {
-        // 使用當前貨幣設定的規則
-        return format(value, currency: currentCurrency)
+    static func format(_ value: Decimal, currencyCode: String = "TWD") -> String {
+        // 將幣別代碼轉換為 Currency enum
+        let currency = Currency(rawValue: currencyCode) ?? .twd
+        return format(value, currency: currency)
     }
 
     static func fromDouble(_ value: Double) -> Decimal {
@@ -277,6 +278,6 @@ extension Decimal {
     }
 
     func money(currency: String) -> String {
-        return MoneyHelper.format(self, currency: currency)
+        return MoneyHelper.format(self, currencyCode: currency)
     }
 }
