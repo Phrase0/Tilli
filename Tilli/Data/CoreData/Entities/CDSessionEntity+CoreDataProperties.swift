@@ -20,6 +20,7 @@ extension CDSessionEntity {
     @NSManaged public var title: String
     @NSManaged public var date: Date
     @NSManaged public var createdAt: Date
+    @NSManaged public var currency: String
     @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
 
@@ -66,6 +67,7 @@ extension CDSessionEntity {
         self.title = model.title
         self.date = model.date
         self.createdAt = model.createdAt
+        self.currency = model.currency
     }
 
     
@@ -82,7 +84,8 @@ extension CDSessionEntity {
             date: self.date,
             categories: categoryModels,
             createdAt: self.createdAt,
-            transactions: transactionModels
+            transactions: transactionModels,
+            currency: self.currency
         )
     }
     

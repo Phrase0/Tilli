@@ -111,7 +111,7 @@ struct ProductDetailView: View {
                                 Text("總計")
                                     .font(.headline)
                                 Spacer()
-                                Text(MoneyHelper.format(productViewModel.totalAmount()))
+                                Text(MoneyHelper.format(productViewModel.totalAmount(), currencyCode: productViewModel.session.currency))
                                     .font(.headline)
                                     .bold()
                             }
@@ -180,7 +180,7 @@ struct ProductDetailView: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
-                        Text(product.price.money)
+                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
                             .font(.subheadline)
                             .foregroundColor(isOutOfStock ? .gray : .blue)
                         HStack(spacing: 8) {
@@ -308,7 +308,7 @@ struct ProductDetailView: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundColor(.gray)
-                        Text(product.price.money)
+                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
                             .font(.subheadline)
                             .foregroundColor(.gray)
                         Text("庫存: \(product.stock)")

@@ -11,23 +11,23 @@ struct AddSessionView: View {
     
     @StateObject private var viewModel: AddSessionViewModel
     var onSave: (SessionModel) -> Void
-
+    
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var productRepository: ProductRepository
-
+    
     enum FocusField: Hashable {
         case sessionName
         case newCategory
     }
-
+    
     @FocusState private var focusedField: FocusField?
-
+    
     init(sessionToEdit: SessionModel? = nil, onSave: @escaping (SessionModel) -> Void) {
         self._viewModel = StateObject(wrappedValue: AddSessionViewModel(sessionToEdit: sessionToEdit))
         self.onSave = onSave
     }
-
+    
     var body: some View {
         Form {
             TextField("場次名稱", text: $viewModel.sessionName)
@@ -36,9 +36,29 @@ struct AddSessionView: View {
                 .onSubmit {
                     focusedField = .newCategory
                 }
-
+            
             DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
-
+            
+            // 幣別選擇器
+            Picker("幣別", selection: $viewModel.selectedCurrency) {
+                ForEach(Currency.allCases, id: \.self) { currency in
+                    Text(currency.displayName)
+                        .tag(currency.rawValue)
+                }
+            }
+            .disabled(viewModel.isEditingWithTransaction)
+            
+            // 有交易記錄時顯示提示
+            if viewModel.isEditingWithTransaction {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.orange)
+                    Text("此場次已有交易記錄，無法更改幣別")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+            
             Section(header: Text("類別")) {
                 ForEach(viewModel.activeSortedCategories, id: \.id) { category in
                     categoryRow(for: category)
@@ -46,7 +66,7 @@ struct AddSessionView: View {
                             swipeActionsContent(for: category)
                         }
                 }
-
+                
                 TextField("新增類別", text: $viewModel.newCategory)
                     .focused($focusedField, equals: .newCategory)
                     .submitLabel(.done)

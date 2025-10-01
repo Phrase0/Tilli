@@ -10,22 +10,33 @@ import Foundation
 class AddSessionViewModel: ObservableObject {
     @Published var sessionName: String
     @Published var sessionDate: Date
+    @Published var selectedCurrency: String
     @Published var newCategory: String = ""
     @Published var categories: [CategoryModel]
     @Published var editingCategoryID: UUID?
-    
+
     // Alert 相關狀態
     @Published var showAlert = false
     @Published var alertMessage = ""
     @Published var categoryPendingDeletion: UUID?
     @Published var categoryPendingRestore: UUID?
     @Published var isDisableAction = false
-    
+
     var editingSession: SessionModel?
-    
+
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
     private var productRepository: ProductRepository?
+
+    // 判斷是否有交易記錄（用於決定是否可編輯幣別）
+    var isEditingWithTransaction: Bool {
+        guard let session = editingSession,
+              let transactionDataManager = transactionDataManager else {
+            return false
+        }
+        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        return !transactions.isEmpty
+    }
     
     var sortedCategories: [CategoryModel] {
         categories.sorted(by: { $0.createdAt < $1.createdAt })
@@ -47,6 +58,7 @@ class AddSessionViewModel: ObservableObject {
         self.editingSession = sessionToEdit
         self.sessionName = sessionToEdit?.title ?? ""
         self.sessionDate = sessionToEdit?.date ?? Date()
+        self.selectedCurrency = sessionToEdit?.currency ?? "TWD"
         self.categories = sessionToEdit?.categories ?? []
     }
     
@@ -248,7 +260,8 @@ class AddSessionViewModel: ObservableObject {
             date: sessionDate,
             categories: categories,
             createdAt: baseSession.createdAt,
-            transactions: baseSession.transactions
+            transactions: baseSession.transactions,
+            currency: selectedCurrency
         )
     }
 }

@@ -40,10 +40,15 @@ class AddNewProductViewModel: ObservableObject {
     var sortedCategories: [CategoryModel] {
         session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
     }
-    
+
     var selectedCategory: CategoryModel? {
         guard let id = selectedCategoryID else { return nil }
         return sortedCategories.first(where: { $0.id == id })
+    }
+
+    var pricePlaceholder: String {
+        let currency = Currency(rawValue: session.currency) ?? .twd
+        return "\(currency.symbol) 0"
     }
     
     var isValid: Bool {

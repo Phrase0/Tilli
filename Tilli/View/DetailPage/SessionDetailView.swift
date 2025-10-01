@@ -106,7 +106,7 @@ struct SessionDetailView: View {
                 Text(viewModel.session.title)
                     .font(.title2)
                     .bold()
-                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • \(viewModel.sessionTotalAmount.money)")
+                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
