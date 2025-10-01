@@ -14,16 +14,16 @@ struct ProductRankingCard: View {
     let name: String
     let category: String
     let salesCount: Int
-    let revenue: Int
+    let revenue: Decimal
     let contributionRate: Int
-    let unitPrice: Int?
-    let originalPrice: Int?
+    let unitPrice: Decimal?
+    let originalPrice: Decimal?
     let discount: Int?
-    let actualRevenue: Int?
+    let actualRevenue: Decimal?
     let isExpanded: Bool
     let onToggle: () -> Void
-    
-    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Int, contributionRate: Int, unitPrice: Int? = nil, originalPrice: Int? = nil, discount: Int? = nil, actualRevenue: Int? = nil, isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
+
+    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, unitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Int? = nil, actualRevenue: Decimal? = nil, isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
         self.rank = rank
         self.name = name
         self.category = category
@@ -90,7 +90,7 @@ struct ProductRankingCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("NT$ \(String(revenue).addingThousandsSeparator)")
+                    Text(MoneyHelper.format(revenue))
                         .font(.system(size: 16, weight: .bold))
                     Text("實際金額")
                         .font(.system(size: 11))
@@ -119,21 +119,21 @@ struct ProductRankingCard: View {
                                 Text("單價")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("NT$ \(unitPrice)")
+                                Text(MoneyHelper.format(unitPrice))
                                     .fontWeight(.medium)
                             }
                         }
-                        
+
                         if let originalPrice = originalPrice {
                             HStack {
                                 Text("原價總額")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("NT$ \(String(originalPrice).addingThousandsSeparator)")
+                                Text(MoneyHelper.format(originalPrice))
                                     .fontWeight(.medium)
                             }
                         }
-                        
+
                         if let discount = discount {
                             HStack {
                                 Text("折扣總額")
@@ -144,13 +144,13 @@ struct ProductRankingCard: View {
                                     .foregroundColor(.red)
                             }
                         }
-                        
+
                         if let actualRevenue = actualRevenue {
                             HStack {
                                 Text("實收金額")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("NT$ \(String(actualRevenue).addingThousandsSeparator)")
+                                Text(MoneyHelper.format(actualRevenue))
                                     .fontWeight(.bold)
                                     .foregroundColor(.blue)
                             }
@@ -221,8 +221,8 @@ struct PieChartView: View {
                 Text("總銷售額")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                let totalAmount = categories.reduce(0) { $0 + $1.amount }
-                Text("NT$\(String(totalAmount).addingThousandsSeparator)")
+                let totalAmount = categories.reduce(Decimal(0)) { MoneyHelper.add($0, $1.amount) }
+                Text(MoneyHelper.format(totalAmount))
                     .font(.title3)
                     .fontWeight(.bold)
             }
@@ -234,7 +234,7 @@ struct PieChartView: View {
 struct CategoryCard: View {
     let color: Color
     let name: String
-    let amount: Int
+    let amount: Decimal
     let percentage: Int
     
     var body: some View {
@@ -249,7 +249,7 @@ struct CategoryCard: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 2) {
-                Text("NT$ \(String(amount).addingThousandsSeparator)")
+                Text(MoneyHelper.format(amount))
                     .font(.system(size: 15, weight: .medium))
                 Text("\(percentage)%")
                     .font(.system(size: 12))

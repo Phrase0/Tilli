@@ -55,6 +55,17 @@ enum Currency: String, CaseIterable {
 class MoneyHelper {
     static var currentCurrency: Currency = .twd
 
+    // 無限精度處理器（用於中間計算，不四捨五入）
+    private static let noRoundingHandler = NSDecimalNumberHandler(
+        roundingMode: .plain,
+        scale: Int16.max,  // 保留最大精度
+        raiseOnExactness: false,
+        raiseOnOverflow: false,
+        raiseOnUnderflow: false,
+        raiseOnDivideByZero: false
+    )
+
+    // 四捨五入處理器（只用於最終結果）
     private static let handler = NSDecimalNumberHandler(
         roundingMode: .bankers,
         scale: 2,
@@ -91,43 +102,70 @@ class MoneyHelper {
         raiseOnDivideByZero: false
     )
 
-    static func add(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode = .bankers) -> Decimal {
+    // MARK: - 基本運算（保留完整精度，不四捨五入）
+
+    static func add(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode? = nil) -> Decimal {
         let nsA = NSDecimalNumber(decimal: a)
         let nsB = NSDecimalNumber(decimal: b)
-        let handler = getHandler(for: roundingMode)
-        return nsA.adding(nsB, withBehavior: handler).decimalValue
+        if let mode = roundingMode {
+            let handler = getHandler(for: mode)
+            return nsA.adding(nsB, withBehavior: handler).decimalValue
+        }
+        // 預設不四捨五入，保留完整精度
+        return nsA.adding(nsB, withBehavior: noRoundingHandler).decimalValue
     }
 
-    static func subtract(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode = .bankers) -> Decimal {
+    static func subtract(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode? = nil) -> Decimal {
         let nsA = NSDecimalNumber(decimal: a)
         let nsB = NSDecimalNumber(decimal: b)
-        let handler = getHandler(for: roundingMode)
-        return nsA.subtracting(nsB, withBehavior: handler).decimalValue
+        if let mode = roundingMode {
+            let handler = getHandler(for: mode)
+            return nsA.subtracting(nsB, withBehavior: handler).decimalValue
+        }
+        return nsA.subtracting(nsB, withBehavior: noRoundingHandler).decimalValue
     }
 
-    static func multiply(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode = .bankers) -> Decimal {
+    static func multiply(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode? = nil) -> Decimal {
         let nsA = NSDecimalNumber(decimal: a)
         let nsB = NSDecimalNumber(decimal: b)
-        let handler = getHandler(for: roundingMode)
-        return nsA.multiplying(by: nsB, withBehavior: handler).decimalValue
+        if let mode = roundingMode {
+            let handler = getHandler(for: mode)
+            return nsA.multiplying(by: nsB, withBehavior: handler).decimalValue
+        }
+        return nsA.multiplying(by: nsB, withBehavior: noRoundingHandler).decimalValue
     }
 
-    static func divide(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode = .bankers) -> Decimal {
+    static func divide(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode? = nil) -> Decimal {
         let nsA = NSDecimalNumber(decimal: a)
         let nsB = NSDecimalNumber(decimal: b)
-        let handler = getHandler(for: roundingMode)
-        return nsA.dividing(by: nsB, withBehavior: handler).decimalValue
+        if let mode = roundingMode {
+            let handler = getHandler(for: mode)
+            return nsA.dividing(by: nsB, withBehavior: handler).decimalValue
+        }
+        return nsA.dividing(by: nsB, withBehavior: noRoundingHandler).decimalValue
     }
 
-    static func applyDiscount(price: Decimal, discountPercentage: Int, roundingMode: RoundingMode = .bankers) -> Decimal {
+    // MARK: - 進階運算（中間計算不四捨五入，只在最終結果四捨五入）
+
+    static func applyDiscount(price: Decimal, discountPercentage: Int, roundingMode: RoundingMode? = nil) -> Decimal {
         let discount = Decimal(discountPercentage) / Decimal(100)
-        let discountAmount = multiply(price, discount, roundingMode: roundingMode)
-        return subtract(price, discountAmount, roundingMode: roundingMode)
+        let discountAmount = multiply(price, discount)  // 中間不四捨五入
+        let result = subtract(price, discountAmount)    // 中間不四捨五入
+        // 只在有指定 roundingMode 時才四捨五入
+        if let mode = roundingMode {
+            return round(result, roundingMode: mode)
+        }
+        return result
     }
 
-    static func calculateTotal(price: Decimal, quantity: Int, discountPercentage: Int = 0, roundingMode: RoundingMode = .bankers) -> Decimal {
-        let discountedPrice = applyDiscount(price: price, discountPercentage: discountPercentage, roundingMode: roundingMode)
-        return multiply(discountedPrice, Decimal(quantity), roundingMode: roundingMode)
+    static func calculateTotal(price: Decimal, quantity: Int, discountPercentage: Int = 0, roundingMode: RoundingMode? = nil) -> Decimal {
+        let discountedPrice = applyDiscount(price: price, discountPercentage: discountPercentage)  // 不四捨五入
+        let result = multiply(discountedPrice, Decimal(quantity))  // 不四捨五入
+        // 只在有指定 roundingMode 時才四捨五入
+        if let mode = roundingMode {
+            return round(result, roundingMode: mode)
+        }
+        return result
     }
 
     static func round(_ value: Decimal, roundingMode: RoundingMode = .bankers) -> Decimal {
@@ -151,6 +189,29 @@ class MoneyHelper {
 
     static func switchToCurrency(_ currency: Currency) {
         currentCurrency = currency
+    }
+
+    // MARK: - Advanced Helper Methods
+
+    /// 計算平均值（預設不四捨五入，保留完整精度）
+    static func average(total: Decimal, count: Int, roundingMode: RoundingMode? = nil) -> Decimal {
+        guard count > 0 else { return 0 }
+        let result = divide(total, Decimal(count))  // 中間不四捨五入
+        if let mode = roundingMode {
+            return round(result, roundingMode: mode)
+        }
+        return result
+    }
+
+    /// 計算總和（預設不四捨五入，保留完整精度）
+    static func sum(_ values: [Decimal], roundingMode: RoundingMode? = nil) -> Decimal {
+        let result = values.reduce(Decimal(0)) { result, value in
+            add(result, value)  // 中間不四捨五入
+        }
+        if let mode = roundingMode {
+            return round(result, roundingMode: mode)
+        }
+        return result
     }
 
     static func format(_ value: Decimal, currency: Currency) -> String {

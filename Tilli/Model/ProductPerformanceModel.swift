@@ -16,16 +16,16 @@ struct ProductPerformanceData: Identifiable {
     let category: String
     let salesCount: Int
     let contributionRate: Int
-    let unitPrice: Int
-    let originalPrice: Int
+    let unitPrice: Decimal
+    let originalPrice: Decimal
     let discount: Int
-    let actualRevenue: Int
+    let actualRevenue: Decimal
 }
 
 struct CategoryAnalysisData: Identifiable {
     let id = UUID()
     let name: String
-    let amount: Int
+    let amount: Decimal
     let percentage: Int
     let color: Color
 }

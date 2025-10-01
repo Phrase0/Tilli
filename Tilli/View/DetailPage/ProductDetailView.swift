@@ -110,7 +110,7 @@ struct ProductDetailView: View {
                                 Text("總計")
                                     .font(.headline)
                                 Spacer()
-                                Text("NT$\(productViewModel.totalAmount())")
+                                Text(MoneyHelper.format(productViewModel.totalAmount()))
                                     .font(.headline)
                                     .bold()
                             }

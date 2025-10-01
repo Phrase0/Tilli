@@ -81,11 +81,17 @@ struct SalesAnalyticsView: View {
             Text("總銷售額")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Text("NT$\(String(format: "%.0f", salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0).addingThousandsSeparator)")
-                .font(.title2)
-                .fontWeight(.bold)
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
+            if let totalAmount = salesAnalyticsViewModel.salesOverview?.totalAmount {
+                Text(MoneyHelper.format(totalAmount))
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+            } else {
+                Text(MoneyHelper.format(0))
+                    .font(.title2)
+                    .fontWeight(.bold)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 60)
@@ -113,7 +119,7 @@ struct SalesAnalyticsView: View {
 
     // MARK: - 時間分布圖與詳細記錄合併視圖
     private var timeDistributionWithDetailView: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let content = VStack(alignment: .leading, spacing: 0) {
             // 圖表部分
             VStack(alignment: .leading) {
                 Text("時間分布圖")
@@ -134,9 +140,15 @@ struct SalesAnalyticsView: View {
                         Text("最高銷售額")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("\(String(format: "%.0f", salesAnalyticsViewModel.salesOverview?.peakHourAmount ?? 0)) 元")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                        if let peakAmount = salesAnalyticsViewModel.salesOverview?.peakHourAmount {
+                            Text("\(MoneyHelper.format(peakAmount)) 元")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("0 元")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
 
                     Spacer()
@@ -191,7 +203,7 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Text("\(String(format: "%.0f", data.amount).addingThousandsSeparator)")
+                                Text(String(format: "%.0f", MoneyHelper.toDouble(data.amount)).addingThousandsSeparator)
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .center)
 
@@ -199,7 +211,7 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14))
                                     .frame(maxWidth: .infinity, alignment: .center)
 
-                                Text("\(String(format: "%.0f", data.avgPrice))")
+                                Text(String(format: "%.0f", MoneyHelper.toDouble(data.avgPrice)))
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
@@ -219,11 +231,13 @@ struct SalesAnalyticsView: View {
         }
         .background(Color.white)
         .cornerRadius(12)
+
+        return content
     }
 
     // MARK: - 自定義柱狀圖（適用於 iOS 16 以下）
     private var customBarChart: some View {
-        let maxAmount = salesAnalyticsViewModel.hourlyData.max { $0.amount < $1.amount }?.amount ?? 1
+        let maxAmount = salesAnalyticsViewModel.hourlyData.max { $0.amount < $1.amount }?.amount ?? Decimal(1)
 
         return HStack(alignment: .bottom, spacing: 2) {
             ForEach(Array(salesAnalyticsViewModel.hourlyData.enumerated()), id: \.offset) { index, data in
@@ -235,7 +249,7 @@ struct SalesAnalyticsView: View {
                     ))
                     .frame(
                         width: 8,
-                        height: CGFloat(data.amount) / CGFloat(maxAmount) * 150
+                        height: CGFloat(MoneyHelper.toDouble(data.amount)) / CGFloat(MoneyHelper.toDouble(maxAmount)) * 150
                     )
             }
         }

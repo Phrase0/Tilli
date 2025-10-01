@@ -54,9 +54,9 @@ class SalesAnalyticsViewModel: ObservableObject {
 
         for hourData in hourlyData {
             let hour = hourData.hourString
-            let amount = String(format: "%.0f", hourData.amount)
+            let amount = String(format: "%.0f", MoneyHelper.toDouble(hourData.amount))
             let transactions = "\(hourData.transactions)"
-            let avgPrice = String(format: "%.0f", hourData.avgPrice)
+            let avgPrice = String(format: "%.0f", MoneyHelper.toDouble(hourData.avgPrice))
 
             let row = "\(hour),\(amount),\(transactions),\(avgPrice)\n"
             csvContent += row
@@ -71,7 +71,7 @@ class SalesAnalyticsViewModel: ObservableObject {
         for paymentData in paymentMethodData {
             let name = paymentData.name.replacingOccurrences(of: ",", with: "，")
             let transactions = "\(paymentData.transactions)"
-            let amount = String(format: "%.0f", paymentData.amount)
+            let amount = String(format: "%.0f", MoneyHelper.toDouble(paymentData.amount))
             let percentage = "\(paymentData.percentage)%"
 
             let row = "\(name),\(transactions),\(amount),\(percentage)\n"
@@ -134,12 +134,12 @@ private extension SalesAnalyticsViewModel {
         for transaction in transactions {
             hourlyHelper.addTransaction(
                 timestamp: transaction.timestamp,
-                amount: MoneyHelper.toDouble(transaction.totalAmount)
+                amount: transaction.totalAmount
             )
 
             paymentHelper.addTransaction(
                 paymentMethod: transaction.paymentMethod,
-                amount: MoneyHelper.toDouble(transaction.totalAmount)
+                amount: transaction.totalAmount
             )
         }
 

@@ -63,11 +63,11 @@ class ProductPerformanceViewModel: ObservableObject {
             let rank = "\(product.rank)"
             let name = product.name.replacingOccurrences(of: ",", with: "，")
             let category = product.category.replacingOccurrences(of: ",", with: "，")
-            let unitPrice = "\(product.unitPrice)"
+            let unitPrice = String(format: "%.0f", MoneyHelper.toDouble(product.unitPrice))
             let salesCount = "\(product.salesCount)"
-            let originalPrice = "\(product.originalPrice)"
+            let originalPrice = String(format: "%.0f", MoneyHelper.toDouble(product.originalPrice))
             let discount = "\(product.discount)"
-            let actualRevenue = "\(product.actualRevenue)"
+            let actualRevenue = String(format: "%.0f", MoneyHelper.toDouble(product.actualRevenue))
             let contributionRate = "\(product.contributionRate)%"
 
             let row = "\(rank),\(name),\(category),\(unitPrice),\(salesCount),\(originalPrice),\(discount),\(actualRevenue),\(contributionRate)\n"
@@ -82,7 +82,7 @@ class ProductPerformanceViewModel: ObservableObject {
 
         for category in categoryAnalysis {
             let name = category.name.replacingOccurrences(of: ",", with: "，")
-            let amount = "\(category.amount)"
+            let amount = String(format: "%.0f", MoneyHelper.toDouble(category.amount))
             let percentage = "\(category.percentage)%"
 
             let row = "\(name),\(amount),\(percentage)\n"
@@ -178,12 +178,8 @@ private extension ProductPerformanceViewModel {
                 contributionRate = 0
             }
 
-            // 分解其他複雜計算
-            let unitPriceInt = Int(MoneyHelper.toDouble(stats.unitPrice))
-            let originalPriceInt = Int(MoneyHelper.toDouble(stats.originalRevenue))
+            // 計算折扣金額
             let discountAmount = MoneyHelper.subtract(stats.originalRevenue, stats.actualRevenue)
-            let discountInt = Int(MoneyHelper.toDouble(discountAmount))
-            let actualRevenueInt = Int(MoneyHelper.toDouble(stats.actualRevenue))
 
             return ProductPerformanceData(
                 productId: stats.productId,
@@ -192,10 +188,10 @@ private extension ProductPerformanceViewModel {
                 category: stats.category,
                 salesCount: stats.totalQuantity,
                 contributionRate: contributionRate,
-                unitPrice: unitPriceInt,
-                originalPrice: originalPriceInt,
-                discount: discountInt,
-                actualRevenue: actualRevenueInt
+                unitPrice: stats.unitPrice,
+                originalPrice: stats.originalRevenue,
+                discount: Int(MoneyHelper.toDouble(discountAmount)),
+                actualRevenue: stats.actualRevenue
             )
         }
         .sorted { $0.actualRevenue > $1.actualRevenue }
@@ -249,11 +245,9 @@ private extension ProductPerformanceViewModel {
                 percentage = 0
             }
 
-            let amountInt = Int(MoneyHelper.toDouble(stats.totalAmount))
-
             return CategoryAnalysisData(
                 name: stats.name,
-                amount: amountInt,
+                amount: stats.totalAmount,
                 percentage: percentage,
                 color: .gray  // 暫時設定為灰色
             )
@@ -315,42 +309,47 @@ private extension ProductPerformanceViewModel {
         }
 
         let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
-        
+
         // 建立商品折扣統計
-        var productDiscountStats: [UUID: (name: String, totalDiscount: Double, totalQuantity: Int)] = [:]
-        
+        var productDiscountStats: [UUID: (name: String, totalDiscount: Decimal, totalQuantity: Int)] = [:]
+
         for transaction in transactions {
             for item in transaction.items {
                 let productId = item.productId
-                
+
                 if productDiscountStats[productId] == nil {
                     productDiscountStats[productId] = (name: item.name, totalDiscount: 0, totalQuantity: 0)
                 }
-                
+
                 // 計算該項目的折扣率
                 let originalItemTotal = MoneyHelper.multiply(item.price, Decimal(item.quantity))
                 let discountAmount = MoneyHelper.subtract(originalItemTotal, item.total)
 
                 // 分解複雜的折扣率計算
-                let discountRate: Double
+                let discountRate: Decimal
                 if originalItemTotal > 0 {
                     let discountRatio = MoneyHelper.divide(discountAmount, originalItemTotal)
-                    discountRate = MoneyHelper.toDouble(discountRatio) * 100
+                    discountRate = MoneyHelper.multiply(discountRatio, Decimal(100))
                 } else {
                     discountRate = 0
                 }
-                
-                productDiscountStats[productId]?.totalDiscount += discountRate
-                productDiscountStats[productId]?.totalQuantity += 1
+
+                // 避免重疊訪問，先讀取再更新
+                if var stats = productDiscountStats[productId] {
+                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, discountRate)
+                    stats.totalQuantity += 1
+                    productDiscountStats[productId] = stats
+                }
             }
         }
-        
+
         // 找出平均折扣率最高的商品
         var maxDiscountProduct = ""
-        var maxAverageDiscountRate = 0.0
-        
+        var maxAverageDiscountRate = Decimal(0)
+
         for (_, stats) in productDiscountStats {
-            let averageDiscountRate = stats.totalQuantity > 0 ? stats.totalDiscount / Double(stats.totalQuantity) : 0
+            let averageDiscountRate = stats.totalQuantity > 0 ?
+                MoneyHelper.divide(stats.totalDiscount, Decimal(stats.totalQuantity)) : 0
             if averageDiscountRate > maxAverageDiscountRate {
                 maxAverageDiscountRate = averageDiscountRate
                 maxDiscountProduct = stats.name
@@ -358,8 +357,8 @@ private extension ProductPerformanceViewModel {
         }
         
         return (
-            name: maxDiscountProduct, 
-            averageDiscountRate: Int(maxAverageDiscountRate), 
+            name: maxDiscountProduct,
+            averageDiscountRate: Int(MoneyHelper.toDouble(maxAverageDiscountRate)), 
             isEmpty: maxDiscountProduct.isEmpty || maxAverageDiscountRate <= 0
         )
     }
