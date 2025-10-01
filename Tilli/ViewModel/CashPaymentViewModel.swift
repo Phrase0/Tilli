@@ -20,13 +20,15 @@ class CashPaymentViewModel: ObservableObject {
     var receivedAmount: Decimal {
         Decimal(string: receivedAmountText) ?? 0
     }
-    
+
     var change: Decimal {
         MoneyHelper.subtract(receivedAmount, totalAmount)
     }
-    
+
     var isAmountValid: Bool {
-        receivedAmount >= totalAmount
+        // 使用 MoneyHelper.subtract 來比較，避免精度問題
+        // 如果找零 >= 0，表示收到的金額足夠
+        change >= 0
     }
     
     init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
