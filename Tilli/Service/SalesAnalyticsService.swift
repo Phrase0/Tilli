@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Helper Classes for Sales Analytics Statistics
 
 class HourlyStatsHelper {
-    private var hourlyStats: [Int: (amount: Double, transactions: Int)] = [:]
+    private var hourlyStats: [Int: (amount: Decimal, transactions: Int)] = [:]
 
     init() {
         // 初始化 24 小時數據（0-23）
@@ -19,13 +19,13 @@ class HourlyStatsHelper {
         }
     }
 
-    func addTransaction(timestamp: Date, amount: Double) {
+    func addTransaction(timestamp: Date, amount: Decimal) {
         let calendar = Calendar.current
         let hour = calendar.component(.hour, from: timestamp)
 
         let current = hourlyStats[hour] ?? (amount: 0, transactions: 0)
         hourlyStats[hour] = (
-            amount: current.amount + amount,
+            amount: MoneyHelper.add(current.amount, amount),
             transactions: current.transactions + 1
         )
     }
@@ -41,25 +41,25 @@ class HourlyStatsHelper {
         }
     }
 
-    func getPeakHour() -> (hour: Int, amount: Double) {
+    func getPeakHour() -> (hour: Int, amount: Decimal) {
         let maxEntry = hourlyStats.max { $0.value.amount < $1.value.amount }
         return (hour: maxEntry?.key ?? 0, amount: maxEntry?.value.amount ?? 0)
     }
 }
 
 class PaymentStatsHelper {
-    private var paymentStats: [PaymentMethod: (transactions: Int, amount: Double)] = [:]
+    private var paymentStats: [PaymentMethod: (transactions: Int, amount: Decimal)] = [:]
 
     init() {
         paymentStats[.cash] = (transactions: 0, amount: 0)
         paymentStats[.ePayment] = (transactions: 0, amount: 0)
     }
 
-    func addTransaction(paymentMethod: PaymentMethod, amount: Double) {
+    func addTransaction(paymentMethod: PaymentMethod, amount: Decimal) {
         let current = paymentStats[paymentMethod] ?? (transactions: 0, amount: 0)
         paymentStats[paymentMethod] = (
             transactions: current.transactions + 1,
-            amount: current.amount + amount
+            amount: MoneyHelper.add(current.amount, amount)
         )
     }
 
@@ -78,9 +78,10 @@ class PaymentStatsHelper {
         }
     }
 
-    func getTotalStats() -> (transactions: Int, amount: Double) {
+    func getTotalStats() -> (transactions: Int, amount: Decimal) {
         let totalTransactions = paymentStats.values.reduce(0) { $0 + $1.transactions }
-        let totalAmount = paymentStats.values.reduce(0) { $0 + $1.amount }
+        let amounts = paymentStats.values.map { $0.amount }
+        let totalAmount = MoneyHelper.sum(amounts)
         return (transactions: totalTransactions, amount: totalAmount)
     }
 }
