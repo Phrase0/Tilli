@@ -30,12 +30,7 @@ class AddSessionViewModel: ObservableObject {
 
     // 判斷是否有交易記錄（用於決定是否可編輯幣別）
     var isEditingWithTransaction: Bool {
-        guard let session = editingSession,
-              let transactionDataManager = transactionDataManager else {
-            return false
-        }
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
-        return !transactions.isEmpty
+        return hasTransaction()
     }
     
     var sortedCategories: [CategoryModel] {
@@ -118,32 +113,25 @@ class AddSessionViewModel: ObservableObject {
         return nil
     }
     
-    func hasTransaction(for categoryId: UUID) -> Bool {
+    func hasTransaction(for categoryId: UUID? = nil) -> Bool {
         guard let sessionId = editingSession?.id else { return false }
         
-        // 優先使用 TransactionDataManager 獲取最新的交易數據
+        let transactions: [TransactionModel]
         if let transactionManager = transactionDataManager {
-            let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
-            for transaction in transactions {
-                for item in transaction.items {
-                    if item.categoryId == categoryId {
-                        return true
-                    }
-                }
-            }
-            return false
+            transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+        } else {
+            transactions = editingSession?.transactions ?? []
         }
         
-        // 後備方案：使用初始的 editingSession 數據
-        guard let session = editingSession else { return false }
-        for transaction in session.transactions {
-            for item in transaction.items {
-                if item.categoryId == categoryId {
-                    return true
-                }
-            }
+        // 如果沒有指定 categoryId，檢查是否有任何交易
+        guard let categoryId = categoryId else {
+            return !transactions.isEmpty
         }
-        return false
+        
+        // 檢查特定類別的交易
+        return transactions.contains { transaction in
+            transaction.items.contains { $0.categoryId == categoryId }
+        }
     }
     
     /// 檢查類別是否有產品（從最新數據源）
