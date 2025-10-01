@@ -168,7 +168,7 @@ struct AddSessionView: View {
                     primaryButton: .default(Text("確認")) {
                         viewModel.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel {
+                    secondaryButton: .cancel(Text("取消")) {
                         viewModel.cancelDeletionAction()
                     }
                 )
@@ -180,7 +180,7 @@ struct AddSessionView: View {
                     primaryButton: .destructive(Text("刪除")) {
                         viewModel.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel {
+                    secondaryButton: .cancel(Text("取消")) {
                         viewModel.cancelDeletionAction()
                     }
                 )
