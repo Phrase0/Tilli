@@ -55,7 +55,7 @@ struct AddNewProductView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         TextField(viewModel.pricePlaceholder, text: $viewModel.price)
-                            .keyboardType(.numberPad)
+                            .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
@@ -63,6 +63,12 @@ struct AddNewProductView: View {
                             .submitLabel(.next)
                             .onSubmit {
                                 focusedField = .quantity
+                            }
+                            .onChange(of: viewModel.price) { newValue in
+                                let validatedPrice = viewModel.validateAndFormatPrice(newValue)
+                                if validatedPrice != newValue {
+                                    viewModel.price = validatedPrice
+                                }
                             }
 
                         Text("庫存數量")
