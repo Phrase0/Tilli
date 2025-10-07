@@ -88,13 +88,13 @@ struct SalesAnalyticsView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             if let totalAmount = salesAnalyticsViewModel.salesOverview?.totalAmount {
-                Text(MoneyHelper.format(totalAmount))
+                Text(MoneyHelper.format(totalAmount, currencyCode: session.currency))
                     .font(.title2)
                     .fontWeight(.bold)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
             } else {
-                Text(MoneyHelper.format(0))
+                Text(MoneyHelper.format(0, currencyCode: session.currency))
                     .font(.title2)
                     .fontWeight(.bold)
             }
@@ -147,11 +147,11 @@ struct SalesAnalyticsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         if let peakAmount = salesAnalyticsViewModel.salesOverview?.peakHourAmount {
-                            Text("\(MoneyHelper.format(peakAmount)) 元")
+                            Text(MoneyHelper.format(peakAmount, currencyCode: session.currency))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         } else {
-                            Text("0 元")
+                            Text(MoneyHelper.format(0, currencyCode: session.currency))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -209,7 +209,7 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Text(String(format: "%.0f", MoneyHelper.toDouble(data.amount)).addingThousandsSeparator)
+                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .center)
 
@@ -217,7 +217,7 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14))
                                     .frame(maxWidth: .infinity, alignment: .center)
 
-                                Text(String(format: "%.0f", MoneyHelper.toDouble(data.avgPrice)))
+                                Text(MoneyHelper.format(data.avgPrice, currencyCode: session.currency))
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }

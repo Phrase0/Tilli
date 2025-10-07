@@ -57,7 +57,8 @@ class ProductPerformanceViewModel: ObservableObject {
     // MARK: - CSV Export Methods
 
     func generateTopProductsCSV() -> String {
-        var csvContent = "排名,商品名稱,類別,單價,銷售數量,原價,折扣金額,實際營收,貢獻率%\n"
+        let currencyCode = session.currency
+        var csvContent = "排名,商品名稱,類別,單價(\(currencyCode)),銷售數量,原價(\(currencyCode)),折扣金額(\(currencyCode)),實際營收(\(currencyCode)),貢獻率%\n"
 
         for product in topProducts {
             let rank = "\(product.rank)"
@@ -78,7 +79,8 @@ class ProductPerformanceViewModel: ObservableObject {
     }
 
     func generateCategoryAnalysisCSV() -> String {
-        var csvContent = "類別名稱,銷售金額,佔比%\n"
+        let currencyCode = session.currency
+        var csvContent = "類別名稱,銷售金額(\(currencyCode)),佔比%\n"
 
         for category in categoryAnalysis {
             let name = category.name.replacingOccurrences(of: ",", with: "，")

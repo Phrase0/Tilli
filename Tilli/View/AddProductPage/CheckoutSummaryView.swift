@@ -61,11 +61,11 @@ struct CheckoutSummaryView: View {
                                                 .cornerRadius(4)
 
                                             let discountedPrice = MoneyHelper.applyDiscount(price: item.price, discountPercentage: item.discount)
-                                            Text(discountedPrice.money)
+                                            Text(discountedPrice.money(currency: session.currency))
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         } else {
-                                            Text(item.price.money)
+                                            Text(item.price.money(currency: session.currency))
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         }
@@ -74,7 +74,7 @@ struct CheckoutSummaryView: View {
 
                                 Spacer()
 
-                                Text(item.total.money)
+                                Text(item.total.money(currency: session.currency))
                                     .font(.body)
                                     .fontWeight(.semibold)
                             }
@@ -90,7 +90,7 @@ struct CheckoutSummaryView: View {
                     Text("總計")
                         .font(.headline)
                     Spacer()
-                    Text(totalAmount.money)
+                    Text(totalAmount.money(currency: session.currency))
                         .font(.headline)
                         .bold()
                 }
@@ -151,7 +151,7 @@ struct CheckoutSummaryView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToEPayment) {
-                EPaymentView(totalAmount: totalAmount)
+                EPaymentView(totalAmount: totalAmount, session: session)
             }
         }
     }

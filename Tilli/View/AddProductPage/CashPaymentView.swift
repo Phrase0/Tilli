@@ -50,11 +50,11 @@ struct CashPaymentView: View {
                 Text("總金額")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                
+
                 HStack(spacing: 4) {
                     Image(systemName: "tag.fill")
                         .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money)
+                    Text(viewModel.totalAmount.money(currency: session.currency))
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.black)
@@ -68,7 +68,7 @@ struct CashPaymentView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
 
-                TextField("NT$", text: $viewModel.receivedAmountText)
+                TextField(viewModel.currencyPlaceholder, text: $viewModel.receivedAmountText)
                     .keyboardType(.numberPad)
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
@@ -92,8 +92,8 @@ struct CashPaymentView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Text(max(viewModel.change, 0).money)
+
+                Text(max(viewModel.change, 0).money(currency: session.currency))
                     .font(.title)
                     .foregroundColor(.blue)
                     .bold()

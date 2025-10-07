@@ -99,6 +99,7 @@ struct ProductPerformanceView: View {
                         originalPrice: product.originalPrice,
                         discount: product.discount,
                         actualRevenue: product.actualRevenue,
+                        currency: session.currency,
                         isExpanded: expandedProducts.contains(product.rank)
                     ) {
                         toggleExpansion(for: product.rank)
@@ -120,9 +121,9 @@ struct ProductPerformanceView: View {
             
             VStack(spacing: 16) {
                 // Pie Chart
-                PieChartView(categories: productPerformanceViewModel.categoryAnalysis)
+                PieChartView(categories: productPerformanceViewModel.categoryAnalysis, currency: session.currency)
                     .frame(height: 250)
-                
+
                 // Category Details
                 VStack(spacing: 8) {
                     ForEach(productPerformanceViewModel.categoryAnalysis) { category in
@@ -130,7 +131,8 @@ struct ProductPerformanceView: View {
                             color: category.color,
                             name: category.name,
                             amount: category.amount,
-                            percentage: category.percentage
+                            percentage: category.percentage,
+                            currency: session.currency
                         )
                     }
                 }

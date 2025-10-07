@@ -232,12 +232,12 @@ struct SessionRowView: View {
                 .foregroundColor(.black)
 
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 6) {
-                Text(totalAmount.money)
+                Text(totalAmount.money(currency: session.currency))
                     .font(.headline)
                     .foregroundColor(.blue)
-                
+
                 Text("\(session.transactions.count) 筆交易")
                     .font(.subheadline)
                     .foregroundColor(.gray)

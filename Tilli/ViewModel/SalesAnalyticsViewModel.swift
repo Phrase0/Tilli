@@ -50,7 +50,8 @@ class SalesAnalyticsViewModel: ObservableObject {
     // MARK: - CSV Export Methods
 
     func generateHourlyAnalysisCSV() -> String {
-        var csvContent = "時段,銷售金額,交易筆數,平均客單價\n"
+        let currencyCode = session.currency
+        var csvContent = "時段,銷售金額(\(currencyCode)),交易筆數,平均客單價(\(currencyCode))\n"
 
         for hourData in hourlyData {
             let hour = hourData.hourString
@@ -66,7 +67,8 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     func generatePaymentMethodCSV() -> String {
-        var csvContent = "支付方式,交易筆數,交易金額,佔比%\n"
+        let currencyCode = session.currency
+        var csvContent = "支付方式,交易筆數,交易金額(\(currencyCode)),佔比%\n"
 
         for paymentData in paymentMethodData {
             let name = paymentData.name.replacingOccurrences(of: ",", with: "，")

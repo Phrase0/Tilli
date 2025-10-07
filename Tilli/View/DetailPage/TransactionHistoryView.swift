@@ -103,13 +103,13 @@ struct TransactionHistoryView: View {
                         
                         
                         Spacer()
-                        
+
                         HStack(alignment: .center)  {
-                            Text("NT$\(transactionViewModel.formatAmount(transaction.totalAmount))")
+                            Text(transactionViewModel.formatAmount(transaction.totalAmount))
                                 .font(.headline)
                                 .bold()
                                 .foregroundColor(.primary)
-                            
+
                             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .foregroundColor(.gray)
                                 .font(.caption)

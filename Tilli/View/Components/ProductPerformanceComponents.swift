@@ -20,10 +20,11 @@ struct ProductRankingCard: View {
     let originalPrice: Decimal?
     let discount: Int?
     let actualRevenue: Decimal?
+    let currency: String
     let isExpanded: Bool
     let onToggle: () -> Void
 
-    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, unitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Int? = nil, actualRevenue: Decimal? = nil, isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
+    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, unitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Int? = nil, actualRevenue: Decimal? = nil, currency: String = "TWD", isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
         self.rank = rank
         self.name = name
         self.category = category
@@ -34,6 +35,7 @@ struct ProductRankingCard: View {
         self.originalPrice = originalPrice
         self.discount = discount
         self.actualRevenue = actualRevenue
+        self.currency = currency
         self.isExpanded = isExpanded
         self.onToggle = onToggle
     }
@@ -88,15 +90,15 @@ struct ProductRankingCard: View {
                 }
                 
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(MoneyHelper.format(revenue))
+                    Text(MoneyHelper.format(revenue, currencyCode: currency))
                         .font(.system(size: 16, weight: .bold))
                     Text("實際金額")
                         .font(.system(size: 11))
                         .foregroundColor(.gray)
                 }
-                
+
             }
             .padding(.top, 8)
             
@@ -119,7 +121,7 @@ struct ProductRankingCard: View {
                                 Text("單價")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text(MoneyHelper.format(unitPrice))
+                                Text(MoneyHelper.format(unitPrice, currencyCode: currency))
                                     .fontWeight(.medium)
                             }
                         }
@@ -129,7 +131,7 @@ struct ProductRankingCard: View {
                                 Text("原價總額")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text(MoneyHelper.format(originalPrice))
+                                Text(MoneyHelper.format(originalPrice, currencyCode: currency))
                                     .fontWeight(.medium)
                             }
                         }
@@ -139,7 +141,7 @@ struct ProductRankingCard: View {
                                 Text("折扣總額")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text("NT$ \(discount)")
+                                Text(MoneyHelper.format(Decimal(discount), currencyCode: currency))
                                     .fontWeight(.medium)
                                     .foregroundColor(.red)
                             }
@@ -150,7 +152,7 @@ struct ProductRankingCard: View {
                                 Text("實收金額")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text(MoneyHelper.format(actualRevenue))
+                                Text(MoneyHelper.format(actualRevenue, currencyCode: currency))
                                     .fontWeight(.bold)
                                     .foregroundColor(.blue)
                             }
@@ -190,7 +192,8 @@ struct ProductRankingCard: View {
 // MARK: - Pie Chart View
 struct PieChartView: View {
     let categories: [CategoryAnalysisData]
-    
+    let currency: String
+
     var body: some View {
         ZStack {
             // Pie Chart using Charts framework (iOS 16+)
@@ -222,7 +225,7 @@ struct PieChartView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 let totalAmount = categories.reduce(Decimal(0)) { MoneyHelper.add($0, $1.amount) }
-                Text(MoneyHelper.format(totalAmount))
+                Text(MoneyHelper.format(totalAmount, currencyCode: currency))
                     .font(.title3)
                     .fontWeight(.bold)
             }
@@ -236,7 +239,8 @@ struct CategoryCard: View {
     let name: String
     let amount: Decimal
     let percentage: Int
-    
+    let currency: String
+
     var body: some View {
         HStack {
             Circle()
@@ -247,9 +251,9 @@ struct CategoryCard: View {
                 .font(.system(size: 15))
             
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 2) {
-                Text(MoneyHelper.format(amount))
+                Text(MoneyHelper.format(amount, currencyCode: currency))
                     .font(.system(size: 15, weight: .medium))
                 Text("\(percentage)%")
                     .font(.system(size: 12))
