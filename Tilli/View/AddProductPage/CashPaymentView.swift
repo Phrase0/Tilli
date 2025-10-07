@@ -69,11 +69,17 @@ struct CashPaymentView: View {
                     .foregroundColor(.gray)
 
                 TextField(viewModel.currencyPlaceholder, text: $viewModel.receivedAmountText)
-                    .keyboardType(.numberPad)
+                    .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
                     .focused($focusedField, equals: .receivedAmount)
                     .submitLabel(.done)
+                    .onChange(of: viewModel.receivedAmountText) { newValue in
+                        let validatedAmount = viewModel.validateAndFormatAmount(newValue)
+                        if validatedAmount != newValue {
+                            viewModel.receivedAmountText = validatedAmount
+                        }
+                    }
                     .onSubmit {
                         if viewModel.isAmountValid {
                             let updatedSession = viewModel.performCheckout(

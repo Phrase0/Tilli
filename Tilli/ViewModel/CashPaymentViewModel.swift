@@ -36,6 +36,56 @@ class CashPaymentViewModel: ObservableObject {
         return currency.symbol
     }
 
+    /// 當前幣別
+    var currentCurrency: Currency {
+        return Currency(rawValue: session.currency) ?? .twd
+    }
+
+    /// 當前幣別是否支持小數點
+    var supportsDecimal: Bool {
+        return currentCurrency.decimalPlaces > 0
+    }
+
+    /// 當前幣別的小數位數
+    var maxDecimalPlaces: Int {
+        return currentCurrency.decimalPlaces
+    }
+
+    /// 驗證並格式化金額輸入
+    func validateAndFormatAmount(_ input: String) -> String {
+        // 移除非數字和小數點的字符
+        let filtered = input.filter { $0.isNumber || $0 == "." }
+
+        // 如果不支持小數點，移除所有小數點
+        if !supportsDecimal {
+            return filtered.filter { $0 != "." }
+        }
+
+        // 處理小數點
+        let components = filtered.components(separatedBy: ".")
+
+        // 如果沒有小數點或只有一個小數點
+        if components.count <= 1 {
+            return filtered
+        }
+
+        // 如果有多個小數點，只保留第一個
+        if components.count > 2 {
+            return components[0] + "." + components[1]
+        }
+
+        // 限制小數位數
+        let integerPart = components[0]
+        let decimalPart = components[1]
+
+        if decimalPart.count > maxDecimalPlaces {
+            let limitedDecimal = String(decimalPart.prefix(maxDecimalPlaces))
+            return integerPart + "." + limitedDecimal
+        }
+
+        return filtered
+    }
+
     init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
         self.totalAmount = totalAmount
         self.session = session
