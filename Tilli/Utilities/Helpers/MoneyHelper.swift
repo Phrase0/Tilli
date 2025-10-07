@@ -57,8 +57,6 @@ enum Currency: String, CaseIterable {
 }
 
 class MoneyHelper {
-    static var currentCurrency: Currency = .twd
-
     // 無限精度處理器（用於中間計算，不四捨五入）
     private static let noRoundingHandler = NSDecimalNumberHandler(
         roundingMode: .plain,
@@ -190,10 +188,6 @@ class MoneyHelper {
 
     static func toDouble(_ value: Decimal) -> Double {
         return NSDecimalNumber(decimal: value).doubleValue
-    }
-
-    static func switchToCurrency(_ currency: Currency) {
-        currentCurrency = currency
     }
 
     // MARK: - Advanced Helper Methods
