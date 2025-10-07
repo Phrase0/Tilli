@@ -46,8 +46,9 @@ class TransactionViewModel: ObservableObject {
     }
     
     func generateCSVContent() -> String {
-        var csvContent = "交易編號,日期時間,支付方式,商品名稱,類別,單價,數量,折扣%,小計,總金額\n"
-        
+        let currencyCode = session.currency
+        var csvContent = "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,折扣%,小計(\(currencyCode)),總金額(\(currencyCode))\n"
+
         for transaction in transactions.sorted(by: { $0.timestamp > $1.timestamp }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
             let dateTime = formatDateTime(transaction.timestamp)
@@ -119,8 +120,9 @@ class TransactionViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
-    func formatAmount(_ amount: Decimal) -> String {
-        return MoneyHelper.toDouble(amount).formatted(.number.precision(.fractionLength(0)))
+    func formatAmount(_ amount: Decimal, currency: String? = nil) -> String {
+        let currencyCode = currency ?? session.currency
+        return MoneyHelper.format(amount, currencyCode: currencyCode)
     }
     
     func paymentMethodText(_ method: PaymentMethod) -> String {

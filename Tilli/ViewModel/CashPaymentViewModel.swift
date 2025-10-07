@@ -30,7 +30,12 @@ class CashPaymentViewModel: ObservableObject {
         // 如果找零 >= 0，表示收到的金額足夠
         change >= 0
     }
-    
+
+    var currencyPlaceholder: String {
+        let currency = Currency(rawValue: session.currency) ?? .twd
+        return currency.symbol
+    }
+
     init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
         self.totalAmount = totalAmount
         self.session = session
