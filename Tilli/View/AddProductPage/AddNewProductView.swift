@@ -15,7 +15,6 @@ struct AddNewProductView: View {
     enum FocusField: Hashable {
         case name
         case price
-        case quantity
     }
 
     @FocusState private var focusedField: FocusField?
@@ -61,9 +60,6 @@ struct AddNewProductView: View {
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                             .focused($focusedField, equals: .price)
                             .submitLabel(.next)
-                            .onSubmit {
-                                focusedField = .quantity
-                            }
                             .onChange(of: viewModel.price) { newValue in
                                 let validatedPrice = viewModel.validateAndFormatPrice(newValue)
                                 if validatedPrice != newValue {
@@ -77,7 +73,6 @@ struct AddNewProductView: View {
                         TextField("請輸入數量", text: $viewModel.quantity)
                             .keyboardType(.numberPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .focused($focusedField, equals: .quantity)
                             .submitLabel(.done)
                             .onSubmit {
                                 UIApplication.shared.endEditing()
