@@ -167,7 +167,7 @@ struct SessionDetailView: View {
                 viewModel.loadData()
                 viewModel.productViewModel.clearAllQuantities()
                 viewModel.updateSessionTotalAmount()
-                
+
                 // 重置標記
                 DispatchQueue.main.async {
                     checkoutCompleted = false
