@@ -198,7 +198,7 @@ class ProductViewModel: ObservableObject {
     }
     
     func totalAmount() -> Decimal {
-        activeProducts.reduce(0) { result, product in
+        activeProducts.reduce(Decimal(0)) { result, product in
             let qty = quantities[product.id, default: 0]
             let discount = selectedDiscounts[product.id] ?? 0
             let total = MoneyHelper.calculateTotal(
@@ -211,7 +211,7 @@ class ProductViewModel: ObservableObject {
     }
     
     func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
-        activeProducts.compactMap { product in
+        activeProducts.compactMap { product -> SummaryItemModel? in
             let qty = quantity(for: product)
             guard qty > 0 else { return nil }
 
