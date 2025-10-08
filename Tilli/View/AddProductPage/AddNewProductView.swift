@@ -12,12 +12,6 @@ struct AddNewProductView: View {
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @StateObject private var viewModel: AddNewProductViewModel
 
-    enum FocusField: Hashable {
-        case name
-        case price
-    }
-
-    @FocusState private var focusedField: FocusField?
 
     init(session: SessionModel,
          productToEdit: ProductModel? = nil,
@@ -44,11 +38,7 @@ struct AddNewProductView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                            .focused($focusedField, equals: .name)
                             .submitLabel(.next)
-                            .onSubmit {
-                                focusedField = .price
-                            }
 
                         Text("價格")
                             .font(.subheadline)
@@ -58,7 +48,6 @@ struct AddNewProductView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                            .focused($focusedField, equals: .price)
                             .submitLabel(.next)
                             .onChange(of: viewModel.price) { newValue in
                                 let validatedPrice = viewModel.validateAndFormatPrice(newValue)
@@ -214,11 +203,6 @@ struct AddNewProductView: View {
 
                 // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
                 viewModel.clearImageTempState()
-
-                // 自動聚焦到第一個欄位
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.focusedField = .name
-                }
             }
         }
     }
