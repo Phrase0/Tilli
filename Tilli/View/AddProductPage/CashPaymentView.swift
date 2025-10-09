@@ -74,9 +74,9 @@ struct CashPaymentView: View {
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
                     .focused($focusedField, equals: .receivedAmount)
                     .submitLabel(.done)
-                    .onChange(of: viewModel.receivedAmountText) { newValue in
-                        let validatedAmount = viewModel.validateAndFormatAmount(newValue)
-                        if validatedAmount != newValue {
+                    .onChange(of: viewModel.receivedAmountText) {
+                        let validatedAmount = viewModel.validateAndFormatAmount(viewModel.receivedAmountText)
+                        if validatedAmount != viewModel.receivedAmountText {
                             viewModel.receivedAmountText = validatedAmount
                         }
                     }

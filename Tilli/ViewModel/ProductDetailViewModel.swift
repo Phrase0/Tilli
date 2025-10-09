@@ -31,7 +31,6 @@ class ProductViewModel: ObservableObject {
     private var transactionDataManager: TransactionDataManager?
     private var sessionDataManager: SessionDataManager?
     private var productRepository: ProductRepository?
-    private var categoryRepository: CategoryRepository?
     
     // 計算屬性：可顯示的產品（Product.isDisabled == false && Category.isDisabled == false）
     var activeProducts: [ProductModel] {
@@ -77,13 +76,11 @@ class ProductViewModel: ObservableObject {
     func updateDataManagers(
         transactionDataManager: TransactionDataManager,
         sessionDataManager: SessionDataManager,
-        productRepository: ProductRepository,
-        categoryRepository: CategoryRepository
+        productRepository: ProductRepository
     ) {
         self.transactionDataManager = transactionDataManager
         self.sessionDataManager = sessionDataManager
         self.productRepository = productRepository
-        self.categoryRepository = categoryRepository
     }
     
     // MARK: - Product Detail 相關方法

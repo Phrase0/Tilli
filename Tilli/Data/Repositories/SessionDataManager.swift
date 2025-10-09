@@ -154,61 +154,14 @@ class SessionDataManager: ObservableObject {
                 // 更新基本屬性
                 categoryEntity.name = categoryModel.name
                 categoryEntity.isDisabled = categoryModel.isDisabled
-                
-                // 更新該 category 下的 products
-                updateProductsForCategory(entity: categoryEntity, newProducts: categoryModel.products)
-            }
-        }
-    }
-    
-    /// 更新 Category 的 Products
-    private func updateProductsForCategory(entity: CDCategoryEntity, newProducts: [ProductModel]) {
-        let existingProducts = entity.products as? Set<CDProductEntity> ?? Set()
-        let existingProductIds = Set(existingProducts.map { $0.id })
-        let newProductIds = Set(newProducts.map { $0.id })
-        
-        // 找出需要刪除的 products
-        let productsToDelete = existingProducts.filter { !newProductIds.contains($0.id) }
-        
-        // 找出需要新增的 products
-        let productsToAdd = newProducts.filter { !existingProductIds.contains($0.id) }
-        
-        // 找出需要更新的 products
-        let productsToUpdate = newProducts.filter { existingProductIds.contains($0.id) }
-        
-        // 刪除不再需要的 products（但要檢查是否有交易記錄）
-        for productEntity in productsToDelete {
-            // 檢查是否有相關交易記錄
-            if hasRelatedTransactionsForProduct(productId: productEntity.id) {
-                // 有交易記錄，只能停用
-                productEntity.isDisabled = true
-                print("Product \(productEntity.name) has transactions, disabled instead of deleted")
-            } else {
-                // 無交易記錄，可以硬刪除
-                entity.removeFromProducts(productEntity)
-                context.delete(productEntity)
-            }
-        }
-        
-        // 新增新的 products
-        for productModel in productsToAdd {
-            let productEntity = CDProductEntity(context: context)
-            productEntity.update(from: productModel, context: context)
-            productEntity.category = entity
-            entity.addToProducts(productEntity)
-        }
-        
-        // 更新現有的 products（但保留 isDisabled 狀態）
-        for productModel in productsToUpdate {
-            if let productEntity = existingProducts.first(where: { $0.id == productModel.id }) {
-                // 保存現有的 isDisabled 狀態
-                let currentIsDisabled = productEntity.isDisabled
-                
-                // 更新其他屬性
-                productEntity.update(from: productModel, context: context)
-                
-                // 恢復原來的 isDisabled 狀態
-                productEntity.isDisabled = currentIsDisabled
+
+                // 只更新 products 的 categoryName（不處理 products 的新增/刪除）
+                // Products 的 CRUD 由 ProductRepository 負責
+                if let products = categoryEntity.products as? Set<CDProductEntity> {
+                    for product in products {
+                        product.categoryName = categoryModel.name
+                    }
+                }
             }
         }
     }
@@ -360,29 +313,6 @@ class SessionDataManager: ObservableObject {
                 }
             }
             
-            return false
-        } catch {
-            print("檢查 Transaction 失敗:", error)
-            return true // 發生錯誤時保守處理，假設有 Transaction
-        }
-    }
-    
-    /// 檢查 Product 是否有相關 Transaction
-    private func hasRelatedTransactionsForProduct(productId: UUID) -> Bool {
-        let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-
-        do {
-            let transactions = try context.fetch(transactionRequest)
-            
-            // 檢查所有交易的 items 中是否包含此 productId
-            for transaction in transactions {
-                if let itemsData = transaction.itemsData,
-                   let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
-                    if items.contains(where: { $0.productId == productId }) {
-                        return true
-                    }
-                }
-            }
             return false
         } catch {
             print("檢查 Transaction 失敗:", error)

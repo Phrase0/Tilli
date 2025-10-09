@@ -32,16 +32,14 @@ class SessionDetailViewModel: ObservableObject {
     func updateDataManagers(
         transactionDataManager: TransactionDataManager,
         sessionDataManager: SessionDataManager,
-        productRepository: ProductRepository,
-        categoryRepository: CategoryRepository
+        productRepository: ProductRepository
     ) {
         self.transactionDataManager = transactionDataManager
 
         productViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager,
             sessionDataManager: sessionDataManager,
-            productRepository: productRepository,
-            categoryRepository: categoryRepository
+            productRepository: productRepository
         )
 
         transactionViewModel.updateDataManagers(
