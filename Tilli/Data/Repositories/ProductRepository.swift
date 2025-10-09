@@ -205,9 +205,9 @@ class ProductRepository: ObservableObject {
     // MARK: - Batch Operations
     
     /// 批次更新產品庫存
-    func batchUpdateProductStock(_ stockUpdates: [UUID: Int]) -> CoreDataResult<Void> {
+    func batchUpdateProductStock(_ stockUpdates: [UUID: Int]) -> Bool {
         guard !stockUpdates.isEmpty else {
-            return .success(())
+            return true
         }
         
         let productIds = Array(stockUpdates.keys)
@@ -226,19 +226,19 @@ class ProductRepository: ObservableObject {
             try context.save()
             
             print("✅ Batch updated \(products.count) products stock")
-            return .success(())
+            return true
             
         } catch {
             context.rollback()
-            let coreDataError = CoreDataError.saveFailed(error)
-            return .failure(coreDataError)
+            print("🔴 批次更新產品庫存失敗: \(error)")
+            return false
         }
     }
     
     /// 批次更新多個產品（完整更新）
-    func batchUpdateProducts(_ productUpdates: [ProductModel]) -> CoreDataResult<Void> {
+    func batchUpdateProducts(_ productUpdates: [ProductModel]) -> Bool {
         guard !productUpdates.isEmpty else {
-            return .success(())
+            return true
         }
         
         let productIds = productUpdates.map { $0.id }
@@ -266,12 +266,12 @@ class ProductRepository: ObservableObject {
             try context.save()
             
             print("✅ Batch updated \(entities.count) products")
-            return .success(())
+            return true
             
         } catch {
             context.rollback()
-            let coreDataError = CoreDataError.saveFailed(error)
-            return .failure(coreDataError)
+            print("🔴 批次更新多個產品失敗: \(error)")
+            return false
         }
     }
     

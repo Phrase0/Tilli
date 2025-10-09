@@ -44,9 +44,9 @@ class EPaymentViewModel: ObservableObject {
         }
         
         // 執行批次更新
-        let result = productRepository.batchUpdateProductStock(stockUpdates)
-        if !result.isSuccess {
-            print("🔴 批次更新產品庫存失敗: \(result.error?.localizedDescription ?? "未知錯誤")")
+        let success = productRepository.batchUpdateProductStock(stockUpdates)
+        if !success {
+            print("🔴 批次更新產品庫存失敗")
         }
 
         // 創建交易記錄
