@@ -145,15 +145,6 @@ struct CashPaymentView: View {
                         .cornerRadius(12)
                 }
                 .disabled(!viewModel.isAmountValid)
-                
-                Button("取消") {
-                    presentationMode.wrappedValue.dismiss()
-                }
-                .foregroundColor(.gray)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(12)
             }
         }
         .padding()
