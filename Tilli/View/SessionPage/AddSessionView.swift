@@ -121,7 +121,9 @@ struct AddSessionView: View {
     
     @ViewBuilder
     private func categoryRow(for category: CategoryModel) -> some View {
-        if viewModel.editingCategoryID == category.id {
+        let canEdit = viewModel.canEditCategoryName(for: category.id)
+
+        if viewModel.editingCategoryID == category.id && canEdit {
             TextField("類別名稱", text: Binding(
                 get: {
                     viewModel.selectedCategory?.name ?? ""
@@ -136,8 +138,11 @@ struct AddSessionView: View {
             }
         } else {
             Text(category.name)
+                .foregroundColor(canEdit ? .primary : .gray)
                 .onTapGesture {
-                    viewModel.editingCategoryID = category.id
+                    if canEdit {
+                        viewModel.editingCategoryID = category.id
+                    }
                 }
         }
     }
