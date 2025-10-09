@@ -151,7 +151,15 @@ struct CheckoutSummaryView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToEPayment) {
-                EPaymentView(totalAmount: totalAmount, session: session)
+                EPaymentView(
+                    totalAmount: totalAmount,
+                    session: $session,
+                    summaryItems: selectedItems
+                ) { updatedSession in
+                    self.session = updatedSession
+                    checkoutCompleted = true
+                    isPresented = false
+                }
             }
         }
     }

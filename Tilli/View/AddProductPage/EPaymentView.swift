@@ -9,16 +9,118 @@ import SwiftUI
 import Foundation
 
 struct EPaymentView: View {
-    let totalAmount: Decimal
-    let session: SessionModel
+
+    @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.dismiss) private var dismiss
+
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var productRepository: ProductRepository
+    @EnvironmentObject var qrCodeDataManager: QRCodeDataManager
+
+    @Binding var session: SessionModel
+
+    var onComplete: (SessionModel) -> Void
+
+    @ObservedObject var viewModel: EPaymentViewModel
+
+    init(
+        totalAmount: Decimal,
+        session: Binding<SessionModel>,
+        summaryItems: [SummaryItemModel],
+        onComplete: @escaping (SessionModel) -> Void
+    ) {
+        self._session = session
+        self._viewModel = ObservedObject(wrappedValue: EPaymentViewModel(
+            totalAmount: totalAmount,
+            session: session.wrappedValue,
+            summaryItems: summaryItems
+        ))
+        self.onComplete = onComplete
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("E-Payment")
-                .font(.largeTitle)
-            Text("Total: \(totalAmount.money(currency: session.currency))")
-                .font(.title2)
+        VStack(spacing: 0) {
+            // 總金額顯示
+            VStack(spacing: 8) {
+                Text("總金額")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "tag.fill")
+                        .foregroundColor(.blue)
+                    Text(viewModel.totalAmount.money(currency: session.currency))
+                        .font(.largeTitle)
+                        .bold()
+                        .foregroundColor(.black)
+                }
+            }
+            .padding(.top, 24)
+            .padding(.bottom, 16)
+
+            Divider()
+
+            // QR Code Section
+            VStack(spacing: 24) {
+                Spacer()
+
+                // QR Code Container
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white)
+                        .frame(width: 280, height: 280)
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
+
+                    if let qrImage = qrCodeDataManager.qrCodeImage {
+                        Image(uiImage: qrImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 260, height: 260)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    } else {
+                        VStack(spacing: 16) {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 80))
+                                .foregroundColor(.gray.opacity(0.3))
+
+                            VStack(spacing: 6) {
+                                Text("尚未設定收款碼")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.gray)
+                                Text("請至「我的收款碼」頁面新增")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray.opacity(0.7))
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+
+            // 完成付款按鈕
+            VStack(spacing: 12) {
+                Button(action: {
+                    let updatedSession = viewModel.performCheckout(
+                        sessionDataManager: sessionDataManager,
+                        productRepository: productRepository
+                    )
+                    session = updatedSession
+                    onComplete(updatedSession)
+                    dismiss()
+                }) {
+                    Text("完成付款")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                }
+            }
+            .padding()
         }
-        .padding()
+        .background(Color(.systemGroupedBackground))
     }
 }
