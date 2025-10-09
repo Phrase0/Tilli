@@ -10,7 +10,7 @@ import SwiftUI
 class CalendarViewModel: ObservableObject {
     
     @Published var transactionViewModel: TransactionViewModel
-    @Published var sessions: [SessionModel] = []
+    // 注意：移除本地 sessions 陣列，直接使用 SessionDataManager 的 @Published sessions
     
     @Binding var selectedSession: SessionModel
     
@@ -35,10 +35,9 @@ class CalendarViewModel: ObservableObject {
         )
     }
     
-    /// 刷新數據
+    /// 刷新數據（已不需要手動刷新，SessionDataManager 會自動更新）
     func refresh(using sessionDataManager: SessionDataManager) {
         self.sessionDataManager = sessionDataManager
-        sessions = sessionDataManager.sessions
     }
     
     // MARK: - Calendar Functions
@@ -82,14 +81,14 @@ class CalendarViewModel: ObservableObject {
     }
     
     /// 獲取指定日期的sessions
-    func sessionsForDate(_ date: Date) -> [SessionModel] {
+    func sessionsForDate(_ date: Date, from sessions: [SessionModel]) -> [SessionModel] {
         sessions.filter { session in
             calendar.isDate(session.date, inSameDayAs: date)
         }
     }
     
     /// 檢查指定日期是否有sessions
-    func hasSessions(on date: Date) -> Bool {
+    func hasSessions(on date: Date, from sessions: [SessionModel]) -> Bool {
         sessions.contains { session in
             calendar.isDate(session.date, inSameDayAs: date)
         }

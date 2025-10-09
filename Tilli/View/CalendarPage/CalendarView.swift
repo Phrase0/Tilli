@@ -119,7 +119,7 @@ struct CalendarView: View {
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    hasSessions: viewModel.hasSessions(on: date),
+                    hasSessions: viewModel.hasSessions(on: date, from: sessionDataManager.sessions),
                     currentMonth: currentDate,
                     onTap: { selectedDate = date }
                 )
@@ -141,10 +141,10 @@ struct CalendarView: View {
     // Session 列表
     private var sessionList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !viewModel.sessionsForDate(selectedDate).isEmpty {
+            if !viewModel.sessionsForDate(selectedDate, from: sessionDataManager.sessions).isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(viewModel.sessionsForDate(selectedDate)) { session in
+                        ForEach(viewModel.sessionsForDate(selectedDate, from: sessionDataManager.sessions)) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {

@@ -8,7 +8,6 @@
 import Foundation
 
 class SessionViewModel: ObservableObject {
-    @Published var sessions: [SessionModel] = []
     
     // 複製場次相關狀態
     @Published var showDuplicateSessionDialog = false
@@ -17,8 +16,8 @@ class SessionViewModel: ObservableObject {
     @Published var duplicateSessionDate = Date()
     @Published var hasEditedSessionName = false
 
-    func sortedFilteredSessions(by keyword: String) -> [SessionModel] {
-        let filtered = filteredSessions(by: keyword)
+    func sortedFilteredSessions(by keyword: String, from sessions: [SessionModel]) -> [SessionModel] {
+        let filtered = filteredSessions(by: keyword, from: sessions)
 
         return filtered.sorted {
             switch ($0.status, $1.status) {
@@ -32,7 +31,7 @@ class SessionViewModel: ObservableObject {
         }
     }
 
-    func filteredSessions(by keyword: String) -> [SessionModel] {
+    func filteredSessions(by keyword: String, from sessions: [SessionModel]) -> [SessionModel] {
         if keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return sessions
         } else {
@@ -45,26 +44,18 @@ class SessionViewModel: ObservableObject {
     
     func addSession(_ newSession: SessionModel, using sessionDataManager: SessionDataManager) {
         sessionDataManager.addSession(newSession)
-        sessions = sessionDataManager.sessions
     }
 
     func updateSession(_ updatedSession: SessionModel, using sessionDataManager: SessionDataManager) {
         sessionDataManager.updateSession(updatedSession)
-        sessions = sessionDataManager.sessions
     }
     
-    func deleteSession(_ session: SessionModel,using sessionDataManager: SessionDataManager) {
+    func deleteSession(_ session: SessionModel, using sessionDataManager: SessionDataManager) {
         sessionDataManager.deleteSession(session.id)
-        sessions = sessionDataManager.sessions
-    }
-    
-    func refresh(using sessionDataManager: SessionDataManager) {
-        sessions = sessionDataManager.sessions
     }
     
     func duplicateSession(_ originalSession: SessionModel, newTitle: String, newDate: Date, using sessionDataManager: SessionDataManager) -> SessionModel? {
         let duplicatedSession = sessionDataManager.duplicateSession(originalSessionId: originalSession.id, newTitle: newTitle, newDate: newDate)
-        sessions = sessionDataManager.sessions
         return duplicatedSession
     }
     
