@@ -30,7 +30,7 @@ struct SessionsView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    if viewModel.sortedFilteredSessions(by: searchText).isEmpty {
+                    if viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions).isEmpty {
                         // 空狀態顯示
                         if searchText.isEmpty {
                             // 完全沒有場次
@@ -49,7 +49,7 @@ struct SessionsView: View {
                         }
                     } else {
                         // 有場次時顯示列表
-                        ForEach(viewModel.sortedFilteredSessions(by: searchText)) { session in
+                        ForEach(viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)) { session in
                             sessionCard(session)
                                 .onTapGesture {
                                     selectedSession = session
@@ -78,8 +78,8 @@ struct SessionsView: View {
                 })
             }
             .navigationDestination(item: $selectedSession) { session in
-                if let index = viewModel.sessions.firstIndex(where: { $0.id == session.id }) {
-                    SessionDetailView(session: $viewModel.sessions[index])
+                if let index = sessionDataManager.sessions.firstIndex(where: { $0.id == session.id }) {
+                    SessionDetailView(session: $sessionDataManager.sessions[index])
                 }
             }
             .navigationDestination(isPresented: Binding(
@@ -96,7 +96,7 @@ struct SessionsView: View {
                 }
             }
             .onAppear {
-                viewModel.refresh(using: sessionDataManager)
+                // SessionDataManager 會自動管理和更新 sessions 數據
                 appState.currentSession = nil
             }
         }

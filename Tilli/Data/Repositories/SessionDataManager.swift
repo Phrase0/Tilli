@@ -32,7 +32,12 @@ class SessionDataManager: ObservableObject {
 
         do {
             let result = try context.fetch(request)
-            sessions = result.map { $0.toModel() }
+            let newSessions = result.map { $0.toModel() }
+            
+            // 確保在主線程更新 @Published 屬性
+            DispatchQueue.main.async {
+                self.sessions = newSessions
+            }
         } catch {
             print("Fetch sessions failed:", error)
         }
@@ -72,8 +77,9 @@ class SessionDataManager: ObservableObject {
             }
         }
         
-        saveContext()
-        fetchSessions()
+        if saveContext() {
+            fetchSessions() // 僅在成功保存後重新載入
+        }
     }
 
     /// 更新 Session（包含 Category 的變更處理）
@@ -96,8 +102,9 @@ class SessionDataManager: ObservableObject {
             // 處理 Categories 的變更
             updateCategoriesForSession(entity: entity, newCategories: model.categories)
             
-            saveContext()
-            fetchSessions()
+            if saveContext() {
+                fetchSessions() // 僅在成功保存後重新載入
+            }
         } catch {
             print("Update session failed:", error)
         }
@@ -175,8 +182,9 @@ class SessionDataManager: ObservableObject {
             if let entity = try context.fetch(request).first {
                 // Transaction 會自動保留，因為它們沒有級聯刪除
                 context.delete(entity)
-                saveContext()
-                fetchSessions()
+                if saveContext() {
+                    fetchSessions() // 僅在成功保存後重新載入
+                }
             }
         } catch {
             print("Delete session failed:", error)
@@ -200,8 +208,9 @@ class SessionDataManager: ObservableObject {
             entity.update(from: model, context: context)
             sessionEntity.addToTransactions(entity)
 
-            saveContext()
-            fetchSessions() // 重新載入以更新交易記錄
+            if saveContext() {
+                fetchSessions() // 僅在成功保存後重新載入以更新交易記錄
+            }
         } catch {
             print("加入 transaction 失敗:", error)
         }
@@ -215,8 +224,9 @@ class SessionDataManager: ObservableObject {
         do {
             if let entity = try context.fetch(request).first {
                 entity.update(from: model, context: context)
-                saveContext()
-                fetchSessions()
+                if saveContext() {
+                    fetchSessions() // 僅在成功保存後重新載入
+                }
             }
         } catch {
             print("Update transaction failed:", error)
@@ -273,11 +283,13 @@ class SessionDataManager: ObservableObject {
                 }
             }
             
-            saveContext()
-            fetchSessions()
-            
-            // 返回新建立的 SessionModel
-            return newSessionEntity.toModel()
+            if saveContext() {
+                fetchSessions() // 僅在成功保存後重新載入
+                // 返回新建立的 SessionModel
+                return newSessionEntity.toModel()
+            } else {
+                return nil
+            }
         } catch {
             print("複製場次失敗:", error)
             return nil
@@ -321,13 +333,16 @@ class SessionDataManager: ObservableObject {
     }
 
     // MARK: - Save Context
-    private func saveContext() {
+    @discardableResult
+    private func saveContext() -> Bool {
         do {
             try context.save()
-            print("Session data saved to CoreData")
+            print("✅ Session data saved to CoreData")
+            return true
         } catch {
             print("Core Data save failed:", error)
             context.rollback()
+            return false
         }
     }
 }

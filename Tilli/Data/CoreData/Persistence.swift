@@ -18,6 +18,14 @@ struct PersistenceController {
 
     let container: NSPersistentContainer
 
+    /// 後台 Context，用於處理耗時操作
+    lazy var backgroundContext: NSManagedObjectContext = {
+        let context = container.newBackgroundContext()
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        return context
+    }()
+
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "Tilli")
         if inMemory {
@@ -31,5 +39,6 @@ struct PersistenceController {
         }
 
         container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
 }

@@ -25,18 +25,28 @@ class EPaymentViewModel: ObservableObject {
         productRepository: ProductRepository
     ) -> SessionModel {
 
-        // 更新產品庫存
+        // 批次更新產品庫存
+        var stockUpdates: [UUID: Int] = [:]
+        
+        // 首先獲取所有相關產品
+        let allProducts = productRepository.fetchProducts(forSessionId: session.id)
+        let productDict = Dictionary(uniqueKeysWithValues: allProducts.map { ($0.id, $0) })
+        
+        // 準備批次更新數據
         for item in summaryItems {
-            let allProducts = productRepository.fetchProducts(forSessionId: session.id)
-            guard let matchedProduct = allProducts.first(where: { $0.id == item.productId }) else {
-                print("無法在 CoreData 中找到對應的 productId: \(item.productId)")
+            guard let currentProduct = productDict[item.productId] else {
+                print("⚠️ 無法在 CoreData 中找到對應的 productId: \(item.productId)")
                 continue
             }
-
-            var updatedProduct = matchedProduct
-            updatedProduct.stock = max(updatedProduct.stock - item.quantity, 0)
-
-            productRepository.updateProduct(updatedProduct.id, productModel: updatedProduct)
+            
+            let newStock = max(currentProduct.stock - item.quantity, 0)
+            stockUpdates[item.productId] = newStock
+        }
+        
+        // 執行批次更新
+        let result = productRepository.batchUpdateProductStock(stockUpdates)
+        if !result.isSuccess {
+            print("🔴 批次更新產品庫存失敗: \(result.error?.localizedDescription ?? "未知錯誤")")
         }
 
         // 創建交易記錄
