@@ -102,25 +102,28 @@ struct EPaymentView: View {
             // 完成付款按鈕
             VStack(spacing: 12) {
                 Button(action: {
-                    let updatedSession = viewModel.performCheckout(
-                        sessionDataManager: sessionDataManager,
-                        productRepository: productRepository
-                    )
-                    session = updatedSession
-                    onComplete(updatedSession)
-                    dismiss()
+                    if qrCodeDataManager.qrCodeImage != nil {
+                        let updatedSession = viewModel.performCheckout(
+                            sessionDataManager: sessionDataManager,
+                            productRepository: productRepository
+                        )
+                        session = updatedSession
+                        onComplete(updatedSession)
+                        dismiss()
+                    }
                 }) {
                     Text("完成付款")
                         .foregroundColor(.white)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(qrCodeDataManager.qrCodeImage != nil ? Color.blue : Color.gray)
                         .cornerRadius(12)
                 }
+                .disabled(qrCodeDataManager.qrCodeImage == nil)
             }
-            .padding()
         }
+        .padding()
         .background(Color(.systemGroupedBackground))
     }
 }
