@@ -144,6 +144,11 @@ class AddSessionViewModel: ObservableObject {
         return products.contains { $0.categoryId == categoryId }
     }
 
+    /// 判斷類別是否可以編輯名稱（有交易記錄則不可編輯）
+    func canEditCategoryName(for categoryId: UUID) -> Bool {
+        return !hasTransaction(for: categoryId)
+    }
+
     
     // MARK: - Alert 處理邏輯
     
