@@ -17,7 +17,6 @@ struct AddSessionView: View {
     @EnvironmentObject var productRepository: ProductRepository
     
     enum FocusField: Hashable {
-        case sessionName
         case newCategory
     }
     
@@ -31,11 +30,7 @@ struct AddSessionView: View {
     var body: some View {
         Form {
             TextField("場次名稱", text: $viewModel.sessionName)
-                .focused($focusedField, equals: .sessionName)
                 .submitLabel(.next)
-                .onSubmit {
-                    focusedField = .newCategory
-                }
             
             DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
             
@@ -119,10 +114,6 @@ struct AddSessionView: View {
                 transactionDataManager: transactionDataManager,
                 productRepository: productRepository
             )
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.focusedField = .sessionName
-            }
         }
     }
     

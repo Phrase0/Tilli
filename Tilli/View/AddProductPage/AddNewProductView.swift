@@ -49,12 +49,13 @@ struct AddNewProductView: View {
                             .disabled(viewModel.isEditingWithTransaction)
                             .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                             .submitLabel(.next)
-                            .onChange(of: viewModel.price) { newValue in
-                                let validatedPrice = viewModel.validateAndFormatPrice(newValue)
-                                if validatedPrice != newValue {
+                            .onChange(of: viewModel.price) {
+                                let validatedPrice = viewModel.validateAndFormatPrice(viewModel.price)
+                                if validatedPrice != viewModel.price {
                                     viewModel.price = validatedPrice
                                 }
                             }
+
 
                         Text("庫存數量")
                             .font(.subheadline)

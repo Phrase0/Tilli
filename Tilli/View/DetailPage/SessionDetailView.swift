@@ -11,7 +11,6 @@ import Foundation
 struct SessionDetailView: View {
     
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var categoryRepository: CategoryRepository
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
@@ -178,8 +177,7 @@ struct SessionDetailView: View {
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager,
-                productRepository: productRepository,
-                categoryRepository: categoryRepository
+                productRepository: productRepository
             )
             viewModel.loadData()
         }

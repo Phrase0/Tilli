@@ -12,7 +12,6 @@ struct TilliApp: App {
     @StateObject private var sessionDataManager = SessionDataManager()
     @StateObject private var transactionDataManager = TransactionDataManager()
     @StateObject private var productRepository = ProductRepository()
-    @StateObject private var categoryRepository = CategoryRepository()
     @StateObject private var qRCodeDataManager = QRCodeDataManager()
     
     @StateObject private var appState = AppState()
@@ -26,7 +25,6 @@ struct TilliApp: App {
                 .environmentObject(sessionDataManager)
                 .environmentObject(transactionDataManager)
                 .environmentObject(productRepository)
-                .environmentObject(categoryRepository)
                 .environmentObject(qRCodeDataManager)
         }
     }
