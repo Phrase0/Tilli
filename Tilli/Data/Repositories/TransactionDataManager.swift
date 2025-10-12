@@ -70,5 +70,20 @@ class TransactionDataManager: ObservableObject {
             return []
         }
     }
+    
+    /// 取得指定日期的所有交易記錄（包括孤兒交易）
+    func fetchTransactions(for date: Date) -> [TransactionModel] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        return fetchTransactions(from: startOfDay, to: endOfDay)
+    }
+    
+    /// 取得指定日期的交易記錄，按SessionId分組
+    func fetchTransactionsGroupedBySession(for date: Date) -> [String: [TransactionModel]] {
+        let transactions = fetchTransactions(for: date)
+        return Dictionary(grouping: transactions) { $0.sessionId.uuidString }
+    }
 
 }

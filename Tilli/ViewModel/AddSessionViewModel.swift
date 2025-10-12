@@ -120,7 +120,7 @@ class AddSessionViewModel: ObservableObject {
         if let transactionManager = transactionDataManager {
             transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
         } else {
-            transactions = editingSession?.transactions ?? []
+            transactions = []
         }
         
         // 如果沒有指定 categoryId，檢查是否有任何交易
@@ -253,7 +253,7 @@ class AddSessionViewModel: ObservableObject {
             date: sessionDate,
             categories: categories,
             createdAt: baseSession.createdAt,
-            transactions: baseSession.transactions,
+            transactions: [],
             currency: selectedCurrency
         )
     }

@@ -23,7 +23,7 @@ class SessionDetailViewModel: ObservableObject {
         self._session = session
         self.productViewModel = ProductViewModel(session: session)
         self.transactionViewModel = TransactionViewModel(session: session)
-        self.sessionTotalAmount = session.wrappedValue.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+        self.sessionTotalAmount = 0
     }
     
     // MARK: - DataManager 管理
@@ -52,7 +52,7 @@ class SessionDetailViewModel: ObservableObject {
     /// 更新 sessionTotalAmount
     func updateSessionTotalAmount() {
         guard let transactionDataManager = transactionDataManager else {
-            sessionTotalAmount = session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+            sessionTotalAmount = 0
             return
         }
 

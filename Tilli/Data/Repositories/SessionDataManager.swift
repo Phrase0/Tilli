@@ -32,7 +32,21 @@ class SessionDataManager: ObservableObject {
 
         do {
             let result = try context.fetch(request)
-            let newSessions = result.map { $0.toModel() }
+            var newSessions = result.map { $0.toModel() }
+            
+            // 為每個 Session 載入交易記錄（避免關聯斷開的問題）
+            for i in 0..<newSessions.count {
+                let transactions = fetchTransactionsForSession(sessionId: newSessions[i].id)
+                newSessions[i] = SessionModel(
+                    id: newSessions[i].id,
+                    title: newSessions[i].title,
+                    date: newSessions[i].date,
+                    categories: newSessions[i].categories,
+                    createdAt: newSessions[i].createdAt,
+                    transactions: transactions,
+                    currency: newSessions[i].currency
+                )
+            }
             
             // 確保在主線程更新 @Published 屬性
             DispatchQueue.main.async {
@@ -51,7 +65,19 @@ class SessionDataManager: ObservableObject {
 
         do {
             if let entity = try context.fetch(request).first {
-                return entity.toModel()
+                var sessionModel = entity.toModel()
+                // 載入交易記錄（避免關聯斷開的問題）
+                let transactions = fetchTransactionsForSession(sessionId: sessionModel.id)
+                sessionModel = SessionModel(
+                    id: sessionModel.id,
+                    title: sessionModel.title,
+                    date: sessionModel.date,
+                    categories: sessionModel.categories,
+                    createdAt: sessionModel.createdAt,
+                    transactions: transactions,
+                    currency: sessionModel.currency
+                )
+                return sessionModel
             }
         } catch {
             print("Fetch session by ID failed:", error)
@@ -174,15 +200,30 @@ class SessionDataManager: ObservableObject {
     }
 
     /// 刪除 Session（硬刪除，但保留 Transaction）
+    /// 
+    /// ⚠️ 注意：刪除 Session 後，相關的 Transaction 記錄會保留，
+    /// 但 Transaction.session 關聯會被設為 nil（deletionRule="Nullify"）。
+    /// Transaction 記錄仍可透過 sessionId 欄位查詢。
     func deleteSession(_ sessionId: UUID) {
+        // 調試：刪除前檢查
+        print("🔥 準備刪除 Session: \(sessionId)")
+        debugTransactionStatus(forSessionId: sessionId)
+        
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
 
         do {
             if let entity = try context.fetch(request).first {
-                // Transaction 會自動保留，因為它們沒有級聯刪除
+                // 刪除 Session：
+                // - Categories 和 Products 會被級聯刪除（deletionRule="Cascade"）
+                // - Transactions 會保留，但 session 關聯會被設為 nil（deletionRule="Nullify"）
                 context.delete(entity)
                 if saveContext() {
+                    // 調試：刪除後檢查
+                    print("🔥 已刪除 Session，檢查交易記錄狀態:")
+                    debugTransactionStatus(forSessionId: sessionId)
+                    print("")
+                    debugAllTransactions()
                     fetchSessions() // 僅在成功保存後重新載入
                 }
             }
@@ -298,6 +339,21 @@ class SessionDataManager: ObservableObject {
 
     // MARK: - Helper Methods
     
+    /// 根據 sessionId 直接查詢交易記錄（避免關聯問題）
+    private func fetchTransactionsForSession(sessionId: UUID) -> [TransactionModel] {
+        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+        
+        do {
+            let result = try context.fetch(request)
+            return result.compactMap { $0.toModel() }
+        } catch {
+            print("Fetch transactions for session failed:", error)
+            return []
+        }
+    }
+    
     /// 檢查 Category 下是否有相關 Transaction
     private func hasRelatedTransactionsForCategory(categoryId: UUID) -> Bool {
         // 先找到該 Category 下的所有 Product
@@ -329,6 +385,101 @@ class SessionDataManager: ObservableObject {
         } catch {
             print("檢查 Transaction 失敗:", error)
             return true // 發生錯誤時保守處理，假設有 Transaction
+        }
+    }
+
+    // MARK: - Debug Functions
+    
+    /// 調試用：顯示所有交易記錄的詳細內容
+    func debugAllTransactions() {
+        print("🔍 === 所有交易記錄詳細內容 ===")
+        
+        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+        
+        do {
+            let allTransactions = try context.fetch(request)
+            print("📊 資料庫總交易數: \(allTransactions.count)")
+            print("")
+            
+            for (index, transaction) in allTransactions.enumerated() {
+                print("💰 交易 #\(index + 1)")
+                print("  🆔 交易 ID: \(transaction.id)")
+                print("  🏷️ Session ID: \(transaction.sessionId)")
+                print("  🔗 Session 關聯: \(transaction.session?.id.uuidString ?? "nil")")
+                print("  💵 總金額: \(transaction.totalAmount)")
+                print("  📅 時間: \(transaction.timestamp)")
+                print("  💳 支付方式: \(transaction.paymentMethod)")
+                
+                // 解析商品明細
+                if let itemsData = transaction.itemsData,
+                   let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
+                    print("  🛒 商品明細 (\(items.count) 項):")
+                    for item in items {
+                        print("    - \(item.name) x\(item.quantity) = \(item.total)")
+                    }
+                } else {
+                    print("  🛒 商品明細: 無法解析")
+                }
+                print("  ---")
+            }
+            
+            // 檢查哪些 Session 還存在
+            let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+            let existingSessions = try context.fetch(sessionRequest)
+            print("📊 現存 Session 數: \(existingSessions.count)")
+            
+            let existingSessionIds = Set(existingSessions.map { $0.id })
+            let transactionSessionIds = Set(allTransactions.map { $0.sessionId })
+            let orphanedTransactionSessionIds = transactionSessionIds.subtracting(existingSessionIds)
+            
+            print("🔍 孤兒交易記錄 (Session已刪除): \(orphanedTransactionSessionIds.count) 個不同的Session")
+            for sessionId in orphanedTransactionSessionIds {
+                let count = allTransactions.filter { $0.sessionId == sessionId }.count
+                print("  📦 Session \(sessionId): \(count) 筆交易")
+            }
+            
+        } catch {
+            print("❌ 調試查詢失敗: \(error)")
+        }
+        
+        print("🔍 === 結束 ===")
+    }
+    
+    /// 調試用：檢查刪除Session後交易記錄的狀態
+    func debugTransactionStatus(forSessionId sessionId: UUID) {
+        print("🔍 調試：檢查 Session \(sessionId) 的交易記錄狀態")
+        
+        // 1. 檢查 Session 是否還存在
+        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        sessionRequest.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
+        
+        do {
+            let sessionResults = try context.fetch(sessionRequest)
+            print("📊 Session 存在數量: \(sessionResults.count)")
+            
+            // 2. 檢查交易記錄
+            let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+            transactionRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+            
+            let transactionResults = try context.fetch(transactionRequest)
+            print("📊 該 Session 的交易數: \(transactionResults.count)")
+            
+            for transaction in transactionResults {
+                print("  💰 交易 ID: \(transaction.id)")
+                print("  💰 Session 關聯: \(transaction.session?.id.uuidString ?? "nil")")
+                print("  💰 SessionId 欄位: \(transaction.sessionId)")
+                print("  💰 總金額: \(transaction.totalAmount)")
+                print("  ---")
+            }
+            
+            // 3. 檢查所有交易記錄
+            let allTransactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+            let allTransactions = try context.fetch(allTransactionRequest)
+            print("📊 資料庫總交易數: \(allTransactions.count)")
+            
+        } catch {
+            print("❌ 調試查詢失敗: \(error)")
         }
     }
 

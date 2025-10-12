@@ -119,7 +119,7 @@ struct CalendarView: View {
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    hasSessions: viewModel.hasSessions(on: date, from: sessionDataManager.sessions),
+                    hasSessions: viewModel.hasSessions(on: date, from: sessionDataManager.sessions) || viewModel.hasTransactions(on: date),
                     currentMonth: currentDate,
                     onTap: { selectedDate = date }
                 )
@@ -141,14 +141,31 @@ struct CalendarView: View {
     // Session 列表
     private var sessionList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !viewModel.sessionsForDate(selectedDate, from: sessionDataManager.sessions).isEmpty {
+            let existingSessions = viewModel.sessionsForDate(selectedDate, from: sessionDataManager.sessions)
+            let transactionGroups = viewModel.transactionGroupsForDate(selectedDate)
+            
+            if !existingSessions.isEmpty || !transactionGroups.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(viewModel.sessionsForDate(selectedDate, from: sessionDataManager.sessions)) { session in
+                        // 顯示現存的Sessions
+                        ForEach(existingSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
                                 SessionRowView(session: session)
+                            }
+                        }
+                        
+                        // 顯示孤兒交易記錄（已刪除Session的交易）
+                        ForEach(transactionGroups.keys.sorted(), id: \.self) { sessionIdString in
+                            // 檢查這個SessionId是否對應已刪除的Session
+                            if let sessionId = UUID(uuidString: sessionIdString),
+                               !existingSessions.contains(where: { $0.id == sessionId }),
+                               let transactions = transactionGroups[sessionIdString] {
+                                OrphanTransactionRowView(
+                                    sessionId: sessionId,
+                                    transactions: transactions
+                                )
                             }
                         }
                     }
@@ -224,6 +241,7 @@ struct DayCell: View {
 // Session 行視圖
 struct SessionRowView: View {
     let session: SessionModel
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
     
     var body: some View {
         HStack(alignment: .top) {
@@ -238,7 +256,7 @@ struct SessionRowView: View {
                     .font(.headline)
                     .foregroundColor(.blue)
 
-                Text("\(session.transactions.count) 筆交易")
+                Text("\(getTransactionCount(for: session)) 筆交易")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -251,7 +269,63 @@ struct SessionRowView: View {
     }
     
     private var totalAmount: Decimal {
-        session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+        let transactions = getTransactions(for: session)
+        return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+    }
+    
+    /// 透過 TransactionDataManager 獲取交易數量（避免關聯問題）
+    private func getTransactionCount(for session: SessionModel) -> Int {
+        return transactionDataManager.fetchTransactions(forSessionId: session.id).count
+    }
+    
+    /// 透過 TransactionDataManager 獲取交易記錄（避免關聯問題）
+    private func getTransactions(for session: SessionModel) -> [TransactionModel] {
+        return transactionDataManager.fetchTransactions(forSessionId: session.id)
+    }
+}
+
+// 孤兒交易記錄行視圖（已刪除Session的交易記錄）
+struct OrphanTransactionRowView: View {
+    let sessionId: UUID
+    let transactions: [TransactionModel]
+    
+    var body: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("已刪除場次的交易記錄")
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                
+                Text("Session ID: \(sessionId.uuidString.prefix(8))...")
+                    .font(.caption)
+                    .foregroundColor(.gray.opacity(0.8))
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 6) {
+                Text(totalAmount.money(currency: "TWD"))
+                    .font(.headline)
+                    .foregroundColor(.orange)
+
+                Text("\(transactions.count) 筆交易")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+    
+    private var totalAmount: Decimal {
+        return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
     }
 }
 
