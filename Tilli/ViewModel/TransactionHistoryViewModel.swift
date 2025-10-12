@@ -22,7 +22,12 @@ class TransactionViewModel: ObservableObject {
     private var transactionDataManager: TransactionDataManager?
     
     var sessionTotalAmount: Decimal {
-        session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+        if let transactionManager = transactionDataManager {
+            let transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+            return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+        } else {
+            return 0
+        }
     }
     
     init(session: Binding<SessionModel>) {

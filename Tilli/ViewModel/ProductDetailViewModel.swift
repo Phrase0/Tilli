@@ -246,14 +246,7 @@ class ProductViewModel: ObservableObject {
             return false
         }
         
-        // 後備方案：使用初始的 session 數據
-        for transaction in session.transactions {
-            for item in transaction.items {
-                if item.productId == productId {
-                    return true
-                }
-            }
-        }
+        // 如果沒有 TransactionDataManager，無法檢查交易記錄
         return false
     }
     

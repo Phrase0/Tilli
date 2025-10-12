@@ -159,7 +159,7 @@ class AddNewProductViewModel: ObservableObject {
         if let transactionManager = transactionDataManager {
             transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
         } else {
-            transactions = session.transactions
+            transactions = []
         }
         
         // 如果沒有指定 productId，檢查是否有任何交易

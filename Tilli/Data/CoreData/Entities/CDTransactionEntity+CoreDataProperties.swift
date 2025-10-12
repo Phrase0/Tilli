@@ -21,7 +21,7 @@ extension CDTransactionEntity {
     @NSManaged public var totalAmount: NSDecimalNumber
     @NSManaged public var paymentMethod: String
     @NSManaged public var timestamp: Date
-    @NSManaged public var session: CDSessionEntity
+    @NSManaged public var session: CDSessionEntity?
 
 }
 

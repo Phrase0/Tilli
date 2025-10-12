@@ -15,6 +15,7 @@ class CalendarViewModel: ObservableObject {
     @Binding var selectedSession: SessionModel
     
     private var sessionDataManager: SessionDataManager?
+    private var transactionDataManager: TransactionDataManager?
     
     init(session: Binding<SessionModel>) {
         self._selectedSession = session
@@ -29,6 +30,7 @@ class CalendarViewModel: ObservableObject {
         sessionDataManager: SessionDataManager
     ) {
         self.sessionDataManager = sessionDataManager
+        self.transactionDataManager = transactionDataManager
         
         transactionViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager
@@ -92,6 +94,19 @@ class CalendarViewModel: ObservableObject {
         sessions.contains { session in
             calendar.isDate(session.date, inSameDayAs: date)
         }
+    }
+    
+    /// 檢查指定日期是否有交易記錄（包括孤兒交易）
+    func hasTransactions(on date: Date) -> Bool {
+        guard let transactionManager = transactionDataManager else { return false }
+        let transactions = transactionManager.fetchTransactions(for: date)
+        return !transactions.isEmpty
+    }
+    
+    /// 獲取指定日期的所有交易記錄分組（按SessionId）
+    func transactionGroupsForDate(_ date: Date) -> [String: [TransactionModel]] {
+        guard let transactionManager = transactionDataManager else { return [:] }
+        return transactionManager.fetchTransactionsGroupedBySession(for: date)
     }
     
     /// 改變月份
