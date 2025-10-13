@@ -8,38 +8,19 @@
 import SwiftUI
 
 class CalendarViewModel: ObservableObject {
-    
-    @Published var transactionViewModel: TransactionViewModel
-    // 注意：移除本地 sessions 陣列，直接使用 SessionDataManager 的 @Published sessions
-    
-    @Binding var selectedSession: SessionModel
-    
+
     private var sessionDataManager: SessionDataManager?
     private var transactionDataManager: TransactionDataManager?
-    
-    init(session: Binding<SessionModel>) {
-        self._selectedSession = session
-        self.transactionViewModel = TransactionViewModel(session: session)
-    }
-    
+
     // MARK: - DataManager 管理
-    
-    /// 更新 DataManager 引用給所有子 ViewModel
+
+    /// 更新 DataManager 引用
     func updateDataManagers(
         transactionDataManager: TransactionDataManager,
         sessionDataManager: SessionDataManager
     ) {
         self.sessionDataManager = sessionDataManager
         self.transactionDataManager = transactionDataManager
-        
-        transactionViewModel.updateDataManagers(
-            transactionDataManager: transactionDataManager
-        )
-    }
-    
-    /// 刷新數據（已不需要手動刷新，SessionDataManager 會自動更新）
-    func refresh(using sessionDataManager: SessionDataManager) {
-        self.sessionDataManager = sessionDataManager
     }
     
     // MARK: - Calendar Functions
@@ -110,8 +91,10 @@ class CalendarViewModel: ObservableObject {
     }
     
     /// 改變月份
-    func changeMonth(_ direction: Int, currentDate: Date) -> Date? {
-        return calendar.date(byAdding: .month, value: direction, to: currentDate)
+    func changeMonth(_ direction: Int, currentDate: inout Date) {
+        if let newDate = calendar.date(byAdding: .month, value: direction, to: currentDate) {
+            currentDate = newDate
+        }
     }
     
     /// 格式化月份年份字符串

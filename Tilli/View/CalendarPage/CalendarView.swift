@@ -11,24 +11,12 @@ import Foundation
 struct CalendarView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @StateObject private var viewModel: CalendarViewModel
+    @StateObject private var viewModel = CalendarViewModel()
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @State private var showingMonthYearPicker = false
-    @State private var selectedSession: SessionModel = SessionModel(id: UUID(), title: "", date: Date(), categories: [], createdAt: Date(), transactions: [])
-    
-    init() {
-        let defaultSession = SessionModel(id: UUID(), title: "", date: Date(), categories: [], createdAt: Date(), transactions: [])
-        _selectedSession = State(initialValue: defaultSession)
-        _viewModel = StateObject(wrappedValue: CalendarViewModel(session: .constant(defaultSession)))
-    }
-    
+
     private let calendar = Calendar.current
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        return formatter
-    }()
     
     var body: some View {
         NavigationStack{
@@ -52,7 +40,6 @@ struct CalendarView: View {
                     transactionDataManager: transactionDataManager,
                     sessionDataManager: sessionDataManager
                 )
-                viewModel.refresh(using: sessionDataManager)
             }
             .navigationTitle("我的行事曆")
         }
@@ -62,15 +49,15 @@ struct CalendarView: View {
     // 月份標題
     private var monthHeader: some View {
         HStack(spacing: 0) {
-            Button(action: { changeMonth(-1) }) {
+            Button(action: { viewModel.changeMonth(-1, currentDate: &currentDate) }) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
                     .foregroundColor(.gray)
                     .frame(width: 44, height: 44)
             }
-            
+
             Spacer()
-            
+
             Button(action: { showingMonthYearPicker = true }) {
                 Text(viewModel.monthYearString(for: currentDate))
                     .font(.title3)
@@ -83,10 +70,10 @@ struct CalendarView: View {
                     isPresented: $showingMonthYearPicker
                 )
             }
-            
+
             Spacer()
-            
-            Button(action: { changeMonth(1) }) {
+
+            Button(action: { viewModel.changeMonth(1, currentDate: &currentDate) }) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
                     .foregroundColor(.gray)
@@ -130,9 +117,9 @@ struct CalendarView: View {
             DragGesture()
                 .onEnded { value in
                     if value.translation.width > 50 {
-                        changeMonth(-1)
+                        viewModel.changeMonth(-1, currentDate: &currentDate)
                     } else if value.translation.width < -50 {
-                        changeMonth(1)
+                        viewModel.changeMonth(1, currentDate: &currentDate)
                     }
                 }
         )
@@ -146,21 +133,21 @@ struct CalendarView: View {
             if !realSessions.isEmpty || !virtualSessions.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        // 真實 Session
+                        // 真實 Session（藍色底）
                         ForEach(realSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session)
+                                SessionRowView(session: session, isVirtual: false)
                             }
                         }
 
-                        // 虛擬 Session（孤兒交易）
+                        // 虛擬 Session（孤兒交易，灰色底 + 淡化）
                         ForEach(virtualSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session)
+                                SessionRowView(session: session, isVirtual: true)
                                     .opacity(0.7)  // 淡化顯示
                             }
                         }
@@ -169,13 +156,6 @@ struct CalendarView: View {
                     .padding(.top, 20)
                 }
             }
-        }
-    }
-    
-    
-    private func changeMonth(_ direction: Int) {
-        if let newDate = viewModel.changeMonth(direction, currentDate: currentDate) {
-            currentDate = newDate
         }
     }
 }
@@ -237,8 +217,9 @@ struct DayCell: View {
 // Session 行視圖
 struct SessionRowView: View {
     let session: SessionModel
+    let isVirtual: Bool  // 新增參數：是否為虛擬 Session
     @EnvironmentObject var transactionDataManager: TransactionDataManager
-    
+
     var body: some View {
         HStack(alignment: .top) {
             Text(session.title)
@@ -260,7 +241,7 @@ struct SessionRowView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.1))
+                .fill(isVirtual ? Color.gray.opacity(0.1) : Color.blue.opacity(0.1))
         )
     }
     
