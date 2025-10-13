@@ -17,6 +17,8 @@ extension CDTransactionEntity {
 
     @NSManaged public var id: UUID
     @NSManaged public var sessionId: UUID
+    @NSManaged public var sessionTitle: String
+    @NSManaged public var currency: String
     @NSManaged public var itemsData: Data?
     @NSManaged public var totalAmount: NSDecimalNumber
     @NSManaged public var paymentMethod: String
@@ -41,6 +43,8 @@ extension CDTransactionEntity {
     func update(from model: TransactionModel, context: NSManagedObjectContext) {
             self.id = model.id
             self.sessionId = model.sessionId
+            self.sessionTitle = model.sessionTitle
+            self.currency = model.currency
             self.totalAmount = NSDecimalNumber(decimal: model.totalAmount)
             self.paymentMethod = model.paymentMethod.rawValue
             self.timestamp = model.timestamp
@@ -51,6 +55,8 @@ extension CDTransactionEntity {
         return TransactionModel(
             id: self.id,
             sessionId: self.sessionId,
+            sessionTitle: self.sessionTitle,
+            currency: self.currency,
             items: self.items,
             totalAmount: self.totalAmount.decimalValue,
             paymentMethod: PaymentMethod(rawValue: self.paymentMethod) ?? .cash,

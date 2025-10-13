@@ -9,6 +9,8 @@ import SwiftUI
 struct TransactionModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var sessionId: UUID
+    var sessionTitle: String          // Session 名稱
+    var currency: String              // 幣別
     var items: [SummaryItemModel]     // 多筆商品銷售記錄
     var totalAmount: Decimal
     var paymentMethod: PaymentMethod

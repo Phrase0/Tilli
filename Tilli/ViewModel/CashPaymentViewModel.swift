@@ -124,6 +124,8 @@ class CashPaymentViewModel: ObservableObject {
         // 創建交易記錄
         let transaction = TransactionModel(
             sessionId: session.id,
+            sessionTitle: session.title,
+            currency: session.currency,
             items: summaryItems,
             totalAmount: totalAmount,
             paymentMethod: .cash,

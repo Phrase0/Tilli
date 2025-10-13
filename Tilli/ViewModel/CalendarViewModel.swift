@@ -126,4 +126,50 @@ class CalendarViewModel: ObservableObject {
     var weekdays: [String] {
         ["日", "一", "二", "三", "四", "五", "六"]
     }
+
+    // MARK: - Virtual Session Management
+
+    /// 創建虛擬 Session（用於孤兒交易）
+    func createVirtualSession(
+        sessionId: UUID,
+        transactions: [TransactionModel]
+    ) -> SessionModel {
+        guard let firstTransaction = transactions.first else {
+            fatalError("交易列表不能為空")
+        }
+
+        return SessionModel(
+            id: sessionId,
+            title: firstTransaction.sessionTitle,  // 使用保存的原始 Session 名稱
+            date: firstTransaction.timestamp,
+            categories: [],
+            createdAt: firstTransaction.timestamp,
+            transactions: [],
+            currency: firstTransaction.currency    // 使用保存的幣別
+        )
+    }
+
+    /// 取得指定日期的所有 Session（包括虛擬 Session）
+    func getAllSessionsForDate(_ date: Date, from sessions: [SessionModel]) -> (real: [SessionModel], virtual: [SessionModel]) {
+        let existingSessions = sessionsForDate(date, from: sessions)
+        let transactionGroups = transactionGroupsForDate(date)
+
+        var virtualSessions: [SessionModel] = []
+
+        // 找出孤兒交易並創建虛擬 Session
+        for (sessionIdString, transactions) in transactionGroups {
+            guard let sessionId = UUID(uuidString: sessionIdString),
+                  !existingSessions.contains(where: { $0.id == sessionId }) else {
+                continue
+            }
+
+            let virtualSession = createVirtualSession(
+                sessionId: sessionId,
+                transactions: transactions
+            )
+            virtualSessions.append(virtualSession)
+        }
+
+        return (real: existingSessions, virtual: virtualSessions)
+    }
 }
