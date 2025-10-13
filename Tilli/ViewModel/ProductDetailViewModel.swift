@@ -360,7 +360,7 @@ class ProductViewModel: ObservableObject {
                 primaryButton: .default(Text("確認")) { [weak self] in
                     self?.confirmRestoreAction()
                 },
-                secondaryButton: .cancel { [weak self] in
+                secondaryButton: .cancel(Text("取消")) { [weak self] in
                     self?.cancelRestoreAction()
                 }
             )
@@ -373,7 +373,7 @@ class ProductViewModel: ObservableObject {
                     primaryButton: .default(Text("確認")) { [weak self] in
                         self?.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel { [weak self] in
+                    secondaryButton: .cancel(Text("取消")) { [weak self] in
                         self?.cancelDeletionAction()
                     }
                 )
@@ -385,7 +385,7 @@ class ProductViewModel: ObservableObject {
                     primaryButton: .destructive(Text("刪除")) { [weak self] in
                         self?.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel { [weak self] in
+                    secondaryButton: .cancel(Text("取消")) { [weak self] in
                         self?.cancelDeletionAction()
                     }
                 )

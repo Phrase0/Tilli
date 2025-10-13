@@ -27,9 +27,9 @@ class TransactionDataManager: ObservableObject {
     }
 
     // MARK: - Read Operations Only (Transaction CRUD moved to SessionDataManager)
-    
-    /// 取得所有交易記錄
-    func fetchAllTransactions() {
+
+    /// 取得所有交易記錄（私有方法，僅用於內部初始化）
+    private func fetchAllTransactions() {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
 
@@ -56,28 +56,23 @@ class TransactionDataManager: ObservableObject {
         }
     }
     
-    /// 取得指定日期範圍的交易記錄
-    func fetchTransactions(from startDate: Date, to endDate: Date) -> [TransactionModel] {
+    /// 取得指定日期的所有交易記錄（包括孤兒交易）
+    func fetchTransactions(for date: Date) -> [TransactionModel] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "timestamp >= %@ AND timestamp <= %@", startDate as NSDate, endDate as NSDate)
+        request.predicate = NSPredicate(format: "timestamp >= %@ AND timestamp < %@", startOfDay as NSDate, endOfDay as NSDate)
         request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
 
         do {
             let result = try context.fetch(request)
             return result.compactMap { $0.toModel() }
         } catch {
-            print("Fetch transactions for date range failed:", error)
+            print("Fetch transactions for date failed:", error)
             return []
         }
-    }
-    
-    /// 取得指定日期的所有交易記錄（包括孤兒交易）
-    func fetchTransactions(for date: Date) -> [TransactionModel] {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        
-        return fetchTransactions(from: startOfDay, to: endOfDay)
     }
     
     /// 取得指定日期的交易記錄，按SessionId分組
