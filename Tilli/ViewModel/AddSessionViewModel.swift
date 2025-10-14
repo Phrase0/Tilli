@@ -253,7 +253,6 @@ class AddSessionViewModel: ObservableObject {
             date: sessionDate,
             categories: categories,
             createdAt: baseSession.createdAt,
-            transactions: [],
             currency: selectedCurrency
         )
     }

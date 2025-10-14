@@ -84,7 +84,6 @@ extension CDSessionEntity {
             date: self.date,
             categories: categoryModels,
             createdAt: self.createdAt,
-            transactions: transactionModels,
             currency: self.currency
         )
     }

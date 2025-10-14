@@ -32,22 +32,8 @@ class SessionDataManager: ObservableObject {
 
         do {
             let result = try context.fetch(request)
-            var newSessions = result.map { $0.toModel() }
-            
-            // 為每個 Session 載入交易記錄（避免關聯斷開的問題）
-            for i in 0..<newSessions.count {
-                let transactions = fetchTransactionsForSession(sessionId: newSessions[i].id)
-                newSessions[i] = SessionModel(
-                    id: newSessions[i].id,
-                    title: newSessions[i].title,
-                    date: newSessions[i].date,
-                    categories: newSessions[i].categories,
-                    createdAt: newSessions[i].createdAt,
-                    transactions: transactions,
-                    currency: newSessions[i].currency
-                )
-            }
-            
+            let newSessions = result.map { $0.toModel() }
+
             // 確保在主線程更新 @Published 屬性
             DispatchQueue.main.async {
                 self.sessions = newSessions
@@ -65,19 +51,7 @@ class SessionDataManager: ObservableObject {
 
         do {
             if let entity = try context.fetch(request).first {
-                var sessionModel = entity.toModel()
-                // 載入交易記錄（避免關聯斷開的問題）
-                let transactions = fetchTransactionsForSession(sessionId: sessionModel.id)
-                sessionModel = SessionModel(
-                    id: sessionModel.id,
-                    title: sessionModel.title,
-                    date: sessionModel.date,
-                    categories: sessionModel.categories,
-                    createdAt: sessionModel.createdAt,
-                    transactions: transactions,
-                    currency: sessionModel.currency
-                )
-                return sessionModel
+                return entity.toModel()
             }
         } catch {
             print("Fetch session by ID failed:", error)
@@ -119,15 +93,28 @@ class SessionDataManager: ObservableObject {
                 print("Session not found for update")
                 return
             }
-            
+
+            // 檢查哪些欄位有變更
+            let titleChanged = entity.title != model.title
+            let dateChanged = !Calendar.current.isDate(entity.date, inSameDayAs: model.date)
+
             // 更新 Session 基本屬性
             entity.title = model.title
             entity.date = model.date
             entity.currency = model.currency
 
+            // 同步更新所有相關交易記錄
+            if titleChanged || dateChanged {
+                updateRelatedTransactions(
+                    sessionId: model.id,
+                    newTitle: titleChanged ? model.title : nil,
+                    newDate: dateChanged ? model.date : nil
+                )
+            }
+
             // 處理 Categories 的變更
             updateCategoriesForSession(entity: entity, newCategories: model.categories)
-            
+
             if saveContext() {
                 fetchSessions() // 僅在成功保存後重新載入
             }
@@ -338,22 +325,47 @@ class SessionDataManager: ObservableObject {
     }
 
     // MARK: - Helper Methods
-    
-    /// 根據 sessionId 直接查詢交易記錄（避免關聯問題）
-    private func fetchTransactionsForSession(sessionId: UUID) -> [TransactionModel] {
+
+    /// 批量更新相關交易記錄的 Session 資訊
+    private func updateRelatedTransactions(sessionId: UUID, newTitle: String?, newDate: Date?) {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
-        
+
         do {
-            let result = try context.fetch(request)
-            return result.compactMap { $0.toModel() }
+            let transactions = try context.fetch(request)
+
+            for transaction in transactions {
+                // 更新 sessionTitle
+                if let newTitle = newTitle {
+                    transaction.sessionTitle = newTitle
+                }
+
+                // 更新 timestamp 的日期部分（保留時分秒）
+                if let newDate = newDate {
+                    let calendar = Calendar.current
+                    let oldTimestamp = transaction.timestamp
+
+                    // 取得原本的時分秒
+                    let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: oldTimestamp)
+
+                    // 取得新的年月日
+                    var newComponents = calendar.dateComponents([.year, .month, .day], from: newDate)
+                    newComponents.hour = timeComponents.hour
+                    newComponents.minute = timeComponents.minute
+                    newComponents.second = timeComponents.second
+
+                    if let newTimestamp = calendar.date(from: newComponents) {
+                        transaction.timestamp = newTimestamp
+                    }
+                }
+            }
+
+            print("✅ 已更新 \(transactions.count) 筆交易記錄的 Session 資訊")
         } catch {
-            print("Fetch transactions for session failed:", error)
-            return []
+            print("❌ 更新交易記錄失敗: \(error)")
         }
     }
-    
+
     /// 檢查 Category 下是否有相關 Transaction
     private func hasRelatedTransactionsForCategory(categoryId: UUID) -> Bool {
         // 先找到該 Category 下的所有 Product
