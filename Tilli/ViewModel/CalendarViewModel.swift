@@ -127,7 +127,6 @@ class CalendarViewModel: ObservableObject {
             date: firstTransaction.timestamp,
             categories: [],
             createdAt: firstTransaction.timestamp,
-            transactions: [],
             currency: firstTransaction.currency    // 使用保存的幣別
         )
     }
