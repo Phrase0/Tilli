@@ -138,7 +138,7 @@ struct CalendarView: View {
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session, isVirtual: false)
+                                SessionRowView(session: session, isVirtual: false, viewModel: viewModel)
                             }
                         }
 
@@ -147,7 +147,7 @@ struct CalendarView: View {
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session, isVirtual: true)
+                                SessionRowView(session: session, isVirtual: true, viewModel: viewModel)
                                     .opacity(0.7)  // 淡化顯示
                             }
                         }
@@ -218,7 +218,7 @@ struct DayCell: View {
 struct SessionRowView: View {
     let session: SessionModel
     let isVirtual: Bool  // 新增參數：是否為虛擬 Session
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    let viewModel: CalendarViewModel
 
     var body: some View {
         HStack(alignment: .top) {
@@ -229,11 +229,11 @@ struct SessionRowView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 6) {
-                Text(totalAmount.money(currency: session.currency))
+                Text(viewModel.totalAmount(for: session).money(currency: session.currency))
                     .font(.headline)
                     .foregroundColor(.blue)
 
-                Text("\(getTransactionCount(for: session)) 筆交易")
+                Text("\(viewModel.getTransactionCount(for: session)) 筆交易")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -243,21 +243,6 @@ struct SessionRowView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(isVirtual ? Color.gray.opacity(0.1) : Color.blue.opacity(0.1))
         )
-    }
-    
-    private var totalAmount: Decimal {
-        let transactions = getTransactions(for: session)
-        return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
-    }
-    
-    /// 透過 TransactionDataManager 獲取交易數量（避免關聯問題）
-    private func getTransactionCount(for session: SessionModel) -> Int {
-        return transactionDataManager.fetchTransactions(forSessionId: session.id).count
-    }
-    
-    /// 透過 TransactionDataManager 獲取交易記錄（避免關聯問題）
-    private func getTransactions(for session: SessionModel) -> [TransactionModel] {
-        return transactionDataManager.fetchTransactions(forSessionId: session.id)
     }
 }
 

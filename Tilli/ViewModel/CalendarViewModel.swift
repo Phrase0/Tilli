@@ -155,4 +155,24 @@ class CalendarViewModel: ObservableObject {
 
         return (real: existingSessions, virtual: virtualSessions)
     }
+
+    // MARK: - Transaction Calculations
+
+    /// 計算指定 Session 的總金額
+    func totalAmount(for session: SessionModel) -> Decimal {
+        let transactions = getTransactions(for: session)
+        return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+    }
+
+    /// 透過 TransactionDataManager 獲取交易數量（避免關聯問題）
+    func getTransactionCount(for session: SessionModel) -> Int {
+        guard let transactionManager = transactionDataManager else { return 0 }
+        return transactionManager.fetchTransactions(forSessionId: session.id).count
+    }
+
+    /// 透過 TransactionDataManager 獲取交易記錄（避免關聯問題）
+    func getTransactions(for session: SessionModel) -> [TransactionModel] {
+        guard let transactionManager = transactionDataManager else { return [] }
+        return transactionManager.fetchTransactions(forSessionId: session.id)
+    }
 }
