@@ -255,7 +255,7 @@ struct SalesAnalyticsView: View {
                     ))
                     .frame(
                         width: 8,
-                        height: CGFloat(MoneyHelper.toDouble(data.amount)) / CGFloat(MoneyHelper.toDouble(maxAmount)) * 150
+                        height: CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount)) * 150
                     )
             }
         }

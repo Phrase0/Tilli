@@ -133,7 +133,9 @@ class AddNewProductViewModel: ObservableObject {
         // 如果有編輯的產品，填入現有資料
         if let product = editingProduct {
             self.name = product.name
-            self.price = MoneyHelper.toDouble(product.price).formatted(.number.precision(.fractionLength(0)))
+            // 使用新的轉換方法，避免精度丟失
+            let currency = Currency(rawValue: session.currency) ?? .twd
+            self.price = MoneyHelper.toEditableString(product.price, currency: currency)
             self.quantity = String(product.stock)
             self.selectedCategoryID = product.categoryId
             // optional 欄位
