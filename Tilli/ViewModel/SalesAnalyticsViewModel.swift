@@ -55,9 +55,10 @@ class SalesAnalyticsViewModel: ObservableObject {
 
         for hourData in hourlyData {
             let hour = hourData.hourString
-            let amount = String(format: "%.0f", MoneyHelper.toDouble(hourData.amount))
+            let currency = Currency(rawValue: currencyCode) ?? .twd
+            let amount = MoneyHelper.toDisplayString(hourData.amount, currency: currency)
             let transactions = "\(hourData.transactions)"
-            let avgPrice = String(format: "%.0f", MoneyHelper.toDouble(hourData.avgPrice))
+            let avgPrice = MoneyHelper.toDisplayString(hourData.avgPrice, currency: currency)
 
             let row = "\(hour),\(amount),\(transactions),\(avgPrice)\n"
             csvContent += row
@@ -73,7 +74,8 @@ class SalesAnalyticsViewModel: ObservableObject {
         for paymentData in paymentMethodData {
             let name = paymentData.name.replacingOccurrences(of: ",", with: "，")
             let transactions = "\(paymentData.transactions)"
-            let amount = String(format: "%.0f", MoneyHelper.toDouble(paymentData.amount))
+            let currency = Currency(rawValue: currencyCode) ?? .twd
+            let amount = MoneyHelper.toDisplayString(paymentData.amount, currency: currency)
             let percentage = "\(paymentData.percentage)%"
 
             let row = "\(name),\(transactions),\(amount),\(percentage)\n"

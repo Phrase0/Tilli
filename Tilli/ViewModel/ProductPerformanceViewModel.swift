@@ -64,11 +64,12 @@ class ProductPerformanceViewModel: ObservableObject {
             let rank = "\(product.rank)"
             let name = product.name.replacingOccurrences(of: ",", with: "，")
             let category = product.category.replacingOccurrences(of: ",", with: "，")
-            let unitPrice = String(format: "%.0f", MoneyHelper.toDouble(product.unitPrice))
+            let currency = Currency(rawValue: currencyCode) ?? .twd
+            let unitPrice = MoneyHelper.toDisplayString(product.unitPrice, currency: currency)
             let salesCount = "\(product.salesCount)"
-            let originalPrice = String(format: "%.0f", MoneyHelper.toDouble(product.originalPrice))
+            let originalPrice = MoneyHelper.toDisplayString(product.originalPrice, currency: currency)
             let discount = "\(product.discount)"
-            let actualRevenue = String(format: "%.0f", MoneyHelper.toDouble(product.actualRevenue))
+            let actualRevenue = MoneyHelper.toDisplayString(product.actualRevenue, currency: currency)
             let contributionRate = "\(product.contributionRate)%"
 
             let row = "\(rank),\(name),\(category),\(unitPrice),\(salesCount),\(originalPrice),\(discount),\(actualRevenue),\(contributionRate)\n"
@@ -84,7 +85,8 @@ class ProductPerformanceViewModel: ObservableObject {
 
         for category in categoryAnalysis {
             let name = category.name.replacingOccurrences(of: ",", with: "，")
-            let amount = String(format: "%.0f", MoneyHelper.toDouble(category.amount))
+            let currency = Currency(rawValue: currencyCode) ?? .twd
+            let amount = MoneyHelper.toDisplayString(category.amount, currency: currency)
             let percentage = "\(category.percentage)%"
 
             let row = "\(name),\(amount),\(percentage)\n"
