@@ -138,7 +138,7 @@ struct AddSessionView: View {
             }
         } else {
             Text(category.name)
-                .foregroundColor(canEdit ? .primary : .gray)
+//                .foregroundColor(canEdit ? .primary : .gray)
                 .onTapGesture {
                     if canEdit {
                         viewModel.editingCategoryID = category.id
@@ -171,7 +171,7 @@ struct AddSessionView: View {
                 primaryButton: .default(Text("確認")) {
                     viewModel.confirmRestoreAction()
                 },
-                secondaryButton: .cancel {
+                secondaryButton: .cancel(Text("取消")) {
                     viewModel.cancelRestoreAction()
                 }
             )
