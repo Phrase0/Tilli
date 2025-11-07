@@ -17,6 +17,7 @@ struct AddSessionView: View {
     @EnvironmentObject var productRepository: ProductRepository
     
     enum FocusField: Hashable {
+        case sessionName
         case newCategory
     }
     
@@ -30,7 +31,9 @@ struct AddSessionView: View {
     var body: some View {
         Form {
             TextField("場次名稱", text: $viewModel.sessionName)
+                .focused($focusedField, equals: .sessionName)
                 .submitLabel(.next)
+                .onSubmit { focusedField = .newCategory }
             
             DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
             
@@ -114,6 +117,8 @@ struct AddSessionView: View {
                 transactionDataManager: transactionDataManager,
                 productRepository: productRepository
             )
+            // 自動聚焦到場次名稱欄位
+            focusedField = .sessionName
         }
     }
     
@@ -138,7 +143,6 @@ struct AddSessionView: View {
             }
         } else {
             Text(category.name)
-//                .foregroundColor(canEdit ? .primary : .gray)
                 .onTapGesture {
                     if canEdit {
                         viewModel.editingCategoryID = category.id
