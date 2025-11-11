@@ -52,7 +52,7 @@ class AddSessionViewModel: ObservableObject {
     init(sessionToEdit: SessionModel? = nil) {
         self.editingSession = sessionToEdit
         self.sessionName = sessionToEdit?.title ?? ""
-        self.sessionDate = sessionToEdit?.date ?? Date()
+        self.sessionDate = sessionToEdit?.startDate ?? Date()
         self.selectedCurrency = sessionToEdit?.currency ?? "TWD"
         self.categories = sessionToEdit?.categories ?? []
     }
@@ -242,7 +242,9 @@ class AddSessionViewModel: ObservableObject {
     func save() -> SessionModel {
         let baseSession = editingSession ?? SessionModel(
             title: "",
-            date: Date(),
+            startDate: Date(),
+            endDate: Date(),
+            dateType: .single,
             categories: [],
             createdAt: Date()
         )
@@ -250,7 +252,9 @@ class AddSessionViewModel: ObservableObject {
         return SessionModel(
             id: baseSession.id,
             title: sessionName,
-            date: sessionDate,
+            startDate: sessionDate,
+            endDate: sessionDate,  // 目前暫時設為單日場次
+            dateType: .single,     // 目前暫時都是單日場次
             categories: categories,
             createdAt: baseSession.createdAt,
             currency: selectedCurrency

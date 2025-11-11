@@ -154,7 +154,7 @@ struct SessionsView: View {
                     Text(session.title)
                         .font(.headline)
 
-                    Text(session.date, formatter: DateFormatter.sessionDate)
+                    Text(session.displayDateRange)
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }

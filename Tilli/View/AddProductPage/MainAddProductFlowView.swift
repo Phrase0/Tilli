@@ -32,7 +32,7 @@ struct MainAddProductFlowView: View {
              case (.upcoming, .completed): return true
              case (.completed, .upcoming): return false
              default:
-                 return $0.date > $1.date // 同類型比日期
+                 return $0.startDate > $1.startDate // 同類型比日期
              }
          }
      }
