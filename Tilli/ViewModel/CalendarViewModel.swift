@@ -63,18 +63,31 @@ class CalendarViewModel: ObservableObject {
         return dates
     }
     
-    /// 獲取指定日期的sessions
+    /// 獲取指定日期的sessions（支援多日場次）
     func sessionsForDate(_ date: Date, from sessions: [SessionModel]) -> [SessionModel] {
-        sessions.filter { session in
-            calendar.isDate(session.date, inSameDayAs: date)
+        let day = calendar.startOfDay(for: date)
+
+        return sessions.filter { session in
+            let start = calendar.startOfDay(for: session.startDate)
+
+            switch session.dateType {
+            case .single:
+                return day == start
+
+            case .multi:
+                guard let endDate = session.endDate else { return false }
+                let end = calendar.startOfDay(for: endDate)
+                return day >= start && day <= end
+
+            case .permanent:
+                return day >= start  // 所有未來日期都包含
+            }
         }
     }
-    
+
     /// 檢查指定日期是否有sessions
     func hasSessions(on date: Date, from sessions: [SessionModel]) -> Bool {
-        sessions.contains { session in
-            calendar.isDate(session.date, inSameDayAs: date)
-        }
+        return !sessionsForDate(date, from: sessions).isEmpty
     }
     
     /// 檢查指定日期是否有交易記錄（包括孤兒交易）
@@ -124,7 +137,9 @@ class CalendarViewModel: ObservableObject {
         return SessionModel(
             id: sessionId,
             title: firstTransaction.sessionTitle,  // 使用保存的原始 Session 名稱
-            date: firstTransaction.timestamp,
+            startDate: firstTransaction.timestamp,
+            endDate: firstTransaction.timestamp,   // 虛擬 Session 為單日
+            dateType: .single,
             categories: [],
             createdAt: firstTransaction.timestamp,
             currency: firstTransaction.currency    // 使用保存的幣別

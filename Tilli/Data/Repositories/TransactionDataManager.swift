@@ -55,6 +55,35 @@ class TransactionDataManager: ObservableObject {
             return []
         }
     }
+
+    /// 根據場次和日期範圍查詢交易記錄（用於多日場次報表）
+    func fetchTransactions(forSessionId sessionId: UUID, dateRange: DateInterval?) -> [TransactionModel] {
+        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+
+        var predicates: [NSPredicate] = [
+            NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        ]
+
+        // 如果有指定日期範圍，加入日期條件
+        if let range = dateRange {
+            predicates.append(
+                NSPredicate(format: "timestamp >= %@ AND timestamp <= %@",
+                           range.start as CVarArg,
+                           range.end as CVarArg)
+            )
+        }
+
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+
+        do {
+            let result = try context.fetch(request)
+            return result.compactMap { $0.toModel() }
+        } catch {
+            print("Failed to fetch transactions with date range: \(error)")
+            return []
+        }
+    }
     
     /// 取得指定日期的所有交易記錄（包括孤兒交易）
     func fetchTransactions(for date: Date) -> [TransactionModel] {

@@ -96,11 +96,13 @@ class SessionDataManager: ObservableObject {
 
             // 檢查哪些欄位有變更
             let titleChanged = entity.title != model.title
-            let dateChanged = !Calendar.current.isDate(entity.date, inSameDayAs: model.date)
+            let dateChanged = !Calendar.current.isDate(entity.startDate, inSameDayAs: model.startDate)
 
             // 更新 Session 基本屬性
             entity.title = model.title
-            entity.date = model.date
+            entity.startDate = model.startDate
+            entity.endDate = model.endDate
+            entity.dateType = model.dateType.rawValue
             entity.currency = model.currency
 
             // 同步更新所有相關交易記錄
@@ -108,7 +110,7 @@ class SessionDataManager: ObservableObject {
                 updateRelatedTransactions(
                     sessionId: model.id,
                     newTitle: titleChanged ? model.title : nil,
-                    newDate: dateChanged ? model.date : nil
+                    newDate: dateChanged ? model.startDate : nil
                 )
             }
 
@@ -266,18 +268,27 @@ class SessionDataManager: ObservableObject {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", originalSessionId as CVarArg)
         request.relationshipKeyPathsForPrefetching = ["categories", "categories.products"]
-        
+
         do {
             guard let originalEntity = try context.fetch(request).first else {
                 print("找不到要複製的場次")
                 return nil
             }
-            
+
             // 創建新的 Session 實體
             let newSessionEntity = CDSessionEntity(context: context)
             newSessionEntity.id = UUID()
             newSessionEntity.title = newTitle
-            newSessionEntity.date = newDate
+            newSessionEntity.startDate = newDate
+            // 複製原場次的日期類型
+            newSessionEntity.dateType = originalEntity.dateType
+            // 如果是多日場次，保持相同的天數
+            if let originalEndDate = originalEntity.endDate,
+               let daysDifference = Calendar.current.dateComponents([.day], from: originalEntity.startDate, to: originalEndDate).day {
+                newSessionEntity.endDate = Calendar.current.date(byAdding: .day, value: daysDifference, to: newDate)
+            } else {
+                newSessionEntity.endDate = nil
+            }
             newSessionEntity.createdAt = Date()
             newSessionEntity.currency = originalEntity.currency
             

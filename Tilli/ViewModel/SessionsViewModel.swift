@@ -26,7 +26,7 @@ class SessionViewModel: ObservableObject {
             case (.upcoming, .completed): return true
             case (.completed, .upcoming): return false
             default:
-                return $0.date > $1.date // 同類型比日期
+                return $0.startDate > $1.startDate // 同類型比日期
             }
         }
     }
@@ -75,7 +75,7 @@ class SessionViewModel: ObservableObject {
     func startDuplicateSession(_ session: SessionModel) {
         sessionToDuplicate = session
         duplicateSessionName = session.title
-        duplicateSessionDate = session.date
+        duplicateSessionDate = session.startDate
         hasEditedSessionName = false
         showDuplicateSessionDialog = true
     }
