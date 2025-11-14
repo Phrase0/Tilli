@@ -80,7 +80,7 @@ class CalendarViewModel: ObservableObject {
                 return day >= start && day <= end
 
             case .permanent:
-                return day >= start  // 所有未來日期都包含
+                return day == start  // 只在開始日期顯示圓點
             }
         }
     }
@@ -88,6 +88,17 @@ class CalendarViewModel: ObservableObject {
     /// 檢查指定日期是否有sessions
     func hasSessions(on date: Date, from sessions: [SessionModel]) -> Bool {
         return !sessionsForDate(date, from: sessions).isEmpty
+    }
+
+    /// 獲取所有永久場次（固定顯示在日曆下方）
+    /// 只返回 startDate <= 當前選中日期的永久場次
+    func getPermanentSessions(from sessions: [SessionModel], selectedDate: Date) -> [SessionModel] {
+        let selectedDay = calendar.startOfDay(for: selectedDate)
+        return sessions.filter { session in
+            guard session.dateType == .permanent else { return false }
+            let startDay = calendar.startOfDay(for: session.startDate)
+            return startDay <= selectedDay  // 只顯示已經開始的永久場次
+        }
     }
     
     /// 檢查指定日期是否有交易記錄（包括孤兒交易）
@@ -146,9 +157,12 @@ class CalendarViewModel: ObservableObject {
         )
     }
 
-    /// 取得指定日期的所有 Session（包括虛擬 Session）
+    /// 取得指定日期的所有 Session（包括虛擬 Session，但排除永久場次）
+    /// 永久場次會固定顯示在日曆下方，不需要在這裡返回
     func getAllSessionsForDate(_ date: Date, from sessions: [SessionModel]) -> (real: [SessionModel], virtual: [SessionModel]) {
-        let existingSessions = sessionsForDate(date, from: sessions)
+        let allSessions = sessionsForDate(date, from: sessions)
+        // 排除永久場次（永久場次會固定顯示，不受日期選擇影響）
+        let existingSessions = allSessions.filter { $0.dateType != .permanent }
         let transactionGroups = transactionGroupsForDate(date)
 
         var virtualSessions: [SessionModel] = []
