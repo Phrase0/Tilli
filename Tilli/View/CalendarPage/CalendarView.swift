@@ -128,27 +128,45 @@ struct CalendarView: View {
     // Session 列表
     private var sessionList: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // 1. 獲取選中日期的場次（不包含永久場次）
             let (realSessions, virtualSessions) = viewModel.getAllSessionsForDate(selectedDate, from: sessionDataManager.sessions)
 
-            if !realSessions.isEmpty || !virtualSessions.isEmpty {
+            // 2. 獲取所有永久場次（固定顯示，需判斷 startDate <= selectedDate）
+            let permanentSessions = viewModel.getPermanentSessions(from: sessionDataManager.sessions, selectedDate: selectedDate)
+
+            if !realSessions.isEmpty || !virtualSessions.isEmpty || !permanentSessions.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        // 真實 Session（藍色底）
+                        // 選中日期的真實 Session（藍色底）
                         ForEach(realSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session, isVirtual: false, viewModel: viewModel)
+                                SessionRowView(session: session, isVirtual: false, isPermanent: false, viewModel: viewModel)
                             }
                         }
 
-                        // 虛擬 Session（孤兒交易，灰色底 + 淡化）
+                        // 選中日期的虛擬 Session（孤兒交易，灰色底 + 淡化）
                         ForEach(virtualSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session, isVirtual: true, viewModel: viewModel)
+                                SessionRowView(session: session, isVirtual: true, isPermanent: false, viewModel: viewModel)
                                     .opacity(0.7)  // 淡化顯示
+                            }
+                        }
+
+                        // 永久場次（固定顯示，紫色底 + ∞ 符號）
+                        if !permanentSessions.isEmpty {
+                            Divider()
+                                .padding(.vertical, 8)
+
+                            ForEach(permanentSessions) { session in
+                                NavigationLink(destination: SessionDetailFromCalendarView(
+                                    session: .constant(session)
+                                )) {
+                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, viewModel: viewModel)
+                                }
                             }
                         }
                     }
@@ -217,12 +235,13 @@ struct DayCell: View {
 // Session 行視圖
 struct SessionRowView: View {
     let session: SessionModel
-    let isVirtual: Bool  // 新增參數：是否為虛擬 Session
+    let isVirtual: Bool      // 是否為虛擬 Session（孤兒交易）
+    let isPermanent: Bool    // 是否為永久場次
     let viewModel: CalendarViewModel
 
     var body: some View {
         HStack(alignment: .top) {
-            Text(session.title)
+            Text(session.title + (isPermanent ? " ∞" : ""))  // 永久場次加上 ∞ 符號
                 .font(.headline)
                 .foregroundColor(.black)
 
@@ -231,7 +250,7 @@ struct SessionRowView: View {
             VStack(alignment: .trailing, spacing: 6) {
                 Text(viewModel.totalAmount(for: session).money(currency: session.currency))
                     .font(.headline)
-                    .foregroundColor(.blue)
+                    .foregroundColor(isPermanent ? .purple : .blue)  // 永久場次用紫色
 
                 Text("\(viewModel.getTransactionCount(for: session)) 筆交易")
                     .font(.subheadline)
@@ -241,7 +260,11 @@ struct SessionRowView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isVirtual ? Color.gray.opacity(0.1) : Color.blue.opacity(0.1))
+                .fill(
+                    isVirtual ? Color.gray.opacity(0.1) :
+                    isPermanent ? Color.purple.opacity(0.1) :  // 永久場次用紫色底
+                    Color.blue.opacity(0.1)
+                )
         )
     }
 }
