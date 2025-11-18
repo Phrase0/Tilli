@@ -66,31 +66,62 @@ struct ReportTimeRangeSelector: View {
 
         case .multi:
             if let days = session.dayCount {
-                if days <= 30 {
-                    // 多日場次 ≤30天
-                    Picker("報表範圍", selection: $selectedRange.type) {
-                        Text("全部").tag(ReportTimeRange.RangeType.all)
-                        Text("自訂").tag(ReportTimeRange.RangeType.custom)
+                // 多日場次：提供全部、今日、自訂選項
+                Menu {
+                    Button("全部") {
+                        selectedRange.type = .all
                     }
-                    .pickerStyle(.segmented)
-                } else {
-                    // 多日場次 >30天
-                    Picker("報表範圍", selection: $selectedRange.type) {
-                        Text("全部").tag(ReportTimeRange.RangeType.all)
-                        Text("最近30天").tag(ReportTimeRange.RangeType.recent30)
-                        Text("自訂").tag(ReportTimeRange.RangeType.custom)
+                    Button("今日") {
+                        selectedRange.type = .today
                     }
-                    .pickerStyle(.segmented)
+                    Button("自訂") {
+                        selectedRange.type = .custom
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedRangeLabel)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
                 }
             }
 
         case .permanent:
-            // 無限期場次：必須選擇，最多90天
-            Picker("報表範圍", selection: $selectedRange.type) {
-                Text("最近30天").tag(ReportTimeRange.RangeType.recent30)
-                Text("自訂").tag(ReportTimeRange.RangeType.custom)
+            // 無限期場次：提供全部、今日、最近30天、自訂選項（自訂最多90天）
+            Menu {
+                Button("全部") {
+                    selectedRange.type = .all
+                }
+                Button("今日") {
+                    selectedRange.type = .today
+                }
+                Button("最近30天") {
+                    selectedRange.type = .recent30
+                }
+                Button("自訂") {
+                    selectedRange.type = .custom
+                }
+            } label: {
+                HStack {
+                    Text(selectedRangeLabel)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
             }
-            .pickerStyle(.segmented)
         }
     }
 
@@ -150,6 +181,19 @@ struct ReportTimeRangeSelector: View {
     }
 
     // MARK: - Helper
+
+    private var selectedRangeLabel: String {
+        switch selectedRange.type {
+        case .all:
+            return "全部"
+        case .today:
+            return "今日"
+        case .recent30:
+            return "最近30天"
+        case .custom:
+            return "自訂"
+        }
+    }
 
     private var dateIcon: String {
         switch session.dateType {
