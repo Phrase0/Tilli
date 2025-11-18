@@ -36,6 +36,15 @@ class AddSessionViewModel: ObservableObject {
     var isEditingWithTransaction: Bool {
         return hasTransaction()
     }
+
+    // 取得場次的交易筆數
+    var transactionCount: Int {
+        guard let sessionId = editingSession?.id,
+              let transactionManager = transactionDataManager else {
+            return 0
+        }
+        return transactionManager.fetchTransactions(forSessionId: sessionId).count
+    }
     
     var sortedCategories: [CategoryModel] {
         categories.sorted(by: { $0.createdAt < $1.createdAt })
