@@ -80,8 +80,6 @@ extension CDSessionEntity {
         // 取出所有 CategoryModel
         let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
 
-        let transactionModels = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
-
         return SessionModel(
             id: self.id,
             title: self.title,

@@ -286,16 +286,27 @@ struct SessionRowView: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            Text(session.title + (isPermanent ? " ∞" : ""))  // 永久場次加上 ∞ 符號
-                .font(.headline)
-                .foregroundColor(.black)
+            // 左側：標題 + 場次資訊
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.title + (isPermanent ? " ∞" : ""))
+                    .font(.headline)
+                    .foregroundColor(.black)
+
+                // 場次進度資訊
+                if let sessionInfo = sessionProgressInfo {
+                    Text(sessionInfo)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
 
             Spacer()
 
+            // 右側：金額 + 交易筆數
             VStack(alignment: .trailing, spacing: 6) {
                 Text(viewModel.totalAmount(for: session).money(currency: session.currency))
                     .font(.headline)
-                    .foregroundColor(isPermanent ? .purple : .blue)  // 永久場次用紫色
+                    .foregroundColor(isPermanent ? .purple : .blue)
 
                 Text("\(viewModel.getTransactionCount(for: session)) 筆交易")
                     .font(.subheadline)
@@ -307,10 +318,42 @@ struct SessionRowView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(
                     isVirtual ? Color.gray.opacity(0.1) :
-                    isPermanent ? Color.purple.opacity(0.1) :  // 永久場次用紫色底
+                    isPermanent ? Color.purple.opacity(0.1) :
                     Color.blue.opacity(0.1)
                 )
         )
+    }
+
+    // 場次進度資訊
+    private var sessionProgressInfo: String? {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        switch session.dateType {
+        case .single:
+            return nil  // 單日場次不顯示
+
+        case .multi:
+            // 多日場次：顯示「第 X 天/共 Y 天」
+            guard let endDate = session.endDate else { return nil }
+            let start = calendar.startOfDay(for: session.startDate)
+            let end = calendar.startOfDay(for: endDate)
+            let totalDays = calendar.dateComponents([.day], from: start, to: end).day! + 1
+
+            // 計算今天是第幾天
+            if today >= start && today <= end {
+                let currentDay = calendar.dateComponents([.day], from: start, to: today).day! + 1
+                return "第 \(currentDay) 天/共 \(totalDays) 天"
+            } else {
+                return "共 \(totalDays) 天"
+            }
+
+        case .permanent:
+            // 無限期場次：顯示「開始至今第 X 天」
+            let start = calendar.startOfDay(for: session.startDate)
+            let daysSinceStart = calendar.dateComponents([.day], from: start, to: today).day! + 1
+            return "開始至今第 \(daysSinceStart) 天"
+        }
     }
 }
 
