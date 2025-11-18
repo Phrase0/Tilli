@@ -66,7 +66,9 @@ class AddSessionViewModel: ObservableObject {
     var dayCount: Int? {
         guard dateType == .multi else { return nil }
         let calendar = Calendar.current
-        let days = calendar.dateComponents([.day], from: sessionDate, to: endDate).day ?? 0
+        let startDay = calendar.startOfDay(for: sessionDate)
+        let endDay = calendar.startOfDay(for: endDate)
+        let days = calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
         return days + 1
     }
 
