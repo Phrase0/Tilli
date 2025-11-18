@@ -287,32 +287,3 @@ struct AddSessionView: View {
         }
     }
 }
-
-// MARK: - Session Type Button
-
-struct SessionTypeButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .medium : .regular)
-                .foregroundColor(isSelected ? .white : .primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? Color.blue :  Color(.systemBackground))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
-}
