@@ -84,6 +84,28 @@ struct AddSessionView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+
+                // 編輯時顯示交易筆數和提示
+                if viewModel.editingSession != nil && viewModel.transactionCount > 0 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                            Text("此場次已有 \(viewModel.transactionCount) 筆交易")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        HStack {
+                            Image(systemName: "checkmark.circle")
+                                .foregroundColor(.green)
+                            Text("修改日期不影響已有交易的歸屬")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
 
             // 幣別選擇器
