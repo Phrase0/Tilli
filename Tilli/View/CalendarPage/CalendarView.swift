@@ -102,11 +102,15 @@ struct CalendarView: View {
     private var calendarGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
             ForEach(viewModel.daysInMonth(for: currentDate), id: \.self) { date in
+                let sessionsForDate = viewModel.sessionsForDate(date, from: sessionDataManager.sessions)
+                let hasTransactions = viewModel.hasTransactions(on: date)
+
                 DayCell(
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    hasSessions: viewModel.hasSessions(on: date, from: sessionDataManager.sessions) || viewModel.hasTransactions(on: date),
+                    sessions: sessionsForDate,
+                    hasOrphanTransactions: hasTransactions && sessionsForDate.isEmpty,
                     currentMonth: currentDate,
                     onTap: { selectedDate = date }
                 )
@@ -137,6 +141,23 @@ struct CalendarView: View {
             if !realSessions.isEmpty || !virtualSessions.isEmpty || !permanentSessions.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
+                        // 永久場次（固定顯示，紫色底 + ∞ 符號）
+                        if !permanentSessions.isEmpty {
+                            ForEach(permanentSessions) { session in
+                                NavigationLink(destination: SessionDetailFromCalendarView(
+                                    session: .constant(session)
+                                )) {
+                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, viewModel: viewModel)
+                                }
+                            }
+
+                            // 永久場次和當日場次之間的分隔線
+                            if !realSessions.isEmpty || !virtualSessions.isEmpty {
+                                Divider()
+                                    .padding(.vertical, 8)
+                            }
+                        }
+
                         // 選中日期的真實 Session（藍色底）
                         ForEach(realSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
@@ -155,20 +176,6 @@ struct CalendarView: View {
                                     .opacity(0.7)  // 淡化顯示
                             }
                         }
-
-                        // 永久場次（固定顯示，紫色底 + ∞ 符號）
-                        if !permanentSessions.isEmpty {
-                            Divider()
-                                .padding(.vertical, 8)
-
-                            ForEach(permanentSessions) { session in
-                                NavigationLink(destination: SessionDetailFromCalendarView(
-                                    session: .constant(session)
-                                )) {
-                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, viewModel: viewModel)
-                                }
-                            }
-                        }
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 20)
@@ -183,12 +190,13 @@ struct DayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-    let hasSessions: Bool
+    let sessions: [SessionModel]
+    let hasOrphanTransactions: Bool
     let currentMonth: Date
     let onTap: () -> Void
-    
+
     private let calendar = Calendar.current
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
@@ -198,26 +206,63 @@ struct DayCell: View {
                             .fill(Color.blue)
                             .frame(width: 30, height: 30)
                     }
-                    
+
                     Text("\(calendar.component(.day, from: date))")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(textColor)
                 }
-                
-                if hasSessions {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 5, height: 5)
-                } else {
-                    Spacer().frame(height: 5)
-                }
+
+                // 場次指示器
+                sessionIndicators
             }
             .frame(height: 44)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
+    // 場次指示器：顯示多個圓點或文字
+    private var sessionIndicators: some View {
+        Group {
+            if !sessions.isEmpty {
+                HStack(spacing: 2) {
+                    // 顯示最多 3 個圓點
+                    ForEach(sessions.prefix(3)) { session in
+                        Circle()
+                            .fill(dotColor(for: session))
+                            .frame(width: 4, height: 4)
+                    }
+
+                    // 如果超過 3 個場次，顯示 "+X"
+                    if sessions.count > 3 {
+                        Text("+\(sessions.count - 3)")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .frame(height: 8)
+            } else if hasOrphanTransactions {
+                // 孤兒交易：灰色圓點
+                Circle()
+                    .fill(Color.gray.opacity(0.5))
+                    .frame(width: 4, height: 4)
+                    .frame(height: 8)
+            } else {
+                Spacer().frame(height: 8)
+            }
+        }
+    }
+
+    // 根據場次類型返回圓點顏色
+    private func dotColor(for session: SessionModel) -> Color {
+        switch session.dateType {
+        case .permanent:
+            return .purple  // 無限期場次用紫色
+        case .single, .multi:
+            return .blue    // 單日和多日場次用藍色
+        }
+    }
+
     private var textColor: Color {
         if isSelected {
             return .white
