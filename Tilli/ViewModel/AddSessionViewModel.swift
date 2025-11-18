@@ -301,6 +301,12 @@ class AddSessionViewModel: ObservableObject {
                 return (false, "多日場次至少需要 2 天")
             }
 
+            // 檢查最多 31 天
+            let totalDays = daysDifference + 1  // 包含起始和結束日
+            guard totalDays <= 31 else {
+                return (false, "多日場次最多 31 天")
+            }
+
             return (true, nil)
 
         case .permanent:

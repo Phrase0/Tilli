@@ -62,14 +62,29 @@ struct AddSessionView: View {
                     DatePicker("開始日期", selection: $viewModel.sessionDate, displayedComponents: .date)
                     DatePicker("結束日期", selection: $viewModel.endDate, displayedComponents: .date)
 
-                    // 場次預覽
+                    // 場次預覽與驗證
                     if let days = viewModel.dayCount, days >= 1 {
+                        let dateValidation = viewModel.validateDates()
+
                         HStack {
-                            Image(systemName: "calendar")
-                                .foregroundColor(.blue)
+                            Image(systemName: dateValidation.isValid ? "calendar" : "exclamationmark.triangle.fill")
+                                .foregroundColor(dateValidation.isValid ? .blue : .orange)
                             Text("共 \(days) 天")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(dateValidation.isValid ? .secondary : .orange)
+                        }
+
+                        // 顯示錯誤訊息
+                        if !dateValidation.isValid, let errorMessage = dateValidation.errorMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
                         }
                     }
 
@@ -176,7 +191,10 @@ struct AddSessionView: View {
                         viewModel.showAlert = true
                     }
                 }
-                .disabled(viewModel.sessionName.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(
+                    viewModel.sessionName.trimmingCharacters(in: .whitespaces).isEmpty ||
+                    !viewModel.validateDates().isValid
+                )
             }
         }
         .alert(isPresented: $viewModel.showAlert) {
