@@ -8,6 +8,26 @@
 import CoreData
 import SwiftUI
 
+/// 場次驗證結果
+enum SessionValidationResult {
+    case success
+    case failure(String)  // 失敗時包含錯誤訊息
+
+    var isValid: Bool {
+        if case .success = self {
+            return true
+        }
+        return false
+    }
+
+    var errorMessage: String? {
+        if case .failure(let message) = self {
+            return message
+        }
+        return nil
+    }
+}
+
 class SessionDataManager: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
@@ -61,22 +81,29 @@ class SessionDataManager: ObservableObject {
 
     /// 新增 Session（僅處理 Session 層級）
     func addSession(_ model: SessionModel) {
+        // 驗證場次資料
+        let validationResult = validateSession(model)
+        guard validationResult.isValid else {
+            print("❌ 場次驗證失敗: \(validationResult.errorMessage ?? "未知錯誤")")
+            return
+        }
+
         let entity = CDSessionEntity(context: context)
         entity.update(from: model, context: context)
-        
+
         // 創建 Categories 和 Products
         for categoryModel in model.categories {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
             categoryEntity.session = entity
-            
+
             for productModel in categoryModel.products {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
                 productEntity.category = categoryEntity
             }
         }
-        
+
         if saveContext() {
             fetchSessions() // 僅在成功保存後重新載入
         }
@@ -84,6 +111,13 @@ class SessionDataManager: ObservableObject {
 
     /// 更新 Session（包含 Category 的變更處理）
     func updateSession(_ model: SessionModel) {
+        // 驗證場次資料
+        let validationResult = validateSession(model)
+        guard validationResult.isValid else {
+            print("❌ 場次驗證失敗: \(validationResult.errorMessage ?? "未知錯誤")")
+            return
+        }
+
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
         request.relationshipKeyPathsForPrefetching = ["categories", "categories.products"]
@@ -332,6 +366,58 @@ class SessionDataManager: ObservableObject {
         } catch {
             print("複製場次失敗:", error)
             return nil
+        }
+    }
+
+    // MARK: - Validation Methods
+
+    /// 驗證場次資料的合法性
+    /// - Parameter model: 要驗證的場次模型
+    /// - Returns: 驗證結果（成功或失敗及錯誤訊息）
+    func validateSession(_ model: SessionModel) -> SessionValidationResult {
+        // 1. 驗證場次名稱
+        let trimmedTitle = model.title.trimmingCharacters(in: .whitespaces)
+        if trimmedTitle.isEmpty {
+            return .failure("場次名稱不可為空")
+        }
+
+        // 2. 根據場次類型驗證日期
+        switch model.dateType {
+        case .single:
+            // 單日場次：endDate 應該等於 startDate 或為 nil
+            // 不需要特別驗證
+            return .success
+
+        case .multi:
+            // 多日場次：必須有 endDate 且晚於 startDate
+            guard let endDate = model.endDate else {
+                return .failure("多日場次必須設定結束日期")
+            }
+
+            // 確保結束日期晚於開始日期
+            let calendar = Calendar.current
+            let startDay = calendar.startOfDay(for: model.startDate)
+            let endDay = calendar.startOfDay(for: endDate)
+
+            guard endDay > startDay else {
+                return .failure("結束日期必須晚於開始日期")
+            }
+
+            // 檢查至少需要 2 天
+            let daysDifference = calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
+            guard daysDifference >= 1 else {
+                return .failure("多日場次至少需要 2 天")
+            }
+
+            return .success
+
+        case .permanent:
+            // 無限期場次：不可有 endDate
+            guard model.endDate == nil else {
+                return .failure("無限期場次不可設定結束日期")
+            }
+
+            return .success
         }
     }
 
