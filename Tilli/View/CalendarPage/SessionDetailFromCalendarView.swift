@@ -21,8 +21,6 @@ struct SessionDetailFromCalendarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-
-
             // 自定義 Picker
             HStack {
                 ForEach(0..<viewModel.tabTitles.count, id: \.self) { index in
