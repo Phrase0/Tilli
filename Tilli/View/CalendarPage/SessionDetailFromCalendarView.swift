@@ -12,15 +12,24 @@ struct SessionDetailFromCalendarView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var showingShareSheet = false
-    
+    @State private var timeRange: ReportTimeRange
+
     init(session: Binding<SessionModel>) {
         self._viewModel = StateObject(wrappedValue: SessionDetailFromCalendarViewModel(session: session))
+
+        // 初始化時間範圍
+        self._timeRange = State(initialValue: ReportTimeRange(session: session.wrappedValue))
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
+            // 時間範圍選擇器
+            ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
+                .padding(.horizontal)
+                .padding(.top, 12)
+
             // 自定義 Picker
             HStack {
                 ForEach(0..<viewModel.tabTitles.count, id: \.self) { index in

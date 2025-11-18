@@ -44,10 +44,21 @@ class TransactionViewModel: ObservableObject {
     }
     
     // MARK: - Transaction History 相關方法
-    
-    func loadData() {
+
+    /// 載入交易資料（支援時間範圍）
+    func loadData(timeRange: ReportTimeRange? = nil) {
         guard let transactionManager = transactionDataManager else { return }
-        transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+
+        if let timeRange = timeRange {
+            // 使用時間範圍查詢
+            transactions = transactionManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            // 查詢所有交易（向後兼容）
+            transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+        }
     }
     
     func generateCSVContent() -> String {
