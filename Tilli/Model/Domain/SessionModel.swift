@@ -7,12 +7,6 @@
 //
 import SwiftUI
 
-enum SessionDateType: String, Codable, Hashable {
-    case single      // 單日場次
-    case multi       // 多日場次
-    case permanent   // 無限期場次
-}
-
 struct SessionModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String                   // 場次名稱，例如「2025/08/01 花博市集」
@@ -97,6 +91,11 @@ struct SessionModel: Identifiable, Codable, Hashable {
     }
 }
 
+enum SessionDateType: String, Codable, Hashable {
+    case single      // 單日場次
+    case multi       // 多日場次
+    case permanent   // 無限期場次
+}
 
 enum SessionStatus: String, Codable {
     case ongoing
