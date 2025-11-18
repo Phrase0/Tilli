@@ -34,9 +34,51 @@ struct AddSessionView: View {
                 .focused($focusedField, equals: .sessionName)
                 .submitLabel(.next)
                 .onSubmit { focusedField = .newCategory }
-            
-            DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
-            
+
+            // 場次類型選擇器
+            Section {
+                Picker("場次類型", selection: $viewModel.dateType) {
+                    Text("單日場次").tag(SessionDateType.single)
+                    Text("多日場次").tag(SessionDateType.multi)
+                    Text("無限期場次").tag(SessionDateType.permanent)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            // 動態日期選擇器
+            Section {
+                switch viewModel.dateType {
+                case .single:
+                    DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
+
+                case .multi:
+                    DatePicker("開始日期", selection: $viewModel.sessionDate, displayedComponents: .date)
+                    DatePicker("結束日期", selection: $viewModel.endDate, displayedComponents: .date)
+
+                    // 場次預覽
+                    if let days = viewModel.dayCount, days >= 1 {
+                        HStack {
+                            Image(systemName: "calendar")
+                                .foregroundColor(.blue)
+                            Text("共 \(days) 天")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                case .permanent:
+                    DatePicker("開始日期", selection: $viewModel.sessionDate, displayedComponents: .date)
+
+                    HStack {
+                        Image(systemName: "infinity")
+                            .foregroundColor(.purple)
+                        Text("此場次無結束日期")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
             // 幣別選擇器
             Picker("幣別", selection: $viewModel.selectedCurrency) {
                 ForEach(Currency.allCases, id: \.self) { currency in

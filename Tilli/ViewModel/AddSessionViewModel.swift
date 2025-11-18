@@ -15,6 +15,10 @@ class AddSessionViewModel: ObservableObject {
     @Published var categories: [CategoryModel]
     @Published var editingCategoryID: UUID?
 
+    // 多日場次支援
+    @Published var dateType: SessionDateType
+    @Published var endDate: Date
+
     // Alert 相關狀態
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -49,12 +53,24 @@ class AddSessionViewModel: ObservableObject {
         sortedCategories.first(where: { $0.id == editingCategoryID })
     }
 
+    // 計算多日場次的天數
+    var dayCount: Int? {
+        guard dateType == .multi else { return nil }
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: sessionDate, to: endDate).day ?? 0
+        return days + 1
+    }
+
     init(sessionToEdit: SessionModel? = nil) {
         self.editingSession = sessionToEdit
         self.sessionName = sessionToEdit?.title ?? ""
         self.sessionDate = sessionToEdit?.startDate ?? Date()
         self.selectedCurrency = sessionToEdit?.currency ?? "TWD"
         self.categories = sessionToEdit?.categories ?? []
+
+        // 初始化場次類型和結束日期
+        self.dateType = sessionToEdit?.dateType ?? .single
+        self.endDate = sessionToEdit?.endDate ?? Date()
     }
     
     /// 更新 DataManager 引用
@@ -235,8 +251,46 @@ class AddSessionViewModel: ObservableObject {
         if categories.filter({ !$0.isDisabled }).isEmpty {
             return .failure("請至少輸入一個類別")
         }
-        
+
+        // 驗證日期邏輯
+        let dateValidation = validateDates()
+        if !dateValidation.isValid {
+            return .failure(dateValidation.errorMessage ?? "日期設定有誤")
+        }
+
         return .success
+    }
+
+    /// 驗證日期設定
+    func validateDates() -> (isValid: Bool, errorMessage: String?) {
+        let calendar = Calendar.current
+
+        switch dateType {
+        case .single:
+            // 單日場次：無需驗證
+            return (true, nil)
+
+        case .multi:
+            // 多日場次：結束日期必須晚於開始日期
+            let startDay = calendar.startOfDay(for: sessionDate)
+            let endDay = calendar.startOfDay(for: endDate)
+
+            guard endDay > startDay else {
+                return (false, "結束日期必須晚於開始日期")
+            }
+
+            // 檢查至少需要 2 天
+            let daysDifference = calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
+            guard daysDifference >= 1 else {
+                return (false, "多日場次至少需要 2 天")
+            }
+
+            return (true, nil)
+
+        case .permanent:
+            // 無限期場次：無需驗證
+            return (true, nil)
+        }
     }
 
     func save() -> SessionModel {
@@ -249,12 +303,23 @@ class AddSessionViewModel: ObservableObject {
             createdAt: Date()
         )
 
+        // 根據場次類型設定 endDate
+        let finalEndDate: Date?
+        switch dateType {
+        case .single:
+            finalEndDate = sessionDate  // 單日場次：endDate = startDate
+        case .multi:
+            finalEndDate = endDate      // 多日場次：使用選擇的 endDate
+        case .permanent:
+            finalEndDate = nil          // 無限期場次：endDate = nil
+        }
+
         return SessionModel(
             id: baseSession.id,
             title: sessionName,
             startDate: sessionDate,
-            endDate: sessionDate,  // 目前暫時設為單日場次
-            dateType: .single,     // 目前暫時都是單日場次
+            endDate: finalEndDate,
+            dateType: dateType,
             categories: categories,
             createdAt: baseSession.createdAt,
             currency: selectedCurrency
