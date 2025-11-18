@@ -147,7 +147,7 @@ struct CalendarView: View {
                                 NavigationLink(destination: SessionDetailFromCalendarView(
                                     session: .constant(session)
                                 )) {
-                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, viewModel: viewModel)
+                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, selectedDate: selectedDate, viewModel: viewModel)
                                 }
                             }
 
@@ -163,7 +163,7 @@ struct CalendarView: View {
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session, isVirtual: false, isPermanent: false, viewModel: viewModel)
+                                SessionRowView(session: session, isVirtual: false, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
                             }
                         }
 
@@ -172,7 +172,7 @@ struct CalendarView: View {
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session, isVirtual: true, isPermanent: false, viewModel: viewModel)
+                                SessionRowView(session: session, isVirtual: true, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
                                     .opacity(0.7)  // 淡化顯示
                             }
                         }
@@ -282,6 +282,7 @@ struct SessionRowView: View {
     let session: SessionModel
     let isVirtual: Bool      // 是否為虛擬 Session（孤兒交易）
     let isPermanent: Bool    // 是否為永久場次
+    let selectedDate: Date   // 日曆選中的日期
     let viewModel: CalendarViewModel
 
     var body: some View {
@@ -324,10 +325,10 @@ struct SessionRowView: View {
         )
     }
 
-    // 場次進度資訊
+    // 場次進度資訊（基於選中的日期）
     private var sessionProgressInfo: String? {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let referenceDate = calendar.startOfDay(for: selectedDate)
 
         switch session.dateType {
         case .single:
@@ -340,18 +341,18 @@ struct SessionRowView: View {
             let end = calendar.startOfDay(for: endDate)
             let totalDays = calendar.dateComponents([.day], from: start, to: end).day! + 1
 
-            // 計算今天是第幾天
-            if today >= start && today <= end {
-                let currentDay = calendar.dateComponents([.day], from: start, to: today).day! + 1
+            // 計算選中日期是第幾天
+            if referenceDate >= start && referenceDate <= end {
+                let currentDay = calendar.dateComponents([.day], from: start, to: referenceDate).day! + 1
                 return "第 \(currentDay) 天/共 \(totalDays) 天"
             } else {
                 return "共 \(totalDays) 天"
             }
 
         case .permanent:
-            // 無限期場次：顯示「開始至今第 X 天」
+            // 無限期場次：顯示「開始至今第 X 天」（基於選中日期）
             let start = calendar.startOfDay(for: session.startDate)
-            let daysSinceStart = calendar.dateComponents([.day], from: start, to: today).day! + 1
+            let daysSinceStart = calendar.dateComponents([.day], from: start, to: referenceDate).day! + 1
             return "開始至今第 \(daysSinceStart) 天"
         }
     }

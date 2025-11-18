@@ -169,8 +169,18 @@ class CalendarViewModel: ObservableObject {
 
         // 找出孤兒交易並創建虛擬 Session
         for (sessionIdString, transactions) in transactionGroups {
-            guard let sessionId = UUID(uuidString: sessionIdString),
-                  !existingSessions.contains(where: { $0.id == sessionId }) else {
+            guard let sessionId = UUID(uuidString: sessionIdString) else {
+                continue
+            }
+
+            // 檢查是否已存在於當日場次中
+            if existingSessions.contains(where: { $0.id == sessionId }) {
+                continue
+            }
+
+            // ⚠️ 重要：檢查該 sessionId 是否對應永久場次
+            // 永久場次的交易不應該作為孤兒交易顯示
+            if sessions.contains(where: { $0.id == sessionId && $0.dateType == .permanent }) {
                 continue
             }
 
