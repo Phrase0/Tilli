@@ -38,13 +38,20 @@ struct AddSessionView: View {
             // 場次類型選擇器
             Section {
                 Picker("場次類型", selection: $viewModel.dateType) {
-                    Text("單日場次").tag(SessionDateType.single)
-                    Text("多日場次").tag(SessionDateType.multi)
-                    Text("無限期場次").tag(SessionDateType.permanent)
+                    Text("單日").tag(SessionDateType.single)
+                    Text("多日").tag(SessionDateType.multi)
+                    Text("無限期").tag(SessionDateType.permanent)
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: viewModel.dateType) { newType in
+                    // 切換到多日時，自動設定結束日期為開始日期 +1 天
+                    if newType == .multi {
+                        viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.sessionDate) ?? viewModel.sessionDate
+                    }
+                }
             }
-
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0,bottom: 0, trailing: 0))
             // 動態日期選擇器
             Section {
                 switch viewModel.dateType {
@@ -256,5 +263,34 @@ struct AddSessionView: View {
                 }
             )
         }
+    }
+}
+
+// MARK: - Session Type Button
+
+struct SessionTypeButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(isSelected ? .medium : .regular)
+                .foregroundColor(isSelected ? .white : .primary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isSelected ? Color.blue :  Color(.systemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }

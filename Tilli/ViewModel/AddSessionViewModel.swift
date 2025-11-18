@@ -70,7 +70,14 @@ class AddSessionViewModel: ObservableObject {
 
         // 初始化場次類型和結束日期
         self.dateType = sessionToEdit?.dateType ?? .single
-        self.endDate = sessionToEdit?.endDate ?? Date()
+
+        // 設定結束日期：若是編輯模式使用現有值，否則預設為開始日期 +1 天
+        if let existingEndDate = sessionToEdit?.endDate {
+            self.endDate = existingEndDate
+        } else {
+            let startDate = sessionToEdit?.startDate ?? Date()
+            self.endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+        }
     }
     
     /// 更新 DataManager 引用
