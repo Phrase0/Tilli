@@ -34,14 +34,16 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     // MARK: - Public Methods
-    func loadData() {
+
+    /// 載入資料（支援時間範圍）
+    func loadData(timeRange: ReportTimeRange? = nil) {
         guard transactionDataManager != nil else { return }
 
         isLoading = true
 
         Task {
             await MainActor.run {
-                calculateSalesAnalytics()
+                calculateSalesAnalytics(timeRange: timeRange)
                 isLoading = false
             }
         }
@@ -124,11 +126,20 @@ class SalesAnalyticsViewModel: ObservableObject {
 // MARK: - Business Logic Calculations
 private extension SalesAnalyticsViewModel {
 
-    /// 計算銷售分析數據
-    func calculateSalesAnalytics() {
+    /// 計算銷售分析數據（支援時間範圍）
+    func calculateSalesAnalytics(timeRange: ReportTimeRange? = nil) {
         guard let transactionDataManager = transactionDataManager else { return }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
 
         // 初始化 Helper Classes
         let hourlyHelper = HourlyStatsHelper()

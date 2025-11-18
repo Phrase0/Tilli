@@ -39,16 +39,18 @@ class ProductPerformanceViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
-    func loadData() {
+
+    /// 載入資料（支援時間範圍）
+    func loadData(timeRange: ReportTimeRange? = nil) {
         guard transactionDataManager != nil else { return }
-        
+
         isLoading = true
-        
+
         Task {
             await MainActor.run {
-                calculateTopProducts()
-                calculateCategoryAnalysis() 
-                generateSalesInsights()
+                calculateTopProducts(timeRange: timeRange)
+                calculateCategoryAnalysis(timeRange: timeRange)
+                generateSalesInsights(timeRange: timeRange)
                 isLoading = false
             }
         }
@@ -134,11 +136,20 @@ class ProductPerformanceViewModel: ObservableObject {
 // MARK: - Business Logic Calculations
 private extension ProductPerformanceViewModel {
     
-    /// 計算商品銷售排行榜
-    func calculateTopProducts() {
+    /// 計算商品銷售排行榜（支援時間範圍）
+    func calculateTopProducts(timeRange: ReportTimeRange? = nil) {
         guard let transactionDataManager = transactionDataManager else { return }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
         
         // 建立商品銷售統計字典
         var productStats: [UUID: ProductSalesStats] = [:]
@@ -210,11 +221,20 @@ private extension ProductPerformanceViewModel {
         topProducts = Array(performanceData)
     }
     
-    /// 計算分類銷售分析
-    func calculateCategoryAnalysis() {
+    /// 計算分類銷售分析（支援時間範圍）
+    func calculateCategoryAnalysis(timeRange: ReportTimeRange? = nil) {
         guard let transactionDataManager = transactionDataManager else { return }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
         
         // 建立分類銷售統計字典
         var categoryStats: [UUID: CategorySalesStats] = [:]
@@ -272,8 +292,8 @@ private extension ProductPerformanceViewModel {
         }
     }
     
-    /// 生成銷售洞察
-    func generateSalesInsights() {
+    /// 生成銷售洞察（支援時間範圍）
+    func generateSalesInsights(timeRange: ReportTimeRange? = nil) {
         guard !topProducts.isEmpty, !categoryAnalysis.isEmpty else {
             salesInsights = SalesInsightsData()
             return
