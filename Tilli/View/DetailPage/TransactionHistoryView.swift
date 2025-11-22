@@ -11,7 +11,16 @@ import UniformTypeIdentifiers
 struct TransactionHistoryView: View {
     @ObservedObject var transactionViewModel: TransactionViewModel
     @Binding var session: SessionModel
+    let timeRange: ReportTimeRange?
     @State private var showingShareSheet = false
+    
+    init(transactionViewModel: TransactionViewModel, 
+         session: Binding<SessionModel>, 
+         timeRange: ReportTimeRange? = nil) {
+        self.transactionViewModel = transactionViewModel
+        self._session = session
+        self.timeRange = timeRange
+    }
     
     var body: some View {
         Group {
@@ -20,17 +29,17 @@ struct TransactionHistoryView: View {
                     LazyVStack(spacing: 12) {
                         EmptyStateView(
                             systemImage: "list.clipboard",
-                            title: "尚無交易記錄",
-                            message: "完成結帳後，交易記錄會顯示在這裡",
+                            title: emptyStateMessage.title,
+                            message: emptyStateMessage.message,
                             topPadding: 85
                         )
                     }
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(transactionViewModel.transactions.sorted { $0.timestamp > $1.timestamp }) { transaction in
-                            transactionCard(transaction)
+                    LazyVStack(spacing: 16) {
+                        ForEach(transactionViewModel.groupedTransactions) { dailyGroup in
+                            dailyTransactionSection(dailyGroup)
                         }
                     }
                     .padding()
@@ -38,7 +47,10 @@ struct TransactionHistoryView: View {
             }
         }
         .refreshable {
-            transactionViewModel.loadData()
+            transactionViewModel.loadData(timeRange: timeRange)
+        }
+        .onAppear {
+            transactionViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
         .alert("CSV 導出成功", isPresented: $transactionViewModel.showingExportAlert) {
@@ -61,6 +73,62 @@ struct TransactionHistoryView: View {
                 }
             }
         )
+    }
+    
+    // MARK: - 空狀態訊息
+    
+    /// 根據時間範圍顯示不同的空狀態訊息
+    private var emptyStateMessage: (title: String, message: String) {
+        if let timeRange = timeRange {
+            return (
+                title: "此時間段尚無交易記錄",
+                message: "在 \(timeRange.displayText) 期間沒有交易記錄"
+            )
+        } else {
+            return (
+                title: "尚無交易記錄", 
+                message: "完成結帳後，交易記錄會顯示在這裡"
+            )
+        }
+    }
+    
+    // MARK: - 按日分組視圖
+    
+    /// 每日交易區塊
+    private func dailyTransactionSection(_ dailyGroup: DailyTransactionGroup) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 日期標題
+            HStack {
+                Text(dailyGroup.dateText)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(transactionViewModel.formatAmount(dailyGroup.totalAmount))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                    
+                    Text("\(dailyGroup.count) 筆交易")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.systemGray5))
+            .cornerRadius(8)
+            
+            // 該日的交易列表
+            VStack(spacing: 8) {
+                ForEach(dailyGroup.transactions) { transaction in
+                    transactionCard(transaction)
+                }
+            }
+        }
     }
     
     private func transactionCard(_ transaction: TransactionModel) -> some View {

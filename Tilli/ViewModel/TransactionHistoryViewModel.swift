@@ -14,9 +14,11 @@ class TransactionViewModel: ObservableObject {
     
     // Transaction History 相關狀態
     @Published var transactions: [TransactionModel] = []
+    @Published var groupedTransactions: [DailyTransactionGroup] = []
     @Published var expandedTransactionIds: Set<UUID> = []
     @Published var showingExportAlert = false
     @Published var csvContent = ""
+    @Published var currentTimeRange: ReportTimeRange?
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
@@ -49,6 +51,9 @@ class TransactionViewModel: ObservableObject {
     func loadData(timeRange: ReportTimeRange? = nil) {
         guard let transactionManager = transactionDataManager else { return }
 
+        // 儲存當前時間範圍（用於 CSV 匯出）
+        self.currentTimeRange = timeRange
+
         if let timeRange = timeRange {
             // 使用時間範圍查詢
             transactions = transactionManager.fetchTransactions(
@@ -59,11 +64,40 @@ class TransactionViewModel: ObservableObject {
             // 查詢所有交易（向後兼容）
             transactions = transactionManager.fetchTransactions(forSessionId: session.id)
         }
+
+        // 按日分組交易
+        groupTransactionsByDate()
+    }
+    
+    /// 將交易按日期分組
+    private func groupTransactionsByDate() {
+        let calendar = Calendar.current
+        
+        // 按日期分組
+        let grouped = Dictionary(grouping: transactions) { transaction in
+            calendar.startOfDay(for: transaction.timestamp)
+        }
+        
+        // 轉換為 DailyTransactionGroup 並排序
+        groupedTransactions = grouped.map { date, txs in
+            DailyTransactionGroup(
+                date: date,
+                transactions: txs.sorted { $0.timestamp > $1.timestamp }
+            )
+        }.sorted { $0.date > $1.date }
     }
     
     func generateCSVContent() -> String {
         let currencyCode = session.currency
-        var csvContent = "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,折扣%,小計(\(currencyCode)),總金額(\(currencyCode))\n"
+        var csvContent = ""
+        
+        // 在表格上方加入時間範圍資訊
+        if let timeRange = currentTimeRange {
+            csvContent += "\(session.title),\(timeRange.displayText)\n"
+            csvContent += "\n"
+        }
+        
+        csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,折扣%,小計(\(currencyCode)),總金額(\(currencyCode))\n"
 
         for transaction in transactions.sorted(by: { $0.timestamp > $1.timestamp }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
@@ -157,5 +191,32 @@ class TransactionViewModel: ObservableObject {
         case .ePayment:
             return .purple
         }
+    }
+}
+
+// MARK: - 資料模型
+
+/// 每日交易分組
+struct DailyTransactionGroup: Identifiable {
+    let id = UUID()
+    let date: Date
+    let transactions: [TransactionModel]
+    
+    /// 當日總金額
+    var totalAmount: Decimal {
+        transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+    }
+    
+    /// 當日交易筆數
+    var count: Int {
+        transactions.count
+    }
+    
+    /// 日期顯示文字
+    var dateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_TW")
+        formatter.dateFormat = "yyyy/MM/dd (E)"
+        return formatter.string(from: date)
     }
 }
