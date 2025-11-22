@@ -87,21 +87,12 @@ class TransactionViewModel: ObservableObject {
             )
         }.sorted { $0.date > $1.date }
         
-        // 初始化所有日期為展開狀態（方案B：預設展開）
+        // 初始化所有日期為展開狀態
         initializeDailyGroupExpansion()
     }
     
-    /// 初始化日期分組展開狀態（所有日期預設展開）
     private func initializeDailyGroupExpansion() {
-        let allDates = Set(groupedTransactions.map { $0.date })
-        // 只新增不存在的日期，保留已有的展開/收合狀態
-        for date in allDates {
-            if !expandedDailyGroupIds.contains(date) {
-                expandedDailyGroupIds.insert(date)
-            }
-        }
-        // 移除不再存在的日期
-        expandedDailyGroupIds = expandedDailyGroupIds.intersection(allDates)
+        expandedDailyGroupIds = Set(groupedTransactions.map { $0.date })
     }
     
     func generateCSVContent() -> String {
