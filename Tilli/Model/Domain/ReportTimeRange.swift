@@ -168,18 +168,18 @@ struct ReportTimeRange {
         }
 
         // 多日場次：自訂範圍不可超出場次日期範圍
-        if session.dateType == .multi {
-            let sessionStart = calendar.startOfDay(for: session.startDate)
-            let sessionEnd = session.endDate.map { calendar.startOfDay(for: $0) }
-
-            if start < sessionStart {
-                return (false, "開始日期不可早於場次開始日期")
-            }
-
-            if let sessionEnd = sessionEnd, end > sessionEnd {
-                return (false, "結束日期不可晚於場次結束日期")
-            }
-        }
+//        if session.dateType == .multi {
+//            let sessionStart = calendar.startOfDay(for: session.startDate)
+//            let sessionEnd = session.endDate.map { calendar.startOfDay(for: $0) }
+//
+//            if start < sessionStart {
+//                return (false, "開始日期不可早於場次開始日期")
+//            }
+//
+//            if let sessionEnd = sessionEnd, end > sessionEnd {
+//                return (false, "結束日期不可晚於場次結束日期")
+//            }
+//        }
 
         return (true, nil)
     }
