@@ -96,36 +96,50 @@ struct TransactionHistoryView: View {
     
     /// 每日交易區塊
     private func dailyTransactionSection(_ dailyGroup: DailyTransactionGroup) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 日期標題
-            HStack {
-                Text(dailyGroup.dateText)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(transactionViewModel.formatAmount(dailyGroup.totalAmount))
-                        .font(.subheadline)
+        let isExpanded = transactionViewModel.isDailyGroupExpanded(dailyGroup.date)
+        
+        return VStack(alignment: .leading, spacing: 8) {
+            // 日期標題（整個區域可點擊）
+            Button(action: {
+                transactionViewModel.toggleDailyGroupExpansion(dailyGroup.date)
+            }) {
+                HStack {
+                    Text(dailyGroup.dateText)
+                        .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.primary)
                     
-                    Text("\(dailyGroup.count) 筆交易")
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(transactionViewModel.formatAmount(dailyGroup.totalAmount))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                        
+                        Text("\(dailyGroup.count) 筆交易")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // 沿用現有的 chevron 圖示
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.gray)
                         .font(.caption)
-                        .foregroundColor(.secondary)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(.systemGray5))
+                .cornerRadius(8)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color(.systemGray5))
-            .cornerRadius(8)
+            .buttonStyle(PlainButtonStyle())  // 沿用現有樣式
             
-            // 該日的交易列表
-            VStack(spacing: 8) {
-                ForEach(dailyGroup.transactions) { transaction in
-                    transactionCard(transaction)
+            // 該日的交易列表（條件顯示）
+            if isExpanded {
+                VStack(spacing: 8) {
+                    ForEach(dailyGroup.transactions) { transaction in
+                        transactionCard(transaction)
+                    }
                 }
             }
         }

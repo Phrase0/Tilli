@@ -16,6 +16,7 @@ class TransactionViewModel: ObservableObject {
     @Published var transactions: [TransactionModel] = []
     @Published var groupedTransactions: [DailyTransactionGroup] = []
     @Published var expandedTransactionIds: Set<UUID> = []
+    @Published var expandedDailyGroupIds: Set<Date> = []  // 日期分組展開狀態
     @Published var showingExportAlert = false
     @Published var csvContent = ""
     @Published var currentTimeRange: ReportTimeRange?
@@ -85,6 +86,22 @@ class TransactionViewModel: ObservableObject {
                 transactions: txs.sorted { $0.timestamp > $1.timestamp }
             )
         }.sorted { $0.date > $1.date }
+        
+        // 初始化所有日期為展開狀態（方案B：預設展開）
+        initializeDailyGroupExpansion()
+    }
+    
+    /// 初始化日期分組展開狀態（所有日期預設展開）
+    private func initializeDailyGroupExpansion() {
+        let allDates = Set(groupedTransactions.map { $0.date })
+        // 只新增不存在的日期，保留已有的展開/收合狀態
+        for date in allDates {
+            if !expandedDailyGroupIds.contains(date) {
+                expandedDailyGroupIds.insert(date)
+            }
+        }
+        // 移除不再存在的日期
+        expandedDailyGroupIds = expandedDailyGroupIds.intersection(allDates)
     }
     
     func generateCSVContent() -> String {
@@ -145,6 +162,8 @@ class TransactionViewModel: ObservableObject {
         showingExportAlert = true
     }
     
+    // MARK: - 交易展開/收合
+    
     func toggleTransactionExpansion(_ transactionId: UUID) {
         withAnimation(.easeInOut(duration: 0.3)) {
             if expandedTransactionIds.contains(transactionId) {
@@ -157,6 +176,24 @@ class TransactionViewModel: ObservableObject {
     
     func isTransactionExpanded(_ transactionId: UUID) -> Bool {
         return expandedTransactionIds.contains(transactionId)
+    }
+    
+    // MARK: - 日期分組展開/收合
+    
+    /// 切換日期分組的展開/收合狀態
+    func toggleDailyGroupExpansion(_ date: Date) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if expandedDailyGroupIds.contains(date) {
+                expandedDailyGroupIds.remove(date)
+            } else {
+                expandedDailyGroupIds.insert(date)
+            }
+        }
+    }
+    
+    /// 檢查日期分組是否展開
+    func isDailyGroupExpanded(_ date: Date) -> Bool {
+        return expandedDailyGroupIds.contains(date)
     }
     
     func formatTransactionId(_ id: String) -> String {
