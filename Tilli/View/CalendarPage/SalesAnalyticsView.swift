@@ -37,12 +37,10 @@ struct SalesAnalyticsView: View {
                         VStack(spacing: 20) {
                             // 總銷售額區塊
                             salesSummaryView
-
-                            // 時間分布圖與詳細記錄（合併為一個卡片）
-                            timeDistributionWithDetailView
-
                             // 支付方式分布
                             paymentMethodDistribution
+                            // 時間分布圖與詳細記錄（合併為一個卡片）
+                            timeDistributionWithDetailView
                         }
                     }
                     .padding()
