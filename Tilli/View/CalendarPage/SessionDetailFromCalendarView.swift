@@ -62,7 +62,8 @@ struct SessionDetailFromCalendarView: View {
             TabView(selection: $viewModel.selectedTab) {
                 TransactionHistoryView(
                     transactionViewModel: viewModel.transactionViewModel,
-                    session: $viewModel.session
+                    session: $viewModel.session,
+                    timeRange: timeRange
                 )
                 .tag(0)
                 
@@ -109,6 +110,22 @@ struct SessionDetailFromCalendarView: View {
                 sessionDataManager: sessionDataManager
             )
             viewModel.loadData()
+        }
+        .onChange(of: timeRange.type) { _ in
+            // 時間範圍類型變更時重新載入資料
+            viewModel.transactionViewModel.loadData(timeRange: timeRange)
+        }
+        .onChange(of: timeRange.customStart) { _ in
+            // 自訂開始日期變更時重新載入資料
+            if timeRange.type == .custom {
+                viewModel.transactionViewModel.loadData(timeRange: timeRange)
+            }
+        }
+        .onChange(of: timeRange.customEnd) { _ in
+            // 自訂結束日期變更時重新載入資料
+            if timeRange.type == .custom {
+                viewModel.transactionViewModel.loadData(timeRange: timeRange)
+            }
         }
         .shareSheet(
             isPresented: $showingShareSheet,
