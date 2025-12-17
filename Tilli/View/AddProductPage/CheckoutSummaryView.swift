@@ -18,6 +18,8 @@ struct CheckoutSummaryView: View {
 
     @State private var navigateToCashPayment = false
     @State private var navigateToEPayment = false
+    @State private var showDateWarning = false
+    @State private var dateWarningMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -100,6 +102,14 @@ struct CheckoutSummaryView: View {
                 VStack(spacing: 8) {
                     // 現金付款
                     Button {
+                        // 先驗證日期
+                        let validation = DateValidationHelper.validateTransactionDate(for: session)
+                        if !validation.isValid {
+                            dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
+                            showDateWarning = true
+                            return
+                        }
+                        // 日期有效，導航到支付頁面
                         navigateToCashPayment = true
                     } label: {
                         HStack {
@@ -119,6 +129,14 @@ struct CheckoutSummaryView: View {
 
                     // 電子支付
                     Button {
+                        // 先驗證日期
+                        let validation = DateValidationHelper.validateTransactionDate(for: session)
+                        if !validation.isValid {
+                            dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
+                            showDateWarning = true
+                            return
+                        }
+                        // 日期有效，導航到支付頁面
                         navigateToEPayment = true
                     } label: {
                         HStack {
@@ -160,6 +178,11 @@ struct CheckoutSummaryView: View {
                     checkoutCompleted = true
                     isPresented = false
                 }
+            }
+            .alert("無法新增交易", isPresented: $showDateWarning) {
+                Button("確定", role: .cancel) { }
+            } message: {
+                Text(dateWarningMessage)
             }
         }
     }
