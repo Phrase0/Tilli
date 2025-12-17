@@ -14,10 +14,24 @@ class EPaymentViewModel: ObservableObject {
     let session: SessionModel
     let summaryItems: [SummaryItemModel]
 
+    @Published var showDateWarning: Bool = false
+    @Published var dateWarningMessage: String = ""
+
     init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
         self.totalAmount = totalAmount
         self.session = session
         self.summaryItems = summaryItems
+    }
+
+    /// 驗證交易日期是否在場次範圍內
+    func validateTransactionDate() -> Bool {
+        let validation = DateValidationHelper.validateTransactionDate(for: session)
+        if !validation.isValid {
+            dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
+            showDateWarning = true
+            return false
+        }
+        return true
     }
 
     func performCheckout(
