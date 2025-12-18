@@ -59,33 +59,33 @@ struct AddSessionView: View {
                     DatePicker("日期", selection: $viewModel.sessionDate, displayedComponents: .date)
 
                 case .multi:
-                    DatePicker("開始日期", selection: $viewModel.sessionDate, displayedComponents: .date)
-                    DatePicker("結束日期", selection: $viewModel.endDate, displayedComponents: .date)
-
-                    // 場次預覽與驗證
-                    if let days = viewModel.dayCount, days >= 1 {
-                        let dateValidation = viewModel.validateDates()
-
-                        HStack {
-                            Image(systemName: dateValidation.isValid ? "calendar" : "exclamationmark.triangle.fill")
-                                .foregroundColor(dateValidation.isValid ? .blue : .orange)
-                            Text("共 \(days) 天")
-                                .font(.caption)
-                                .foregroundColor(dateValidation.isValid ? .secondary : .orange)
+                    DatePicker(
+                        "開始日期",
+                        selection: $viewModel.sessionDate,
+                        displayedComponents: .date
+                    )
+                    .onChange(of: viewModel.sessionDate) { newStartDate in
+                        // 如果結束日期比開始日期早，自動調整為開始日期的隔天
+                        if viewModel.endDate < newStartDate {
+                            viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
                         }
+                    }
 
-                        // 顯示錯誤訊息
-                        if !dateValidation.isValid, let errorMessage = dateValidation.errorMessage {
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.caption)
+                    DatePicker(
+                        "結束日期",
+                        selection: $viewModel.endDate,
+                        in: viewModel.endDateRange,
+                        displayedComponents: .date
+                    )
 
-                                Text(errorMessage)
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                            }
-                        }
+                    // 多日場次提示
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                        Text("多日場次最多 31 天")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                 case .permanent:
@@ -212,7 +212,7 @@ struct AddSessionView: View {
     }
     
     // MARK: - Helper Methods
-    
+
     @ViewBuilder
     private func categoryRow(for category: CategoryModel) -> some View {
         let canEdit = viewModel.canEditCategoryName(for: category.id)
