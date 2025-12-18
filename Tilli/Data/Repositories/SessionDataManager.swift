@@ -424,7 +424,6 @@ class SessionDataManager: ObservableObject {
     // MARK: - Helper Methods
 
     /// 批量更新相關交易記錄的 Session 資訊
-    /// 注意：只更新 sessionTitle，不修改交易的 timestamp（交易時間應該是不可變的事實）
     private func updateRelatedTransactions(sessionId: UUID, newTitle: String?, newDate: Date?) {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
@@ -437,8 +436,6 @@ class SessionDataManager: ObservableObject {
                 if let newTitle = newTitle {
                     transaction.sessionTitle = newTitle
                 }
-
-                // ⚠️ 不修改 timestamp：交易時間應該保持為實際發生的時間
             }
 
             print("✅ 已更新 \(transactions.count) 筆交易記錄的 Session 標題")
