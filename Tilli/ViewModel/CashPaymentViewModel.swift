@@ -23,12 +23,29 @@ class CashPaymentViewModel: ObservableObject {
         Decimal(string: receivedAmountText) ?? 0
     }
 
+    /// 根據幣別四捨五入後的總額（用於驗證和找零計算）
+    private var roundedTotalAmount: Decimal {
+        let currency = Currency(rawValue: session.currency) ?? .twd
+        let handler = NSDecimalNumberHandler(
+            roundingMode: .plain,
+            scale: Int16(currency.decimalPlaces),
+            raiseOnExactness: false,
+            raiseOnOverflow: false,
+            raiseOnUnderflow: false,
+            raiseOnDivideByZero: false
+        )
+        return NSDecimalNumber(decimal: totalAmount)
+            .rounding(accordingToBehavior: handler)
+            .decimalValue
+    }
+
     var change: Decimal {
-        MoneyHelper.subtract(receivedAmount, totalAmount)
+        // 使用四捨五入後的總額計算找零
+        MoneyHelper.subtract(receivedAmount, roundedTotalAmount)
     }
 
     var isAmountValid: Bool {
-        // 使用 MoneyHelper.subtract 來比較，避免精度問題
+        // 使用四捨五入後的總額來驗證
         // 如果找零 >= 0，表示收到的金額足夠
         change >= 0
     }
