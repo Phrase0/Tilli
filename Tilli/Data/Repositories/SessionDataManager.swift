@@ -274,6 +274,7 @@ class SessionDataManager: ObservableObject {
 
             if saveContext() {
                 fetchSessions() // 僅在成功保存後重新載入以更新交易記錄
+                TransactionDataManager.shared.notifyTransactionsChanged() // 通知交易變更
             }
         } catch {
             print("加入 transaction 失敗:", error)
@@ -290,13 +291,14 @@ class SessionDataManager: ObservableObject {
                 entity.update(from: model, context: context)
                 if saveContext() {
                     fetchSessions() // 僅在成功保存後重新載入
+                    TransactionDataManager.shared.notifyTransactionsChanged() // 通知交易變更
                 }
             }
         } catch {
             print("Update transaction failed:", error)
         }
     }
-    
+
     /// 複製場次（包含所有類別和產品，但不包含交易記錄）
     func duplicateSession(originalSessionId: UUID, newTitle: String, newDate: Date) -> SessionModel? {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()

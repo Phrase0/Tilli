@@ -18,12 +18,24 @@ class TransactionDataManager: ObservableObject {
 
     @Published var transactions: [TransactionModel] = []
 
+    /// 交易變更觸發器 - 當交易新增/更新時會改變，用於通知 UI 刷新
+    @Published var transactionUpdateTrigger = UUID()
+
     static let shared = TransactionDataManager()
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
         fetchAllTransactions()
+    }
+
+    // MARK: - Notification
+
+    /// 通知交易資料已變更，觸發 UI 刷新
+    func notifyTransactionsChanged() {
+        DispatchQueue.main.async {
+            self.transactionUpdateTrigger = UUID()
+        }
     }
 
     // MARK: - Read Operations Only (Transaction CRUD moved to SessionDataManager)
