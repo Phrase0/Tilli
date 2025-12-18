@@ -111,12 +111,18 @@ struct AddSessionView: View {
                                 .foregroundColor(.secondary)
                         }
 
-                        HStack {
-                            Image(systemName: "checkmark.circle")
-                                .foregroundColor(.green)
-                            Text("修改日期不影響已有交易的歸屬")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        // 顯示日期驗證錯誤
+                        let dateValidation = viewModel.validateDates()
+                        if !dateValidation.isValid, let errorMessage = dateValidation.errorMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
                         }
                     }
                     .padding(.vertical, 4)

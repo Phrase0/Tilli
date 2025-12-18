@@ -298,7 +298,22 @@ class AddSessionViewModel: ObservableObject {
 
         switch dateType {
         case .single:
-            // 單日場次：無需驗證
+            // 單日場次：檢查是否包含所有交易日期
+            if let sessionId = editingSession?.id {
+                let transactionDateRange = getTransactionDateRange(for: sessionId)
+                if let (minDate, maxDate) = transactionDateRange {
+                    let sessionDay = calendar.startOfDay(for: sessionDate)
+                    let minDay = calendar.startOfDay(for: minDate)
+                    let maxDay = calendar.startOfDay(for: maxDate)
+
+                    // 單日場次：所有交易必須在同一天
+                    if minDay != sessionDay || maxDay != sessionDay {
+                        let minDateStr = DateFormatter.sessionDate.string(from: minDate)
+                        let maxDateStr = DateFormatter.sessionDate.string(from: maxDate)
+                        return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
+                    }
+                }
+            }
             return (true, nil)
 
         case .multi:
@@ -322,12 +337,53 @@ class AddSessionViewModel: ObservableObject {
                 return (false, "多日場次最多 31 天")
             }
 
+            // 檢查是否包含所有交易日期
+            if let sessionId = editingSession?.id {
+                let transactionDateRange = getTransactionDateRange(for: sessionId)
+                if let (minDate, maxDate) = transactionDateRange {
+                    let minDay = calendar.startOfDay(for: minDate)
+                    let maxDay = calendar.startOfDay(for: maxDate)
+
+                    if startDay > minDay || endDay < maxDay {
+                        let minDateStr = DateFormatter.sessionDate.string(from: minDate)
+                        let maxDateStr = DateFormatter.sessionDate.string(from: maxDate)
+                        return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
+                    }
+                }
+            }
+
             return (true, nil)
 
         case .permanent:
-            // 無限期場次：無需驗證
+            // 無限期場次：檢查開始日期是否早於最早的交易
+            if let sessionId = editingSession?.id {
+                let transactionDateRange = getTransactionDateRange(for: sessionId)
+                if let (minDate, _) = transactionDateRange {
+                    let startDay = calendar.startOfDay(for: sessionDate)
+                    let minDay = calendar.startOfDay(for: minDate)
+
+                    if startDay > minDay {
+                        let minDateStr = DateFormatter.sessionDate.string(from: minDate)
+                        return (false, "場次開始日期必須早於或等於最早的交易日期（\(minDateStr)）")
+                    }
+                }
+            }
             return (true, nil)
         }
+    }
+
+    /// 取得場次的交易日期範圍（最早和最晚的交易日期）
+    private func getTransactionDateRange(for sessionId: UUID) -> (min: Date, max: Date)? {
+        guard let transactionManager = transactionDataManager else { return nil }
+
+        let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+
+        guard !transactions.isEmpty else { return nil }
+
+        let dates = transactions.map { $0.timestamp }
+        guard let minDate = dates.min(), let maxDate = dates.max() else { return nil }
+
+        return (minDate, maxDate)
     }
 
     func save() -> SessionModel {
