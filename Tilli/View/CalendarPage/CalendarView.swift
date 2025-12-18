@@ -15,6 +15,7 @@ struct CalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @State private var showingMonthYearPicker = false
+    @State private var refreshID = UUID()
 
     private let calendar = Calendar.current
     
@@ -32,7 +33,8 @@ struct CalendarView: View {
                 
                 // 選中日期的 Session 列表
                 sessionList
-                
+                    .id(refreshID)
+
                 Spacer()
             }
             .onAppear {
@@ -40,6 +42,12 @@ struct CalendarView: View {
                     transactionDataManager: transactionDataManager,
                     sessionDataManager: sessionDataManager
                 )
+                // 設置完 dataManagers 後刷新，確保首次載入資料正確
+                refreshID = UUID()
+            }
+            .onChange(of: transactionDataManager.transactionUpdateTrigger) { _ in
+                // 交易變更時刷新 sessionList
+                refreshID = UUID()
             }
             .navigationTitle("我的行事曆")
         }
