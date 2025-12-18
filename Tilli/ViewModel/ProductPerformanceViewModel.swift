@@ -305,9 +305,9 @@ private extension ProductPerformanceViewModel {
         
         let hotProductInsight = "熱銷商品"
         let hotProductDescription = "\(bestProduct.name)表現最佳，佔總銷售額 \(bestProduct.contributionRate)%"
-        
-        // 找出折扣最多的商品
-        let highestDiscountProduct = findHighestDiscountProduct()
+
+        // 找出折扣最多的商品（使用相同的時間範圍）
+        let highestDiscountProduct = findHighestDiscountProduct(timeRange: timeRange)
         let discountInsight = "折扣效果"
         let discountDescription = highestDiscountProduct.isEmpty ? 
             "\(bestCategory.name)類商品表現優異，銷售狀況良好" :
@@ -327,12 +327,21 @@ private extension ProductPerformanceViewModel {
     }
     
     /// 找出折扣最多的商品
-    private func findHighestDiscountProduct() -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
+    private func findHighestDiscountProduct(timeRange: ReportTimeRange? = nil) -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
         guard let transactionDataManager = transactionDataManager else {
             return (name: "", averageDiscountRate: 0, isEmpty: true)
         }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
 
         // 建立商品折扣統計
         var productDiscountStats: [UUID: (name: String, totalDiscount: Decimal, totalQuantity: Int)] = [:]

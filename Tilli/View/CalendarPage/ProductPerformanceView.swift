@@ -12,12 +12,14 @@ import UniformTypeIdentifiers
 struct ProductPerformanceView: View {
     @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
     @Binding var session: SessionModel
+    let timeRange: ReportTimeRange
     @State private var expandedProducts: Set<Int> = []
     @State private var showingShareSheet = false
 
-    init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>) {
+    init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
         self.productPerformanceViewModel = viewModel
         self._session = session
+        self.timeRange = timeRange
     }
     
     var body: some View {
@@ -51,7 +53,7 @@ struct ProductPerformanceView: View {
             }
         }
         .refreshable {
-            productPerformanceViewModel.loadData()
+            productPerformanceViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
         .alert("CSV 導出成功", isPresented: $productPerformanceViewModel.showingExportAlert) {

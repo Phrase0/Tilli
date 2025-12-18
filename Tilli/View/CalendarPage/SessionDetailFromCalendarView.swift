@@ -66,16 +66,18 @@ struct SessionDetailFromCalendarView: View {
                     timeRange: timeRange
                 )
                 .tag(0)
-                
+
                 ProductPerformanceView(
                     viewModel: viewModel.productPerformanceViewModel,
-                    session: $viewModel.session
+                    session: $viewModel.session,
+                    timeRange: timeRange
                 )
                     .tag(1)
-                
+
                 SalesAnalyticsView(
                     viewModel: viewModel.salesAnalyticsViewModel,
-                    session: $viewModel.session
+                    session: $viewModel.session,
+                    timeRange: timeRange
                 )
                     .tag(2)
             }
@@ -109,22 +111,31 @@ struct SessionDetailFromCalendarView: View {
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager
             )
-            viewModel.loadData()
+            // 使用當前的時間範圍載入資料
+            viewModel.transactionViewModel.loadData(timeRange: timeRange)
+            viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+            viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
         .onChange(of: timeRange.type) { _ in
             // 時間範圍類型變更時重新載入資料
             viewModel.transactionViewModel.loadData(timeRange: timeRange)
+            viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+            viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
         .onChange(of: timeRange.customStart) { _ in
             // 自訂開始日期變更時重新載入資料
             if timeRange.type == .custom {
                 viewModel.transactionViewModel.loadData(timeRange: timeRange)
+                viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+                viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
             }
         }
         .onChange(of: timeRange.customEnd) { _ in
             // 自訂結束日期變更時重新載入資料
             if timeRange.type == .custom {
                 viewModel.transactionViewModel.loadData(timeRange: timeRange)
+                viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+                viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
             }
         }
         .shareSheet(
