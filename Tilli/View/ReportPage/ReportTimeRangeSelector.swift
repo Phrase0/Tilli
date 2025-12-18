@@ -136,9 +136,14 @@ struct ReportTimeRangeSelector: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    DatePicker("", selection: $selectedRange.customStart, displayedComponents: .date)
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
+                    DatePicker(
+                        "",
+                        selection: $selectedRange.customStart,
+                        in: startDateRange,
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
                 }
 
                 Text("～")
@@ -150,9 +155,14 @@ struct ReportTimeRangeSelector: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    DatePicker("", selection: $selectedRange.customEnd, displayedComponents: .date)
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
+                    DatePicker(
+                        "",
+                        selection: $selectedRange.customEnd,
+                        in: endDateRange,
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
                 }
             }
 
@@ -213,5 +223,42 @@ struct ReportTimeRangeSelector: View {
         case .permanent:
             return .purple
         }
+    }
+
+    // MARK: - 日期範圍限制
+
+    /// 開始日期的可選範圍
+    private var startDateRange: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let sessionStart = calendar.startOfDay(for: session.startDate)
+        let customEnd = calendar.startOfDay(for: selectedRange.customEnd)
+
+        // 開始日期：不可早於場次開始日期，不可晚於結束日期
+        return sessionStart...customEnd
+    }
+
+    /// 結束日期的可選範圍
+    private var endDateRange: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let customStart = calendar.startOfDay(for: selectedRange.customStart)
+        let today = calendar.startOfDay(for: Date())
+
+        // 結束日期的上限
+        let upperLimit: Date
+        if session.dateType == .permanent {
+            // 無限期場次：限制最多90天，且不可超過今天
+            let maxEnd = calendar.date(byAdding: .day, value: 89, to: customStart)!
+            upperLimit = min(maxEnd, today)
+        } else if let sessionEnd = session.endDate {
+            // 多日場次：不可超過場次結束日期
+            let sessionEndDay = calendar.startOfDay(for: sessionEnd)
+            upperLimit = sessionEndDay
+        } else {
+            // 單日場次（理論上不會到這裡）
+            upperLimit = today
+        }
+
+        // 結束日期：不可早於開始日期，不可超過上限
+        return customStart...upperLimit
     }
 }
