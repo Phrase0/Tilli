@@ -130,16 +130,16 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     func generatePaymentMethodCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "支付方式,交易筆數,交易金額(\(currencyCode)),佔比%\n"
+        var csvContent = "支付方式,交易金額(\(currencyCode)),交易筆數,佔比%\n"
 
         for paymentData in paymentMethodData {
             let name = paymentData.name.replacingOccurrences(of: ",", with: "，")
-            let transactions = "\(paymentData.transactions)"
             let currency = Currency(rawValue: currencyCode) ?? .twd
             let amount = MoneyHelper.toDisplayString(paymentData.amount, currency: currency)
+            let transactions = "\(paymentData.transactions)"
             let percentage = "\(paymentData.percentage)%"
 
-            let row = "\(name),\(transactions),\(amount),\(percentage)\n"
+            let row = "\(name),\(amount),\(transactions),\(percentage)\n"
             csvContent += row
         }
 

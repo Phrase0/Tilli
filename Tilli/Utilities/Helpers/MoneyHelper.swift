@@ -205,6 +205,7 @@ class MoneyHelper {
     static func toDisplayString(_ value: Decimal, currency: Currency) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "" // 不加千位分隔符
         formatter.minimumFractionDigits = currency.decimalPlaces
         formatter.maximumFractionDigits = currency.decimalPlaces
         
