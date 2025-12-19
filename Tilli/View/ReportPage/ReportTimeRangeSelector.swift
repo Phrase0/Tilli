@@ -66,13 +66,19 @@ struct ReportTimeRangeSelector: View {
 
         case .multi:
             if let days = session.dayCount {
-                // 多日場次：提供全部、今日、自訂選項
+                // 多日場次：提供全部、今日、（超過7天時）最近7天、自訂選項
                 Menu {
                     Button("全部") {
                         selectedRange.type = .all
                     }
                     Button("今日") {
                         selectedRange.type = .today
+                    }
+                    // 超過 7 天才顯示「最近7天」
+                    if days > 7 {
+                        Button("最近7天") {
+                            selectedRange.type = .recent7
+                        }
                     }
                     Button("自訂") {
                         selectedRange.type = .custom
@@ -94,13 +100,16 @@ struct ReportTimeRangeSelector: View {
             }
 
         case .permanent:
-            // 無限期場次：提供全部、今日、最近30天、自訂選項（自訂最多90天）
+            // 無限期場次：提供全部、今日、最近7天、最近30天、自訂選項（自訂最多90天）
             Menu {
                 Button("全部") {
                     selectedRange.type = .all
                 }
                 Button("今日") {
                     selectedRange.type = .today
+                }
+                Button("最近7天") {
+                    selectedRange.type = .recent7
                 }
                 Button("最近30天") {
                     selectedRange.type = .recent30
@@ -198,6 +207,8 @@ struct ReportTimeRangeSelector: View {
             return "全部"
         case .today:
             return "今日"
+        case .recent7:
+            return "最近7天"
         case .recent30:
             return "最近30天"
         case .custom:

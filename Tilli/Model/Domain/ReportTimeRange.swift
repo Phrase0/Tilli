@@ -17,6 +17,7 @@ struct ReportTimeRange {
     enum RangeType {
         case all            // 全部（場次完整範圍）
         case today          // 今日
+        case recent7        // 最近7天
         case recent30       // 最近30天
         case custom         // 自訂
     }
@@ -51,6 +52,13 @@ struct ReportTimeRange {
         case .today:
             return calendar.startOfDay(for: Date())
 
+        case .recent7:
+            let today = calendar.startOfDay(for: Date())
+            let sevenDaysAgo = calendar.date(byAdding: .day, value: -6, to: today)!
+            // 確保不早於場次開始日期
+            let sessionStart = calendar.startOfDay(for: session.startDate)
+            return max(sevenDaysAgo, sessionStart)
+
         case .recent30:
             let today = calendar.startOfDay(for: Date())
             let thirtyDaysAgo = calendar.date(byAdding: .day, value: -29, to: today)!
@@ -79,6 +87,9 @@ struct ReportTimeRange {
             }
 
         case .today:
+            return today
+
+        case .recent7:
             return today
 
         case .recent30:
@@ -133,6 +144,9 @@ struct ReportTimeRange {
 
         case .today:
             return "今日"
+
+        case .recent7:
+            return "最近 7 天"
 
         case .recent30:
             return "最近 30 天"

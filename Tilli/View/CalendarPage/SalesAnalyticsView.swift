@@ -640,7 +640,7 @@ struct SalesAnalyticsView: View {
                     }
                 }
             }
-            .frame(height: min(CGFloat(salesAnalyticsViewModel.dailyRevenue.count) * 40, 200))
+            .frame(height: min(CGFloat(salesAnalyticsViewModel.dailyRevenue.count) * 40, 233))
         }
     }
 }
