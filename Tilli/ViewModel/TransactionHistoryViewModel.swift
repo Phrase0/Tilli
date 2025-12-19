@@ -97,35 +97,36 @@ class TransactionViewModel: ObservableObject {
     
     func generateCSVContent() -> String {
         let currencyCode = session.currency
+        let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
-        
+
         // 在表格上方加入時間範圍資訊
         if let timeRange = currentTimeRange {
             csvContent += "\(session.title),\(timeRange.displayText)\n"
             csvContent += "\n"
         }
-        
+
         csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,折扣%,小計(\(currencyCode)),總金額(\(currencyCode))\n"
 
         for transaction in transactions.sorted(by: { $0.timestamp > $1.timestamp }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
             let dateTime = formatDateTime(transaction.timestamp)
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
-            let totalAmount = formatAmountForCSV(transaction.totalAmount)
+            let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
             for item in transaction.items {
                 let productName = item.name.replacingOccurrences(of: ",", with: "，") // 避免CSV格式問題
                 let category = item.category.replacingOccurrences(of: ",", with: "，")
-                let unitPrice = formatAmountForCSV(item.price)
+                let unitPrice = MoneyHelper.toDisplayString(item.price, currency: currency)
                 let quantity = "\(item.quantity)"
                 let discount = item.discount > 0 ? "\(item.discount)%" : "0%"
-                let subtotal = formatAmountForCSV(item.total)
+                let subtotal = MoneyHelper.toDisplayString(item.total, currency: currency)
 
                 let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(discount),\(subtotal),\(totalAmount)\n"
                 csvContent += row
             }
         }
-        
+
         return csvContent
     }
     
@@ -208,18 +209,6 @@ class TransactionViewModel: ObservableObject {
         return MoneyHelper.format(amount, currencyCode: currencyCode)
     }
 
-    /// CSV 專用格式（不帶逗號，避免 CSV 解析錯誤）
-    func formatAmountForCSV(_ amount: Decimal) -> String {
-//        let currency = Currency(rawValue: session.currency) ?? .twd
-//        let formatter = NumberFormatter()
-//        formatter.numberStyle = .decimal
-//        formatter.groupingSeparator = ""  //  不使用千位分隔符
-//        formatter.minimumFractionDigits = currency.decimalPlaces
-//        formatter.maximumFractionDigits = currency.decimalPlaces
-//        return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "\(amount)"
-        return "\(amount)"
-    }
-    
     func paymentMethodText(_ method: PaymentMethod) -> String {
         switch method {
         case .cash:
