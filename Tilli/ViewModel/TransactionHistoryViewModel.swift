@@ -111,16 +111,16 @@ class TransactionViewModel: ObservableObject {
             let transactionId = formatTransactionId(transaction.id.uuidString)
             let dateTime = formatDateTime(transaction.timestamp)
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
-            let totalAmount = formatAmount(transaction.totalAmount)
-            
+            let totalAmount = formatAmountForCSV(transaction.totalAmount)
+
             for item in transaction.items {
                 let productName = item.name.replacingOccurrences(of: ",", with: "，") // 避免CSV格式問題
                 let category = item.category.replacingOccurrences(of: ",", with: "，")
-                let unitPrice = formatAmount(item.price)
+                let unitPrice = formatAmountForCSV(item.price)
                 let quantity = "\(item.quantity)"
                 let discount = item.discount > 0 ? "\(item.discount)%" : "0%"
-                let subtotal = formatAmount(item.total)
-                
+                let subtotal = formatAmountForCSV(item.total)
+
                 let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(discount),\(subtotal),\(totalAmount)\n"
                 csvContent += row
             }
@@ -135,7 +135,12 @@ class TransactionViewModel: ObservableObject {
     
     func createTempCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "交易明細_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符（/ : 等）
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "交易明細_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
         
         do {
@@ -201,6 +206,18 @@ class TransactionViewModel: ObservableObject {
     func formatAmount(_ amount: Decimal, currency: String? = nil) -> String {
         let currencyCode = currency ?? session.currency
         return MoneyHelper.format(amount, currencyCode: currencyCode)
+    }
+
+    /// CSV 專用格式（不帶逗號，避免 CSV 解析錯誤）
+    func formatAmountForCSV(_ amount: Decimal) -> String {
+//        let currency = Currency(rawValue: session.currency) ?? .twd
+//        let formatter = NumberFormatter()
+//        formatter.numberStyle = .decimal
+//        formatter.groupingSeparator = ""  //  不使用千位分隔符
+//        formatter.minimumFractionDigits = currency.decimalPlaces
+//        formatter.maximumFractionDigits = currency.decimalPlaces
+//        return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "\(amount)"
+        return "\(amount)"
     }
     
     func paymentMethodText(_ method: PaymentMethod) -> String {

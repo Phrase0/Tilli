@@ -18,13 +18,13 @@ struct ProductRankingCard: View {
     let contributionRate: Int
     let unitPrice: Decimal?
     let originalPrice: Decimal?
-    let discount: Int?
+    let discount: Decimal?
     let actualRevenue: Decimal?
     let currency: String
     let isExpanded: Bool
     let onToggle: () -> Void
 
-    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, unitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Int? = nil, actualRevenue: Decimal? = nil, currency: String = "TWD", isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
+    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, unitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Decimal? = nil, actualRevenue: Decimal? = nil, currency: String = "TWD", isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
         self.rank = rank
         self.name = name
         self.category = category
@@ -141,7 +141,7 @@ struct ProductRankingCard: View {
                                 Text("折扣總額")
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Text(MoneyHelper.format(Decimal(discount), currencyCode: currency))
+                                Text(MoneyHelper.format(discount, currencyCode: currency))
                                     .fontWeight(.medium)
                                     .foregroundColor(.red)
                             }

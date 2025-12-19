@@ -149,7 +149,12 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     func createHourlyAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "時段銷售分析_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "時段銷售分析_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -164,7 +169,12 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     func createPaymentMethodCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "支付方式分析_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "支付方式分析_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
