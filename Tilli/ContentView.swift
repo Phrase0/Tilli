@@ -12,6 +12,9 @@ struct ContentView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var appState: AppState
 
+    // MARK: - 測試用（測試完成後刪除這段）
+    @State private var hasGeneratedTestData = false
+
     var body: some View {
         TabView(selection: $selectedTab) {
             CalendarView()
@@ -35,6 +38,10 @@ struct ContentView: View {
             ProfileView()
                 .tabItem { Label("個人", systemImage: "person.crop.circle") }
                 .tag(4)
+        }
+        // MARK: - 測試用（測試完成後刪除這段 .onAppear）
+        .onAppear {
+            TestDataGenerator.generateTestData(sessionDataManager: sessionDataManager)
         }
     }
 }
