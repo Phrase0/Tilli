@@ -42,6 +42,7 @@ struct ContentView: View {
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
         .onAppear {
             TestDataGenerator.generateTestData(sessionDataManager: sessionDataManager)
+            TestDataGenerator.generate30DaysMultiCafeSession(sessionDataManager: sessionDataManager)
         }
     }
 }

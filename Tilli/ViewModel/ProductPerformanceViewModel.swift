@@ -100,7 +100,12 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func createTopProductsCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "熱門商品排行_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符（/ : 等）
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "熱門商品排行_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -115,7 +120,12 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func createCategoryAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "類別銷售匯總_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符（/ : 等）
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "類別銷售匯總_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -205,7 +215,7 @@ private extension ProductPerformanceViewModel {
                 contributionRate: contributionRate,
                 unitPrice: stats.unitPrice,
                 originalPrice: stats.originalRevenue,
-                discount: Int(MoneyHelper.toDouble(discountAmount)),
+                discount: discountAmount,
                 actualRevenue: stats.actualRevenue
             )
         }

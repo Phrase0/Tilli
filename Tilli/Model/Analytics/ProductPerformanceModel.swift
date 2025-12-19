@@ -18,7 +18,7 @@ struct ProductPerformanceData: Identifiable {
     let contributionRate: Int
     let unitPrice: Decimal
     let originalPrice: Decimal
-    let discount: Int
+    let discount: Decimal
     let actualRevenue: Decimal
 }
 

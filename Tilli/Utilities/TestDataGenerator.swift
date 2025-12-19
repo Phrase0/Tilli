@@ -17,6 +17,12 @@ class TestDataGenerator {
 
     private static let didGenerateKey = "didGenerateTestCafeSession"
 
+    private static let testMulti30DaysSessionId =
+        UUID(uuidString: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")!
+
+    private static let didGenerateMulti30DaysKey =
+        "didGenerateTestMulti30DaysCafeSession"
+    
     /// 生成測試資料：永久場次 + 類別 + 產品 + 跨多月交易
     /// 如果已存在測試場次則跳過
     static func generateTestData(sessionDataManager: SessionDataManager) {
@@ -174,6 +180,160 @@ class TestDataGenerator {
         print("✅ 測試資料生成完成")
     }
 
+    static func generate30DaysMultiCafeSession(sessionDataManager: SessionDataManager) {
+
+        if UserDefaults.standard.bool(forKey: didGenerateMulti30DaysKey) {
+            return
+        }
+
+        let sessionId = testMulti30DaysSessionId
+
+        let category1Id = UUID()
+        let category2Id = UUID()
+        let category3Id = UUID()
+
+        let product1Id = UUID()
+        let product2Id = UUID()
+        let product3Id = UUID()
+        let product4Id = UUID()
+        let product5Id = UUID()
+
+        // MARK: - 飲品（小數）
+        let product1 = ProductModel(
+            id: product1Id,
+            sessionId: sessionId,
+            name: "拿鐵咖啡",
+            price: Decimal(string: "4.50")!,
+            stock: 100,
+            categoryId: category1Id,
+            categoryName: "飲品",
+            note: nil,
+            imageData: nil,
+            isDisabled: false
+        )
+
+        let product2 = ProductModel(
+            id: product2Id,
+            sessionId: sessionId,
+            name: "美式咖啡",
+            price: Decimal(string: "3.20")!,
+            stock: 100,
+            categoryId: category1Id,
+            categoryName: "飲品",
+            note: nil,
+            imageData: nil,
+            isDisabled: false
+        )
+
+        let category1 = CategoryModel(
+            id: category1Id,
+            name: "飲品",
+            products: [product1, product2],
+            createdAt: Date(),
+            isDisabled: false
+        )
+
+        // MARK: - 甜點（小數）
+        let product3 = ProductModel(
+            id: product3Id,
+            sessionId: sessionId,
+            name: "提拉米蘇",
+            price: Decimal(string: "5.80")!,
+            stock: 50,
+            categoryId: category2Id,
+            categoryName: "甜點",
+            note: nil,
+            imageData: nil,
+            isDisabled: false
+        )
+
+        let product4 = ProductModel(
+            id: product4Id,
+            sessionId: sessionId,
+            name: "巧克力蛋糕",
+            price: Decimal(string: "6.40")!,
+            stock: 50,
+            categoryId: category2Id,
+            categoryName: "甜點",
+            note: nil,
+            imageData: nil,
+            isDisabled: false
+        )
+
+        let category2 = CategoryModel(
+            id: category2Id,
+            name: "甜點",
+            products: [product3, product4],
+            createdAt: Date(),
+            isDisabled: false
+        )
+
+        // MARK: - 輕食（小數）
+        let product5 = ProductModel(
+            id: product5Id,
+            sessionId: sessionId,
+            name: "三明治",
+            price: Decimal(string: "4.75")!,
+            stock: 80,
+            categoryId: category3Id,
+            categoryName: "輕食",
+            note: nil,
+            imageData: nil,
+            isDisabled: false
+        )
+
+        let category3 = CategoryModel(
+            id: category3Id,
+            name: "輕食",
+            products: [product5],
+            createdAt: Date(),
+            isDisabled: false
+        )
+
+        // MARK: - 30 天多日場次
+        let calendar = Calendar.current
+
+        var dateComponents = DateComponents()
+        dateComponents.year = 2025
+        dateComponents.month = 12
+        dateComponents.day = 1
+
+        let startDate = calendar.startOfDay(
+            for: calendar.date(from: dateComponents)!
+        )
+        let endDate = calendar.date(byAdding: .day, value: 29, to: startDate)!
+
+        let session = SessionModel(
+            id: sessionId,
+            title: "測試咖啡廳（30 天 / EUR）",
+            startDate: startDate,
+            endDate: endDate,
+            dateType: .multi,
+            categories: [category1, category2, category3],
+            createdAt: Date(),
+            currency: "EUR"
+        )
+
+        sessionDataManager.addSession(session)
+
+        // MARK: - 交易（沿用你原本的 generator）
+        generateTransactions(
+            sessionDataManager: sessionDataManager,
+            sessionId: sessionId,
+            sessionTitle: session.title,
+            startDate: startDate,
+            products: [
+                (product1Id, "拿鐵咖啡", Decimal(string: "4.50")!, category1Id, "飲品"),
+                (product2Id, "美式咖啡", Decimal(string: "3.20")!, category1Id, "飲品"),
+                (product3Id, "提拉米蘇", Decimal(string: "5.80")!, category2Id, "甜點"),
+                (product4Id, "巧克力蛋糕", Decimal(string: "6.40")!, category2Id, "甜點"),
+                (product5Id, "三明治", Decimal(string: "4.75")!, category3Id, "輕食")
+            ]
+        )
+
+        UserDefaults.standard.set(true, forKey: didGenerateMulti30DaysKey)
+    }
+
     /// 生成跨多月的交易資料
     private static func generateTransactions(
         sessionDataManager: SessionDataManager,
@@ -189,8 +349,8 @@ class TestDataGenerator {
         var currentDate = startDate
 
         while currentDate <= today {
-            // 每天隨機生成 8-20 筆交易
-            let transactionCount = Int.random(in: 8...20)
+            // 每天隨機生成 8-10 筆交易
+            let transactionCount = Int.random(in: 5...10)
 
             for i in 0..<transactionCount {
                 // 隨機選擇 1-3 個產品
