@@ -43,10 +43,10 @@ class ProductPerformanceViewModel: ObservableObject {
 
     /// 載入資料（支援時間範圍）
     func loadData(timeRange: ReportTimeRange? = nil) {
-        guard transactionDataManager != nil else { return }
-
-        // 儲存當前時間範圍（用於 CSV 匯出）
+        // 儲存當前時間範圍（用於 CSV 匯出）- 即使 DataManager 未設定也要保存
         self.currentTimeRange = timeRange
+
+        guard transactionDataManager != nil else { return }
 
         isLoading = true
 
