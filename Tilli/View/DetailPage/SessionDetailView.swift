@@ -183,7 +183,7 @@ struct SessionDetailView: View {
         }
         .shareSheet(
             isPresented: $showingShareSheet,
-            activityItems: viewModel.currentShareItems,
+            activityItems: { viewModel.currentShareItems },
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {

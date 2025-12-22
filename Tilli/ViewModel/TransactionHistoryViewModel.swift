@@ -50,10 +50,10 @@ class TransactionViewModel: ObservableObject {
 
     /// 載入交易資料（支援時間範圍）
     func loadData(timeRange: ReportTimeRange? = nil) {
-        guard let transactionManager = transactionDataManager else { return }
-
-        // 儲存當前時間範圍（用於 CSV 匯出）
+        // 儲存當前時間範圍（用於 CSV 匯出）- 即使 DataManager 未設定也要保存
         self.currentTimeRange = timeRange
+
+        guard let transactionManager = transactionDataManager else { return }
 
         if let timeRange = timeRange {
             // 使用時間範圍查詢

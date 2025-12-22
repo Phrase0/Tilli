@@ -140,7 +140,7 @@ struct SessionDetailFromCalendarView: View {
         }
         .shareSheet(
             isPresented: $showingShareSheet,
-            activityItems: viewModel.getCurrentTabShareItems(),
+            activityItems: { viewModel.getCurrentTabShareItems() },
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {
