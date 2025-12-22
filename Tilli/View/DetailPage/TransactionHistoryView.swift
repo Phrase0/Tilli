@@ -6,14 +6,12 @@
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct TransactionHistoryView: View {
     @ObservedObject var transactionViewModel: TransactionViewModel
     @Binding var session: SessionModel
     let timeRange: ReportTimeRange?
-    @State private var showingShareSheet = false
-    
+
     init(transactionViewModel: TransactionViewModel, 
          session: Binding<SessionModel>, 
          timeRange: ReportTimeRange? = nil) {
@@ -58,21 +56,6 @@ struct TransactionHistoryView: View {
         } message: {
             Text("交易明細已成功導出為 CSV 檔案")
         }
-        .shareSheet(
-            isPresented: $showingShareSheet,
-            activityItems: [
-                CustomActivityItemSource(
-                    csvContent: transactionViewModel.csvContent,
-                    csvFileURL: transactionViewModel.createTempCSVFileURL()
-                )
-            ],
-            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
-            onComplete: { completed in
-                if completed {
-                    transactionViewModel.showExportSuccessAlert()
-                }
-            }
-        )
     }
     
     // MARK: - 空狀態訊息

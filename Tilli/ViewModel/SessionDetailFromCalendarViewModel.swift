@@ -109,6 +109,11 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
                     csvContent: salesAnalyticsViewModel.generatePaymentMethodCSV(),
                     csvFileURL: salesAnalyticsViewModel.createPaymentMethodCSVFileURL(),
                     reportTitle: "支付方式分析報表"
+                ),
+                CustomActivityItemSource(
+                    csvContent: salesAnalyticsViewModel.generateRevenueTrendCSV(),
+                    csvFileURL: salesAnalyticsViewModel.createRevenueTrendCSVFileURL(),
+                    reportTitle: "營收趨勢報表"
                 )
             ]
         default:

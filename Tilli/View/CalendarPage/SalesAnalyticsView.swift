@@ -7,14 +7,11 @@
 
 import SwiftUI
 import Charts
-import UniformTypeIdentifiers
 
 struct SalesAnalyticsView: View {
     @ObservedObject var salesAnalyticsViewModel: SalesAnalyticsViewModel
     @Binding var session: SessionModel
     let timeRange: ReportTimeRange
-    @State private var showingShareSheet = false
-
     init(viewModel: SalesAnalyticsViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
         self.salesAnalyticsViewModel = viewModel
         self._session = session
@@ -62,19 +59,6 @@ struct SalesAnalyticsView: View {
         } message: {
             Text("銷售分析報告已成功導出為 CSV 檔案")
         }
-        .shareSheet(
-            isPresented: $showingShareSheet,
-            activityItems: [
-                salesAnalyticsViewModel.createHourlyAnalysisCSVFileURL(),
-                salesAnalyticsViewModel.createPaymentMethodCSVFileURL()
-            ],
-            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
-            onComplete: { completed in
-                if completed {
-                    salesAnalyticsViewModel.showExportSuccessAlert()
-                }
-            }
-        )
     }
 
     // MARK: - 總銷售額視圖

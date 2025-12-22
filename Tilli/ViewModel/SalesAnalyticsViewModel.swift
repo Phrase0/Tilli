@@ -146,6 +146,24 @@ class SalesAnalyticsViewModel: ObservableObject {
         return csvContent
     }
 
+    func generateRevenueTrendCSV() -> String {
+        let currencyCode = session.currency
+        let currency = Currency(rawValue: currencyCode) ?? .twd
+
+        var csvContent = "日期,交易筆數,營收(\(currencyCode))\n"
+
+        for data in dailyRevenue {
+            let date = data.fullDateString
+            let count = "\(data.count)"
+            let amount = MoneyHelper.toDisplayString(data.amount, currency: currency)
+
+            let row = "\(date),\(count),\(amount)\n"
+            csvContent += row
+        }
+
+        return csvContent
+    }
+
 
     func createHourlyAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
@@ -182,6 +200,26 @@ class SalesAnalyticsViewModel: ObservableObject {
             try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
             print("Error creating Payment Method CSV file: \(error)")
+        }
+
+        return fileURL
+    }
+
+    func createRevenueTrendCSVFileURL() -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        // 過濾檔名中的非法字符
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "營收趨勢_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileURL = tempDir.appendingPathComponent(fileName)
+
+        do {
+            let csvContent = generateRevenueTrendCSV()
+            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("Error creating Revenue Trend CSV file: \(error)")
         }
 
         return fileURL

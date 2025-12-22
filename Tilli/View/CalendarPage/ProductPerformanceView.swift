@@ -7,14 +7,12 @@
 
 import SwiftUI
 import Charts
-import UniformTypeIdentifiers
 
 struct ProductPerformanceView: View {
     @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
     @Binding var session: SessionModel
     let timeRange: ReportTimeRange
     @State private var expandedProducts: Set<Int> = []
-    @State private var showingShareSheet = false
 
     init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
         self.productPerformanceViewModel = viewModel
@@ -61,19 +59,6 @@ struct ProductPerformanceView: View {
         } message: {
             Text("產品績效報告已成功導出為 CSV 檔案")
         }
-        .shareSheet(
-            isPresented: $showingShareSheet,
-            activityItems: [
-                productPerformanceViewModel.createTopProductsCSVFileURL(),
-                productPerformanceViewModel.createCategoryAnalysisCSVFileURL()
-            ],
-            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
-            onComplete: { completed in
-                if completed {
-                    productPerformanceViewModel.showExportSuccessAlert()
-                }
-            }
-        )
     }
     
     
