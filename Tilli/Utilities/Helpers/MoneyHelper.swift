@@ -203,13 +203,17 @@ class MoneyHelper {
     
     /// 將 Decimal 轉換為顯示用字串格式
     static func toDisplayString(_ value: Decimal, currency: Currency) -> String {
+        // 先根據貨幣規則四捨五入（與 format() 保持一致）
+        let handler = getHandlerForCurrency(currency)
+        let roundedValue = NSDecimalNumber(decimal: value).rounding(accordingToBehavior: handler).decimalValue
+
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = "" // 不加千位分隔符
         formatter.minimumFractionDigits = currency.decimalPlaces
         formatter.maximumFractionDigits = currency.decimalPlaces
-        
-        return formatter.string(from: NSDecimalNumber(decimal: value)) ?? "0"
+
+        return formatter.string(from: NSDecimalNumber(decimal: roundedValue)) ?? "0"
     }
     
     /// 將 Decimal 轉換為 Double，僅用於 UI 計算
