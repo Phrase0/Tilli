@@ -156,6 +156,11 @@ struct SalesAnalyticsView: View {
                         .font(.caption)
                         .fontWeight(.medium)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Text("交易金額")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .center)
 
                     Text("交易數")
                         .font(.caption)
@@ -181,6 +186,10 @@ struct SalesAnalyticsView: View {
                                 .font(.system(size: 14))
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text(MoneyHelper.format(method.amount, currencyCode: session.currency))
+                            .font(.system(size: 14, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .center)
 
                         Text("\(method.transactions)")
                             .font(.system(size: 14))
