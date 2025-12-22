@@ -156,6 +156,21 @@ struct ReportTimeRange {
         }
     }
 
+    /// CSV 報表用的日期範圍文字（格式：2025-12-22 或 2025-12-01 ~ 2025-12-30）
+    var csvDateRangeText: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let startStr = formatter.string(from: actualStart)
+        let endStr = formatter.string(from: actualEnd)
+
+        if dayCount == 1 {
+            return startStr
+        } else {
+            return "\(startStr) ~ \(endStr)"
+        }
+    }
+
     // MARK: - 驗證
 
     /// 驗證自訂日期範圍是否合法

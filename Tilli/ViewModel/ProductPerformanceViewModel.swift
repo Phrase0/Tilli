@@ -21,6 +21,7 @@ class ProductPerformanceViewModel: ObservableObject {
     private var transactionDataManager: TransactionDataManager?
     private var sessionDataManager: SessionDataManager?
     @Binding var session: SessionModel
+    private(set) var currentTimeRange: ReportTimeRange?
     
     // MARK: - Initialization
     init(session: Binding<SessionModel>) {
@@ -44,6 +45,9 @@ class ProductPerformanceViewModel: ObservableObject {
     func loadData(timeRange: ReportTimeRange? = nil) {
         guard transactionDataManager != nil else { return }
 
+        // 儲存當前時間範圍（用於 CSV 匯出）
+        self.currentTimeRange = timeRange
+
         isLoading = true
 
         Task {
@@ -60,7 +64,17 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func generateTopProductsCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "排名,商品名稱,類別,單價(\(currencyCode)),銷售數量,原價(\(currencyCode)),折扣金額(\(currencyCode)),實際營收(\(currencyCode)),貢獻率%\n"
+        var csvContent = ""
+
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "熱門商品排行_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "熱門商品排行_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "排名,商品名稱,類別,單價(\(currencyCode)),銷售數量,原價(\(currencyCode)),折扣金額(\(currencyCode)),實際營收(\(currencyCode)),貢獻率%\n"
 
         for product in topProducts {
             let rank = "\(product.rank)"
@@ -83,7 +97,17 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func generateCategoryAnalysisCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "類別名稱,銷售金額(\(currencyCode)),佔比%\n"
+        var csvContent = ""
+
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "類別銷售匯總_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "類別銷售匯總_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "類別名稱,銷售金額(\(currencyCode)),佔比%\n"
 
         for category in categoryAnalysis {
             let name = category.name.replacingOccurrences(of: ",", with: "，")

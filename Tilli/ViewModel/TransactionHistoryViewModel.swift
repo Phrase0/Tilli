@@ -100,11 +100,13 @@ class TransactionViewModel: ObservableObject {
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
-        // 在表格上方加入時間範圍資訊
+        // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "\(session.title),\(timeRange.displayText)\n"
-            csvContent += "\n"
+            csvContent += "交易明細_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "交易明細_\(session.title)\n"
         }
+        csvContent += "\n"
 
         csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,折扣%,小計(\(currencyCode)),總金額(\(currencyCode))\n"
 

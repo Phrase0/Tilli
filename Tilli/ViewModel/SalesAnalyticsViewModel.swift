@@ -79,6 +79,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     // MARK: - Dependencies
     private var transactionDataManager: TransactionDataManager?
     @Binding var session: SessionModel
+    private(set) var currentTimeRange: ReportTimeRange?
 
     // MARK: - Initialization
     init(session: Binding<SessionModel>) {
@@ -98,6 +99,9 @@ class SalesAnalyticsViewModel: ObservableObject {
     func loadData(timeRange: ReportTimeRange? = nil) {
         guard transactionDataManager != nil else { return }
 
+        // 儲存當前時間範圍（用於 CSV 匯出）
+        self.currentTimeRange = timeRange
+
         isLoading = true
 
         Task {
@@ -112,7 +116,17 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     func generateHourlyAnalysisCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "時段,銷售金額(\(currencyCode)),交易筆數,平均客單價(\(currencyCode))\n"
+        var csvContent = ""
+
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "時段銷售分析_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "時段銷售分析_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "時段,銷售金額(\(currencyCode)),交易筆數,平均客單價(\(currencyCode))\n"
 
         for hourData in hourlyData {
             let hour = hourData.hourString
@@ -130,7 +144,17 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     func generatePaymentMethodCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "支付方式,交易金額(\(currencyCode)),交易筆數,佔比%\n"
+        var csvContent = ""
+
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "支付方式分析_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "支付方式分析_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "支付方式,交易金額(\(currencyCode)),交易筆數,佔比%\n"
 
         for paymentData in paymentMethodData {
             let name = paymentData.name.replacingOccurrences(of: ",", with: "，")
@@ -149,8 +173,17 @@ class SalesAnalyticsViewModel: ObservableObject {
     func generateRevenueTrendCSV() -> String {
         let currencyCode = session.currency
         let currency = Currency(rawValue: currencyCode) ?? .twd
+        var csvContent = ""
 
-        var csvContent = "日期,交易筆數,營收(\(currencyCode))\n"
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "營收趨勢_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "營收趨勢_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "日期,交易筆數,營收(\(currencyCode))\n"
 
         for data in dailyRevenue {
             let date = data.fullDateString
