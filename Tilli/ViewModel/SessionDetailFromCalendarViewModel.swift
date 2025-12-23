@@ -99,7 +99,7 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
                 )
             ]
         case 2: // 銷售分析
-            return [
+            var items: [CustomActivityItemSource] = [
                 CustomActivityItemSource(
                     csvContent: salesAnalyticsViewModel.generateHourlyAnalysisCSV(),
                     csvFileURL: salesAnalyticsViewModel.createHourlyAnalysisCSVFileURL(),
@@ -111,11 +111,24 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
                     reportTitle: "支付方式分析報表"
                 ),
                 CustomActivityItemSource(
-                    csvContent: salesAnalyticsViewModel.generateRevenueTrendCSV(),
-                    csvFileURL: salesAnalyticsViewModel.createRevenueTrendCSVFileURL(),
-                    reportTitle: "營收趨勢報表"
+                    csvContent: salesAnalyticsViewModel.generateDailyRevenueTrendCSV(),
+                    csvFileURL: salesAnalyticsViewModel.createDailyRevenueTrendCSVFileURL(),
+                    reportTitle: "日營收趨勢報表"
                 )
             ]
+
+            // 永久場次額外加入月營收趨勢
+            if session.dateType == .permanent {
+                items.append(
+                    CustomActivityItemSource(
+                        csvContent: salesAnalyticsViewModel.generateMonthlyRevenueTrendCSV(),
+                        csvFileURL: salesAnalyticsViewModel.createMonthlyRevenueTrendCSVFileURL(),
+                        reportTitle: "月營收趨勢報表"
+                    )
+                )
+            }
+
+            return items
         default:
             return []
         }
