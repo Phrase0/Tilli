@@ -12,6 +12,9 @@ struct SalesAnalyticsView: View {
     @ObservedObject var salesAnalyticsViewModel: SalesAnalyticsViewModel
     @Binding var session: SessionModel
     let timeRange: ReportTimeRange
+
+    // 時間分佈圖選中狀態
+    @State private var selectedHourData: HourlyAnalysisData?
     init(viewModel: SalesAnalyticsViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
         self.salesAnalyticsViewModel = viewModel
         self._session = session
@@ -54,6 +57,13 @@ struct SalesAnalyticsView: View {
             salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedHourData = nil
+        }
+        .onChange(of: timeRange) { _ in
+            selectedHourData = nil
+        }
         .alert("CSV 導出成功", isPresented: $salesAnalyticsViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {
@@ -312,38 +322,36 @@ struct SalesAnalyticsView: View {
                 .background(Color(.systemGray6))
 
                 // 可滾動的數據列表
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(salesAnalyticsViewModel.hourlyData) { data in
-                            HStack {
-                                Text(data.hourString)
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(salesAnalyticsViewModel.hourlyData) { data in
+                                HourlyDataRow(
+                                    data: data,
+                                    isSelected: selectedHourData?.hour == data.hour,
+                                    currency: session.currency,
+                                    onTap: {
+                                        selectedHourData = data
+                                    }
+                                )
 
-                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .center)
-
-                                Text("\(data.transactions)")
-                                    .font(.system(size: 14))
-                                    .frame(maxWidth: .infinity, alignment: .center)
-
-                                Text(MoneyHelper.format(data.avgPrice, currencyCode: session.currency))
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                if data.hour != salesAnalyticsViewModel.hourlyData.last?.hour {
+                                    Divider()
+                                        .padding(.horizontal, 20)
+                                }
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
-                            .background(Color.white)
-
-                            if data.id != salesAnalyticsViewModel.hourlyData.last?.id {
-                                Divider()
-                                    .padding(.horizontal, 20)
+                        }
+                    }
+                    .frame(height: 200)
+                    .onChange(of: selectedHourData?.hour) { newHour in
+                        if let hour = newHour {
+                            let hourString = String(format: "%02d:00", hour)
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                scrollProxy.scrollTo(hourString, anchor: .center)
                             }
                         }
                     }
                 }
-                .frame(height: 200)
             }
         }
         .background(Color.white)
@@ -359,15 +367,26 @@ struct SalesAnalyticsView: View {
             ForEach(salesAnalyticsViewModel.hourlyData) { data in
                 BarMark(
                     x: .value("時間", data.hourString),
-                    y: .value("金額", data.amount)
+                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
                 )
-                .foregroundStyle(.blue.gradient)
+                .foregroundStyle(
+                    selectedHourData?.hour == data.hour
+                        ? Color.blue
+                        : (selectedHourData == nil ? Color.blue : Color.blue.opacity(0.3))
+                )
+            }
+
+            // 選中時顯示標記線
+            if let selected = selectedHourData {
+                RuleMark(x: .value("選中", selected.hourString))
+                    .foregroundStyle(.gray.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
             }
         }
         .chartXAxis {
             AxisMarks { value in
                 AxisGridLine()
-                AxisValueLabel() {
+                AxisValueLabel {
                     if let hourString = value.as(String.self) {
                         let hour = Int(hourString.prefix(2)) ?? 0
                         if hour % 4 == 0 {
@@ -382,6 +401,29 @@ struct SalesAnalyticsView: View {
         }
         .frame(height: 200)
         .padding(.horizontal)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                let plotFrame = geometry[proxy.plotFrame!]
+                                let x = value.location.x - plotFrame.origin.x
+                                let barCount = salesAnalyticsViewModel.hourlyData.count
+                                guard barCount > 0 else { return }
+
+                                let barWidth = plotFrame.width / CGFloat(barCount)
+                                let index = Int(x / barWidth)
+
+                                if index >= 0 && index < barCount {
+                                    selectedHourData = salesAnalyticsViewModel.hourlyData[index]
+                                }
+                            }
+                    )
+            }
+        }
     }
     
     // MARK: - 自定義柱狀圖（適用於 iOS 16 以下）
@@ -389,10 +431,13 @@ struct SalesAnalyticsView: View {
         let maxAmount = salesAnalyticsViewModel.hourlyData.max { $0.amount < $1.amount }?.amount ?? Decimal(1)
 
         return HStack(alignment: .bottom, spacing: 2) {
-            ForEach(Array(salesAnalyticsViewModel.hourlyData.enumerated()), id: \.offset) { index, data in
+            ForEach(salesAnalyticsViewModel.hourlyData) { data in
+                let isSelected = selectedHourData?.hour == data.hour
+                let opacity: Double = selectedHourData == nil ? 1.0 : (isSelected ? 1.0 : 0.3)
+
                 Rectangle()
                     .fill(LinearGradient(
-                        colors: [.blue, .cyan],
+                        colors: [.blue.opacity(opacity), .cyan.opacity(opacity)],
                         startPoint: .bottom,
                         endPoint: .top
                     ))
@@ -400,6 +445,9 @@ struct SalesAnalyticsView: View {
                         width: 8,
                         height: CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount)) * 150
                     )
+                    .onTapGesture {
+                        selectedHourData = data
+                    }
             }
         }
         .frame(height: 200)
@@ -634,6 +682,41 @@ struct SalesAnalyticsView: View {
                 }
             }
             .frame(height: min(CGFloat(salesAnalyticsViewModel.dailyRevenue.count) * 40, 233))
+        }
+    }
+}
+
+// MARK: - Hourly Data Row Component
+private struct HourlyDataRow: View {
+    let data: HourlyAnalysisData
+    let isSelected: Bool
+    let currency: String
+    let onTap: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(data.hourString)
+                .font(.system(size: 14, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(MoneyHelper.format(data.amount, currencyCode: currency))
+                .font(.system(size: 14, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            Text("\(data.transactions)")
+                .font(.system(size: 14))
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            Text(MoneyHelper.format(data.avgPrice, currencyCode: currency))
+                .font(.system(size: 14, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
+        .background(isSelected ? Color.blue.opacity(0.1) : Color.white)
+        .id(data.hourString)
+        .onTapGesture {
+            onTap()
         }
     }
 }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// 報表時間範圍
-struct ReportTimeRange {
+struct ReportTimeRange: Equatable {
     var type: RangeType
     var customStart: Date
     var customEnd: Date
