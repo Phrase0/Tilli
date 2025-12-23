@@ -341,6 +341,8 @@ struct SalesAnalyticsView: View {
                                 }
                             }
                         }
+                        // 強制刷新：當 hourlyData 變化時重建列表
+                        .id(salesAnalyticsViewModel.hourlyData.map { "\($0.hour)-\($0.amount)-\($0.transactions)" }.joined())
                     }
                     .frame(height: 200)
                     .onChange(of: selectedHourData?.hour) { newHour in
@@ -365,15 +367,24 @@ struct SalesAnalyticsView: View {
     private var barChartView: some View {
         Chart {
             ForEach(salesAnalyticsViewModel.hourlyData) { data in
+                let yValue = MoneyHelper.toUIDouble(data.amount)
                 BarMark(
                     x: .value("時間", data.hourString),
-                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
+                    y: .value("金額", yValue)
                 )
                 .foregroundStyle(
                     selectedHourData?.hour == data.hour
                         ? Color.blue
                         : (selectedHourData == nil ? Color.blue : Color.blue.opacity(0.3))
                 )
+                // 調試用：顯示每個柱子的實際值
+                .annotation(position: .top, alignment: .center) {
+                    if yValue > 0 {
+                        Text("\(Int(yValue))")
+                            .font(.system(size: 8))
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
 
             // 選中時顯示標記線
@@ -410,15 +421,24 @@ struct SalesAnalyticsView: View {
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 let plotFrame = geometry[proxy.plotFrame!]
-                                let x = value.location.x - plotFrame.origin.x
-                                let barCount = salesAnalyticsViewModel.hourlyData.count
-                                guard barCount > 0 else { return }
+                                let tapX = value.location.x - plotFrame.origin.x
 
-                                let barWidth = plotFrame.width / CGFloat(barCount)
-                                let index = Int(x / barWidth)
+                                // 找到最接近點擊位置的柱子
+                                var closestData: HourlyAnalysisData?
+                                var closestDistance: CGFloat = .infinity
 
-                                if index >= 0 && index < barCount {
-                                    selectedHourData = salesAnalyticsViewModel.hourlyData[index]
+                                for data in salesAnalyticsViewModel.hourlyData {
+                                    if let barX = proxy.position(forX: data.hourString) {
+                                        let distance = abs(barX - tapX)
+                                        if distance < closestDistance {
+                                            closestDistance = distance
+                                            closestData = data
+                                        }
+                                    }
+                                }
+
+                                if let matched = closestData {
+                                    selectedHourData = matched
                                 }
                             }
                     )
