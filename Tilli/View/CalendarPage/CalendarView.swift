@@ -45,7 +45,7 @@ struct CalendarView: View {
                 // 設置完 dataManagers 後刷新，確保首次載入資料正確
                 refreshID = UUID()
             }
-            .onChange(of: transactionDataManager.transactionUpdateTrigger) { _ in
+            .onChange(of: transactionDataManager.transactionUpdateTrigger) {
                 // 交易變更時刷新 sessionList
                 refreshID = UUID()
             }

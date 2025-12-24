@@ -61,7 +61,7 @@ struct SalesAnalyticsView: View {
             salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
-        .onChange(of: timeRange) { _ in
+        .onChange(of: timeRange) {
             selectedHourData = nil
             selectedDailyData = nil
             selectedMonthlyData = nil
@@ -764,7 +764,7 @@ struct SalesAnalyticsView: View {
                     .id("\(timeRange.displayText)-\(salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0)-daily")
                 }
                 .frame(height: min(CGFloat(salesAnalyticsViewModel.dailyRevenue.count) * 40, 233))
-                .onChange(of: selectedDailyData?.date) { _ in
+                .onChange(of: selectedDailyData?.date) {
                     if let dateString = selectedDailyData?.fullDateString {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             scrollProxy.scrollTo(dateString, anchor: .center)
@@ -837,7 +837,7 @@ struct SalesAnalyticsView: View {
                     .id("\(timeRange.displayText)-\(salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0)-monthly")
                 }
                 .frame(height: min(CGFloat(salesAnalyticsViewModel.monthlyRevenue.count) * 40, 233))
-                .onChange(of: selectedMonthlyData?.fullMonthString) { _ in
+                .onChange(of: selectedMonthlyData?.fullMonthString) {
                     if let monthString = selectedMonthlyData?.fullMonthString {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             scrollProxy.scrollTo(monthString, anchor: .center)

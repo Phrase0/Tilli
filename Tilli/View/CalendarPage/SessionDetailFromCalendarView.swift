@@ -116,13 +116,13 @@ struct SessionDetailFromCalendarView: View {
             viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
             viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
-        .onChange(of: timeRange.type) { _ in
+        .onChange(of: timeRange.type) {
             // 時間範圍類型變更時重新載入資料
             viewModel.transactionViewModel.loadData(timeRange: timeRange)
             viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
             viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
-        .onChange(of: timeRange.customStart) { _ in
+        .onChange(of: timeRange.customStart) {
             // 自訂開始日期變更時重新載入資料
             if timeRange.type == .custom {
                 viewModel.transactionViewModel.loadData(timeRange: timeRange)
@@ -130,7 +130,7 @@ struct SessionDetailFromCalendarView: View {
                 viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
             }
         }
-        .onChange(of: timeRange.customEnd) { _ in
+        .onChange(of: timeRange.customEnd) {
             // 自訂結束日期變更時重新載入資料
             if timeRange.type == .custom {
                 viewModel.transactionViewModel.loadData(timeRange: timeRange)
