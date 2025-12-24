@@ -186,7 +186,7 @@ struct SessionsView: View {
                         Text("無限期").tag(SessionDateType.permanent)
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: viewModel.duplicateSessionDateType) { newType in
+                    .onChange(of: viewModel.duplicateSessionDateType) { _, newType in
                         // 切換到多日時，自動設定結束日期為開始日期 +1 天
                         if newType == .multi {
                             viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.duplicateSessionDate) ?? viewModel.duplicateSessionDate
@@ -208,7 +208,7 @@ struct SessionsView: View {
                             selection: $viewModel.duplicateSessionDate,
                             displayedComponents: .date
                         )
-                        .onChange(of: viewModel.duplicateSessionDate) { newStartDate in
+                        .onChange(of: viewModel.duplicateSessionDate) { _, newStartDate in
                             // 結束日期必須至少是開始日期的隔天
                             if viewModel.duplicateSessionEndDate <= newStartDate {
                                 viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
@@ -292,11 +292,6 @@ struct SessionsView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-//        .background(
-//            Rectangle()
-//                .fill(Color(.systemBackground))
-//                .shadow(color: .black.opacity(0.1), radius: 4, y: -2)
-//        )
     }
 
     // MARK: - 卡片 View
