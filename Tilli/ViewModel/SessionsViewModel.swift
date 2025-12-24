@@ -8,8 +8,12 @@
 import Foundation
 
 class SessionViewModel: ObservableObject {
-    
-    // 複製場次相關狀態
+
+    // MARK: - 批次選取相關狀態
+    @Published var isSelectionMode = false
+    @Published var selectedSessionIds: Set<UUID> = []
+
+    // MARK: - 複製場次相關狀態
     @Published var showDuplicateSessionDialog = false
     @Published var sessionToDuplicate: SessionModel? = nil
     @Published var duplicateSessionName = ""
@@ -161,6 +165,63 @@ class SessionViewModel: ObservableObject {
         duplicateSessionDateType = .single
         duplicateSessionEndDate = Date()
         hasEditedSessionName = false
+    }
+
+    // MARK: - 批次選取 UI 邏輯
+
+    /// 進入選取模式
+    func enterSelectionMode() {
+        isSelectionMode = true
+        selectedSessionIds.removeAll()
+    }
+
+    /// 退出選取模式
+    func exitSelectionMode() {
+        isSelectionMode = false
+        selectedSessionIds.removeAll()
+    }
+
+    /// 切換單一場次的選取狀態
+    func toggleSelection(sessionId: UUID) {
+        if selectedSessionIds.contains(sessionId) {
+            selectedSessionIds.remove(sessionId)
+        } else {
+            selectedSessionIds.insert(sessionId)
+        }
+    }
+
+    /// 全選（傳入當前顯示的場次列表）
+    func selectAll(sessions: [SessionModel]) {
+        selectedSessionIds = Set(sessions.map { $0.id })
+    }
+
+    /// 取消全選
+    func deselectAll() {
+        selectedSessionIds.removeAll()
+    }
+
+    /// 檢查是否已全選（根據當前顯示的場次列表）
+    func isAllSelected(sessions: [SessionModel]) -> Bool {
+        guard !sessions.isEmpty else { return false }
+        return sessions.allSatisfy { selectedSessionIds.contains($0.id) }
+    }
+
+    /// 已選取的數量
+    var selectedCount: Int {
+        selectedSessionIds.count
+    }
+
+    /// 刪除按鈕是否禁用
+    var isDeleteButtonDisabled: Bool {
+        selectedSessionIds.isEmpty
+    }
+
+    /// 批次刪除選取的場次
+    func deleteSelectedSessions(using sessionDataManager: SessionDataManager) {
+        for sessionId in selectedSessionIds {
+            sessionDataManager.deleteSession(sessionId)
+        }
+        exitSelectionMode()
     }
 }
 
