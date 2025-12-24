@@ -17,6 +17,7 @@ struct SessionsView: View {
     @State private var editingSession: SessionModel? = nil
     @State private var sessionToDelete: SessionModel? = nil
     @State private var showDeleteConfirmation = false
+    @State private var showBatchDeleteConfirmation = false
 
     @State private var selectedSession: SessionModel? = nil
 
@@ -26,48 +27,92 @@ struct SessionsView: View {
     }
     
 
+    /// 當前顯示的場次列表（用於全選判斷）
+    private var displayedSessions: [SessionModel] {
+        viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    if viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions).isEmpty {
-                        // 空狀態顯示
-                        if searchText.isEmpty {
-                            // 完全沒有場次
-                            EmptyStateView(
-                                systemImage: "calendar.badge.plus",
-                                title: "尚無場次",
-                                message: "點擊右上角「+」按鈕新增第一個場次"
-                            )
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        if displayedSessions.isEmpty {
+                            // 空狀態顯示
+                            if searchText.isEmpty {
+                                // 完全沒有場次
+                                EmptyStateView(
+                                    systemImage: "calendar.badge.plus",
+                                    title: "尚無場次",
+                                    message: "點擊右上角「+」按鈕新增第一個場次"
+                                )
+                            } else {
+                                // 搜尋無結果
+                                EmptyStateView(
+                                    systemImage: "magnifyingglass",
+                                    title: "查無結果",
+                                    message: "找不到符合「\(searchText)」的場次"
+                                )
+                            }
                         } else {
-                            // 搜尋無結果
-                            EmptyStateView(
-                                systemImage: "magnifyingglass",
-                                title: "查無結果",
-                                message: "找不到符合「\(searchText)」的場次"
-                            )
-                        }
-                    } else {
-                        // 有場次時顯示列表
-                        ForEach(viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)) { session in
-                            sessionCard(session)
-                                .onTapGesture {
-                                    selectedSession = session
-                                    appState.currentSession = session
+                            // 有場次時顯示列表
+                            ForEach(displayedSessions) { session in
+                                HStack(spacing: 12) {
+                                    // 選取模式下顯示勾選框
+                                    if viewModel.isSelectionMode {
+                                        Image(systemName: viewModel.selectedSessionIds.contains(session.id) ? "checkmark.circle.fill" : "circle")
+                                            .font(.title2)
+                                            .foregroundColor(viewModel.selectedSessionIds.contains(session.id) ? .blue : .gray)
+                                    }
+
+                                    sessionCard(session, showMenu: !viewModel.isSelectionMode)
                                 }
+                                .onTapGesture {
+                                    if viewModel.isSelectionMode {
+                                        viewModel.toggleSelection(sessionId: session.id)
+                                    } else {
+                                        selectedSession = session
+                                        appState.currentSession = session
+                                    }
+                                }
+                            }
                         }
                     }
+                    .padding()
+                    // 選取模式時底部留空間給操作列
+                    .padding(.bottom, viewModel.isSelectionMode ? 70 : 0)
                 }
-                .padding()
+
+                // 選取模式底部操作列
+                if viewModel.isSelectionMode {
+                    selectionActionBar
+                }
             }
             .navigationTitle("場次")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋場次")
             .toolbar {
+                // 左上角：選取按鈕（非選取模式時顯示）
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !viewModel.isSelectionMode {
+                        Button("選取") {
+                            viewModel.enterSelectionMode()
+                        }
+                        .disabled(sessionDataManager.sessions.isEmpty)
+                    }
+                }
+
+                // 右上角：新增按鈕（非選取模式）或取消按鈕（選取模式）
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isNavigatingToAddSession = true
-                    } label: {
-                        Image(systemName: "plus")
+                    if viewModel.isSelectionMode {
+                        Button("取消") {
+                            viewModel.exitSelectionMode()
+                        }
+                    } else {
+                        Button {
+                            isNavigatingToAddSession = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
             }
@@ -107,6 +152,14 @@ struct SessionsView: View {
             Button("取消", role: .cancel) { }
         } message: { session in
             Text("刪除後將同時移除底下的所有類別、商品，且無法復原，是否確定？")
+        }
+        .alert("確定要刪除 \(viewModel.selectedCount) 個場次嗎？", isPresented: $showBatchDeleteConfirmation) {
+            Button("刪除", role: .destructive) {
+                viewModel.deleteSelectedSessions(using: sessionDataManager)
+            }
+            Button("取消", role: .cancel) { }
+        } message: {
+            Text("刪除後將同時移除所有類別、商品，且無法復原，是否確定？")
         }
         .sheet(isPresented: $viewModel.showDuplicateSessionDialog) {
             duplicateSessionView
@@ -209,9 +262,45 @@ struct SessionsView: View {
         .presentationDetents([.fraction(0.55)])
     }
     
+    // MARK: - 選取模式底部操作列
+    private var selectionActionBar: some View {
+        HStack {
+            // 全選/取消全選按鈕
+            Button {
+                if viewModel.isAllSelected(sessions: displayedSessions) {
+                    viewModel.deselectAll()
+                } else {
+                    viewModel.selectAll(sessions: displayedSessions)
+                }
+            } label: {
+                Text(viewModel.isAllSelected(sessions: displayedSessions) ? "取消全選" : "全選")
+                    .fontWeight(.medium)
+            }
+            .disabled(displayedSessions.isEmpty)
+
+            Spacer()
+
+            // 刪除按鈕
+            Button(role: .destructive) {
+                showBatchDeleteConfirmation = true
+            } label: {
+                Text("刪除 (\(viewModel.selectedCount))")
+                    .fontWeight(.medium)
+            }
+            .disabled(viewModel.isDeleteButtonDisabled)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 4, y: -2)
+        )
+    }
+
     // MARK: - 卡片 View
     @ViewBuilder
-    private func sessionCard(_ session: SessionModel) -> some View {
+    private func sessionCard(_ session: SessionModel, showMenu: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -226,32 +315,34 @@ struct SessionsView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 12) {
-                    Menu {
-                        Button {
-                            viewModel.startDuplicateSession(session)
+                    if showMenu {
+                        Menu {
+                            Button {
+                                viewModel.startDuplicateSession(session)
+                            } label: {
+                                Label("複製場次", systemImage: "doc.on.doc")
+                            }
+
+                            Button {
+                                editingSession = session
+                            } label: {
+                                Label("編輯", systemImage: "pencil")
+                            }
+
+                            Button(role: .destructive) {
+                                sessionToDelete = session
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("刪除", systemImage: "trash")
+                            }
                         } label: {
-                            Label("複製場次", systemImage: "doc.on.doc")
+                            Image(systemName: "ellipsis")
+                                .rotationEffect(.degrees(90))
+                                .foregroundColor(.gray)
+                                .padding(8)
                         }
-                        
-                        Button {
-                            editingSession = session
-                        } label: {
-                            Label("編輯", systemImage: "pencil")
-                        }
-                        
-                        Button(role: .destructive) {
-                            sessionToDelete = session
-                            showDeleteConfirmation = true
-                        } label: {
-                            Label("刪除", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .rotationEffect(.degrees(90))
-                            .foregroundColor(.gray)
-                            .padding(8)
                     }
-                    
+
                     Text(session.status.localizedDescription)
                         .font(.caption)
                         .foregroundColor(session.status.textColor)
@@ -263,6 +354,7 @@ struct SessionsView: View {
             }
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(session.status == .ongoing ? Color.blue.opacity(0.1) : Color.white)
