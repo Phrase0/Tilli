@@ -65,8 +65,8 @@ struct AddSessionView: View {
                         displayedComponents: .date
                     )
                     .onChange(of: viewModel.sessionDate) { newStartDate in
-                        // 如果結束日期比開始日期早，自動調整為開始日期的隔天
-                        if viewModel.endDate < newStartDate {
+                        // 結束日期必須至少是開始日期的隔天
+                        if viewModel.endDate <= newStartDate {
                             viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
                         }
                     }
