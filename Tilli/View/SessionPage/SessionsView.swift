@@ -148,13 +148,17 @@ struct SessionsView: View {
                         DatePicker("日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
 
                     case .multi:
-                        DatePicker("開始日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
-                            .onChange(of: viewModel.duplicateSessionDate) { newStartDate in
-                                // 如果結束日期比開始日期早，自動調整為開始日期的隔天
-                                if viewModel.duplicateSessionEndDate <= newStartDate {
-                                    viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
-                                }
+                        DatePicker(
+                            "開始日期",
+                            selection: $viewModel.duplicateSessionDate,
+                            displayedComponents: .date
+                        )
+                        .onChange(of: viewModel.duplicateSessionDate) { newStartDate in
+                            // 結束日期必須至少是開始日期的隔天
+                            if viewModel.duplicateSessionEndDate <= newStartDate {
+                                viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
                             }
+                        }
 
                         DatePicker(
                             "結束日期",

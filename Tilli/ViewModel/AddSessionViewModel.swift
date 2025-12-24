@@ -74,15 +74,16 @@ class AddSessionViewModel: ObservableObject {
 
     // MARK: - 日期範圍計算（用於 DatePicker 限制）
 
-    /// 結束日期的可選範圍（多日場次）
+    /// 結束日期的可選範圍（多日場次：開始日期隔天 ~ +30天，確保至少 2 天）
     var endDateRange: ClosedRange<Date> {
         let calendar = Calendar.current
         let startDateDay = calendar.startOfDay(for: sessionDate)
 
-        // 結束日期：不可早於開始日期，且最多往後 30 天（總共 31 天）
+        // 結束日期：從開始日期隔天開始，最多往後 30 天（總共 31 天）
+        let minEndDate = calendar.date(byAdding: .day, value: 1, to: startDateDay)!
         let maxEndDate = calendar.date(byAdding: .day, value: 30, to: startDateDay)!
 
-        return startDateDay...maxEndDate
+        return minEndDate...maxEndDate
     }
 
     init(sessionToEdit: SessionModel? = nil) {
