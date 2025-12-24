@@ -145,7 +145,7 @@ struct SessionsView: View {
                 appState.currentSession = nil
             }
             .toolbar(viewModel.isSelectionMode ? .hidden : .visible, for: .tabBar)
-//            .animation(.easeInOut(duration: 0.5), value: viewModel.isSelectionMode)
+            .animation(.easeInOut(duration: 0.3), value: viewModel.isSelectionMode)
         }
         .alert("確定要刪除這個場次嗎？", isPresented: $showDeleteConfirmation, presenting: sessionToDelete) { session in
             Button("刪除", role: .destructive) {
