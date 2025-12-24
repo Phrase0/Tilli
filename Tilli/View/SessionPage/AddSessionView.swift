@@ -43,7 +43,7 @@ struct AddSessionView: View {
                     Text("無限期").tag(SessionDateType.permanent)
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: viewModel.dateType) { newType in
+                .onChange(of: viewModel.dateType) { _, newType in
                     // 切換到多日時，自動設定結束日期為開始日期 +1 天
                     if newType == .multi {
                         viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.sessionDate) ?? viewModel.sessionDate
@@ -64,7 +64,7 @@ struct AddSessionView: View {
                         selection: $viewModel.sessionDate,
                         displayedComponents: .date
                     )
-                    .onChange(of: viewModel.sessionDate) { newStartDate in
+                    .onChange(of: viewModel.sessionDate) { _, newStartDate in
                         // 結束日期必須至少是開始日期的隔天
                         if viewModel.endDate <= newStartDate {
                             viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate

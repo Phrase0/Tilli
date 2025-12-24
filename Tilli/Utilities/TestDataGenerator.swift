@@ -352,7 +352,7 @@ class TestDataGenerator {
             // 每天隨機生成 8-10 筆交易
             let transactionCount = Int.random(in: 5...10)
 
-            for i in 0..<transactionCount {
+            for _ in 0..<transactionCount {
                 // 隨機選擇 1-3 個產品
                 let itemCount = Int.random(in: 1...3)
                 var items: [SummaryItemModel] = []

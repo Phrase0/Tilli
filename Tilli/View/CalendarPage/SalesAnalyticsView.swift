@@ -363,7 +363,7 @@ struct SalesAnalyticsView: View {
                         .id("\(timeRange.displayText)-\(salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0)")
                     }
                     .frame(height: 200)
-                    .onChange(of: selectedHourData?.hour) { newHour in
+                    .onChange(of: selectedHourData?.hour) { _, newHour in
                         if let hour = newHour {
                             let hourString = String(format: "%02d:00", hour)
                             withAnimation(.easeInOut(duration: 0.3)) {
