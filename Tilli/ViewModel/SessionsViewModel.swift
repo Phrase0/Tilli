@@ -14,7 +14,17 @@ class SessionViewModel: ObservableObject {
     @Published var sessionToDuplicate: SessionModel? = nil
     @Published var duplicateSessionName = ""
     @Published var duplicateSessionDate = Date()
+    @Published var duplicateSessionEndDate = Date()
+    @Published var duplicateSessionDateType: SessionDateType = .single
     @Published var hasEditedSessionName = false
+
+    /// 結束日期的可選範圍（開始日期的隔天到 +30 天）
+    var duplicateEndDateRange: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let minDate = calendar.date(byAdding: .day, value: 1, to: duplicateSessionDate) ?? duplicateSessionDate
+        let maxDate = calendar.date(byAdding: .day, value: 30, to: duplicateSessionDate) ?? duplicateSessionDate
+        return minDate...maxDate
+    }
 
     func sortedFilteredSessions(by keyword: String, from sessions: [SessionModel]) -> [SessionModel] {
         let filtered = filteredSessions(by: keyword, from: sessions)
@@ -54,8 +64,21 @@ class SessionViewModel: ObservableObject {
         sessionDataManager.deleteSession(session.id)
     }
     
-    func duplicateSession(_ originalSession: SessionModel, newTitle: String, newDate: Date, using sessionDataManager: SessionDataManager) -> SessionModel? {
-        let duplicatedSession = sessionDataManager.duplicateSession(originalSessionId: originalSession.id, newTitle: newTitle, newDate: newDate)
+    func duplicateSession(
+        _ originalSession: SessionModel,
+        newTitle: String,
+        newStartDate: Date,
+        newEndDate: Date?,
+        newDateType: SessionDateType,
+        using sessionDataManager: SessionDataManager
+    ) -> SessionModel? {
+        let duplicatedSession = sessionDataManager.duplicateSession(
+            originalSessionId: originalSession.id,
+            newTitle: newTitle,
+            newStartDate: newStartDate,
+            newEndDate: newEndDate,
+            newDateType: newDateType
+        )
         return duplicatedSession
     }
     
@@ -75,7 +98,16 @@ class SessionViewModel: ObservableObject {
     func startDuplicateSession(_ session: SessionModel) {
         sessionToDuplicate = session
         duplicateSessionName = session.title
-        duplicateSessionDate = session.startDate
+        duplicateSessionDate = Date() // 預設為今天
+        duplicateSessionDateType = session.dateType // 預設使用原場次類型
+        // 設定結束日期
+        if session.dateType == .multi, let endDate = session.endDate {
+            let calendar = Calendar.current
+            let daysDifference = calendar.dateComponents([.day], from: session.startDate, to: endDate).day ?? 1
+            duplicateSessionEndDate = calendar.date(byAdding: .day, value: daysDifference, to: duplicateSessionDate) ?? duplicateSessionDate
+        } else {
+            duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: duplicateSessionDate) ?? duplicateSessionDate
+        }
         hasEditedSessionName = false
         showDuplicateSessionDialog = true
     }
@@ -91,14 +123,28 @@ class SessionViewModel: ObservableObject {
               !duplicateSessionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-        
+
+        // 根據場次類型決定結束日期
+        let endDate: Date? = {
+            switch duplicateSessionDateType {
+            case .single:
+                return duplicateSessionDate // 單日：結束日期 = 開始日期
+            case .multi:
+                return duplicateSessionEndDate // 多日：使用選擇的結束日期
+            case .permanent:
+                return nil // 無限期：沒有結束日期
+            }
+        }()
+
         let _ = duplicateSession(
             sessionToDuplicate,
             newTitle: duplicateSessionName.trimmingCharacters(in: .whitespacesAndNewlines),
-            newDate: duplicateSessionDate,
+            newStartDate: duplicateSessionDate,
+            newEndDate: endDate,
+            newDateType: duplicateSessionDateType,
             using: sessionDataManager
         )
-        
+
         closeDuplicateDialog()
     }
     
@@ -112,6 +158,8 @@ class SessionViewModel: ObservableObject {
         showDuplicateSessionDialog = false
         sessionToDuplicate = nil
         duplicateSessionName = ""
+        duplicateSessionDateType = .single
+        duplicateSessionEndDate = Date()
         hasEditedSessionName = false
     }
 }

@@ -122,8 +122,68 @@ struct SessionsView: View {
                     .onChange(of: viewModel.duplicateSessionName) {
                         viewModel.onSessionNameChanged()
                     }
-                
-                DatePicker("日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+
+                // 場次類型選擇器
+                Section {
+                    Picker("場次類型", selection: $viewModel.duplicateSessionDateType) {
+                        Text("單日").tag(SessionDateType.single)
+                        Text("多日").tag(SessionDateType.multi)
+                        Text("無限期").tag(SessionDateType.permanent)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: viewModel.duplicateSessionDateType) { newType in
+                        // 切換到多日時，自動設定結束日期為開始日期 +1 天
+                        if newType == .multi {
+                            viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.duplicateSessionDate) ?? viewModel.duplicateSessionDate
+                        }
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+
+                // 動態日期選擇器
+                Section {
+                    switch viewModel.duplicateSessionDateType {
+                    case .single:
+                        DatePicker("日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+
+                    case .multi:
+                        DatePicker("開始日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+                            .onChange(of: viewModel.duplicateSessionDate) { newStartDate in
+                                // 如果結束日期比開始日期早，自動調整為開始日期的隔天
+                                if viewModel.duplicateSessionEndDate <= newStartDate {
+                                    viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
+                                }
+                            }
+
+                        DatePicker(
+                            "結束日期",
+                            selection: $viewModel.duplicateSessionEndDate,
+                            in: viewModel.duplicateEndDateRange,
+                            displayedComponents: .date
+                        )
+
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                            Text("多日場次最多 31 天")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                    case .permanent:
+                        DatePicker("開始日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+
+                        HStack {
+                            Image(systemName: "infinity")
+                                .foregroundColor(.purple)
+                            Text("此場次無結束日期")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
             }
             .navigationTitle("複製場次")
             .navigationBarTitleDisplayMode(.inline)
@@ -133,7 +193,7 @@ struct SessionsView: View {
                         viewModel.cancelDuplicateSession()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("確定") {
                         viewModel.confirmDuplicateSession(using: sessionDataManager)
@@ -142,7 +202,7 @@ struct SessionsView: View {
                 }
             }
         }
-        .presentationDetents([.fraction(0.35)])
+        .presentationDetents([.fraction(0.55)])
     }
     
     // MARK: - 卡片 View

@@ -300,7 +300,13 @@ class SessionDataManager: ObservableObject {
     }
 
     /// 複製場次（包含所有類別和產品，但不包含交易記錄）
-    func duplicateSession(originalSessionId: UUID, newTitle: String, newDate: Date) -> SessionModel? {
+    func duplicateSession(
+        originalSessionId: UUID,
+        newTitle: String,
+        newStartDate: Date,
+        newEndDate: Date?,
+        newDateType: SessionDateType
+    ) -> SessionModel? {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", originalSessionId as CVarArg)
         request.relationshipKeyPathsForPrefetching = ["categories", "categories.products"]
@@ -315,16 +321,9 @@ class SessionDataManager: ObservableObject {
             let newSessionEntity = CDSessionEntity(context: context)
             newSessionEntity.id = UUID()
             newSessionEntity.title = newTitle
-            newSessionEntity.startDate = newDate
-            // 複製原場次的日期類型
-            newSessionEntity.dateType = originalEntity.dateType
-            // 如果是多日場次，保持相同的天數
-            if let originalEndDate = originalEntity.endDate,
-               let daysDifference = Calendar.current.dateComponents([.day], from: originalEntity.startDate, to: originalEndDate).day {
-                newSessionEntity.endDate = Calendar.current.date(byAdding: .day, value: daysDifference, to: newDate)
-            } else {
-                newSessionEntity.endDate = nil
-            }
+            newSessionEntity.startDate = newStartDate
+            newSessionEntity.dateType = newDateType.rawValue
+            newSessionEntity.endDate = newEndDate
             newSessionEntity.createdAt = Date()
             newSessionEntity.currency = originalEntity.currency
             
