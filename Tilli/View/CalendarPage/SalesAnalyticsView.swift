@@ -252,7 +252,7 @@ struct SalesAnalyticsView: View {
         .frame(width: 150, height: 150)
     }
     
-    // MARK: - 時間分布圖與詳細記錄合併視圖
+    // MARK: - 時間分布圖與詳細記錄
     private var timeDistributionWithDetailView: some View {
         let content = VStack(alignment: .leading, spacing: 0) {
             // 圖表部分
@@ -301,7 +301,7 @@ struct SalesAnalyticsView: View {
                 .padding(.bottom)
             }
 
-            // 詳細記錄表格（直接連接）
+            // 詳細記錄表格
             VStack(spacing: 0) {
                 // 表頭
                 HStack {
