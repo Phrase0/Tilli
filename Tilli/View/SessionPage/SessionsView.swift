@@ -91,9 +91,13 @@ struct SessionsView: View {
             .navigationTitle("場次")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋場次")
             .toolbar {
-                // 左上角：選取按鈕（非選取模式時顯示）
+                // 左上角：選取按鈕（非選取模式）或取消按鈕（選取模式）
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if !viewModel.isSelectionMode {
+                    if viewModel.isSelectionMode {
+                        Button("取消") {
+                            viewModel.exitSelectionMode()
+                        }
+                    } else {
                         Button("選取") {
                             viewModel.enterSelectionMode()
                         }
@@ -101,13 +105,9 @@ struct SessionsView: View {
                     }
                 }
 
-                // 右上角：新增按鈕（非選取模式）或取消按鈕（選取模式）
+                // 右上角：新增按鈕（非選取模式時顯示）
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isSelectionMode {
-                        Button("取消") {
-                            viewModel.exitSelectionMode()
-                        }
-                    } else {
+                    if !viewModel.isSelectionMode {
                         Button {
                             isNavigatingToAddSession = true
                         } label: {
@@ -144,6 +144,8 @@ struct SessionsView: View {
                 // SessionDataManager 會自動管理和更新 sessions 數據
                 appState.currentSession = nil
             }
+            .toolbar(viewModel.isSelectionMode ? .hidden : .visible, for: .tabBar)
+//            .animation(.easeInOut(duration: 0.5), value: viewModel.isSelectionMode)
         }
         .alert("確定要刪除這個場次嗎？", isPresented: $showDeleteConfirmation, presenting: sessionToDelete) { session in
             Button("刪除", role: .destructive) {
@@ -274,28 +276,27 @@ struct SessionsView: View {
                 }
             } label: {
                 Text(viewModel.isAllSelected(sessions: displayedSessions) ? "取消全選" : "全選")
-                    .fontWeight(.medium)
             }
             .disabled(displayedSessions.isEmpty)
 
             Spacer()
 
             // 刪除按鈕
-            Button(role: .destructive) {
+            Button {
                 showBatchDeleteConfirmation = true
             } label: {
                 Text("刪除 (\(viewModel.selectedCount))")
-                    .fontWeight(.medium)
+                    .foregroundColor(viewModel.isDeleteButtonDisabled ? .gray : .red)
             }
             .disabled(viewModel.isDeleteButtonDisabled)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
-        .background(
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 4, y: -2)
-        )
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+//        .background(
+//            Rectangle()
+//                .fill(Color(.systemBackground))
+//                .shadow(color: .black.opacity(0.1), radius: 4, y: -2)
+//        )
     }
 
     // MARK: - 卡片 View
