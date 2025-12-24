@@ -276,6 +276,9 @@ struct SessionsView: View {
                 }
             } label: {
                 Text(viewModel.isAllSelected(sessions: displayedSessions) ? "取消全選" : "全選")
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .contentShape(Rectangle())
             }
             .disabled(displayedSessions.isEmpty)
 
@@ -287,11 +290,17 @@ struct SessionsView: View {
             } label: {
                 Text("刪除 (\(viewModel.selectedCount))")
                     .foregroundColor(viewModel.isDeleteButtonDisabled ? .gray : .red)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .contentShape(Rectangle())
             }
             .disabled(viewModel.isDeleteButtonDisabled)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 12)
         .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color(.systemBackground))
+        .contentShape(Rectangle())
     }
 
     // MARK: - 卡片 View
