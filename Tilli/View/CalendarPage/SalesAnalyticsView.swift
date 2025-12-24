@@ -61,12 +61,6 @@ struct SalesAnalyticsView: View {
             salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedHourData = nil
-            selectedDailyData = nil
-            selectedMonthlyData = nil
-        }
         .onChange(of: timeRange) { _ in
             selectedHourData = nil
             selectedDailyData = nil
@@ -432,35 +426,32 @@ struct SalesAnalyticsView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                let plotFrame = geometry[proxy.plotFrame!]
-                                let tapX = value.location.x - plotFrame.origin.x
+                    .onTapGesture { location in
+                        let plotFrame = geometry[proxy.plotFrame!]
+                        let tapX = location.x - plotFrame.origin.x
 
-                                // 找到最接近點擊位置的柱子
-                                var closestData: HourlyAnalysisData?
-                                var closestDistance: CGFloat = .infinity
+                        // 找到最接近點擊位置的柱子
+                        var closestData: HourlyAnalysisData?
+                        var closestDistance: CGFloat = .infinity
 
-                                for data in salesAnalyticsViewModel.hourlyData {
-                                    if let barX = proxy.position(forX: data.hourString) {
-                                        let distance = abs(barX - tapX)
-                                        if distance < closestDistance {
-                                            closestDistance = distance
-                                            closestData = data
-                                        }
-                                    }
-                                }
-
-                                if let matched = closestData {
-                                    selectedHourData = matched
+                        for data in salesAnalyticsViewModel.hourlyData {
+                            if let barX = proxy.position(forX: data.hourString) {
+                                let distance = abs(barX - tapX)
+                                if distance < closestDistance {
+                                    closestDistance = distance
+                                    closestData = data
                                 }
                             }
-                    )
+                        }
+
+                        if let matched = closestData {
+                            selectedHourData = matched
+                        }
+                    }
             }
         }
     }
-    
+
     // MARK: - 自定義柱狀圖（適用於 iOS 16 以下）
     private var customBarChart: some View {
         let maxAmount = salesAnalyticsViewModel.hourlyData.max { $0.amount < $1.amount }?.amount ?? Decimal(1)
@@ -541,11 +532,7 @@ struct SalesAnalyticsView: View {
                 dailyBarChart
             } else {
                 // >7天：折線圖
-                if #available(iOS 16.0, *) {
-                    dailyLineChart
-                } else {
-                    dailyBarChart // iOS 15 fallback
-                }
+                dailyLineChart
             }
         }
     }
@@ -649,31 +636,28 @@ struct SalesAnalyticsView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                let plotFrame = geometry[proxy.plotFrame!]
-                                let tapX = value.location.x - plotFrame.origin.x
+                    .onTapGesture { location in
+                        let plotFrame = geometry[proxy.plotFrame!]
+                        let tapX = location.x - plotFrame.origin.x
 
-                                // 找到最接近點擊位置的數據點
-                                var closestData: DailyRevenueData?
-                                var closestDistance: CGFloat = .infinity
+                        // 找到最接近點擊位置的數據點
+                        var closestData: DailyRevenueData?
+                        var closestDistance: CGFloat = .infinity
 
-                                for data in salesAnalyticsViewModel.dailyRevenue {
-                                    if let dataX = proxy.position(forX: data.date) {
-                                        let distance = abs(dataX - tapX)
-                                        if distance < closestDistance {
-                                            closestDistance = distance
-                                            closestData = data
-                                        }
-                                    }
-                                }
-
-                                if let matched = closestData {
-                                    selectedDailyData = matched
+                        for data in salesAnalyticsViewModel.dailyRevenue {
+                            if let dataX = proxy.position(forX: data.date) {
+                                let distance = abs(dataX - tapX)
+                                if distance < closestDistance {
+                                    closestDistance = distance
+                                    closestData = data
                                 }
                             }
-                    )
+                        }
+
+                        if let matched = closestData {
+                            selectedDailyData = matched
+                        }
+                    }
             }
         }
     }
