@@ -58,15 +58,15 @@ class AddSessionViewModel: ObservableObject {
     }
     
     var sortedCategories: [CategoryModel] {
-        categories.sorted(by: { $0.createdAt < $1.createdAt })
+        categories.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
-    
+
     var activeSortedCategories: [CategoryModel] {
-        categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+        categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
-    
+
     var disabledSortedCategories: [CategoryModel] {
-        categories.filter { $0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+        categories.filter { $0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
     
     var selectedCategory: CategoryModel? {
@@ -82,8 +82,6 @@ class AddSessionViewModel: ObservableObject {
         let days = calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
         return days + 1
     }
-
-    // MARK: - 折扣相關計算屬性
 
     /// 當前幣別
     var currentCurrency: Currency {
@@ -264,7 +262,28 @@ class AddSessionViewModel: ObservableObject {
         discounts.removeAll { $0.id == discount.id }
     }
 
+    /// 移動折扣順序
+    func moveDiscount(from source: IndexSet, to destination: Int) {
+        discounts.move(fromOffsets: source, toOffset: destination)
+    }
+
     // MARK: - 類別相關方法
+
+    /// 移動類別順序（只針對啟用的類別）
+    func moveCategory(from source: IndexSet, to destination: Int) {
+        // 取得目前啟用類別的排序列表
+        var activeCategories = activeSortedCategories
+
+        // 移動位置
+        activeCategories.move(fromOffsets: source, toOffset: destination)
+
+        // 重新指派 sortOrder
+        for (index, category) in activeCategories.enumerated() {
+            if let originalIndex = categories.firstIndex(where: { $0.id == category.id }) {
+                categories[originalIndex].sortOrder = index
+            }
+        }
+    }
 
     // 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
     func tryAddCategory() -> String? {
@@ -276,7 +295,10 @@ class AddSessionViewModel: ObservableObject {
             return "此類別已存在"
         }
 
-        let new = CategoryModel(id: UUID(), name: trimmed)
+        // 設置 sortOrder 為當前最大值 + 1
+        let maxSortOrder = categories.map { $0.sortOrder }.max() ?? -1
+        var new = CategoryModel(id: UUID(), name: trimmed)
+        new.sortOrder = maxSortOrder + 1
         categories.append(new)
         newCategory = ""
 
