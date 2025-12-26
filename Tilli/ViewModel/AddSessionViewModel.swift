@@ -206,9 +206,6 @@ class AddSessionViewModel: ObservableObject {
     
     func restoreCategory(byId categoryId: UUID) {
         if let index = categories.firstIndex(where: { $0.id == categoryId }) {
-            // 設置 sortOrder 為啟用類別中的最大值 + 1（排到最後）
-            let maxSortOrder = categories.filter { !$0.isDisabled }.map { $0.sortOrder }.max() ?? -1
-            categories[index].sortOrder = maxSortOrder + 1
             categories[index].isDisabled = false
         }
     }
