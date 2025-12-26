@@ -15,6 +15,9 @@ class AddSessionViewModel: ObservableObject {
     @Published var categories: [CategoryModel]
     @Published var editingCategoryID: UUID?
 
+    // 編輯類別名稱時儲存原始名稱（用於空名稱時恢復）
+    var originalCategoryName: String?
+
     // 多日場次支援
     @Published var dateType: SessionDateType
     @Published var endDate: Date
@@ -125,17 +128,57 @@ class AddSessionViewModel: ObservableObject {
     }
 
     func updateCategoryName(id: UUID, newName: String) {
-        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        // 避免同名
-        if categories.contains(where: { $0.name == trimmed && $0.id != id }) {
-            return
-        }
-
+        // 編輯過程中允許任何值（包括空值），驗證在 finishEditingCategory 時進行
         if let index = categories.firstIndex(where: { $0.id == id }) {
-            categories[index].name = trimmed
+            categories[index].name = newName
         }
+    }
+
+    /// 開始編輯類別名稱（儲存原名稱）
+    func startEditingCategory(id: UUID) {
+        if let category = categories.first(where: { $0.id == id }) {
+            originalCategoryName = category.name
+            editingCategoryID = id
+        }
+    }
+
+    /// 結束編輯類別名稱（檢查是否為空，為空則恢復原名稱）
+    /// 返回錯誤訊息，nil 表示成功
+    func finishEditingCategory() -> String? {
+        defer {
+            editingCategoryID = nil
+            originalCategoryName = nil
+        }
+
+        guard let editingId = editingCategoryID,
+              let index = categories.firstIndex(where: { $0.id == editingId }) else {
+            return nil
+        }
+
+        let currentName = categories[index].name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 檢查是否為空
+        if currentName.isEmpty {
+            // 恢復原名稱
+            if let original = originalCategoryName {
+                categories[index].name = original
+            }
+            return "類別名稱不可為空，如需刪除請左滑"
+        }
+
+        // 檢查是否與其他類別同名
+        let isDuplicate = categories.contains {
+            $0.name == currentName && $0.id != editingId
+        }
+        if isDuplicate {
+            // 恢復原名稱
+            if let original = originalCategoryName {
+                categories[index].name = original
+            }
+            return "此類別名稱已存在"
+        }
+
+        return nil
     }
 
     func removeCategory(byId categoryId: UUID) {
