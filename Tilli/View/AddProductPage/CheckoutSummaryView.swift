@@ -11,6 +11,7 @@ import Foundation
 struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Decimal
+    let selectedDiscount: DiscountModel?
 
     @Binding var session: SessionModel
     @Binding var isPresented: Bool
@@ -55,22 +56,9 @@ struct CheckoutSummaryView: View {
                                             .font(.caption)
                                             .foregroundColor(.gray)
 
-                                        if item.discount > 0 {
-                                            Text("\(item.discount)%")
-                                                .font(.caption)
-                                                .padding(4)
-                                                .background(Color.blue.opacity(0.2))
-                                                .cornerRadius(4)
-
-                                            let discountedPrice = MoneyHelper.applyDiscount(price: item.price, discountPercentage: item.discount)
-                                            Text(discountedPrice.money(currency: session.currency))
-                                                .font(.caption)
-                                                .foregroundColor(.gray)
-                                        } else {
-                                            Text(item.price.money(currency: session.currency))
-                                                .font(.caption)
-                                                .foregroundColor(.gray)
-                                        }
+                                        Text(item.price.money(currency: session.currency))
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
                                     }
                                 }
 
@@ -92,6 +80,17 @@ struct CheckoutSummaryView: View {
                     Text("總計")
                         .font(.headline)
                     Spacer()
+
+                    // 顯示折扣標籤
+                    if let discount = selectedDiscount {
+                        Text(discount.displayText(currency: session.currency))
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(4)
+                    }
+
                     Text(totalAmount.money(currency: session.currency))
                         .font(.headline)
                         .bold()
@@ -161,7 +160,8 @@ struct CheckoutSummaryView: View {
                 CashPaymentView(
                     totalAmount: totalAmount,
                     session: $session,
-                    summaryItems: selectedItems
+                    summaryItems: selectedItems,
+                    selectedDiscount: selectedDiscount
                 ) { updatedSession in
                     self.session = updatedSession
                     checkoutCompleted = true
@@ -172,7 +172,8 @@ struct CheckoutSummaryView: View {
                 EPaymentView(
                     totalAmount: totalAmount,
                     session: $session,
-                    summaryItems: selectedItems
+                    summaryItems: selectedItems,
+                    selectedDiscount: selectedDiscount
                 ) { updatedSession in
                     self.session = updatedSession
                     checkoutCompleted = true

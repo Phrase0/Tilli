@@ -361,7 +361,6 @@ class TestDataGenerator {
                 for _ in 0..<itemCount {
                     let product = products.randomElement()!
                     let quantity = Int.random(in: 1...3)
-                    let discount = [0, 0, 0, 10, 20].randomElement()!  // 大部分無折扣
 
                     let item = SummaryItemModel(
                         id: UUID(),
@@ -371,7 +370,6 @@ class TestDataGenerator {
                         categoryId: product.3,
                         category: product.4,
                         quantity: quantity,
-                        discount: discount,
                         timestamp: currentDate
                     )
 

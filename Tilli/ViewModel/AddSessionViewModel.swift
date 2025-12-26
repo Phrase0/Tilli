@@ -19,6 +19,11 @@ class AddSessionViewModel: ObservableObject {
     @Published var dateType: SessionDateType
     @Published var endDate: Date
 
+    // 折扣相關狀態
+    @Published var discounts: [DiscountModel] = []
+    @Published var newDiscountValue: String = ""
+    @Published var newDiscountType: DiscountType = .percentage
+
     // Alert 相關狀態
     @Published var showAlert = false
     @Published var alertMessage = ""
@@ -72,6 +77,21 @@ class AddSessionViewModel: ObservableObject {
         return days + 1
     }
 
+    // MARK: - 折扣相關計算屬性
+
+    /// 當前幣別
+    var currentCurrency: Currency {
+        return Currency(rawValue: selectedCurrency) ?? .twd
+    }
+
+    /// 折扣輸入是否支持小數點（參考 CashPaymentViewModel）
+    var discountSupportsDecimal: Bool {
+        // 百分比永遠是整數
+        guard newDiscountType == .amount else { return false }
+        // 金額根據幣別判斷
+        return currentCurrency.decimalPlaces > 0
+    }
+
     // MARK: - 日期範圍計算（用於 DatePicker 限制）
 
     /// 結束日期的可選範圍（多日場次：開始日期隔天 ~ +30天，確保至少 2 天）
@@ -92,6 +112,7 @@ class AddSessionViewModel: ObservableObject {
         self.sessionDate = sessionToEdit?.startDate ?? Date()
         self.selectedCurrency = sessionToEdit?.currency ?? "TWD"
         self.categories = sessionToEdit?.categories ?? []
+        self.discounts = sessionToEdit?.discounts ?? []
 
         // 初始化場次類型和結束日期
         self.dateType = sessionToEdit?.dateType ?? .single
@@ -140,6 +161,61 @@ class AddSessionViewModel: ObservableObject {
             categories[index].isDisabled = false
         }
     }
+
+    // MARK: - 折扣相關方法
+
+    /// 嘗試新增折扣
+    func tryAddDiscount() -> String? {
+        let trimmed = newDiscountValue.trimmingCharacters(in: .whitespaces)
+
+        guard !trimmed.isEmpty else {
+            return "請輸入數值"
+        }
+
+        guard let value = Decimal(string: trimmed), value > 0 else {
+            return "請輸入有效的數值"
+        }
+
+        // 百分比驗證：必須是整數且不超過 100
+        if newDiscountType == .percentage {
+            // 檢查是否為整數（使用 NSDecimalNumber）
+            let nsValue = NSDecimalNumber(decimal: value)
+            let rounded = nsValue.rounding(accordingToBehavior: NSDecimalNumberHandler(
+                roundingMode: .plain,
+                scale: 0,
+                raiseOnExactness: false,
+                raiseOnOverflow: false,
+                raiseOnUnderflow: false,
+                raiseOnDivideByZero: false
+            ))
+            if nsValue.compare(rounded) != .orderedSame {
+                return "百分比必須是整數"
+            }
+            if value > 100 {
+                return "百分比不可超過 100"
+            }
+        }
+
+        // 檢查是否重複
+        let isDuplicate = discounts.contains {
+            $0.type == newDiscountType && $0.value == value
+        }
+        if isDuplicate {
+            return "此折扣已存在"
+        }
+
+        let discount = DiscountModel(type: newDiscountType, value: value)
+        discounts.append(discount)
+        newDiscountValue = ""
+        return nil
+    }
+
+    /// 刪除折扣
+    func deleteDiscount(_ discount: DiscountModel) {
+        discounts.removeAll { $0.id == discount.id }
+    }
+
+    // MARK: - 類別相關方法
 
     // 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
     func tryAddCategory() -> String? {
@@ -416,7 +492,8 @@ class AddSessionViewModel: ObservableObject {
             dateType: dateType,
             categories: categories,
             createdAt: baseSession.createdAt,
-            currency: selectedCurrency
+            currency: selectedCurrency,
+            discounts: discounts
         )
     }
 }

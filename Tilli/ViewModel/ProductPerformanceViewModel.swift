@@ -204,7 +204,6 @@ private extension ProductPerformanceViewModel {
                 productStats[productId]?.addSale(
                     quantity: item.quantity,
                     unitPrice: item.price,
-                    discount: item.discount,
                     actualTotal: item.total
                 )
             }

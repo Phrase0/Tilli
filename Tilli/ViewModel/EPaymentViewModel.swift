@@ -13,14 +13,16 @@ class EPaymentViewModel: ObservableObject {
     let totalAmount: Decimal
     let session: SessionModel
     let summaryItems: [SummaryItemModel]
+    let selectedDiscount: DiscountModel?
 
     @Published var showDateWarning: Bool = false
     @Published var dateWarningMessage: String = ""
 
-    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
+    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil) {
         self.totalAmount = totalAmount
         self.session = session
         self.summaryItems = summaryItems
+        self.selectedDiscount = selectedDiscount
     }
 
     /// 驗證交易日期是否在場次範圍內
@@ -71,7 +73,9 @@ class EPaymentViewModel: ObservableObject {
             items: summaryItems,
             totalAmount: totalAmount,
             paymentMethod: .ePayment,
-            timestamp: Date()
+            timestamp: Date(),
+            discountType: selectedDiscount?.type,
+            discountValue: selectedDiscount?.value
         )
 
         // 使用 SessionDataManager 添加交易記錄

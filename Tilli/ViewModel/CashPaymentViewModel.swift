@@ -9,10 +9,11 @@ import Foundation
 import SwiftUI
 
 class CashPaymentViewModel: ObservableObject {
-    
+
     let totalAmount: Decimal
     let session: SessionModel
     let summaryItems: [SummaryItemModel]
+    let selectedDiscount: DiscountModel?
 
     @Published var receivedAmountText: String = ""
     @Published var errorMessage: String? = nil
@@ -105,10 +106,11 @@ class CashPaymentViewModel: ObservableObject {
         return filtered
     }
 
-    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel]) {
+    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil) {
         self.totalAmount = totalAmount
         self.session = session
         self.summaryItems = summaryItems
+        self.selectedDiscount = selectedDiscount
     }
 
     /// 驗證交易日期是否在場次範圍內
@@ -159,7 +161,9 @@ class CashPaymentViewModel: ObservableObject {
             items: summaryItems,
             totalAmount: totalAmount,
             paymentMethod: .cash,
-            timestamp: Date()
+            timestamp: Date(),
+            discountType: selectedDiscount?.type,
+            discountValue: selectedDiscount?.value
         )
 
         // 使用 SessionDataManager 添加交易記錄
