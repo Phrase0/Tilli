@@ -19,6 +19,7 @@ struct AddSessionView: View {
     enum FocusField: Hashable {
         case sessionName
         case newCategory
+        case editingCategory
         case newDiscount
     }
     
@@ -162,9 +163,6 @@ struct AddSessionView: View {
                     TextField("新增類別", text: $viewModel.newCategory)
                         .focused($focusedField, equals: .newCategory)
                         .submitLabel(.done)
-                        .onSubmit {
-                            addCategoryAction()
-                        }
 
                     Button {
                         addCategoryAction()
@@ -273,8 +271,11 @@ struct AddSessionView: View {
             viewModel.alertMessage = error
             viewModel.showAlert = true
         } else {
-            // 成功新增後收起鍵盤
+            // 成功後重新聚焦，讓畫面滾動到輸入框
             focusedField = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                focusedField = .newCategory
+            }
         }
     }
 
@@ -282,6 +283,12 @@ struct AddSessionView: View {
         if let error = viewModel.tryAddDiscount() {
             viewModel.alertMessage = error
             viewModel.showAlert = true
+        } else {
+            // 成功後重新聚焦，讓畫面滾動到輸入框
+            focusedField = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                focusedField = .newDiscount
+            }
         }
     }
 
@@ -298,7 +305,7 @@ struct AddSessionView: View {
                     viewModel.updateCategoryName(id: category.id, newName: newValue)
                 }
             ))
-            .focused($focusedField, equals: .newCategory)
+            .focused($focusedField, equals: .editingCategory)
             .onSubmit {
                 viewModel.editingCategoryID = nil
             }
@@ -370,9 +377,7 @@ struct AddSessionView: View {
             return Alert(
                 title: Text("提醒"),
                 message: Text(viewModel.alertMessage),
-                dismissButton: .default(Text("好")) {
-                    focusedField = .newCategory
-                }
+                dismissButton: .default(Text("好"))
             )
         }
     }
