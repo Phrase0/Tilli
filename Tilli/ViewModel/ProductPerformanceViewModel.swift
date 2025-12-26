@@ -385,28 +385,34 @@ private extension ProductPerformanceViewModel {
             salesInsights = SalesInsightsData()
             return
         }
-        
+
         let bestProduct = topProducts.first!
-        let bestCategory = categoryAnalysis.first!
         let lowestCategory = categoryAnalysis.last!
-        
+
         let hotProductInsight = "熱銷商品"
         let hotProductDescription = "\(bestProduct.name)表現最佳，佔總銷售額 \(bestProduct.contributionRate)%"
 
         // 找出折扣最多的商品（使用相同的時間範圍）
         let highestDiscountProduct = findHighestDiscountProduct(timeRange: timeRange)
-        let discountInsight = "折扣效果"
-        let discountDescription = highestDiscountProduct.isEmpty ? 
-            "\(bestCategory.name)類商品表現優異，銷售狀況良好" :
-            "\(highestDiscountProduct.name)折扣最多，平均折扣達 \(highestDiscountProduct.averageDiscountRate)%"
-        
+
+        // 只有在有折扣資料時才設定折扣洞察
+        let discountTitle: String?
+        let discountDescription: String?
+        if !highestDiscountProduct.isEmpty {
+            discountTitle = "折扣效果"
+            discountDescription = "\(highestDiscountProduct.name)折扣最多，平均折扣達 \(highestDiscountProduct.averageDiscountRate)%"
+        } else {
+            discountTitle = nil
+            discountDescription = nil
+        }
+
         let suggestionInsight = "優化建議"
         let suggestionDescription = "可考慮增加\(lowestCategory.name)類商品的促銷活動"
-        
+
         salesInsights = SalesInsightsData(
             hotProductTitle: hotProductInsight,
             hotProductDescription: hotProductDescription,
-            discountTitle: discountInsight,
+            discountTitle: discountTitle,
             discountDescription: discountDescription,
             suggestionTitle: suggestionInsight,
             suggestionDescription: suggestionDescription
