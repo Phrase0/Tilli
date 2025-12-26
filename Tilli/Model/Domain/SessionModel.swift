@@ -16,6 +16,7 @@ struct SessionModel: Identifiable, Codable, Hashable {
     var categories: [CategoryModel]     // 類別選單，用於過濾商品或報表
     var createdAt: Date                 // 場次建立時間
     var currency: String = "TWD"        // 場次使用的幣別，預設為台幣
+    var discounts: [DiscountModel] = [] // 場次可用的折扣選項
 
     // 計算屬性：顯示用的日期（= startDate）
     var displayDate: Date {

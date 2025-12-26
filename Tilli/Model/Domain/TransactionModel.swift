@@ -15,6 +15,8 @@ struct TransactionModel: Identifiable, Codable, Hashable {
     var totalAmount: Decimal
     var paymentMethod: PaymentMethod
     var timestamp: Date
+    var discountType: DiscountType?   // 套用的折扣類型（整筆訂單）
+    var discountValue: Decimal?       // 套用的折扣數值
 }
 
 enum PaymentMethod: String, Codable {

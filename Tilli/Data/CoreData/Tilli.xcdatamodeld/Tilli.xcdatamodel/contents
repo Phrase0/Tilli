@@ -30,6 +30,7 @@
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="currency" attributeType="String"/>
         <attribute name="dateType" attributeType="String"/>
+        <attribute name="discountsData" optional="YES" attributeType="Binary"/>
         <attribute name="endDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="startDate" attributeType="Date" usesScalarValueType="NO"/>
@@ -39,6 +40,8 @@
     </entity>
     <entity name="CDTransactionEntity" representedClassName="CDTransactionEntity" syncable="YES">
         <attribute name="currency" attributeType="String"/>
+        <attribute name="discountType" optional="YES" attributeType="String"/>
+        <attribute name="discountValue" optional="YES" attributeType="Decimal"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="itemsData" optional="YES" attributeType="Binary"/>
         <attribute name="paymentMethod" attributeType="String"/>
