@@ -147,6 +147,20 @@ class TestDataGenerator {
         let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: Date())!
         let startDate = calendar.startOfDay(for: threeMonthsAgo)
 
+        // TWD 折扣測試資料（8個：4個百分比 + 4個金額）
+        let twdDiscounts: [DiscountModel] = [
+            // 百分比折扣
+            DiscountModel(type: .percentage, value: 5),
+            DiscountModel(type: .percentage, value: 10),
+            DiscountModel(type: .percentage, value: 15),
+            DiscountModel(type: .percentage, value: 20),
+            // 金額折扣（TWD 無小數）
+            DiscountModel(type: .amount, value: 10),
+            DiscountModel(type: .amount, value: 20),
+            DiscountModel(type: .amount, value: 50),
+            DiscountModel(type: .amount, value: 100)
+        ]
+
         let session = SessionModel(
             id: sessionId,
             title: "測試咖啡廳（永久）",
@@ -155,7 +169,8 @@ class TestDataGenerator {
             dateType: .permanent,
             categories: [category1, category2, category3],
             createdAt: Date(),
-            currency: "TWD"
+            currency: "TWD",
+            discounts: twdDiscounts
         )
 
         // 新增場次
@@ -303,6 +318,20 @@ class TestDataGenerator {
         )
         let endDate = calendar.date(byAdding: .day, value: 29, to: startDate)!
 
+        // EUR 折扣測試資料（8個：4個百分比 + 4個金額）
+        let eurDiscounts: [DiscountModel] = [
+            // 百分比折扣
+            DiscountModel(type: .percentage, value: 5),
+            DiscountModel(type: .percentage, value: 10),
+            DiscountModel(type: .percentage, value: 15),
+            DiscountModel(type: .percentage, value: 20),
+            // 金額折扣（整數）
+            DiscountModel(type: .amount, value: 1),
+            DiscountModel(type: .amount, value: 2),
+            DiscountModel(type: .amount, value: 5),
+            DiscountModel(type: .amount, value: 10)
+        ]
+
         let session = SessionModel(
             id: sessionId,
             title: "測試咖啡廳（30 天 / EUR）",
@@ -311,7 +340,8 @@ class TestDataGenerator {
             dateType: .multi,
             categories: [category1, category2, category3],
             createdAt: Date(),
-            currency: "EUR"
+            currency: "EUR",
+            discounts: eurDiscounts
         )
 
         sessionDataManager.addSession(session)

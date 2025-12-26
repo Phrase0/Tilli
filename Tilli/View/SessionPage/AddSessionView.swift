@@ -19,6 +19,7 @@ struct AddSessionView: View {
     enum FocusField: Hashable {
         case sessionName
         case newCategory
+        case newDiscount
     }
     
     @FocusState private var focusedField: FocusField?
@@ -157,17 +158,25 @@ struct AddSessionView: View {
                         }
                 }
 
-                TextField("新增類別", text: $viewModel.newCategory)
-                    .focused($focusedField, equals: .newCategory)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        if let error = viewModel.tryAddCategory() {
-                            viewModel.alertMessage = error
-                            viewModel.showAlert = true
-                        } else {
-                            focusedField = .newCategory
+                HStack {
+                    TextField("新增類別", text: $viewModel.newCategory)
+                        .focused($focusedField, equals: .newCategory)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            addCategoryAction()
                         }
+
+                    Button {
+                        addCategoryAction()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(
+                                viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : .blue
+                            )
                     }
+                    .disabled(viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
             }
 
             // MARK: - 折扣 Section
@@ -185,11 +194,12 @@ struct AddSessionView: View {
                 // 新增折扣輸入區
                 HStack(spacing: 12) {
                     TextField("數值", text: $viewModel.newDiscountValue)
-                        .keyboardType(viewModel.discountSupportsDecimal ? .decimalPad : .numberPad)
+                        .keyboardType(.numberPad)
                         .frame(width: 80)
-                        .onChange(of: viewModel.newDiscountType) { _, _ in
-                            // 切換類型時清空輸入值（避免格式問題）
-                            viewModel.newDiscountValue = ""
+                        .focused($focusedField, equals: .newDiscount)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            addDiscountAction()
                         }
 
                     Picker("類型", selection: $viewModel.newDiscountType) {
@@ -199,10 +209,7 @@ struct AddSessionView: View {
                     .pickerStyle(.segmented)
 
                     Button {
-                        if let error = viewModel.tryAddDiscount() {
-                            viewModel.alertMessage = error
-                            viewModel.showAlert = true
-                        }
+                        addDiscountAction()
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -256,12 +263,27 @@ struct AddSessionView: View {
                 transactionDataManager: transactionDataManager,
                 productRepository: productRepository
             )
-            // 自動聚焦到場次名稱欄位
-            focusedField = .sessionName
         }
     }
     
     // MARK: - Helper Methods
+
+    private func addCategoryAction() {
+        if let error = viewModel.tryAddCategory() {
+            viewModel.alertMessage = error
+            viewModel.showAlert = true
+        } else {
+            // 成功新增後收起鍵盤
+            focusedField = nil
+        }
+    }
+
+    private func addDiscountAction() {
+        if let error = viewModel.tryAddDiscount() {
+            viewModel.alertMessage = error
+            viewModel.showAlert = true
+        }
+    }
 
     @ViewBuilder
     private func categoryRow(for category: CategoryModel) -> some View {

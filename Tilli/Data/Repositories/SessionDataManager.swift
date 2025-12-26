@@ -138,6 +138,7 @@ class SessionDataManager: ObservableObject {
             entity.endDate = model.endDate
             entity.dateType = model.dateType.rawValue
             entity.currency = model.currency
+            entity.discountsData = try? JSONEncoder().encode(model.discounts)
 
             // 同步更新所有相關交易記錄
             if titleChanged || dateChanged {
