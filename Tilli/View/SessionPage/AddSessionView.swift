@@ -159,6 +159,9 @@ struct AddSessionView: View {
                             swipeActionsContent(for: category)
                         }
                 }
+                .onMove { from, to in
+                    viewModel.moveCategory(from: from, to: to)
+                }
 
                 HStack {
                     TextField("新增類別", text: $viewModel.newCategory)
@@ -189,11 +192,18 @@ struct AddSessionView: View {
                 }
             }
 
-            // MARK: - 折扣 Section
+    // MARK: - 折扣 Section
             Section(header: Text("折扣")) {
                 // 已有的折扣列表
                 ForEach(viewModel.discounts) { discount in
-                    Text(discount.displayText(currency: viewModel.selectedCurrency))
+                    HStack {
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundColor(.gray)
+                        Text(discount.displayText(currency: viewModel.selectedCurrency))
+                    }
+                }
+                .onMove { from, to in
+                    viewModel.moveDiscount(from: from, to: to)
                 }
                 .onDelete { indexSet in
                     indexSet.forEach { index in
@@ -326,39 +336,48 @@ struct AddSessionView: View {
         let canEdit = viewModel.canEditCategoryName(for: category.id)
         // 2. 如果正在編輯這個類別 且 可以編輯
         if viewModel.editingCategoryID == category.id && canEdit {
-            TextField("類別名稱", text: Binding(
-                get: {
-                    // 直接使用 category.id 查找，避免依賴 editingCategoryID
-                    viewModel.categories.first(where: { $0.id == category.id })?.name ?? ""
-                },
-                set: { newValue in
-                    viewModel.updateCategoryName(id: category.id, newName: newValue)
+            HStack {
+                Image(systemName: "line.3.horizontal")
+                    .foregroundColor(.gray)
+                TextField("類別名稱", text: Binding(
+                    get: {
+                        // 直接使用 category.id 查找，避免依賴 editingCategoryID
+                        viewModel.categories.first(where: { $0.id == category.id })?.name ?? ""
+                    },
+                    set: { newValue in
+                        viewModel.updateCategoryName(id: category.id, newName: newValue)
+                    }
+                ))
+                .focused($focusedField, equals: .editingCategory)
+                .onSubmit {
+                    // 收起鍵盤，觸發 onChange(of: focusedField) 處理刪除邏輯
+                    focusedField = nil
                 }
-            ))
-            .focused($focusedField, equals: .editingCategory)
-            .onSubmit {
-                // 收起鍵盤，觸發 onChange(of: focusedField) 處理刪除邏輯
-                focusedField = nil
             }
         } else {
             // 3. 否則只顯示文字
-            Text(category.name)
-                .foregroundColor(canEdit ? .primary : .gray)
-                .onTapGesture {
-                    if canEdit {
-                        // 隱藏警告提示
-                        viewModel.showCategoryEditWarning = false
-                        // 點擊後進入編輯模式（先結束舊編輯，再開始新編輯）
-                        if let error = viewModel.startEditingCategory(id: category.id) {
-                            viewModel.alertMessage = error
-                            viewModel.showAlert = true
-                        }
-                        focusedField = .editingCategory
-                    } else {
-                        // 顯示不可編輯的提示
-                        viewModel.showCategoryEditWarning = true
+            HStack {
+                Image(systemName: "line.3.horizontal")
+                    .foregroundColor(.gray)
+                Text(category.name)
+                    .foregroundColor(canEdit ? .primary : .gray)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if canEdit {
+                    // 隱藏警告提示
+                    viewModel.showCategoryEditWarning = false
+                    // 點擊後進入編輯模式（先結束舊編輯，再開始新編輯）
+                    if let error = viewModel.startEditingCategory(id: category.id) {
+                        viewModel.alertMessage = error
+                        viewModel.showAlert = true
                     }
+                    focusedField = .editingCategory
+                } else {
+                    // 顯示不可編輯的提示
+                    viewModel.showCategoryEditWarning = true
                 }
+            }
         }
     }
     

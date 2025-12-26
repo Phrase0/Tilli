@@ -22,6 +22,7 @@ extension CDCategoryEntity {
     @NSManaged public var session: CDSessionEntity
     @NSManaged public var products: NSSet?
     @NSManaged public var isDisabled: Bool
+    @NSManaged public var sortOrder: Int16
 
 }
 
@@ -48,11 +49,19 @@ extension CDCategoryEntity {
         self.name = model.name
         self.createdAt = model.createdAt
         self.isDisabled = model.isDisabled
+        self.sortOrder = Int16(model.sortOrder)
     }
 
     func toModel() -> CategoryModel {
         let products = (self.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
-        return CategoryModel(id: self.id, name: self.name, products: products, createdAt: self.createdAt, isDisabled: self.isDisabled)
+        return CategoryModel(
+            id: self.id,
+            name: self.name,
+            products: products,
+            createdAt: self.createdAt,
+            isDisabled: self.isDisabled,
+            sortOrder: Int(self.sortOrder)
+        )
     }
 
 }

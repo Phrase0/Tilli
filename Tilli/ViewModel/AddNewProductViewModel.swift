@@ -38,7 +38,7 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
-        session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+        session.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
 
     var selectedCategory: CategoryModel? {
