@@ -397,6 +397,11 @@ class AddSessionViewModel: ObservableObject {
     
     /// 驗證保存條件
     func validateSave() -> ValidationResult {
+        // 儲存前先結束編輯中的類別（如果有的話）
+        if let error = finishEditingCategory() {
+            return .failure(error)
+        }
+
         // 儲存前嘗試新增 newCategory
         if let error = tryAddCategory() {
             return .failure(error)
