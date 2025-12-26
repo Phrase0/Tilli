@@ -278,10 +278,7 @@ class AddSessionViewModel: ObservableObject {
 
         let new = CategoryModel(id: UUID(), name: trimmed)
         categories.append(new)
-
-        DispatchQueue.main.async {
-            self.newCategory = ""
-        }
+        newCategory = ""
 
         return nil
     }
