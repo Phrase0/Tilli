@@ -309,7 +309,8 @@ struct AddSessionView: View {
         if viewModel.editingCategoryID == category.id && canEdit {
             TextField("類別名稱", text: Binding(
                 get: {
-                    viewModel.selectedCategory?.name ?? ""
+                    // 直接使用 category.id 查找，避免依賴 editingCategoryID
+                    viewModel.categories.first(where: { $0.id == category.id })?.name ?? ""
                 },
                 set: { newValue in
                     viewModel.updateCategoryName(id: category.id, newName: newValue)
