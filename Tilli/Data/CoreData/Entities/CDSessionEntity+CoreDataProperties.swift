@@ -23,6 +23,7 @@ extension CDSessionEntity {
     @NSManaged public var dateType: String       // 場次類型："single" | "multi" | "permanent"
     @NSManaged public var createdAt: Date
     @NSManaged public var currency: String
+    @NSManaged public var discountsData: Data?   // 折扣選項（JSON 編碼）
     @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
 
@@ -72,6 +73,9 @@ extension CDSessionEntity {
         self.dateType = model.dateType.rawValue
         self.createdAt = model.createdAt
         self.currency = model.currency
+
+        // 編碼 discounts
+        self.discountsData = try? JSONEncoder().encode(model.discounts)
     }
 
 
@@ -79,6 +83,12 @@ extension CDSessionEntity {
     func toModel() -> SessionModel {
         // 取出所有 CategoryModel
         let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
+
+        // 解碼 discounts
+        let discountModels: [DiscountModel] = {
+            guard let data = discountsData else { return [] }
+            return (try? JSONDecoder().decode([DiscountModel].self, from: data)) ?? []
+        }()
 
         return SessionModel(
             id: self.id,
@@ -88,7 +98,8 @@ extension CDSessionEntity {
             dateType: SessionDateType(rawValue: self.dateType) ?? .single,
             categories: categoryModels,
             createdAt: self.createdAt,
-            currency: self.currency
+            currency: self.currency,
+            discounts: discountModels
         )
     }
 
