@@ -135,11 +135,22 @@ class AddSessionViewModel: ObservableObject {
     }
 
     /// 開始編輯類別名稱（儲存原名稱）
-    func startEditingCategory(id: UUID) {
+    /// 返回錯誤訊息（如果舊編輯有問題），nil 表示成功
+    @discardableResult
+    func startEditingCategory(id: UUID) -> String? {
+        // 先結束當前編輯（如果有的話）
+        var errorMessage: String? = nil
+        if editingCategoryID != nil {
+            errorMessage = finishEditingCategory()
+        }
+
+        // 開始新的編輯
         if let category = categories.first(where: { $0.id == id }) {
             originalCategoryName = category.name
             editingCategoryID = id
         }
+
+        return errorMessage
     }
 
     /// 結束編輯類別名稱（檢查是否為空，為空則恢復原名稱）

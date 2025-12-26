@@ -325,8 +325,11 @@ struct AddSessionView: View {
             Text(category.name)
                 .onTapGesture {
                     if canEdit {
-                        // 點擊後進入編輯模式（儲存原名稱並設置焦點）
-                        viewModel.startEditingCategory(id: category.id)
+                        // 點擊後進入編輯模式（先結束舊編輯，再開始新編輯）
+                        if let error = viewModel.startEditingCategory(id: category.id) {
+                            viewModel.alertMessage = error
+                            viewModel.showAlert = true
+                        }
                         focusedField = .editingCategory
                     }
                 }
