@@ -169,7 +169,19 @@ struct TransactionHistoryView: View {
                         
                         Spacer()
 
-                        HStack(alignment: .center)  {
+                        HStack(alignment: .center, spacing: 8)  {
+                            // 顯示折扣標籤
+                            if let discountType = transaction.discountType,
+                               let discountValue = transaction.discountValue {
+                                Text(formatDiscount(type: discountType, value: discountValue))
+                                    .font(.caption)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.blue.opacity(0.2))
+                                    .foregroundColor(.blue)
+                                    .cornerRadius(4)
+                            }
+
                             Text(transactionViewModel.formatAmount(transaction.totalAmount))
                                 .font(.headline)
                                 .bold()
@@ -271,6 +283,18 @@ struct TransactionHistoryView: View {
         .padding(.horizontal)
         .padding(.vertical, 12)
         .background(Color.white)
+    }
+
+    // MARK: - Helper Methods
+
+    /// 格式化折扣顯示文字
+    private func formatDiscount(type: DiscountType, value: Decimal) -> String {
+        switch type {
+        case .percentage:
+            return "\(value)%"
+        case .amount:
+            return "-\(value)"
+        }
     }
 }
 

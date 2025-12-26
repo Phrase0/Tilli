@@ -187,11 +187,31 @@ private extension ProductPerformanceViewModel {
         
         // 建立商品銷售統計字典
         var productStats: [UUID: ProductSalesStats] = [:]
-        
+
         for transaction in transactions {
+            // 計算交易的小計（折扣前）
+            let transactionSubtotal = transaction.items.reduce(Decimal(0)) { result, item in
+                MoneyHelper.add(result, item.total)
+            }
+
+            // 計算交易的折扣金額
+            let transactionDiscountAmount: Decimal = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue,
+                      transactionSubtotal > 0 else {
+                    return 0
+                }
+                switch discountType {
+                case .percentage:
+                    return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
+                case .amount:
+                    return min(discountValue, transactionSubtotal)
+                }
+            }()
+
             for item in transaction.items {
                 let productId = item.productId
-                
+
                 if productStats[productId] == nil {
                     productStats[productId] = ProductSalesStats(
                         productId: productId,
@@ -200,11 +220,18 @@ private extension ProductPerformanceViewModel {
                         categoryId: item.categoryId
                     )
                 }
-                
+
+                // 計算此商品在交易中的佔比，並分攤折扣
+                let itemProportion: Decimal = transactionSubtotal > 0
+                    ? MoneyHelper.divide(item.total, transactionSubtotal)
+                    : 0
+                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
+                let itemActualTotal = MoneyHelper.subtract(item.total, itemDiscountShare)
+
                 productStats[productId]?.addSale(
                     quantity: item.quantity,
                     unitPrice: item.price,
-                    actualTotal: item.total
+                    actualTotal: itemActualTotal
                 )
             }
         }
@@ -271,19 +298,46 @@ private extension ProductPerformanceViewModel {
         
         // 建立分類銷售統計字典
         var categoryStats: [UUID: CategorySalesStats] = [:]
-        
+
         for transaction in transactions {
+            // 計算交易的小計（折扣前）
+            let transactionSubtotal = transaction.items.reduce(Decimal(0)) { result, item in
+                MoneyHelper.add(result, item.total)
+            }
+
+            // 計算交易的折扣金額
+            let transactionDiscountAmount: Decimal = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue,
+                      transactionSubtotal > 0 else {
+                    return 0
+                }
+                switch discountType {
+                case .percentage:
+                    return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
+                case .amount:
+                    return min(discountValue, transactionSubtotal)
+                }
+            }()
+
             for item in transaction.items {
                 let categoryId = item.categoryId
-                
+
                 if categoryStats[categoryId] == nil {
                     categoryStats[categoryId] = CategorySalesStats(
                         categoryId: categoryId,
                         name: item.category
                     )
                 }
-                
-                categoryStats[categoryId]?.addSale(amount: item.total)
+
+                // 計算此商品在交易中的佔比，並分攤折扣
+                let itemProportion: Decimal = transactionSubtotal > 0
+                    ? MoneyHelper.divide(item.total, transactionSubtotal)
+                    : 0
+                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
+                let itemActualTotal = MoneyHelper.subtract(item.total, itemDiscountShare)
+
+                categoryStats[categoryId]?.addSale(amount: itemActualTotal)
             }
         }
         
@@ -376,34 +430,47 @@ private extension ProductPerformanceViewModel {
             transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
         }
 
-        // 建立商品折扣統計
-        var productDiscountStats: [UUID: (name: String, totalDiscount: Decimal, totalQuantity: Int)] = [:]
+        // 建立商品折扣統計（累計折扣金額和原價）
+        var productDiscountStats: [UUID: (name: String, totalOriginal: Decimal, totalDiscount: Decimal)] = [:]
 
         for transaction in transactions {
+            // 計算交易的小計（折扣前）
+            let transactionSubtotal = transaction.items.reduce(Decimal(0)) { result, item in
+                MoneyHelper.add(result, item.total)
+            }
+
+            // 計算交易的折扣金額
+            let transactionDiscountAmount: Decimal = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue,
+                      transactionSubtotal > 0 else {
+                    return 0
+                }
+                switch discountType {
+                case .percentage:
+                    return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
+                case .amount:
+                    return min(discountValue, transactionSubtotal)
+                }
+            }()
+
             for item in transaction.items {
                 let productId = item.productId
 
                 if productDiscountStats[productId] == nil {
-                    productDiscountStats[productId] = (name: item.name, totalDiscount: 0, totalQuantity: 0)
+                    productDiscountStats[productId] = (name: item.name, totalOriginal: 0, totalDiscount: 0)
                 }
 
-                // 計算該項目的折扣率
-                let originalItemTotal = MoneyHelper.multiply(item.price, Decimal(item.quantity))
-                let discountAmount = MoneyHelper.subtract(originalItemTotal, item.total)
+                // 計算此商品在交易中的佔比，並分攤折扣
+                let itemProportion: Decimal = transactionSubtotal > 0
+                    ? MoneyHelper.divide(item.total, transactionSubtotal)
+                    : 0
+                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
 
-                // 分解複雜的折扣率計算
-                let discountRate: Decimal
-                if originalItemTotal > 0 {
-                    let discountRatio = MoneyHelper.divide(discountAmount, originalItemTotal)
-                    discountRate = MoneyHelper.multiply(discountRatio, Decimal(100))
-                } else {
-                    discountRate = 0
-                }
-
-                // 避免重疊訪問，先讀取再更新
+                // 累計原價和折扣
                 if var stats = productDiscountStats[productId] {
-                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, discountRate)
-                    stats.totalQuantity += 1
+                    stats.totalOriginal = MoneyHelper.add(stats.totalOriginal, item.total)
+                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, itemDiscountShare)
                     productDiscountStats[productId] = stats
                 }
             }
@@ -414,14 +481,21 @@ private extension ProductPerformanceViewModel {
         var maxAverageDiscountRate = Decimal(0)
 
         for (_, stats) in productDiscountStats {
-            let averageDiscountRate = stats.totalQuantity > 0 ?
-                MoneyHelper.divide(stats.totalDiscount, Decimal(stats.totalQuantity)) : 0
-            if averageDiscountRate > maxAverageDiscountRate {
-                maxAverageDiscountRate = averageDiscountRate
+            // 計算折扣率 = 總折扣 / 總原價 * 100
+            let discountRate: Decimal
+            if stats.totalOriginal > 0 {
+                let ratio = MoneyHelper.divide(stats.totalDiscount, stats.totalOriginal)
+                discountRate = MoneyHelper.multiply(ratio, Decimal(100))
+            } else {
+                discountRate = 0
+            }
+
+            if discountRate > maxAverageDiscountRate {
+                maxAverageDiscountRate = discountRate
                 maxDiscountProduct = stats.name
             }
         }
-        
+
         return (
             name: maxDiscountProduct,
             averageDiscountRate: Int(MoneyHelper.toDouble(maxAverageDiscountRate)), 
