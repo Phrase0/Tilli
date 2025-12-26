@@ -154,6 +154,7 @@ struct AddSessionView: View {
             Section(header: Text("類別")) {
                 ForEach(viewModel.activeSortedCategories, id: \.id) { category in
                     categoryRow(for: category)
+                        .id(category.id)
                         .swipeActions(edge: .trailing) {
                             swipeActionsContent(for: category)
                         }
@@ -291,6 +292,9 @@ struct AddSessionView: View {
     // MARK: - Helper Methods
 
     private func addCategoryAction() {
+        // 先結束編輯中的類別（如果有的話）
+//        _ = viewModel.finishEditingCategory()
+
         if let error = viewModel.tryAddCategory() {
             viewModel.alertMessage = error
             viewModel.showAlert = true
