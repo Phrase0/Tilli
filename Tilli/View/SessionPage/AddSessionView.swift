@@ -156,7 +156,7 @@ struct AddSessionView: View {
                             swipeActionsContent(for: category)
                         }
                 }
-                
+
                 TextField("新增類別", text: $viewModel.newCategory)
                     .focused($focusedField, equals: .newCategory)
                     .submitLabel(.done)
@@ -169,7 +169,51 @@ struct AddSessionView: View {
                         }
                     }
             }
-            
+
+            // MARK: - 折扣 Section
+            Section(header: Text("折扣")) {
+                // 已有的折扣列表
+                ForEach(viewModel.discounts) { discount in
+                    Text(discount.displayText(currency: viewModel.selectedCurrency))
+                }
+                .onDelete { indexSet in
+                    indexSet.forEach { index in
+                        viewModel.deleteDiscount(viewModel.discounts[index])
+                    }
+                }
+
+                // 新增折扣輸入區
+                HStack(spacing: 12) {
+                    TextField("數值", text: $viewModel.newDiscountValue)
+                        .keyboardType(viewModel.discountSupportsDecimal ? .decimalPad : .numberPad)
+                        .frame(width: 80)
+                        .onChange(of: viewModel.newDiscountType) { _, _ in
+                            // 切換類型時清空輸入值（避免格式問題）
+                            viewModel.newDiscountValue = ""
+                        }
+
+                    Picker("類型", selection: $viewModel.newDiscountType) {
+                        Text("%").tag(DiscountType.percentage)
+                        Text(viewModel.currentCurrency.symbol).tag(DiscountType.amount)
+                    }
+                    .pickerStyle(.segmented)
+
+                    Button {
+                        if let error = viewModel.tryAddDiscount() {
+                            viewModel.alertMessage = error
+                            viewModel.showAlert = true
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(
+                                viewModel.newDiscountValue.isEmpty ? .gray : .blue
+                            )
+                    }
+                    .disabled(viewModel.newDiscountValue.isEmpty)
+                }
+            }
+
             Section(header: Text("已停用類別")) {
                 ForEach(viewModel.disabledSortedCategories, id: \.id) { category in
                     Text(category.name)

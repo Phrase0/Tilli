@@ -108,7 +108,7 @@ class TransactionViewModel: ObservableObject {
         }
         csvContent += "\n"
 
-        csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,折扣%,小計(\(currencyCode)),總金額(\(currencyCode))\n"
+        csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,小計(\(currencyCode)),訂單折扣,總金額(\(currencyCode))\n"
 
         for transaction in transactions.sorted(by: { $0.timestamp > $1.timestamp }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
@@ -116,15 +116,28 @@ class TransactionViewModel: ObservableObject {
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
+            // 訂單級別的折扣
+            let transactionDiscount: String = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue else {
+                    return "-"
+                }
+                switch discountType {
+                case .percentage:
+                    return "\(discountValue)%"
+                case .amount:
+                    return "-\(discountValue)"
+                }
+            }()
+
             for item in transaction.items {
                 let productName = item.name.replacingOccurrences(of: ",", with: "，") // 避免CSV格式問題
                 let category = item.category.replacingOccurrences(of: ",", with: "，")
                 let unitPrice = MoneyHelper.toDisplayString(item.price, currency: currency)
                 let quantity = "\(item.quantity)"
-                let discount = item.discount > 0 ? "\(item.discount)%" : "0%"
                 let subtotal = MoneyHelper.toDisplayString(item.total, currency: currency)
 
-                let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(discount),\(subtotal),\(totalAmount)\n"
+                let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(subtotal),\(transactionDiscount),\(totalAmount)\n"
                 csvContent += row
             }
         }

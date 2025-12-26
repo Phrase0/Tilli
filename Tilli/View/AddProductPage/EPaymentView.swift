@@ -28,13 +28,15 @@ struct EPaymentView: View {
         totalAmount: Decimal,
         session: Binding<SessionModel>,
         summaryItems: [SummaryItemModel],
+        selectedDiscount: DiscountModel? = nil,
         onComplete: @escaping (SessionModel) -> Void
     ) {
         self._session = session
         self._viewModel = ObservedObject(wrappedValue: EPaymentViewModel(
             totalAmount: totalAmount,
             session: session.wrappedValue,
-            summaryItems: summaryItems
+            summaryItems: summaryItems,
+            selectedDiscount: selectedDiscount
         ))
         self.onComplete = onComplete
     }

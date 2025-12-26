@@ -9,12 +9,12 @@ import SwiftUI
 import Foundation
 
 class ProductViewModel: ObservableObject {
-    
+
     @Binding var session: SessionModel
     @Published var categories: [CategoryModel] = []
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
-    @Published var selectedDiscounts: [UUID: Int] = [:]
+    @Published var selectedDiscountId: UUID?  // 當前選擇的折扣 ID（整筆訂單）
     
     // Alert 相關狀態
     @Published var showAlert = false
@@ -65,7 +65,13 @@ class ProductViewModel: ObservableObject {
     var shouldShowEmptyState: Bool {
         return !hasAnyProducts && disabledProducts.isEmpty
     }
-    
+
+    /// 取得選中的折扣 Model
+    var selectedDiscount: DiscountModel? {
+        guard let id = selectedDiscountId else { return nil }
+        return session.discounts.first { $0.id == id }
+    }
+
     init(session: Binding<SessionModel>) {
         self._session = session
     }
@@ -168,51 +174,46 @@ class ProductViewModel: ObservableObject {
         }
     }
     
-    func toggleDiscount(for product: ProductModel, percent: Int) {
-        // 無庫存商品不能選擇折扣
-        if isOutOfStock(product) {
-            return
-        }
-        
-        if selectedDiscounts[product.id] == percent {
-            selectedDiscounts[product.id] = nil
-        } else {
-            selectedDiscounts[product.id] = percent
-        }
-    }
-    
-    func isDiscountSelected(for product: ProductModel, percent: Int) -> Bool {
-        selectedDiscounts[product.id] == percent
-    }
-    
     func quantity(for product: ProductModel) -> Int {
         quantities[product.id, default: 0]
     }
     
     func clearAllQuantities() {
         quantities.removeAll()
-        selectedDiscounts.removeAll()
+        selectedDiscountId = nil
     }
-    
-    func totalAmount() -> Decimal {
+
+    /// 計算小計（未套用折扣）
+    func subtotal() -> Decimal {
         activeProducts.reduce(Decimal(0)) { result, product in
             let qty = quantities[product.id, default: 0]
-            let discount = selectedDiscounts[product.id] ?? 0
-            let total = MoneyHelper.calculateTotal(
-                price: product.price,
-                quantity: qty,
-                discountPercentage: discount
-            )
-            return MoneyHelper.add(result, total)
+            let itemTotal = MoneyHelper.multiply(product.price, Decimal(qty))
+            return MoneyHelper.add(result, itemTotal)
+        }
+    }
+
+    /// 計算總金額（套用折扣）
+    func totalAmount() -> Decimal {
+        let sub = subtotal()
+
+        guard let discount = selectedDiscount else {
+            return sub
+        }
+
+        switch discount.type {
+        case .percentage:
+            let rate = MoneyHelper.subtract(Decimal(1), discount.value / 100)
+            return MoneyHelper.multiply(sub, rate)
+        case .amount:
+            return max(MoneyHelper.subtract(sub, discount.value), 0)
         }
     }
     
-    func selectedProductsWithQuantityAndDiscount() -> [SummaryItemModel] {
+    /// 產生 SummaryItemModel 列表（不含折扣，折扣存在 Transaction 層級）
+    func selectedProductsWithQuantity() -> [SummaryItemModel] {
         activeProducts.compactMap { product -> SummaryItemModel? in
             let qty = quantity(for: product)
             guard qty > 0 else { return nil }
-
-            let discount = selectedDiscounts[product.id, default: 0]
 
             return SummaryItemModel(
                 productId: product.id,
@@ -221,7 +222,6 @@ class ProductViewModel: ObservableObject {
                 categoryId: product.categoryId,
                 category: product.categoryName,
                 quantity: qty,
-                discount: discount,
                 timestamp: Date()
             )
         }
@@ -303,16 +303,15 @@ class ProductViewModel: ObservableObject {
     /// 確認刪除/下架操作
     func confirmDeletionAction() {
         guard let productId = productPendingDeletion else { return }
-        
+
         if isDisableAction {
             disableProduct(byId: productId)
         } else {
             removeProduct(byId: productId)
             // 清除該產品的選擇狀態
             quantities.removeValue(forKey: productId)
-            selectedDiscounts.removeValue(forKey: productId)
         }
-        
+
         loadProducts()
         resetDeletionState()
     }

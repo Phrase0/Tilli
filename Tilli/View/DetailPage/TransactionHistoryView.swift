@@ -210,12 +210,7 @@ struct TransactionHistoryView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                             .frame(width: 50, alignment: .center)
-                        
-                        Text("折扣")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .center)
-                        
+
                         Text("小計")
                             .font(.caption)
                             .foregroundColor(.gray)
@@ -265,13 +260,7 @@ struct TransactionHistoryView: View {
                 .font(.subheadline)
                 .foregroundColor(.primary)
                 .frame(width: 50, alignment: .center)
-            
-            // 折扣
-            Text(item.discount > 0 ? "\(item.discount)%" : "-")
-                .font(.subheadline)
-                .foregroundColor(item.discount > 0 ? .orange : .gray)
-                .frame(width: 50, alignment: .center)
-            
+
             // 小計
             Text("\(transactionViewModel.formatAmount(item.total))")
                 .font(.subheadline)

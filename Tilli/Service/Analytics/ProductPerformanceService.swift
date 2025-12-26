@@ -26,7 +26,7 @@ class ProductSalesStats {
         self.categoryId = categoryId
     }
 
-    func addSale(quantity: Int, unitPrice: Decimal, discount: Int, actualTotal: Decimal) {
+    func addSale(quantity: Int, unitPrice: Decimal, actualTotal: Decimal) {
         self.totalQuantity += quantity
         self.unitPrice = unitPrice // 假設同商品單價一致
         let originalTotal = MoneyHelper.multiply(unitPrice, Decimal(quantity))

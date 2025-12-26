@@ -105,31 +105,76 @@ struct ProductDetailView: View {
                         .padding(.top)
                     }
                     
-                    // Footer - 總計和結帳按鈕
-                        VStack(spacing: 12) {
-                            HStack {
-                                Text("總計")
-                                    .font(.headline)
-                                Spacer()
-                                Text(MoneyHelper.format(productViewModel.totalAmount(), currencyCode: productViewModel.session.currency))
-                                    .font(.headline)
-                                    .bold()
+                    // Footer - 折扣選擇器、總計和結帳按鈕
+                    VStack(spacing: 12) {
+                        // 折扣選擇器（只在有折扣選項時顯示）
+                        if !productViewModel.session.discounts.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("套用折扣")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(productViewModel.session.discounts) { discount in
+                                            let isSelected = productViewModel.selectedDiscountId == discount.id
+
+                                            Text(discount.displayText(currency: productViewModel.session.currency))
+                                                .font(.subheadline)
+                                                .fontWeight(isSelected ? .semibold : .regular)
+                                                .padding(.vertical, 8)
+                                                .padding(.horizontal, 16)
+                                                .background(isSelected ? Color.blue : Color(.systemGray5))
+                                                .foregroundColor(isSelected ? .white : .primary)
+                                                .cornerRadius(20)
+                                                .onTapGesture {
+                                                    if isSelected {
+                                                        productViewModel.selectedDiscountId = nil
+                                                    } else {
+                                                        productViewModel.selectedDiscountId = discount.id
+                                                    }
+                                                }
+                                        }
+                                    }
+                                    .padding(.horizontal, 1)
+                                }
                             }
-                            
-                            Button {
-                                showCheckoutSheet = true
-                            } label: {
-                                Text("結帳")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
-                                    .cornerRadius(30)
-                            }
-                            .disabled(productViewModel.totalAmount() == 0)
                         }
-                        .padding()
+
+                        HStack {
+                            Text("總計")
+                                .font(.headline)
+                            Spacer()
+
+                            // 顯示選中的折扣
+                            if let discount = productViewModel.selectedDiscount {
+                                Text(discount.displayText(currency: productViewModel.session.currency))
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.blue.opacity(0.2))
+                                    .cornerRadius(4)
+                            }
+
+                            Text(MoneyHelper.format(productViewModel.totalAmount(), currencyCode: productViewModel.session.currency))
+                                .font(.headline)
+                                .bold()
+                        }
+
+                        Button {
+                            showCheckoutSheet = true
+                        } label: {
+                            Text("結帳")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
+                                .cornerRadius(30)
+                        }
+                        .disabled(productViewModel.totalAmount() == 0)
+                    }
+                    .padding()
                 }
             }
         }
@@ -139,8 +184,9 @@ struct ProductDetailView: View {
         }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutSummaryView(
-                selectedItems: productViewModel.selectedProductsWithQuantityAndDiscount(),
+                selectedItems: productViewModel.selectedProductsWithQuantity(),
                 totalAmount: productViewModel.totalAmount(),
+                selectedDiscount: productViewModel.selectedDiscount,
                 session: $session,
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted
@@ -219,24 +265,6 @@ struct ProductDetailView: View {
                 }
                 
                 HStack {
-                    HStack(spacing: 8) {
-                        ForEach([5, 10, 20], id: \.self) { percent in
-                            let isSelected = productViewModel.isDiscountSelected(for: product, percent: percent)
-                            Text("\(percent)%")
-                                .font(.caption)
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, 8)
-                                .background(isSelected ? Color.blue : Color(.systemGray5))
-                                .foregroundColor(isSelected ? .white : (isOutOfStock ? .gray : .primary))
-                                .cornerRadius(6)
-                                .opacity(isOutOfStock ? 0.6 : 1.0)
-                                .onTapGesture {
-                                    if !isOutOfStock {
-                                        productViewModel.toggleDiscount(for: product, percent: percent)
-                                    }
-                                }
-                        }
-                    }
                     Spacer()
                     HStack(spacing: 16) {
                         Button {
