@@ -34,6 +34,9 @@ class AddSessionViewModel: ObservableObject {
     @Published var categoryPendingRestore: UUID?
     @Published var isDisableAction = false
 
+    // 類別編輯警告（點擊不可編輯類別時顯示）
+    @Published var showCategoryEditWarning = false
+
     var editingSession: SessionModel?
 
     // 用於獲取最新狀態的 DataManager

@@ -1,6 +1,6 @@
 
 //
-//  Untitled.swift
+//  SessionModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/4/23.
