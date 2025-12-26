@@ -2,7 +2,7 @@
 //  DiscountModel.swift
 //  Tilli
 //
-//  Created by Claude on 2025/12/26.
+//  Created by Peiyun on 2025/12/26.
 //
 
 import Foundation

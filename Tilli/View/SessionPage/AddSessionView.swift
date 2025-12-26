@@ -175,6 +175,17 @@ struct AddSessionView: View {
                     }
                     .disabled(viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+
+                // 點擊不可編輯類別時顯示提示
+                if viewModel.showCategoryEditWarning {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.orange)
+                        Text("此類別已有交易紀錄，無法更改名稱")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
             }
 
             // MARK: - 折扣 Section
@@ -262,13 +273,17 @@ struct AddSessionView: View {
                 productRepository: productRepository
             )
         }
-        .onChange(of: focusedField) { oldValue, _ in
+        .onChange(of: focusedField) { oldValue, newValue in
             // 當焦點從編輯類別移開時，檢查名稱是否有效
             if oldValue == .editingCategory {
                 if let error = viewModel.finishEditingCategory() {
                     viewModel.alertMessage = error
                     viewModel.showAlert = true
                 }
+            }
+            // 點擊新增類別時隱藏警告
+            if newValue == .newCategory {
+                viewModel.showCategoryEditWarning = false
             }
         }
     }
@@ -324,14 +339,20 @@ struct AddSessionView: View {
         } else {
             // 3. 否則只顯示文字
             Text(category.name)
+                .foregroundColor(canEdit ? .primary : .gray)
                 .onTapGesture {
                     if canEdit {
+                        // 隱藏警告提示
+                        viewModel.showCategoryEditWarning = false
                         // 點擊後進入編輯模式（先結束舊編輯，再開始新編輯）
                         if let error = viewModel.startEditingCategory(id: category.id) {
                             viewModel.alertMessage = error
                             viewModel.showAlert = true
                         }
                         focusedField = .editingCategory
+                    } else {
+                        // 顯示不可編輯的提示
+                        viewModel.showCategoryEditWarning = true
                     }
                 }
         }
