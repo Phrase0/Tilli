@@ -229,20 +229,6 @@ struct ProductDetailView: View {
                         Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
                             .font(.subheadline)
                             .foregroundColor(isOutOfStock ? .gray : .blue)
-                        HStack(spacing: 8) {
-                            Text("庫存: \(product.stock)")
-                                .font(.caption)
-                                .foregroundColor(isOutOfStock ? .gray : .gray)
-                            if isOutOfStock {
-                                Text("無庫存")
-                                    .font(.caption)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.red.opacity(0.1))
-                                    .foregroundColor(.red)
-                                    .cornerRadius(4)
-                            }
-                        }
                     }
                     Spacer()
                     Menu {
@@ -253,7 +239,7 @@ struct ProductDetailView: View {
                         } label: {
                             Label("編輯", systemImage: "pencil")
                         }
-                        
+
                         // 根據產品狀態顯示不同的操作按鈕
                         productActionContent(for: product)
                     } label: {
@@ -263,9 +249,25 @@ struct ProductDetailView: View {
                             .padding(8)
                     }
                 }
-                
+
                 HStack {
+                    HStack(spacing: 8) {
+                        Text("庫存: \(product.stock)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        if isOutOfStock {
+                            Text("無庫存")
+                                .font(.caption)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red)
+                                .cornerRadius(4)
+                        }
+                    }
+
                     Spacer()
+
                     HStack(spacing: 16) {
                         Button {
                             if !isOutOfStock {
@@ -276,11 +278,11 @@ struct ProductDetailView: View {
                                 .foregroundColor(isOutOfStock ? .gray : .blue)
                         }
                         .disabled(isOutOfStock)
-                        
+
                         Text("\(productViewModel.quantity(for: product))")
                             .frame(width: 24)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
-                        
+
                         Button {
                             if !isOutOfStock {
                                 productViewModel.increaseQuantity(for: product)
