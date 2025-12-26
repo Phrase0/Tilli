@@ -211,6 +211,7 @@ class SessionDataManager: ObservableObject {
                 // 更新基本屬性
                 categoryEntity.name = categoryModel.name
                 categoryEntity.isDisabled = categoryModel.isDisabled
+                categoryEntity.sortOrder = Int16(categoryModel.sortOrder)
 
                 // 只更新 products 的 categoryName（不處理 products 的新增/刪除）
                 // Products 的 CRUD 由 ProductRepository 負責
