@@ -36,7 +36,7 @@ struct ProductDetailView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
                             // 啟用的產品列表
-                            ForEach(productViewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt }), id: \.id) { category in
+                            ForEach(productViewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.id) { category in
                                 let items = productViewModel.getSortedProductsForCategory(category.id)
                                 if !items.isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
