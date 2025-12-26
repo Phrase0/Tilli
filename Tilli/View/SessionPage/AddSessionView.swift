@@ -262,6 +262,15 @@ struct AddSessionView: View {
                 productRepository: productRepository
             )
         }
+        .onChange(of: focusedField) { oldValue, _ in
+            // 當焦點從編輯類別移開時，檢查名稱是否有效
+            if oldValue == .editingCategory {
+                if let error = viewModel.finishEditingCategory() {
+                    viewModel.alertMessage = error
+                    viewModel.showAlert = true
+                }
+            }
+        }
     }
     
     // MARK: - Helper Methods
@@ -294,8 +303,9 @@ struct AddSessionView: View {
 
     @ViewBuilder
     private func categoryRow(for category: CategoryModel) -> some View {
+        // 1. 檢查這個類別是否可以編輯名稱
         let canEdit = viewModel.canEditCategoryName(for: category.id)
-
+        // 2. 如果正在編輯這個類別 且 可以編輯
         if viewModel.editingCategoryID == category.id && canEdit {
             TextField("類別名稱", text: Binding(
                 get: {
@@ -307,13 +317,17 @@ struct AddSessionView: View {
             ))
             .focused($focusedField, equals: .editingCategory)
             .onSubmit {
-                viewModel.editingCategoryID = nil
+                // 收起鍵盤，觸發 onChange(of: focusedField) 處理刪除邏輯
+                focusedField = nil
             }
         } else {
+            // 3. 否則只顯示文字
             Text(category.name)
                 .onTapGesture {
                     if canEdit {
-                        viewModel.editingCategoryID = category.id
+                        // 點擊後進入編輯模式（儲存原名稱並設置焦點）
+                        viewModel.startEditingCategory(id: category.id)
+                        focusedField = .editingCategory
                     }
                 }
         }
