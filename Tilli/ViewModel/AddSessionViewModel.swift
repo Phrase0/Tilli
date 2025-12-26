@@ -156,6 +156,7 @@ class AddSessionViewModel: ObservableObject {
     /// 結束編輯類別名稱（檢查是否為空，為空則恢復原名稱）
     /// 返回錯誤訊息，nil 表示成功
     func finishEditingCategory() -> String? {
+        // 用 defer 確保清理
         defer {
             editingCategoryID = nil
             originalCategoryName = nil
