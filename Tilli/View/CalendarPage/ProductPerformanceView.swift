@@ -144,14 +144,18 @@ struct ProductPerformanceView: View {
                     title: productPerformanceViewModel.salesInsights.hotProductTitle,
                     description: productPerformanceViewModel.salesInsights.hotProductDescription
                 )
-                
-                InsightCard(
-                    icon: "percent",
-                    iconColor: .green,
-                    title: productPerformanceViewModel.salesInsights.discountTitle,
-                    description: productPerformanceViewModel.salesInsights.discountDescription
-                )
-                
+
+                // 只在有折扣資料時顯示
+                if let discountTitle = productPerformanceViewModel.salesInsights.discountTitle,
+                   let discountDescription = productPerformanceViewModel.salesInsights.discountDescription {
+                    InsightCard(
+                        icon: "percent",
+                        iconColor: .green,
+                        title: discountTitle,
+                        description: discountDescription
+                    )
+                }
+
                 InsightCard(
                     icon: "lightbulb.fill",
                     iconColor: .orange,

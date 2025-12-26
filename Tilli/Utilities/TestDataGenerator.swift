@@ -181,6 +181,7 @@ class TestDataGenerator {
             sessionDataManager: sessionDataManager,
             sessionId: sessionId,
             sessionTitle: session.title,
+            sessionCurrency: "TWD",
             startDate: startDate,
             products: [
                 (product1Id, "拿鐵咖啡", Decimal(120), category1Id, "飲品"),
@@ -188,7 +189,8 @@ class TestDataGenerator {
                 (product3Id, "提拉米蘇", Decimal(150), category2Id, "甜點"),
                 (product4Id, "巧克力蛋糕", Decimal(180), category2Id, "甜點"),
                 (product5Id, "三明治", Decimal(100), category3Id, "輕食")
-            ]
+            ],
+            discounts: twdDiscounts
         )
 
         UserDefaults.standard.set(true, forKey: didGenerateKey)
@@ -351,6 +353,7 @@ class TestDataGenerator {
             sessionDataManager: sessionDataManager,
             sessionId: sessionId,
             sessionTitle: session.title,
+            sessionCurrency: "EUR",
             startDate: startDate,
             products: [
                 (product1Id, "拿鐵咖啡", Decimal(string: "4.50")!, category1Id, "飲品"),
@@ -358,7 +361,8 @@ class TestDataGenerator {
                 (product3Id, "提拉米蘇", Decimal(string: "5.80")!, category2Id, "甜點"),
                 (product4Id, "巧克力蛋糕", Decimal(string: "6.40")!, category2Id, "甜點"),
                 (product5Id, "三明治", Decimal(string: "4.75")!, category3Id, "輕食")
-            ]
+            ],
+            discounts: eurDiscounts
         )
 
         UserDefaults.standard.set(true, forKey: didGenerateMulti30DaysKey)
@@ -369,8 +373,10 @@ class TestDataGenerator {
         sessionDataManager: SessionDataManager,
         sessionId: UUID,
         sessionTitle: String,
+        sessionCurrency: String,
         startDate: Date,
-        products: [(UUID, String, Decimal, UUID, String)]
+        products: [(UUID, String, Decimal, UUID, String)],
+        discounts: [DiscountModel]
     ) {
         let calendar = Calendar.current
         let today = Date()
@@ -386,7 +392,7 @@ class TestDataGenerator {
                 // 隨機選擇 1-3 個產品
                 let itemCount = Int.random(in: 1...3)
                 var items: [SummaryItemModel] = []
-                var totalAmount: Decimal = 0
+                var subtotal: Decimal = 0
 
                 for _ in 0..<itemCount {
                     let product = products.randomElement()!
@@ -404,7 +410,27 @@ class TestDataGenerator {
                     )
 
                     items.append(item)
-                    totalAmount = MoneyHelper.add(totalAmount, item.total)
+                    subtotal = MoneyHelper.add(subtotal, item.total)
+                }
+
+                // 約 30% 機率套用折扣
+                var discountType: DiscountType? = nil
+                var discountValue: Decimal? = nil
+                var totalAmount = subtotal
+
+                if !discounts.isEmpty && Int.random(in: 1...100) <= 30 {
+                    let selectedDiscount = discounts.randomElement()!
+                    discountType = selectedDiscount.type
+                    discountValue = selectedDiscount.value
+
+                    // 計算折扣後金額
+                    switch selectedDiscount.type {
+                    case .percentage:
+                        let discountAmount = MoneyHelper.multiply(subtotal, selectedDiscount.value / 100)
+                        totalAmount = MoneyHelper.subtract(subtotal, discountAmount)
+                    case .amount:
+                        totalAmount = max(MoneyHelper.subtract(subtotal, selectedDiscount.value), 0)
+                    }
                 }
 
                 // 設定交易時間（當天的隨機時間，營業時間 9:00-21:00）
@@ -422,11 +448,13 @@ class TestDataGenerator {
                     id: UUID(),
                     sessionId: sessionId,
                     sessionTitle: sessionTitle,
-                    currency: "TWD",
+                    currency: sessionCurrency,
                     items: items,
                     totalAmount: totalAmount,
                     paymentMethod: Bool.random() ? .cash : .ePayment,
-                    timestamp: transactionTime
+                    timestamp: transactionTime,
+                    discountType: discountType,
+                    discountValue: discountValue
                 )
 
                 sessionDataManager.addTransaction(transaction)
