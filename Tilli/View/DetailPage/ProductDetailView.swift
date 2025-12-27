@@ -109,8 +109,8 @@ struct ProductDetailView: View {
                     VStack(spacing: 12) {
                         // 折扣選擇器（只在有折扣選項時顯示）
                         if !productViewModel.session.discounts.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("套用折扣")
+                            HStack(spacing: 8) {
+                                Text("折扣")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
 
