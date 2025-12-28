@@ -27,6 +27,10 @@ struct AddNewProductView: View {
     }
     
     var body: some View {
+        let _ = viewModel.updateDataManagers(
+            transactionDataManager: transactionDataManager
+        )
+
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -196,10 +200,6 @@ struct AddNewProductView: View {
                 CustomImagePicker(image: $viewModel.image, isPresented: $viewModel.showImagePicker)
             }
             .onAppear {
-                // 每次出現時更新資料管理器
-                viewModel.updateDataManagers(
-                    transactionDataManager: transactionDataManager
-                )
                 viewModel.ensureValidCategorySelection()
 
                 // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
