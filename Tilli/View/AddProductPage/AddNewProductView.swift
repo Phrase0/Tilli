@@ -25,75 +25,56 @@ struct AddNewProductView: View {
             onCancel: onCancel
         ))
     }
-    
+
     var body: some View {
         let _ = viewModel.updateDataManagers(
             transactionDataManager: transactionDataManager
         )
 
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Group {
-                        Text("產品名稱")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        TextField("請輸入產品名稱", text: $viewModel.name)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .disabled(viewModel.isEditingWithTransaction)
-                            .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                            .submitLabel(.next)
-
-                        Text("價格")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        TextField(viewModel.pricePlaceholder, text: $viewModel.price)
-                            .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .disabled(viewModel.isEditingWithTransaction)
-                            .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                            .submitLabel(.next)
-                            .onChange(of: viewModel.price) {
-                                let validatedPrice = viewModel.validateAndFormatPrice(viewModel.price)
-                                if validatedPrice != viewModel.price {
-                                    viewModel.price = validatedPrice
-                                }
-                            }
-
-
-                        Text("庫存數量")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        TextField("請輸入數量", text: $viewModel.quantity)
-                            .keyboardType(.numberPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .submitLabel(.done)
-                            .onSubmit {
-                                UIApplication.shared.endEditing()
-                            }
-                        
-                        Text("類別")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        
-                        Picker("選擇類別", selection: $viewModel.selectedCategoryID) {
-                            ForEach(viewModel.sortedCategories, id: \.id) { category in
-                                Text(category.name).tag(category.id as UUID?)
-                            }
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .frame(maxWidth: .infinity)
-                        .padding(12)
-                        .background(Color(UIColor.systemGray6))
-                        .cornerRadius(8)
+            Form {
+                // MARK: - 基本資訊
+                Section {
+                    TextField("產品名稱", text: $viewModel.name)
                         .disabled(viewModel.isEditingWithTransaction)
                         .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
-                    }
-                    
-                    Text("產品圖片")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
 
+                    TextField(viewModel.pricePlaceholder, text: $viewModel.price)
+                        .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
+                        .disabled(viewModel.isEditingWithTransaction)
+                        .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
+                        .onChange(of: viewModel.price) {
+                            let validatedPrice = viewModel.validateAndFormatPrice(viewModel.price)
+                            if validatedPrice != viewModel.price {
+                                viewModel.price = validatedPrice
+                            }
+                        }
+
+                    TextField("庫存數量", text: $viewModel.quantity)
+                        .keyboardType(.numberPad)
+
+                    Picker("類別", selection: $viewModel.selectedCategoryID) {
+                        ForEach(viewModel.sortedCategories, id: \.id) { category in
+                            Text(category.name).tag(category.id as UUID?)
+                        }
+                    }
+                    .disabled(viewModel.isEditingWithTransaction)
+                    .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
+                }
+
+                // 顯示交易限制提示
+                if viewModel.isEditingWithTransaction {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.orange)
+                        Text("此產品已有交易記錄，無法更改名稱、價格和類別")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+
+                // MARK: - 產品圖片
+                Section(header: Text("產品圖片")) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
@@ -140,32 +121,12 @@ struct AddNewProductView: View {
                     .onTapGesture {
                         viewModel.selectImage()
                     }
-                    
-                    Text("產品描述")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                }
+
+                // MARK: - 產品描述
+                Section(header: Text("產品描述")) {
                     TextEditor(text: $viewModel.description)
                         .frame(height: 100)
-                        .padding(3)
-                        .background(Color(UIColor.systemGray6))
-                        .cornerRadius(8)
-                    
-                    // 顯示交易限制提示
-                    if viewModel.isEditingWithTransaction {
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.orange)
-                            Text("此產品已有交易記錄，無法更改名稱、價格和類別")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                        .padding()
-                    }
-                }
-                .padding()
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    UIApplication.shared.endEditing()
                 }
             }
             .navigationTitle(viewModel.editingProduct != nil ? "編輯產品" : "新增產品")
@@ -176,7 +137,7 @@ struct AddNewProductView: View {
                         viewModel.onCancel?()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("儲存") {
                         if viewModel.save(using: productRepository) {
