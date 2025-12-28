@@ -73,7 +73,8 @@ struct AddNewProductView: View {
                                 }
                             }
                         }
-                    } label: {
+                    }
+                    label: {
                         HStack {
                             Text(viewModel.sortedCategories.first { $0.id == viewModel.selectedCategoryID }?.name ?? "選擇類別")
                                 .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
