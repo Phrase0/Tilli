@@ -31,6 +31,11 @@ struct AddSessionView: View {
     }
     
     var body: some View {
+        let _ = viewModel.updateDataManagers(
+            transactionDataManager: transactionDataManager,
+            productRepository: productRepository
+        )
+
         Form {
             TextField("場次名稱", text: $viewModel.sessionName)
                 .focused($focusedField, equals: .sessionName)
@@ -276,13 +281,6 @@ struct AddSessionView: View {
         }
         .alert(isPresented: $viewModel.showAlert) {
             createAlert()
-        }
-        .onAppear {
-            // 每次出現時更新資料管理器
-            viewModel.updateDataManagers(
-                transactionDataManager: transactionDataManager,
-                productRepository: productRepository
-            )
         }
         .onChange(of: focusedField) { oldValue, newValue in
             // 當焦點從編輯類別移開時，檢查名稱是否有效
