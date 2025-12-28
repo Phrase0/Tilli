@@ -277,11 +277,19 @@ class AddSessionViewModel: ObservableObject {
         // 移動位置
         activeCategories.move(fromOffsets: source, toOffset: destination)
 
-        // 重新指派 sortOrder
-        for (index, category) in activeCategories.enumerated() {
-            if let originalIndex = categories.firstIndex(where: { $0.id == category.id }) {
-                categories[originalIndex].sortOrder = index
+        // 收集停用類別的 sortOrder
+        let disabledSortOrders = Set(categories.filter { $0.isDisabled }.map { $0.sortOrder })
+
+        // 為啟用類別分配新的 sortOrder，跳過停用類別佔用的值
+        var newSortOrder = 0
+        for category in activeCategories {
+            while disabledSortOrders.contains(newSortOrder) {
+                newSortOrder += 1
             }
+            if let index = categories.firstIndex(where: { $0.id == category.id }) {
+                categories[index].sortOrder = newSortOrder
+            }
+            newSortOrder += 1
         }
     }
 
