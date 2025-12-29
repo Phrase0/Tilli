@@ -26,18 +26,18 @@ struct ContentView: View {
                 .tabItem { Label("場次", systemImage: "list.bullet") }
                 .tag(1)
 
-            MainAddProductFlowView(selectedTab: $selectedTab)
-                .environmentObject(appState)
-                .tabItem { Label("新增", systemImage: "plus.circle.fill") }
-                .tag(2)
+//            MainAddProductFlowView(selectedTab: $selectedTab)
+//                .environmentObject(appState)
+//                .tabItem { Label("新增產品", systemImage: "plus.circle.fill") }
+//                .tag(2)
 
             MerchantQRCodeView()
                 .tabItem { Label("QRCode", systemImage: "qrcode") }
-                .tag(3)
+                .tag(2)
 
             ProfileView()
                 .tabItem { Label("個人", systemImage: "person.crop.circle") }
-                .tag(4)
+                .tag(3)
         }
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
         .onAppear {

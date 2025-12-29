@@ -10,20 +10,20 @@ struct AddNewProductView: View {
 
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddNewProductViewModel
 
+    var onSave: (() -> Void)?
 
     init(session: SessionModel,
          productToEdit: ProductModel? = nil,
-         onSave: @escaping () -> Void,
-         onCancel: (() -> Void)? = nil) {
+         onSave: (() -> Void)? = nil) {
 
         _viewModel = StateObject(wrappedValue: AddNewProductViewModel(
             session: session,
-            productToEdit: productToEdit,
-            onSave: onSave,
-            onCancel: onCancel
+            productToEdit: productToEdit
         ))
+        self.onSave = onSave
     }
 
     var body: some View {
@@ -31,8 +31,7 @@ struct AddNewProductView: View {
             transactionDataManager: transactionDataManager
         )
 
-        NavigationView {
-            Form {
+        Form {
                 // MARK: - 產品名稱
                 TextField("產品名稱", text: $viewModel.name)
                     .disabled(viewModel.isEditingWithTransaction)
@@ -157,43 +156,37 @@ struct AddNewProductView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
                 }
-            }
-            .navigationTitle(viewModel.editingProduct != nil ? "編輯產品" : "新增產品")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
-                        viewModel.onCancel?()
+        }
+        .navigationTitle(viewModel.editingProduct != nil ? "編輯產品" : "新增產品")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("儲存") {
+                    if viewModel.save(using: productRepository) {
+                        onSave?()
+                        dismiss()
                     }
                 }
+                .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
+            }
+        }
+        .alert("請完成所有必填欄位", isPresented: $viewModel.showValidationError) {
+            Button("確定", role: .cancel) { }
+        }
+        .alert("產品名稱重複", isPresented: $viewModel.showDuplicateNameAlert) {
+            Button("確定", role: .cancel) { }
+        } message: {
+            Text(viewModel.duplicateNameMessage)
+        }
+        .sheet(isPresented: $viewModel.showImagePicker) {
+            CustomImagePicker(image: $viewModel.image, isPresented: $viewModel.showImagePicker)
+        }
+        .onAppear {
+            viewModel.ensureValidCategorySelection()
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("儲存") {
-                        if viewModel.save(using: productRepository) {
-                            viewModel.onSave()
-                        } else {
-                            print("保存失敗")
-                        }
-                    }
-                    .disabled(!viewModel.isValid || viewModel.sortedCategories.isEmpty)
-                }
-            }
-            .alert("請完成所有必填欄位", isPresented: $viewModel.showValidationError) {
-                Button("確定", role: .cancel) { }
-            }
-            .alert("產品名稱重複", isPresented: $viewModel.showDuplicateNameAlert) {
-                Button("確定", role: .cancel) { }
-            } message: {
-                Text(viewModel.duplicateNameMessage)
-            }
-            .sheet(isPresented: $viewModel.showImagePicker) {
-                CustomImagePicker(image: $viewModel.image, isPresented: $viewModel.showImagePicker)
-            }
-            .onAppear {
-                viewModel.ensureValidCategorySelection()
-
-                // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
-                viewModel.clearImageTempState()
-            }
+            // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
+            viewModel.clearImageTempState()
         }
     }
 }

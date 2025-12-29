@@ -12,22 +12,38 @@ struct ProductDetailView: View {
     @ObservedObject var productViewModel: ProductViewModel
     @Binding var session: SessionModel
     @Binding var editingProduct: ProductModel?
-    @Binding var showEditProduct: Bool
+    @Binding var showAddProduct: Bool
     @Binding var showCheckoutSheet: Bool
     @Binding var checkoutCompleted: Bool
-    
+
     var body: some View {
         Group {
             if productViewModel.shouldShowEmptyState {
                 // 完全沒有商品時顯示空狀態
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    VStack(spacing: 24) {
                         EmptyStateView(
                             systemImage: "cube.box",
                             title: "尚無商品",
                             message: "請先新增商品後再開始銷售",
                             topPadding: 90
                         )
+
+                        Button {
+                            editingProduct = nil
+                            showAddProduct = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("新增產品")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 14)
+                            .background(Color.blue)
+                            .cornerRadius(25)
+                        }
                     }
                 }
             } else {
@@ -235,7 +251,7 @@ struct ProductDetailView: View {
                         Button {
                             // 進入編輯頁
                             editingProduct = product
-                            showEditProduct = true
+                            showAddProduct = true
                         } label: {
                             Label("編輯", systemImage: "pencil")
                         }
