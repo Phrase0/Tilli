@@ -9,12 +9,10 @@ import SwiftUI
 import Foundation
 
 class AddNewProductViewModel: ObservableObject {
-    
+
     // MARK: - 輸入 Session
     let session: SessionModel
-    let onSave: () -> Void
-    let onCancel: (() -> Void)?
-    
+
     // MARK: - 編輯欄位狀態綁定
     @Published var name: String = ""
     @Published var price: String = ""
@@ -118,13 +116,9 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 初始化
     init(session: SessionModel,
-         productToEdit: ProductModel? = nil,
-         onSave: @escaping () -> Void,
-         onCancel: (() -> Void)? = nil) {
-        
+         productToEdit: ProductModel? = nil) {
+
         self.session = session
-        self.onSave = onSave
-        self.onCancel = onCancel
         self.editingProduct = productToEdit
         
         // 設置預設選中第一個啟用的類別

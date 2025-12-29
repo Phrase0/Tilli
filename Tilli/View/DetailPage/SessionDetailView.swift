@@ -15,8 +15,7 @@ struct SessionDetailView: View {
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
-    @Environment(\.dismiss) private var dismiss
-    
+
     @Binding var session: SessionModel
     @State private var showingShareSheet = false
     @State private var showClearAlert = false
@@ -26,72 +25,42 @@ struct SessionDetailView: View {
     @State private var showCheckoutSheet = false
     
     @State private var editingProduct: ProductModel? = nil
-    @State private var showEditProduct = false
-    
+    @State private var showAddProduct = false
+
     init(session: Binding<SessionModel>) {
         self._session = session
         self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
     }
-    
-    var body: some View {
-        VStack {
-            // 當需要編輯產品時，顯示編輯頁面
-            if let product = editingProduct, showEditProduct {
-                AddNewProductView(
-                    session: session,
-                    productToEdit: product,
-                    onSave: {
-                        // 編輯完成
-                        showEditProduct = false
-                        editingProduct = nil
-                        viewModel.productViewModel.loadProducts()
-                    },
-                    onCancel: {
-                        // 取消編輯
-                        showEditProduct = false
-                        editingProduct = nil
-                    }
-                )
-            }
-            // 否則顯示主要的 SessionDetail 內容
-            else {
-                sessionDetailContent
-            }
-        }
-        .navigationBarHidden(showEditProduct)
-        .navigationBarBackButtonHidden(!showEditProduct)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if !showEditProduct {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.blue)
-                    }
-                }
 
+    var body: some View {
+        sessionDetailContent
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
                 ToolbarItem(placement: .principal) {
-                    VStack(spacing: 2) {
-                        Text(viewModel.session.title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Text("\(viewModel.session.displayDateRange) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+                    Text(viewModel.session.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     switch selectedTab {
-                    case 0: // 商品頁 - 顯示清除按鈕
-                        Button(action: {
-                            showClearAlert = true
-                        }) {
-                            Image(systemName: "trash")
+                    case 0: // 商品頁 - 顯示清除按鈕和新增按鈕
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                showClearAlert = true
+                            }) {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel("清除所有已選數量")
+
+                            Button(action: {
+                                editingProduct = nil
+                                showAddProduct = true
+                            }) {
+                                Image(systemName: "plus")
+                            }
+                            .accessibilityLabel("新增產品")
                         }
-                        .accessibilityLabel("清除所有已選數量")
 
                     case 1: // 交易明細頁 - 顯示導出按鈕
                         Button(action: {
@@ -107,7 +76,15 @@ struct SessionDetailView: View {
                     }
                 }
             }
-        }
+            .navigationDestination(isPresented: $showAddProduct) {
+                AddNewProductView(
+                    session: session,
+                    productToEdit: editingProduct,
+                    onSave: {
+                        viewModel.productViewModel.loadProducts()
+                    }
+                )
+            }
     }
     
     private var sessionDetailContent: some View {
@@ -146,7 +123,7 @@ struct SessionDetailView: View {
                     productViewModel: viewModel.productViewModel,
                     session: $session,
                     editingProduct: $editingProduct,
-                    showEditProduct: $showEditProduct,
+                    showAddProduct: $showAddProduct,
                     showCheckoutSheet: $showCheckoutSheet,
                     checkoutCompleted: $checkoutCompleted
                 )
