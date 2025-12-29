@@ -104,8 +104,8 @@ struct SessionDetailFromCalendarView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
+                .padding(.top, 4)
             }
-
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     showingShareSheet = true
