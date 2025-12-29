@@ -28,7 +28,6 @@ struct SessionDetailFromCalendarView: View {
             // 時間範圍選擇器
             ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
                 .padding(.horizontal)
-                .padding(.top, 4)
 
             // 自定義 Picker
             HStack {
