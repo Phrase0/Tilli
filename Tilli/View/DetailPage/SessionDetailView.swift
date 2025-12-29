@@ -34,14 +34,7 @@ struct SessionDetailView: View {
 
     var body: some View {
         sessionDetailContent
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(viewModel.session.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                }
-
                 ToolbarItem(placement: .navigationBarTrailing) {
                     switch selectedTab {
                     case 0: // 商品頁 - 顯示清除按鈕和新增按鈕
@@ -89,7 +82,18 @@ struct SessionDetailView: View {
     
     private var sessionDetailContent: some View {
         VStack(spacing: 0) {
-            // 自定義 Picker
+            // Header
+            VStack(spacing: 4) {
+                Text(viewModel.session.title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Text("\(viewModel.session.displayDateRange) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+            .padding(.top)
+            .padding(.horizontal, 20)
+            
             HStack {
                 ForEach(0..<2, id: \.self) { index in
                     Button(action: {
