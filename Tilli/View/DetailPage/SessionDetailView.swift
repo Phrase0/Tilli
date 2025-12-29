@@ -60,6 +60,7 @@ struct SessionDetailView: View {
         }
         .navigationBarHidden(showEditProduct)
         .navigationBarBackButtonHidden(!showEditProduct)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !showEditProduct {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -70,7 +71,18 @@ struct SessionDetailView: View {
                             .foregroundColor(.blue)
                     }
                 }
-                
+
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text(viewModel.session.title)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Text("\(viewModel.session.displayDateRange) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     switch selectedTab {
                     case 0: // 商品頁 - 顯示清除按鈕
@@ -80,7 +92,7 @@ struct SessionDetailView: View {
                             Image(systemName: "trash")
                         }
                         .accessibilityLabel("清除所有已選數量")
-                        
+
                     case 1: // 交易明細頁 - 顯示導出按鈕
                         Button(action: {
                             viewModel.exportTabCSV(tabIndex: selectedTab)
@@ -89,7 +101,7 @@ struct SessionDetailView: View {
                             Image(systemName: "square.and.arrow.up")
                         }
                         .disabled(viewModel.isTabExportDisabled(tabIndex: selectedTab))
-                        
+
                     default:
                         EmptyView()
                     }
@@ -100,17 +112,6 @@ struct SessionDetailView: View {
     
     private var sessionDetailContent: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 4) {
-                Text(viewModel.session.title)
-                    .font(.title2)
-                    .bold()
-                Text("\(viewModel.session.displayDateRange) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            .padding(.top)
-            
             // 自定義 Picker
             HStack {
                 ForEach(0..<2, id: \.self) { index in
@@ -122,7 +123,7 @@ struct SessionDetailView: View {
                                 .font(.subheadline)
                                 .foregroundColor(selectedTab == index ? .blue : .gray)
                                 .fontWeight(selectedTab == index ? .semibold : .regular)
-                            
+
                             Rectangle()
                                 .fill(selectedTab == index ? Color.blue : Color.clear)
                                 .frame(height: 2)
@@ -135,7 +136,7 @@ struct SessionDetailView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.top, 20)
             
             Divider()
             
