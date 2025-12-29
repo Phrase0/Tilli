@@ -199,13 +199,13 @@ struct ProductDetailView: View {
             productViewModel.createAlert()
         }
         .sheet(isPresented: $showCheckoutSheet) {
-            CheckoutSummaryView(
+            CheckoutFlowView(
+                isPresented: $showCheckoutSheet,
+                checkoutCompleted: $checkoutCompleted,
+                session: $session,
                 selectedItems: productViewModel.selectedProductsWithQuantity(),
                 totalAmount: productViewModel.totalAmount(),
-                selectedDiscount: productViewModel.selectedDiscount,
-                session: $session,
-                isPresented: $showCheckoutSheet,
-                checkoutCompleted: $checkoutCompleted
+                selectedDiscount: productViewModel.selectedDiscount
             )
         }
     }

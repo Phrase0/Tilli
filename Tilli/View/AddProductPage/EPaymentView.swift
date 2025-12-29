@@ -10,9 +10,6 @@ import Foundation
 
 struct EPaymentView: View {
 
-    @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.dismiss) private var dismiss
-
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var productRepository: ProductRepository
@@ -20,7 +17,7 @@ struct EPaymentView: View {
 
     @Binding var session: SessionModel
 
-    var onComplete: (SessionModel) -> Void
+    @Environment(\.closeCheckoutFlow) private var closeFlow
 
     @ObservedObject var viewModel: EPaymentViewModel
 
@@ -28,8 +25,7 @@ struct EPaymentView: View {
         totalAmount: Decimal,
         session: Binding<SessionModel>,
         summaryItems: [SummaryItemModel],
-        selectedDiscount: DiscountModel? = nil,
-        onComplete: @escaping (SessionModel) -> Void
+        selectedDiscount: DiscountModel? = nil
     ) {
         self._session = session
         self._viewModel = ObservedObject(wrappedValue: EPaymentViewModel(
@@ -38,7 +34,6 @@ struct EPaymentView: View {
             summaryItems: summaryItems,
             selectedDiscount: selectedDiscount
         ))
-        self.onComplete = onComplete
     }
 
     var body: some View {
@@ -104,15 +99,7 @@ struct EPaymentView: View {
             // 完成付款按鈕
             VStack(spacing: 12) {
                 Button(action: {
-                    if qrCodeDataManager.qrCodeImage != nil {
-                        let updatedSession = viewModel.performCheckout(
-                            sessionDataManager: sessionDataManager,
-                            productRepository: productRepository
-                        )
-                        session = updatedSession
-                        onComplete(updatedSession)
-                        dismiss()
-                    }
+                    completePayment()
                 }) {
                     Text("完成付款")
                         .foregroundColor(.white)
@@ -127,5 +114,20 @@ struct EPaymentView: View {
         }
         .padding()
         .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: - Helper Methods
+
+    private func completePayment() {
+        guard qrCodeDataManager.qrCodeImage != nil else { return }
+
+        let updatedSession = viewModel.performCheckout(
+            sessionDataManager: sessionDataManager,
+            productRepository: productRepository
+        )
+        session = updatedSession
+
+        // 電子支付無鍵盤，直接關閉整個 flow
+        closeFlow()
     }
 }
