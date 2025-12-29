@@ -28,7 +28,7 @@ struct SessionDetailFromCalendarView: View {
             // 時間範圍選擇器
             ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
                 .padding(.horizontal)
-                .padding(.top, 12)
+                .padding(.top, 4)
 
             // 自定義 Picker
             HStack {
@@ -84,7 +84,6 @@ struct SessionDetailFromCalendarView: View {
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(viewModel.session.title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -96,7 +95,18 @@ struct SessionDetailFromCalendarView: View {
                         .foregroundColor(.blue)
                 }
             }
-            
+
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text(viewModel.session.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text(viewModel.session.displayDateRange)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     showingShareSheet = true

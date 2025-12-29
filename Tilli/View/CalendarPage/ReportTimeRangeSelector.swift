@@ -13,17 +13,7 @@ struct ReportTimeRangeSelector: View {
     @Binding var selectedRange: ReportTimeRange
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 場次資訊
-            HStack(spacing: 8) {
-                Image(systemName: dateIcon)
-                    .foregroundColor(iconColor)
-                    .font(.subheadline)
-
-                Text(session.displayDateRange)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 4) {
 
             // 時間範圍選擇
             rangeSelector
