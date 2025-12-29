@@ -26,11 +26,6 @@ struct ContentView: View {
                 .tabItem { Label("場次", systemImage: "list.bullet") }
                 .tag(1)
 
-//            MainAddProductFlowView(selectedTab: $selectedTab)
-//                .environmentObject(appState)
-//                .tabItem { Label("新增產品", systemImage: "plus.circle.fill") }
-//                .tag(2)
-
             MerchantQRCodeView()
                 .tabItem { Label("QRCode", systemImage: "qrcode") }
                 .tag(2)
