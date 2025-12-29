@@ -37,11 +37,12 @@ struct AddSessionView: View {
         )
 
         Form {
-            TextField("場次名稱", text: $viewModel.sessionName)
-                .focused($focusedField, equals: .sessionName)
-                .submitLabel(.next)
-                .onSubmit { focusedField = .newCategory }
-
+            Section(header: Text("場次名稱")) {
+                TextField("請輸入場次名稱", text: $viewModel.sessionName)
+                    .focused($focusedField, equals: .sessionName)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .newCategory }
+            }
             // 場次類型選擇器
             Section {
                 Picker("場次類型", selection: $viewModel.dateType) {
@@ -260,6 +261,7 @@ struct AddSessionView: View {
             }
         }
         .navigationTitle(viewModel.editingSession == nil ? "新增場次" : "編輯場次")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("儲存") {
