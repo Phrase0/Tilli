@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: Int = 1
+    @State private var selectedTab: Int = 0
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var appState: AppState
 
@@ -17,13 +17,13 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            CalendarView()
-                .tabItem { Label("日曆", systemImage: "calendar") }
-                .tag(0)
-
             SessionsView()
                 .environmentObject(appState)
                 .tabItem { Label("場次", systemImage: "list.bullet") }
+                .tag(0)
+            
+            CalendarView()
+                .tabItem { Label("日曆", systemImage: "calendar") }
                 .tag(1)
 
             MerchantQRCodeView()
