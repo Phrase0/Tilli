@@ -158,10 +158,11 @@ struct ProductDetailView: View {
                                     }
                                 } label: {
                                     HStack {
+                                        // 靠右對齊
+                                        Spacer()
                                         Text(productViewModel.selectedDiscount?.displayText(currency: productViewModel.session.currency) ?? "- -")
                                             .font(.subheadline)
                                             .foregroundColor(.primary)
-                                        Spacer()
                                         Image(systemName: "chevron.up.chevron.down")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
