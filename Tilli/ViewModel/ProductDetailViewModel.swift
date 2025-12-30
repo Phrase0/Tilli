@@ -208,7 +208,42 @@ class ProductViewModel: ObservableObject {
             return max(MoneyHelper.subtract(sub, discount.value), 0)
         }
     }
-    
+
+    /// 檢查折扣是否超過商品總額（僅適用於固定金額折扣）
+    var isDiscountExceedsLimit: Bool {
+        guard let discount = selectedDiscount else { return false }
+        let sub = subtotal()
+
+        switch discount.type {
+        case .percentage:
+            return false  // 百分比已限制 ≤ 100%，不會超過
+        case .amount:
+            return discount.value > sub && sub > 0
+        }
+    }
+
+    /// 計算實際套用的折扣（用於記錄交易）
+    func effectiveDiscount() -> DiscountModel? {
+        guard let discount = selectedDiscount else { return nil }
+        let sub = subtotal()
+
+        switch discount.type {
+        case .percentage:
+            // 百分比折扣直接使用原值
+            return discount
+        case .amount:
+            // 固定金額折扣：取折扣值和商品總額的較小值
+            let effectiveValue = min(discount.value, sub)
+            return DiscountModel(type: .amount, value: effectiveValue)
+        }
+    }
+
+    /// 折扣超過上限的提示訊息
+    var discountWarningMessage: String? {
+        guard isDiscountExceedsLimit else { return nil }
+        return "折扣不可超過商品金額，已自動調整"
+    }
+
     /// 產生 SummaryItemModel 列表（不含折扣，折扣存在 Transaction 層級）
     func selectedProductsWithQuantity() -> [SummaryItemModel] {
         activeProducts.compactMap { product -> SummaryItemModel? in
