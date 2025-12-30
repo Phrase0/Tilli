@@ -7,12 +7,21 @@
 import SwiftUI
 
 struct AddNewProductView: View {
-    
+
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddNewProductViewModel
-    
+
+    enum FocusField: Hashable {
+        case name
+        case price
+        case quantity
+        case description
+    }
+
+    @FocusState private var focusedField: FocusField?
+
     var onSave: (() -> Void)?
     
     init(session: SessionModel,
@@ -35,6 +44,9 @@ struct AddNewProductView: View {
             // MARK: - 產品名稱
             Section(header: Text("產品名稱")) {
                 TextField("請輸入產品名稱", text: $viewModel.name)
+                    .focused($focusedField, equals: .name)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .price }
                     .disabled(viewModel.isEditingWithTransaction)
                     .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
             }
@@ -42,6 +54,7 @@ struct AddNewProductView: View {
             Section(header: Text("價格")) {
                 TextField(viewModel.pricePlaceholder, text: $viewModel.price)
                     .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
+                    .focused($focusedField, equals: .price)
                     .disabled(viewModel.isEditingWithTransaction)
                     .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                     .onChange(of: viewModel.price) {
@@ -56,6 +69,7 @@ struct AddNewProductView: View {
             Section(header: Text("庫存數量")) {
                 TextField("請輸入庫存數量", text: $viewModel.quantity)
                     .keyboardType(.numberPad)
+                    .focused($focusedField, equals: .quantity)
             }
             
             // MARK: - 類別
@@ -151,15 +165,26 @@ struct AddNewProductView: View {
             
             // MARK: - 產品描述
             Section(header: Text("產品描述")) {
-                TextEditor(text: $viewModel.description)
-                    .frame(height: 100)
-                    .scrollContentBackground(.hidden)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                TextField("請輸入產品描述", text: $viewModel.description)
+                    .focused($focusedField, equals: .description)
+                    .submitLabel(.done)
+                    .onSubmit { focusedField = nil }
             }
         }
         .navigationTitle(viewModel.editingProduct == nil ? "新增產品" : "編輯產品")
         .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedField == .price || focusedField == .quantity {
+                    Spacer()
+                    Button("完成") {
+                        if focusedField == .price {
+                            focusedField = .quantity
+                        } else {
+                            focusedField = nil
+                        }
+                    }
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("儲存") {
                     if viewModel.save(using: productRepository) {
