@@ -208,9 +208,14 @@ struct AddNewProductView: View {
         }
         .onAppear {
             viewModel.ensureValidCategorySelection()
-            
+
             // 清除圖片暫存狀態，確保每次開啟都是乾淨狀態
             viewModel.clearImageTempState()
+
+            // 新增產品時自動聚焦到產品名稱欄位
+            if viewModel.editingProduct == nil {
+                focusedField = .name
+            }
         }
     }
 }
