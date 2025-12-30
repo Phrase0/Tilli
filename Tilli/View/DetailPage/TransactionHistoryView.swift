@@ -202,36 +202,36 @@ struct TransactionHistoryView: View {
             if isExpanded {
                 VStack(spacing: 0) {
                     // 表頭
-                    HStack {
+                    HStack(spacing: 8) {
                         Text("商品")
                             .font(.caption)
                             .foregroundColor(.gray)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        
+
                         Text("類別")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .center)
-                        
+                            .frame(maxWidth: .infinity, alignment: .center)
+
                         Text("單價")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .center)
-                        
+                            .frame(maxWidth: .infinity, alignment: .center)
+
                         Text("數量")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .center)
+                            .frame(maxWidth: .infinity, alignment: .center)
 
                         Text("小計")
                             .font(.caption)
                             .foregroundColor(.gray)
-                            .frame(width: 50, alignment: .center)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .background(Color(.systemGray5))
-                    
+
                     // 商品明細列表
                     ForEach(transaction.items) { item in
                         transactionItemRow(item)
@@ -245,40 +245,40 @@ struct TransactionHistoryView: View {
     }
     
     private func transactionItemRow(_ item: SummaryItemModel) -> some View {
-        HStack {
+        HStack(spacing: 8) {
             // 商品名稱
             Text(item.name)
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             // 類別
             Text(item.category)
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundColor(.gray)
-                .frame(width: 50, alignment: .center)
                 .lineLimit(1)
-            
-            
-            Text("\(transactionViewModel.formatAmount(item.price))")
-                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            // 單價
+            Text(transactionViewModel.formatAmount(item.price))
+                .font(.caption)
                 .foregroundColor(.blue)
-                .frame(width: 50, alignment: .center)
                 .lineLimit(1)
-            
+                .frame(maxWidth: .infinity, alignment: .center)
+
             // 數量
             Text("\(item.quantity)")
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundColor(.primary)
-                .frame(width: 50, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             // 小計
-            Text("\(transactionViewModel.formatAmount(item.total))")
-                .font(.subheadline)
+            Text(transactionViewModel.formatAmount(item.total))
+                .font(.caption)
                 .bold()
                 .foregroundColor(.primary)
-                .frame(width: 50, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
