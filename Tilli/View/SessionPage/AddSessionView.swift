@@ -290,7 +290,7 @@ struct AddSessionView: View {
             }
         }
         .alert(isPresented: $viewModel.showAlert) {
-            createAlert()
+            viewModel.createAlert()
         }
         .onChange(of: focusedField) { oldValue, newValue in
             // 當焦點從編輯類別移開時，檢查名稱是否有效
@@ -405,54 +405,6 @@ struct AddSessionView: View {
             Button("刪除", role: .destructive) {
                 viewModel.handleDeleteAction(for: category)
             }
-        }
-    }
-    
-    private func createAlert() -> Alert {
-        if viewModel.categoryPendingRestore != nil {
-            // 復原操作的警告
-            return Alert(
-                title: Text("確認復原"),
-                message: Text("確定要復原此類別嗎？"),
-                primaryButton: .default(Text("確認")) {
-                    viewModel.confirmRestoreAction()
-                },
-                secondaryButton: .cancel(Text("取消")) {
-                    viewModel.cancelRestoreAction()
-                }
-            )
-        } else if viewModel.categoryPendingDeletion != nil {
-            if viewModel.isDisableAction {
-                // 停用操作的警告
-                return Alert(
-                    title: Text("確認停用"),
-                    message: Text(viewModel.alertMessage),
-                    primaryButton: .default(Text("確認")) {
-                        viewModel.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel(Text("取消")) {
-                        viewModel.cancelDeletionAction()
-                    }
-                )
-            } else {
-                // 刪除操作的警告
-                return Alert(
-                    title: Text("確認刪除"),
-                    message: Text(viewModel.alertMessage),
-                    primaryButton: .destructive(Text("刪除")) {
-                        viewModel.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel(Text("取消")) {
-                        viewModel.cancelDeletionAction()
-                    }
-                )
-            }
-        } else {
-            return Alert(
-                title: Text("提醒"),
-                message: Text(viewModel.alertMessage),
-                dismissButton: .default(Text("好"))
-            )
         }
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 class AddSessionViewModel: ObservableObject {
     @Published var sessionName: String
@@ -583,6 +584,56 @@ class AddSessionViewModel: ObservableObject {
             currency: selectedCurrency,
             discounts: discounts
         )
+    }
+
+    // MARK: - Alert
+
+    func createAlert() -> Alert {
+        if categoryPendingRestore != nil {
+            // 復原操作的警告
+            return Alert(
+                title: Text("確認復原"),
+                message: Text("確定要復原此類別嗎？"),
+                primaryButton: .default(Text("確認")) { [weak self] in
+                    self?.confirmRestoreAction()
+                },
+                secondaryButton: .cancel(Text("取消")) { [weak self] in
+                    self?.cancelRestoreAction()
+                }
+            )
+        } else if categoryPendingDeletion != nil {
+            if isDisableAction {
+                // 停用操作的警告
+                return Alert(
+                    title: Text("確認停用"),
+                    message: Text(alertMessage),
+                    primaryButton: .default(Text("確認")) { [weak self] in
+                        self?.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel(Text("取消")) { [weak self] in
+                        self?.cancelDeletionAction()
+                    }
+                )
+            } else {
+                // 刪除操作的警告
+                return Alert(
+                    title: Text("確認刪除"),
+                    message: Text(alertMessage),
+                    primaryButton: .destructive(Text("刪除")) { [weak self] in
+                        self?.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel(Text("取消")) { [weak self] in
+                        self?.cancelDeletionAction()
+                    }
+                )
+            }
+        } else {
+            return Alert(
+                title: Text("提醒"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("好"))
+            )
+        }
     }
 }
 
