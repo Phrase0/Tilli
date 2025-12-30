@@ -205,7 +205,7 @@ private extension ProductPerformanceViewModel {
                 case .percentage:
                     return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
                 case .amount:
-                    return min(discountValue, transactionSubtotal)
+                    return discountValue
                 }
             }()
 
@@ -316,7 +316,7 @@ private extension ProductPerformanceViewModel {
                 case .percentage:
                     return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
                 case .amount:
-                    return min(discountValue, transactionSubtotal)
+                    return discountValue
                 }
             }()
 
@@ -456,7 +456,7 @@ private extension ProductPerformanceViewModel {
                 case .percentage:
                     return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
                 case .amount:
-                    return min(discountValue, transactionSubtotal)
+                    return discountValue
                 }
             }()
 

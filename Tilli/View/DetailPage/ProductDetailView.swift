@@ -176,6 +176,18 @@ struct ProductDetailView: View {
                             }
                         }
 
+                        // 折扣超過上限的提示
+                        if let warning = productViewModel.discountWarningMessage {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.orange)
+                                Text(warning)
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+
                         HStack {
                             Text("總計")
                                 .font(.headline)
@@ -193,10 +205,10 @@ struct ProductDetailView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(productViewModel.totalAmount() > 0 ? Color.blue : Color.gray)
+                                .background(productViewModel.subtotal() > 0 ? Color.blue : Color.gray)
                                 .cornerRadius(30)
                         }
-                        .disabled(productViewModel.totalAmount() == 0)
+                        .disabled(productViewModel.subtotal() == 0)
                     }
                     .padding()
                 }
@@ -213,7 +225,7 @@ struct ProductDetailView: View {
                 session: $session,
                 selectedItems: productViewModel.selectedProductsWithQuantity(),
                 totalAmount: productViewModel.totalAmount(),
-                selectedDiscount: productViewModel.selectedDiscount
+                selectedDiscount: productViewModel.effectiveDiscount()
             )
         }
     }
