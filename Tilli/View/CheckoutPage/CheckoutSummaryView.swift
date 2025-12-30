@@ -22,6 +22,32 @@ struct CheckoutSummaryView: View {
     @State private var showDateWarning = false
     @State private var dateWarningMessage = ""
 
+    // 補記帳狀態
+    @State private var isBackdatedMode = false
+    @State private var backdatedDate = Date()
+
+    /// 計算補記帳日期的有效範圍
+    private var backdatedDateRange: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let startOfSessionDate = calendar.startOfDay(for: session.startDate)
+        let now = Date()
+
+        // 結束日期：取 session.endDate 和現在時間的較小值
+        let endDate: Date
+        if let sessionEndDate = session.endDate {
+            endDate = min(sessionEndDate, now)
+        } else {
+            endDate = now
+        }
+
+        return startOfSessionDate...endDate
+    }
+
+    /// 補記帳時要傳遞的 occurredAt 值
+    private var occurredAtValue: Date? {
+        return isBackdatedMode ? backdatedDate : nil
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // MARK: Header
@@ -73,6 +99,47 @@ struct CheckoutSummaryView: View {
             }
 
             Divider()
+
+            // MARK: 補記帳
+            HStack {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isBackdatedMode.toggle()
+                        if isBackdatedMode {
+                            // 預設為現在時間
+                            backdatedDate = Date()
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: isBackdatedMode ? "clock.badge.checkmark.fill" : "clock.arrow.circlepath")
+                            .foregroundColor(isBackdatedMode ? .orange : .gray)
+                        Text("補記帳")
+                            .font(.subheadline)
+                            .foregroundColor(isBackdatedMode ? .orange : .gray)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(isBackdatedMode ? Color.orange.opacity(0.1) : Color.clear)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Spacer()
+
+                if isBackdatedMode {
+                    DatePicker(
+                        "",
+                        selection: $backdatedDate,
+                        in: backdatedDateRange,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
 
             // MARK: 總金額
             HStack {
@@ -160,7 +227,8 @@ struct CheckoutSummaryView: View {
                 totalAmount: totalAmount,
                 session: $session,
                 summaryItems: selectedItems,
-                selectedDiscount: selectedDiscount
+                selectedDiscount: selectedDiscount,
+                occurredAt: occurredAtValue
             )
         }
         .navigationDestination(isPresented: $navigateToEPayment) {
@@ -168,7 +236,8 @@ struct CheckoutSummaryView: View {
                 totalAmount: totalAmount,
                 session: $session,
                 summaryItems: selectedItems,
-                selectedDiscount: selectedDiscount
+                selectedDiscount: selectedDiscount,
+                occurredAt: occurredAtValue
             )
         }
         .alert("無法新增交易", isPresented: $showDateWarning) {

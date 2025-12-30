@@ -45,6 +45,7 @@
         <attribute name="discountValue" optional="YES" attributeType="Decimal"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="itemsData" optional="YES" attributeType="Binary"/>
+        <attribute name="occurredAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="paymentMethod" attributeType="String"/>
         <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="sessionTitle" attributeType="String"/>

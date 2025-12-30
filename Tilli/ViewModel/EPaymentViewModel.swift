@@ -14,15 +14,17 @@ class EPaymentViewModel: ObservableObject {
     let session: SessionModel
     let summaryItems: [SummaryItemModel]
     let selectedDiscount: DiscountModel?
+    let occurredAt: Date?  // 補記帳時的實際發生時間
 
     @Published var showDateWarning: Bool = false
     @Published var dateWarningMessage: String = ""
 
-    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil) {
+    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil, occurredAt: Date? = nil) {
         self.totalAmount = totalAmount
         self.session = session
         self.summaryItems = summaryItems
         self.selectedDiscount = selectedDiscount
+        self.occurredAt = occurredAt
     }
 
     /// 驗證交易日期是否在場次範圍內
@@ -74,6 +76,7 @@ class EPaymentViewModel: ObservableObject {
             totalAmount: totalAmount,
             paymentMethod: .ePayment,
             timestamp: Date(),
+            occurredAt: occurredAt,
             discountType: selectedDiscount?.type,
             discountValue: selectedDiscount?.value
         )

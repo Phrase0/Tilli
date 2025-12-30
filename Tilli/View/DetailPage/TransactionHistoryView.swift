@@ -157,10 +157,19 @@ struct TransactionHistoryView: View {
                     // 第二行：日期時間
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2)  {
-                            Text(transactionViewModel.formatDateTime(transaction.timestamp))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            
+                            HStack(spacing: 4) {
+                                Text(transactionViewModel.formatDateTime(transaction.displayDate))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+
+                                // 補記帳標記
+                                if transaction.isBackdated {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                }
+                            }
+
                             Text("共 \(transaction.items.count) 項商品")
                                 .font(.caption)
                                 .foregroundColor(.gray)

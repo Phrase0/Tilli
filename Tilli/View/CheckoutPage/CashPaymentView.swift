@@ -30,14 +30,16 @@ struct CashPaymentView: View {
         totalAmount: Decimal,
         session: Binding<SessionModel>,
         summaryItems: [SummaryItemModel],
-        selectedDiscount: DiscountModel? = nil
+        selectedDiscount: DiscountModel? = nil,
+        occurredAt: Date? = nil
     ) {
         self._session = session
         self._viewModel = ObservedObject(wrappedValue: CashPaymentViewModel(
             totalAmount: totalAmount,
             session: session.wrappedValue,
             summaryItems: summaryItems,
-            selectedDiscount: selectedDiscount
+            selectedDiscount: selectedDiscount,
+            occurredAt: occurredAt
         ))
     }
 

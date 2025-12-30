@@ -594,6 +594,7 @@ class AddSessionViewModel: ObservableObject {
     }
 
     /// 取得場次的交易日期範圍（最早和最晚的交易日期）
+    /// 使用 displayDate（優先 occurredAt，否則 timestamp）
     private func getTransactionDateRange(for sessionId: UUID) -> (min: Date, max: Date)? {
         guard let transactionManager = transactionDataManager else { return nil }
 
@@ -601,7 +602,7 @@ class AddSessionViewModel: ObservableObject {
 
         guard !transactions.isEmpty else { return nil }
 
-        let dates = transactions.map { $0.timestamp }
+        let dates = transactions.map { $0.displayDate }
         guard let minDate = dates.min(), let maxDate = dates.max() else { return nil }
 
         return (minDate, maxDate)
