@@ -263,6 +263,14 @@ struct AddSessionView: View {
         .navigationTitle(viewModel.editingSession == nil ? "新增場次" : "編輯場次")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedField == .newDiscount {
+                    Spacer()
+                    Button("完成") {
+                        addDiscountAction()
+                    }
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("儲存") {
                     switch viewModel.validateSave() {
