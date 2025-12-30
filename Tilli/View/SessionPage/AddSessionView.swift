@@ -305,13 +305,17 @@ struct AddSessionView: View {
                 viewModel.showCategoryEditWarning = false
             }
         }
+        .onAppear {
+            // 新增場次時自動聚焦到場次名稱欄位
+            if viewModel.editingSession == nil {
+                focusedField = .sessionName
+            }
+        }
     }
     
     // MARK: - Helper Methods
 
     private func addCategoryAction() {
-        // 先結束編輯中的類別（如果有的話）
-//        _ = viewModel.finishEditingCategory()
 
         if let error = viewModel.tryAddCategory() {
             viewModel.alertMessage = error
