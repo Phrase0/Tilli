@@ -53,7 +53,22 @@ class AddNewProductViewModel: ObservableObject {
     var currentCurrency: Currency {
         return Currency(rawValue: session.currency) ?? .twd
     }
-    
+
+    /// 產品名稱字數上限
+    var productNameMaxLength: Int {
+        return TextHelper.maxLength(for: name)
+    }
+
+    /// 產品名稱剩餘字數
+    var productNameRemainingCharacters: Int {
+        return TextHelper.remainingCharacters(for: name)
+    }
+
+    /// 截斷產品名稱至上限
+    func enforceProductNameLimit() {
+        name = TextHelper.truncateToLimit(name)
+    }
+
     /// 當前幣別是否支持小數點
     var supportsDecimal: Bool {
         return currentCurrency.decimalPlaces > 0

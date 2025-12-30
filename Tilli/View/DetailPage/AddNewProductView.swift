@@ -49,6 +49,18 @@ struct AddNewProductView: View {
                     .onSubmit { focusedField = .price }
                     .disabled(viewModel.isEditingWithTransaction)
                     .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
+                    .onChange(of: viewModel.name) {
+                        viewModel.enforceProductNameLimit()
+                    }
+
+                // 剩餘字數提示
+                if !viewModel.isEditingWithTransaction {
+                    HStack {
+                        Text("\(viewModel.name.count)/\(viewModel.productNameMaxLength)")
+                            .font(.caption)
+                            .foregroundColor(viewModel.productNameRemainingCharacters <= 5 ? .orange : .secondary)
+                    }
+                }
             }
             // MARK: - 價格
             Section(header: Text("價格")) {
