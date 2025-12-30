@@ -328,17 +328,20 @@ class SessionDataManager: ObservableObject {
             newSessionEntity.endDate = newEndDate
             newSessionEntity.createdAt = Date()
             newSessionEntity.currency = originalEntity.currency
-            
-            // 複製所有 Categories 和 Products
+            newSessionEntity.discountsData = originalEntity.discountsData
+
+            // 複製所有 Categories 和 Products（按 sortOrder 排序以保持順序）
             if let originalCategories = originalEntity.categories as? Set<CDCategoryEntity> {
-                for originalCategory in originalCategories {
+                let sortedCategories = originalCategories.sorted { $0.sortOrder < $1.sortOrder }
+                for originalCategory in sortedCategories {
                     let newCategoryEntity = CDCategoryEntity(context: context)
                     newCategoryEntity.id = UUID()
                     newCategoryEntity.name = originalCategory.name
                     newCategoryEntity.createdAt = Date()
                     newCategoryEntity.isDisabled = originalCategory.isDisabled
+                    newCategoryEntity.sortOrder = originalCategory.sortOrder
                     newCategoryEntity.session = newSessionEntity
-                    
+
                     // 複製該 Category 下的所有 Products
                     if let originalProducts = originalCategory.products as? Set<CDProductEntity> {
                         for originalProduct in originalProducts {
