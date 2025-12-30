@@ -174,17 +174,17 @@ struct AddSessionView: View {
                         .focused($focusedField, equals: .newCategory)
                         .submitLabel(.done)
 
-                    Button {
-                        addCategoryAction()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(
-                                viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : .blue
-                            )
+                    if !viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Button {
+                            addCategoryAction()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                        }
                     }
-                    .disabled(viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+                .frame(height: 36)
 
                 // 點擊不可編輯類別時顯示提示
                 if viewModel.showCategoryEditWarning {
@@ -234,17 +234,17 @@ struct AddSessionView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Button {
-                        addDiscountAction()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(
-                                viewModel.newDiscountValue.isEmpty ? .gray : .blue
-                            )
+                    if !viewModel.newDiscountValue.isEmpty {
+                        Button {
+                            addDiscountAction()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                        }
                     }
-                    .disabled(viewModel.newDiscountValue.isEmpty)
                 }
+                .frame(height: 36)
             }
 
             Section(header: Text("已停用類別")) {
