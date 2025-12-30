@@ -311,6 +311,7 @@ struct SessionsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(session.title)
                         .font(.headline)
+                        .lineLimit(1)
 
                     Text(session.displayDateRange)
                         .font(.subheadline)

@@ -89,6 +89,21 @@ class AddSessionViewModel: ObservableObject {
         return Currency(rawValue: selectedCurrency) ?? .twd
     }
 
+    /// 場次名稱字數上限
+    var sessionNameMaxLength: Int {
+        return TextHelper.maxLength(for: sessionName)
+    }
+
+    /// 場次名稱剩餘字數
+    var sessionNameRemainingCharacters: Int {
+        return TextHelper.remainingCharacters(for: sessionName)
+    }
+
+    /// 截斷場次名稱至上限
+    func enforceSessionNameLimit() {
+        sessionName = TextHelper.truncateToLimit(sessionName)
+    }
+
     // MARK: - 日期範圍計算（用於 DatePicker 限制）
 
     /// 結束日期的可選範圍（多日場次：開始日期隔天 ~ +30天，確保至少 2 天）

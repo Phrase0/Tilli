@@ -100,6 +100,7 @@ struct SessionDetailFromCalendarView: View {
                     Text(viewModel.session.title)
                         .font(.headline)
                         .foregroundColor(.primary)
+                        .lineLimit(1)
                     Text(viewModel.session.displayDateRange)
                         .font(.subheadline)
                         .foregroundColor(.secondary)

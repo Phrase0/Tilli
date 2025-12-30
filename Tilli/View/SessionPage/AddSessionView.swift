@@ -42,6 +42,16 @@ struct AddSessionView: View {
                     .focused($focusedField, equals: .sessionName)
                     .submitLabel(.next)
                     .onSubmit { focusedField = .newCategory }
+                    .onChange(of: viewModel.sessionName) {
+                        viewModel.enforceSessionNameLimit()
+                    }
+
+                // 剩餘字數提示
+                HStack {
+                    Text("\(viewModel.sessionName.count)/\(viewModel.sessionNameMaxLength)")
+                        .font(.caption)
+                        .foregroundColor(viewModel.sessionNameRemainingCharacters <= 5 ? .orange : .secondary)
+                }
             }
             // 場次類型選擇器
             Section {

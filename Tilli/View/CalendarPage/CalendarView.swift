@@ -300,6 +300,7 @@ struct SessionRowView: View {
                 Text(session.title + (isPermanent ? " ∞" : ""))
                     .font(.headline)
                     .foregroundColor(.black)
+                    .lineLimit(1)
 
                 // 場次進度資訊
                 if let sessionInfo = sessionProgressInfo {
