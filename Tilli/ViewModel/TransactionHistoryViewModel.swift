@@ -70,23 +70,23 @@ class TransactionViewModel: ObservableObject {
         groupTransactionsByDate()
     }
     
-    /// 將交易按日期分組
+    /// 將交易按日期分組（使用 displayDate 進行分組）
     private func groupTransactionsByDate() {
         let calendar = Calendar.current
-        
-        // 按日期分組
+
+        // 按 displayDate 分組（優先使用 occurredAt，否則用 timestamp）
         let grouped = Dictionary(grouping: transactions) { transaction in
-            calendar.startOfDay(for: transaction.timestamp)
+            calendar.startOfDay(for: transaction.displayDate)
         }
-        
+
         // 轉換為 DailyTransactionGroup 並排序
         groupedTransactions = grouped.map { date, txs in
             DailyTransactionGroup(
                 date: date,
-                transactions: txs.sorted { $0.timestamp > $1.timestamp }
+                transactions: txs.sorted { $0.displayDate > $1.displayDate }
             )
         }.sorted { $0.date > $1.date }
-        
+
         // 初始化所有日期為展開狀態
         initializeDailyGroupExpansion()
     }
@@ -108,11 +108,11 @@ class TransactionViewModel: ObservableObject {
         }
         csvContent += "\n"
 
-        csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,小計(\(currencyCode)),訂單折扣,總金額(\(currencyCode))\n"
+        csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,小計(\(currencyCode)),訂單折扣,總金額(\(currencyCode)),補記帳\n"
 
-        for transaction in transactions.sorted(by: { $0.timestamp > $1.timestamp }) {
+        for transaction in transactions.sorted(by: { $0.displayDate > $1.displayDate }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
-            let dateTime = formatDateTime(transaction.timestamp)
+            let dateTime = formatDateTime(transaction.displayDate)
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
@@ -136,8 +136,9 @@ class TransactionViewModel: ObservableObject {
                 let unitPrice = MoneyHelper.toDisplayString(item.price, currency: currency)
                 let quantity = "\(item.quantity)"
                 let subtotal = MoneyHelper.toDisplayString(item.total, currency: currency)
+                let isBackdated = transaction.isBackdated ? "是" : "-"
 
-                let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(subtotal),\(transactionDiscount),\(totalAmount)\n"
+                let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(subtotal),\(transactionDiscount),\(totalAmount),\(isBackdated)\n"
                 csvContent += row
             }
         }

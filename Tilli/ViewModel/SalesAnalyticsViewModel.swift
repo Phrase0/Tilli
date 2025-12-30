@@ -332,10 +332,10 @@ private extension SalesAnalyticsViewModel {
         let hourlyHelper = HourlyStatsHelper()
         let paymentHelper = PaymentStatsHelper()
 
-        // 處理每筆交易
+        // 處理每筆交易（使用 displayDate 進行時段統計）
         for transaction in transactions {
             hourlyHelper.addTransaction(
-                timestamp: transaction.timestamp,
+                timestamp: transaction.displayDate,
                 amount: transaction.totalAmount
             )
 
@@ -379,9 +379,9 @@ private extension SalesAnalyticsViewModel {
     ) -> [DailyRevenueData] {
         let calendar = Calendar.current
 
-        // 按日期分組交易
+        // 按日期分組交易（使用 displayDate）
         let grouped = Dictionary(grouping: transactions) { transaction in
-            calendar.startOfDay(for: transaction.timestamp)
+            calendar.startOfDay(for: transaction.displayDate)
         }
 
         // 生成時間範圍內的所有日期
@@ -411,7 +411,7 @@ private extension SalesAnalyticsViewModel {
         let calendar = Calendar.current
 
         let grouped = Dictionary(grouping: transactions) { transaction in
-            let components = calendar.dateComponents([.year, .month], from: transaction.timestamp)
+            let components = calendar.dateComponents([.year, .month], from: transaction.displayDate)
             return "\(components.year!)-\(components.month!)"
         }
 

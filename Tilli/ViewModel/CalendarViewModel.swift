@@ -148,11 +148,11 @@ class CalendarViewModel: ObservableObject {
         return SessionModel(
             id: sessionId,
             title: firstTransaction.sessionTitle,  // 使用保存的原始 Session 名稱
-            startDate: firstTransaction.timestamp,
-            endDate: firstTransaction.timestamp,   // 虛擬 Session 為單日
+            startDate: firstTransaction.displayDate,
+            endDate: firstTransaction.displayDate,   // 虛擬 Session 為單日
             dateType: .single,
             categories: [],
-            createdAt: firstTransaction.timestamp,
+            createdAt: firstTransaction.displayDate,
             currency: firstTransaction.currency    // 使用保存的幣別
         )
     }

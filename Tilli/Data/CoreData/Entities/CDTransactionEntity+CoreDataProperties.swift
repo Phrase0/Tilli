@@ -23,6 +23,7 @@ extension CDTransactionEntity {
     @NSManaged public var totalAmount: NSDecimalNumber
     @NSManaged public var paymentMethod: String
     @NSManaged public var timestamp: Date
+    @NSManaged public var occurredAt: Date?           // 補記帳時的實際發生時間
     @NSManaged public var discountType: String?       // 折扣類型："percentage" | "amount"
     @NSManaged public var discountValue: NSDecimalNumber?  // 折扣數值
     @NSManaged public var session: CDSessionEntity?
@@ -50,6 +51,7 @@ extension CDTransactionEntity {
         self.totalAmount = NSDecimalNumber(decimal: model.totalAmount)
         self.paymentMethod = model.paymentMethod.rawValue
         self.timestamp = model.timestamp
+        self.occurredAt = model.occurredAt
         self.items = model.items
 
         // 存儲折扣
@@ -73,6 +75,7 @@ extension CDTransactionEntity {
             totalAmount: self.totalAmount.decimalValue,
             paymentMethod: PaymentMethod(rawValue: self.paymentMethod) ?? .cash,
             timestamp: self.timestamp,
+            occurredAt: self.occurredAt,
             discountType: discountTypeEnum,
             discountValue: self.discountValue?.decimalValue
         )
