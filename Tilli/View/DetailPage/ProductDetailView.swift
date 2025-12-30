@@ -125,34 +125,52 @@ struct ProductDetailView: View {
                     VStack(spacing: 12) {
                         // 折扣選擇器（只在有折扣選項時顯示）
                         if !productViewModel.session.discounts.isEmpty {
-                            HStack(spacing: 8) {
+                            HStack(spacing: 12) {
                                 Text("折扣")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
 
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(productViewModel.session.discounts) { discount in
-                                            let isSelected = productViewModel.selectedDiscountId == discount.id
-
-                                            Text(discount.displayText(currency: productViewModel.session.currency))
-                                                .font(.subheadline)
-                                                .fontWeight(isSelected ? .semibold : .regular)
-                                                .padding(.vertical, 8)
-                                                .padding(.horizontal, 16)
-                                                .background(isSelected ? Color.blue : Color(.systemGray5))
-                                                .foregroundColor(isSelected ? .white : .primary)
-                                                .cornerRadius(20)
-                                                .onTapGesture {
-                                                    if isSelected {
-                                                        productViewModel.selectedDiscountId = nil
-                                                    } else {
-                                                        productViewModel.selectedDiscountId = discount.id
-                                                    }
-                                                }
+                                Menu {
+                                    // 無折扣選項
+                                    Button {
+                                        productViewModel.selectedDiscountId = nil
+                                    } label: {
+                                        HStack {
+                                            Text("- -")
+                                            if productViewModel.selectedDiscountId == nil {
+                                                Image(systemName: "checkmark")
+                                            }
                                         }
                                     }
-                                    .padding(.horizontal, 1)
+
+                                    // 各個折扣選項
+                                    ForEach(productViewModel.session.discounts) { discount in
+                                        Button {
+                                            productViewModel.selectedDiscountId = discount.id
+                                        } label: {
+                                            HStack {
+                                                Text(discount.displayText(currency: productViewModel.session.currency))
+                                                if productViewModel.selectedDiscountId == discount.id {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(productViewModel.selectedDiscount?.displayText(currency: productViewModel.session.currency) ?? "- -")
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 10)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
                                 }
                             }
                         }
@@ -161,17 +179,6 @@ struct ProductDetailView: View {
                             Text("總計")
                                 .font(.headline)
                             Spacer()
-
-                            // 顯示選中的折扣
-                            if let discount = productViewModel.selectedDiscount {
-                                Text(discount.displayText(currency: productViewModel.session.currency))
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.blue.opacity(0.2))
-                                    .cornerRadius(4)
-                            }
-
                             Text(MoneyHelper.format(productViewModel.totalAmount(), currencyCode: productViewModel.session.currency))
                                 .font(.headline)
                                 .bold()
