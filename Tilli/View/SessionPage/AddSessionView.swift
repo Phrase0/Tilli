@@ -173,6 +173,16 @@ struct AddSessionView: View {
                     TextField("新增類別", text: $viewModel.newCategory)
                         .focused($focusedField, equals: .newCategory)
                         .submitLabel(.done)
+                        .onSubmit {
+                            // 驗證類別名稱是否合規
+                            if let error = viewModel.validateCategoryValue() {
+                                viewModel.alertMessage = error
+                                viewModel.showAlert = true
+                                focusedField = .newCategory
+                            } else {
+                                focusedField = nil
+                            }
+                        }
 
                     if !viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty {
                         Button {

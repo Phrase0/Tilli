@@ -317,14 +317,31 @@ class AddSessionViewModel: ObservableObject {
         }
     }
 
+    /// 驗證類別名稱
+    func validateCategoryValue() -> String? {
+        let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return nil  // 空值不顯示錯誤
+        }
+
+        // 檢查是否重複
+        if categories.contains(where: { $0.name == trimmed }) {
+            return "此類別已存在"
+        }
+
+        return nil
+    }
+
     // 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
     func tryAddCategory() -> String? {
         let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmed.isEmpty else { return nil }
 
-        if categories.contains(where: { $0.name == trimmed }) {
-            return "此類別已存在"
+        // 使用 validateCategoryValue() 進行驗證
+        if let error = validateCategoryValue() {
+            return error
         }
 
         // 設置 sortOrder 為當前最大值 + 1
