@@ -240,7 +240,7 @@ class AddSessionViewModel: ObservableObject {
 
         // 百分比不可超過 100
         if newDiscountType == .percentage && value > 100 {
-            return "百分比不可超過 100"
+            return "折扣百分比不可超過 100"
         }
 
         // 檢查是否重複
