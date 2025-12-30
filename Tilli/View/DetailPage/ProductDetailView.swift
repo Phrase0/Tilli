@@ -111,7 +111,7 @@ struct ProductDetailView: View {
                                     .buttonStyle(PlainButtonStyle())
                                     
                                     if productViewModel.showDisabledProducts {
-                                        ForEach(productViewModel.disabledProducts.sorted { $0.name < $1.name }) { product in
+                                        ForEach(productViewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
                                             disabledProductCard(product)
                                         }
                                     }
