@@ -131,9 +131,13 @@ class ProductViewModel: ObservableObject {
         let inStockProducts = categoryProducts.filter { !isOutOfStock($0) }
         let outOfStockProducts = categoryProducts.filter { isOutOfStock($0) }
         
-        // 各組內部按名稱排序，然後合併（有庫存在前）
-        let sortedInStock = inStockProducts.sorted { $0.name < $1.name }
-        let sortedOutOfStock = outOfStockProducts.sorted { $0.name < $1.name }
+        // 各組內部按名稱排序（使用語言環境排序），然後合併（有庫存在前）
+        let sortedInStock = inStockProducts.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+        let sortedOutOfStock = outOfStockProducts.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
         
         return sortedInStock + sortedOutOfStock
     }
