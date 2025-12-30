@@ -267,7 +267,13 @@ struct AddSessionView: View {
                 if focusedField == .newDiscount {
                     Spacer()
                     Button("完成") {
-                        addDiscountAction()
+                        // 驗證折扣數值是否合規
+                        if let error = viewModel.validateDiscountValue() {
+                            viewModel.alertMessage = error
+                            viewModel.showAlert = true
+                        } else {
+                            focusedField = nil
+                        }
                     }
                 }
             }

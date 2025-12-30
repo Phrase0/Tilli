@@ -213,12 +213,12 @@ class AddSessionViewModel: ObservableObject {
 
     // MARK: - 折扣相關方法
 
-    /// 嘗試新增折扣
-    func tryAddDiscount() -> String? {
+    /// 驗證折扣數值
+    func validateDiscountValue() -> String? {
         let trimmed = newDiscountValue.trimmingCharacters(in: .whitespaces)
 
         guard !trimmed.isEmpty else {
-            return "請輸入數值"
+            return nil  // 空值不顯示錯誤
         }
 
         guard let value = Decimal(string: trimmed), value > 0 else {
@@ -252,6 +252,29 @@ class AddSessionViewModel: ObservableObject {
             return "此折扣已存在"
         }
 
+        return nil
+    }
+
+    /// 嘗試新增折扣
+    func tryAddDiscount() -> String? {
+        let trimmed = newDiscountValue.trimmingCharacters(in: .whitespaces)
+
+        // 空值檢查
+        guard !trimmed.isEmpty else {
+            return "請輸入數值"
+        }
+
+        // 使用 validateDiscountValue() 進行完整驗證（包含重複檢查）
+        if let error = validateDiscountValue() {
+            return error
+        }
+
+        // 取得驗證過的數值
+        guard let value = Decimal(string: trimmed) else {
+            return "請輸入有效的數值"
+        }
+
+        // 新增折扣
         let discount = DiscountModel(type: newDiscountType, value: value)
         discounts.append(discount)
         newDiscountValue = ""
