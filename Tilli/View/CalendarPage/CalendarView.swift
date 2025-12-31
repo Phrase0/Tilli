@@ -294,6 +294,8 @@ struct SessionRowView: View {
     let viewModel: CalendarViewModel
 
     var body: some View {
+        let summary = viewModel.calculateTransactionSummary(for: session)
+
         HStack(alignment: .top) {
             // 左側：標題 + 場次資訊
             VStack(alignment: .leading, spacing: 4) {
@@ -314,11 +316,11 @@ struct SessionRowView: View {
 
             // 右側：金額 + 交易筆數
             VStack(alignment: .trailing, spacing: 6) {
-                Text(viewModel.totalAmount(for: session).money(currency: session.currency))
+                Text(summary.totalAmount.money(currency: session.currency))
                     .font(.headline)
                     .foregroundColor(isPermanent ? .purple : .blue)
 
-                Text("\(viewModel.getTransactionCount(for: session)) 筆交易")
+                Text("\(summary.count) 筆交易")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
