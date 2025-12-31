@@ -19,9 +19,9 @@ class HourlyStatsHelper {
         }
     }
 
-    func addTransaction(timestamp: Date, amount: Decimal) {
+    func addTransaction(displayDate: Date, amount: Decimal) {
         let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: timestamp)
+        let hour = calendar.component(.hour, from: displayDate)
 
         let current = hourlyStats[hour] ?? (amount: 0, transactions: 0)
         hourlyStats[hour] = (

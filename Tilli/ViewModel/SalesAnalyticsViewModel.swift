@@ -335,7 +335,7 @@ private extension SalesAnalyticsViewModel {
         // 處理每筆交易（使用 displayDate 進行時段統計）
         for transaction in transactions {
             hourlyHelper.addTransaction(
-                timestamp: transaction.displayDate,
+                displayDate: transaction.displayDate,
                 amount: transaction.totalAmount
             )
 

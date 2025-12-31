@@ -444,6 +444,16 @@ class TestDataGenerator {
                     of: currentDate
                 ) ?? currentDate
 
+                // 約 10% 機率為補記帳交易（occurredAt 設為 1-3 天前）
+                var occurredAt: Date? = nil
+                if Int.random(in: 1...100) <= 10 {
+                    let daysAgo = Int.random(in: 1...3)
+                    if let backdatedTime = calendar.date(byAdding: .day, value: -daysAgo, to: transactionTime),
+                       backdatedTime >= startDate {
+                        occurredAt = backdatedTime
+                    }
+                }
+
                 let transaction = TransactionModel(
                     id: UUID(),
                     sessionId: sessionId,
@@ -453,6 +463,7 @@ class TestDataGenerator {
                     totalAmount: totalAmount,
                     paymentMethod: Bool.random() ? .cash : .ePayment,
                     timestamp: transactionTime,
+                    occurredAt: occurredAt,
                     discountType: discountType,
                     discountValue: discountValue
                 )
