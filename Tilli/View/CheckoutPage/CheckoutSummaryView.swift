@@ -32,10 +32,12 @@ struct CheckoutSummaryView: View {
         let startOfSessionDate = calendar.startOfDay(for: session.startDate)
         let now = Date()
 
-        // 結束日期：取 session.endDate 和現在時間的較小值
+        // 結束日期
         let endDate: Date
         if let sessionEndDate = session.endDate {
-            endDate = min(sessionEndDate, now)
+            // 取 session.endDate 當天的最後一秒，再與 now 比較
+            let endOfSessionEndDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: sessionEndDate) ?? sessionEndDate
+            endDate = min(endOfSessionEndDate, now)
         } else {
             endDate = now
         }
