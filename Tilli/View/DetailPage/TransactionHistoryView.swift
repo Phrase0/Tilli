@@ -51,9 +51,9 @@ struct TransactionHistoryView: View {
                                 dailyTransactionSection(dailyGroup)
                             }
                         } else {
-                            // 金額排序：打平列表顯示
+                            // 金額排序：打平列表顯示（使用相同的卡片樣式）
                             ForEach(transactionViewModel.sortedFlatTransactions) { transaction in
-                                flatTransactionCard(transaction)
+                                transactionCard(transaction)
                             }
                         }
                     }
@@ -181,130 +181,6 @@ struct TransactionHistoryView: View {
         }
     }
     
-    // MARK: - 金額排序的打平卡片
-
-    /// 金額排序時使用的簡化交易卡片
-    private func flatTransactionCard(_ transaction: TransactionModel) -> some View {
-        let isExpanded = transactionViewModel.isTransactionExpanded(transaction.id)
-
-        return VStack(spacing: 0) {
-            Button(action: {
-                transactionViewModel.toggleTransactionExpansion(transaction.id)
-            }) {
-                HStack(spacing: 12) {
-                    // 左側：金額（突出顯示）
-                    Text(transactionViewModel.formatAmount(transaction.totalAmount))
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                        .frame(width: 100, alignment: .leading)
-
-                    // 中間：商品摘要 + 日期時間
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(transaction.items.map { $0.name }.joined(separator: "、"))
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-
-                        HStack(spacing: 4) {
-                            Text(transactionViewModel.formatDateTime(transaction.displayDate))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-
-                            if transaction.isBackdated {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .font(.caption2)
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                    }
-
-                    Spacer()
-
-                    // 右側：支付方式 + 展開箭頭
-                    HStack(spacing: 8) {
-                        Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(transactionViewModel.paymentMethodColor(transaction.paymentMethod))
-                            .foregroundColor(.white)
-                            .cornerRadius(4)
-
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .foregroundColor(.gray)
-                            .font(.caption)
-                    }
-                }
-                .padding()
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // 展開時顯示商品明細
-            if isExpanded {
-                VStack(spacing: 0) {
-                    // 表頭
-                    HStack(spacing: 8) {
-                        Text("商品")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Text("單價")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .frame(width: 60, alignment: .center)
-
-                        Text("數量")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .frame(width: 40, alignment: .center)
-
-                        Text("小計")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .frame(width: 70, alignment: .trailing)
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color(.systemGray5))
-
-                    // 商品明細
-                    ForEach(transaction.items) { item in
-                        HStack(spacing: 8) {
-                            Text(item.name)
-                                .font(.caption)
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            Text(transactionViewModel.formatAmount(item.price))
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .frame(width: 60, alignment: .center)
-
-                            Text("\(item.quantity)")
-                                .font(.caption)
-                                .foregroundColor(.primary)
-                                .frame(width: 40, alignment: .center)
-
-                            Text(transactionViewModel.formatAmount(item.total))
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-                                .frame(width: 70, alignment: .trailing)
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 10)
-                    }
-                }
-            }
-        }
-        .background(Color.white)
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-    }
-
     // MARK: - 按日分組視圖
 
     /// 每日交易區塊
