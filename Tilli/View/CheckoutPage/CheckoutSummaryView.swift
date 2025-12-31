@@ -25,9 +25,10 @@ struct CheckoutSummaryView: View {
     // 補記帳狀態
     @State private var isBackdatedMode = false
     @State private var backdatedDate = Date()
+    @State private var backdatedDateRange: ClosedRange<Date>?
 
-    /// 計算補記帳日期的有效範圍
-    private var backdatedDateRange: ClosedRange<Date> {
+    /// 計算補記帳日期的有效範圍（只在需要時呼叫）
+    private func calculateBackdatedDateRange() -> ClosedRange<Date> {
         let calendar = Calendar.current
         let startOfSessionDate = calendar.startOfDay(for: session.startDate)
         let now = Date()
@@ -108,12 +109,17 @@ struct CheckoutSummaryView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isBackdatedMode.toggle()
                         if isBackdatedMode {
+                            // 計算日期範圍（只計算一次）
+                            let range = calculateBackdatedDateRange()
+                            backdatedDateRange = range
+
+                            // 設定預設日期
                             let now = Date()
-                            if backdatedDateRange.contains(now) {
+                            if range.contains(now) {
                                 backdatedDate = now
                             } else {
                                 // 如果當前時間不在範圍內，使用範圍的最後一個有效時間
-                                backdatedDate = backdatedDateRange.upperBound
+                                backdatedDate = range.upperBound
                             }
                         }
                     }
@@ -134,11 +140,11 @@ struct CheckoutSummaryView: View {
 
                 Spacer()
 
-                if isBackdatedMode {
+                if isBackdatedMode, let range = backdatedDateRange {
                     DatePicker(
                         "",
                         selection: $backdatedDate,
-                        in: backdatedDateRange,
+                        in: range,
                         displayedComponents: [.date, .hourAndMinute]
                     )
                     .labelsHidden()
