@@ -106,8 +106,13 @@ struct CheckoutSummaryView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isBackdatedMode.toggle()
                         if isBackdatedMode {
-                            // 預設為現在時間
-                            backdatedDate = Date()
+                            let now = Date()
+                            if backdatedDateRange.contains(now) {
+                                backdatedDate = now
+                            } else {
+                                // 如果當前時間不在範圍內，使用範圍的最後一個有效時間
+                                backdatedDate = backdatedDateRange.upperBound
+                            }
                         }
                     }
                 } label: {
@@ -167,8 +172,9 @@ struct CheckoutSummaryView: View {
             VStack(spacing: 8) {
                 // 現金付款
                 Button {
-                    // 先驗證日期
-                    let validation = DateValidationHelper.validateTransactionDate(for: session)
+                    // 先驗證日期（補記帳時用 backdatedDate，否則用當前時間）
+                    let dateToValidate = isBackdatedMode ? backdatedDate : Date()
+                    let validation = DateValidationHelper.validateTransactionDate(for: session, transactionDate: dateToValidate)
                     if !validation.isValid {
                         dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
                         showDateWarning = true
@@ -194,8 +200,9 @@ struct CheckoutSummaryView: View {
 
                 // 電子支付
                 Button {
-                    // 先驗證日期
-                    let validation = DateValidationHelper.validateTransactionDate(for: session)
+                    // 先驗證日期（補記帳時用 backdatedDate，否則用當前時間）
+                    let dateToValidate = isBackdatedMode ? backdatedDate : Date()
+                    let validation = DateValidationHelper.validateTransactionDate(for: session, transactionDate: dateToValidate)
                     if !validation.isValid {
                         dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
                         showDateWarning = true
