@@ -275,8 +275,8 @@ class SessionDataManager: ObservableObject {
             sessionEntity.addToTransactions(entity)
 
             if saveContext() {
-                fetchSessions() // 僅在成功保存後重新載入以更新交易記錄
-                TransactionDataManager.shared.notifyTransactionsChanged() // 通知交易變更
+                // UI 更新由 notifyTransactionsChanged() 觸發
+                TransactionDataManager.shared.notifyTransactionsChanged()
             }
         } catch {
             print("加入 transaction 失敗:", error)
