@@ -145,7 +145,8 @@ struct SessionDetailView: View {
         .background(Color(.systemGroupedBackground))
         .onChange(of: checkoutCompleted) {
                 // 結帳完成後的處理
-                viewModel.loadData()
+                // 只刷新產品庫存，交易明細會在切換頁面時自動載入
+                viewModel.productViewModel.loadProducts()
                 viewModel.productViewModel.clearAllQuantities()
                 viewModel.updateSessionTotalAmount()
 

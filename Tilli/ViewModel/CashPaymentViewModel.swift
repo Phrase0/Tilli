@@ -171,9 +171,9 @@ class CashPaymentViewModel: ObservableObject {
 
         // 使用 SessionDataManager 添加交易記錄
         sessionDataManager.addTransaction(transaction)
-        
-        // 返回更新後的 session（通過 SessionDataManager 重新獲取）
-        return sessionDataManager.fetchSession(by: session.id) ?? session
+
+        // 直接返回原 session，UI 更新由 onChange(of: checkoutCompleted) 處理
+        return session
     }
 
 
