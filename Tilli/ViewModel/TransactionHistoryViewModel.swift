@@ -8,10 +8,17 @@
 import SwiftUI
 import Foundation
 
+// MARK: - 排序類型
+
+enum TransactionSortType {
+    case time    // 按時間（保留日期分組）
+    case amount  // 按金額（打平列表）
+}
+
 class TransactionViewModel: ObservableObject {
-    
+
     @Binding var session: SessionModel
-    
+
     // Transaction History 相關狀態
     @Published var transactions: [TransactionModel] = []
     @Published var groupedTransactions: [DailyTransactionGroup] = []
@@ -20,7 +27,15 @@ class TransactionViewModel: ObservableObject {
     @Published var showingExportAlert = false
     @Published var csvContent = ""
     @Published var currentTimeRange: ReportTimeRange?
-    
+
+    // 排序狀態
+    @Published var sortType: TransactionSortType = .time
+    @Published var sortAscending: Bool = false  // false = 降序（新→舊 / 高→低）
+
+    // 篩選狀態
+    @Published var filterCash: Bool = true
+    @Published var filterEPayment: Bool = true
+
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
     
@@ -32,9 +47,82 @@ class TransactionViewModel: ObservableObject {
             return 0
         }
     }
-    
+
+    // MARK: - 篩選後的交易（用於金額排序的打平列表）
+
+    /// 篩選後的交易列表
+    var filteredTransactions: [TransactionModel] {
+        transactions.filter { transaction in
+            switch transaction.paymentMethod {
+            case .cash: return filterCash
+            case .ePayment: return filterEPayment
+            }
+        }
+    }
+
+    /// 金額排序時使用的打平列表
+    var sortedFlatTransactions: [TransactionModel] {
+        let filtered = filteredTransactions
+        if sortAscending {
+            return filtered.sorted { $0.totalAmount < $1.totalAmount }
+        } else {
+            return filtered.sorted { $0.totalAmount > $1.totalAmount }
+        }
+    }
+
+    /// 時間排序時使用的分組列表（已套用篩選）
+    var filteredGroupedTransactions: [DailyTransactionGroup] {
+        let calendar = Calendar.current
+        let filtered = filteredTransactions
+
+        // 按 displayDate 分組
+        let grouped = Dictionary(grouping: filtered) { transaction in
+            calendar.startOfDay(for: transaction.displayDate)
+        }
+
+        // 轉換為 DailyTransactionGroup
+        let groups = grouped.map { date, txs in
+            DailyTransactionGroup(
+                date: date,
+                transactions: sortAscending
+                    ? txs.sorted { $0.displayDate < $1.displayDate }
+                    : txs.sorted { $0.displayDate > $1.displayDate }
+            )
+        }
+
+        // 按日期排序
+        return sortAscending
+            ? groups.sorted { $0.date < $1.date }
+            : groups.sorted { $0.date > $1.date }
+    }
+
+    /// 是否有套用篩選（用於顯示篩選狀態）
+    var hasActiveFilter: Bool {
+        return !filterCash || !filterEPayment
+    }
+
     init(session: Binding<SessionModel>) {
         self._session = session
+    }
+
+    // MARK: - 排序切換
+
+    /// 切換排序類型或方向
+    func toggleSort(_ type: TransactionSortType) {
+        if sortType == type {
+            // 同一個：切換方向
+            sortAscending.toggle()
+        } else {
+            // 不同：切換類型，重置為降序
+            sortType = type
+            sortAscending = false
+        }
+    }
+
+    /// 全選篩選
+    func selectAllFilters() {
+        filterCash = true
+        filterEPayment = true
     }
     
     // MARK: - DataManager 管理
