@@ -196,21 +196,13 @@ class CalendarViewModel: ObservableObject {
 
     // MARK: - Transaction Calculations
 
-    /// 計算指定 Session 的總金額
-    func totalAmount(for session: SessionModel) -> Decimal {
-        let transactions = getTransactions(for: session)
-        return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
-    }
-
-    /// 透過 TransactionDataManager 獲取交易數量（避免關聯問題）
-    func getTransactionCount(for session: SessionModel) -> Int {
-        guard let transactionManager = transactionDataManager else { return 0 }
-        return transactionManager.fetchTransactions(forSessionId: session.id).count
-    }
-
-    /// 透過 TransactionDataManager 獲取交易記錄（避免關聯問題）
-    func getTransactions(for session: SessionModel) -> [TransactionModel] {
-        guard let transactionManager = transactionDataManager else { return [] }
-        return transactionManager.fetchTransactions(forSessionId: session.id)
+    /// 計算 Session 的交易摘要（筆數 + 總金額）
+    func calculateTransactionSummary(for session: SessionModel) -> (count: Int, totalAmount: Decimal) {
+        guard let transactionManager = transactionDataManager else {
+            return (count: 0, totalAmount: 0)
+        }
+        let transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+        let total = transactions.reduce(Decimal(0)) { MoneyHelper.add($0, $1.totalAmount) }
+        return (count: transactions.count, totalAmount: total)
     }
 }
