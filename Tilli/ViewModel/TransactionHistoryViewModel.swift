@@ -15,6 +15,22 @@ enum TransactionSortType {
     case amount  // 按金額（打平列表）
 }
 
+// MARK: - 支付方式篩選
+
+enum PaymentMethodFilter {
+    case all        // 全部
+    case cash       // 現金
+    case ePayment   // 電子支付
+
+    var label: String {
+        switch self {
+        case .all: return "全部"
+        case .cash: return "現金"
+        case .ePayment: return "電子支付"
+        }
+    }
+}
+
 class TransactionViewModel: ObservableObject {
 
     @Binding var session: SessionModel
@@ -33,8 +49,7 @@ class TransactionViewModel: ObservableObject {
     @Published var sortAscending: Bool = false  // false = 降序（新→舊 / 高→低）
 
     // 篩選狀態
-    @Published var filterCash: Bool = true
-    @Published var filterEPayment: Bool = true
+    @Published var paymentFilter: PaymentMethodFilter = .all
 
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
@@ -52,11 +67,13 @@ class TransactionViewModel: ObservableObject {
 
     /// 篩選後的交易列表
     var filteredTransactions: [TransactionModel] {
-        transactions.filter { transaction in
-            switch transaction.paymentMethod {
-            case .cash: return filterCash
-            case .ePayment: return filterEPayment
-            }
+        switch paymentFilter {
+        case .all:
+            return transactions
+        case .cash:
+            return transactions.filter { $0.paymentMethod == .cash }
+        case .ePayment:
+            return transactions.filter { $0.paymentMethod == .ePayment }
         }
     }
 
@@ -98,7 +115,7 @@ class TransactionViewModel: ObservableObject {
 
     /// 是否有套用篩選（用於顯示篩選狀態）
     var hasActiveFilter: Bool {
-        return !filterCash || !filterEPayment
+        return paymentFilter != .all
     }
 
     init(session: Binding<SessionModel>) {
@@ -119,12 +136,6 @@ class TransactionViewModel: ObservableObject {
         }
     }
 
-    /// 全選篩選
-    func selectAllFilters() {
-        filterCash = true
-        filterEPayment = true
-    }
-    
     // MARK: - DataManager 管理
     
     /// 更新 DataManager 引用

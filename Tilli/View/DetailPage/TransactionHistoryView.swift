@@ -12,8 +12,6 @@ struct TransactionHistoryView: View {
     @Binding var session: SessionModel
     let timeRange: ReportTimeRange?
 
-    @State private var showingFilterSheet = false
-
     init(transactionViewModel: TransactionViewModel,
          session: Binding<SessionModel>,
          timeRange: ReportTimeRange? = nil) {
@@ -73,9 +71,6 @@ struct TransactionHistoryView: View {
         } message: {
             Text("交易明細已成功導出為 CSV 檔案")
         }
-        .sheet(isPresented: $showingFilterSheet) {
-            filterSheet
-        }
     }
 
     // MARK: - 排序和篩選工具列
@@ -90,14 +85,25 @@ struct TransactionHistoryView: View {
 
             Spacer()
 
-            // 篩選按鈕
-            Button(action: { showingFilterSheet = true }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                    Text("篩選")
-                        .font(.subheadline)
+            // 篩選選擇器（Menu 樣式）
+            Menu {
+                Button("全部") {
+                    transactionViewModel.paymentFilter = .all
                 }
-                .foregroundColor(transactionViewModel.hasActiveFilter ? .blue : .gray)
+                Button("現金") {
+                    transactionViewModel.paymentFilter = .cash
+                }
+                Button("電子支付") {
+                    transactionViewModel.paymentFilter = .ePayment
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(transactionViewModel.paymentFilter.label)
+                        .font(.subheadline)
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                }
+                .foregroundColor(transactionViewModel.hasActiveFilter ? .blue : .primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
@@ -134,36 +140,6 @@ struct TransactionHistoryView: View {
         }
     }
 
-    // MARK: - 篩選 Sheet
-
-    private var filterSheet: some View {
-        NavigationView {
-            List {
-                Section(header: Text("支付方式")) {
-                    Toggle("現金", isOn: $transactionViewModel.filterCash)
-                    Toggle("電子支付", isOn: $transactionViewModel.filterEPayment)
-                }
-
-                Section {
-                    Button("全選") {
-                        transactionViewModel.selectAllFilters()
-                    }
-                    .foregroundColor(.blue)
-                }
-            }
-            .navigationTitle("篩選")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
-                        showingFilterSheet = false
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-    
     // MARK: - 空狀態訊息
     
     /// 根據時間範圍顯示不同的空狀態訊息
