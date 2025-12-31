@@ -87,16 +87,30 @@ class TransactionDataManager: ObservableObject {
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
-        // 先取得所有交易，再用 displayDate 篩選
+        // 用 OR 條件查詢：timestamp 或 occurredAt 在當天範圍內
+        let timestampPredicate = NSPredicate(
+            format: "timestamp >= %@ AND timestamp < %@",
+            startOfDay as NSDate,
+            endOfDay as NSDate
+        )
+        let occurredAtPredicate = NSPredicate(
+            format: "occurredAt >= %@ AND occurredAt < %@",
+            startOfDay as NSDate,
+            endOfDay as NSDate
+        )
+
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+        request.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
+            timestampPredicate,
+            occurredAtPredicate
+        ])
 
         do {
             let result = try context.fetch(request)
-            let allTransactions = result.compactMap { $0.toModel() }
+            let transactions = result.compactMap { $0.toModel() }
 
-            // 使用 displayDate 進行記憶體內篩選
-            return allTransactions
+            // 使用 displayDate 進行精確篩選
+            return transactions
                 .filter { $0.displayDate >= startOfDay && $0.displayDate < endOfDay }
                 .sorted { $0.displayDate > $1.displayDate }
         } catch {
