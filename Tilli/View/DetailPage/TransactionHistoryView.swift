@@ -12,17 +12,26 @@ struct TransactionHistoryView: View {
     @Binding var session: SessionModel
     let timeRange: ReportTimeRange?
 
-    init(transactionViewModel: TransactionViewModel, 
-         session: Binding<SessionModel>, 
+    @State private var showingFilterSheet = false
+
+    init(transactionViewModel: TransactionViewModel,
+         session: Binding<SessionModel>,
          timeRange: ReportTimeRange? = nil) {
         self.transactionViewModel = transactionViewModel
         self._session = session
         self.timeRange = timeRange
     }
-    
+
     var body: some View {
-        Group {
-            if transactionViewModel.transactions.isEmpty {
+        VStack(spacing: 0) {
+            // 排序和篩選工具列
+            sortFilterToolbar
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+
+            // 交易列表
+            if transactionViewModel.filteredTransactions.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         EmptyStateView(
@@ -36,8 +45,16 @@ struct TransactionHistoryView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ForEach(transactionViewModel.groupedTransactions) { dailyGroup in
-                            dailyTransactionSection(dailyGroup)
+                        if transactionViewModel.sortType == .time {
+                            // 時間排序：按日期分組顯示
+                            ForEach(transactionViewModel.filteredGroupedTransactions) { dailyGroup in
+                                dailyTransactionSection(dailyGroup)
+                            }
+                        } else {
+                            // 金額排序：打平列表顯示
+                            ForEach(transactionViewModel.sortedFlatTransactions) { transaction in
+                                flatTransactionCard(transaction)
+                            }
                         }
                     }
                     .padding()
@@ -56,6 +73,95 @@ struct TransactionHistoryView: View {
         } message: {
             Text("交易明細已成功導出為 CSV 檔案")
         }
+        .sheet(isPresented: $showingFilterSheet) {
+            filterSheet
+        }
+    }
+
+    // MARK: - 排序和篩選工具列
+
+    private var sortFilterToolbar: some View {
+        HStack(spacing: 12) {
+            // 時間排序按鈕
+            sortButton(type: .time, label: "時間")
+
+            // 金額排序按鈕
+            sortButton(type: .amount, label: "金額")
+
+            Spacer()
+
+            // 篩選按鈕
+            Button(action: { showingFilterSheet = true }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                    Text("篩選")
+                        .font(.subheadline)
+                }
+                .foregroundColor(transactionViewModel.hasActiveFilter ? .blue : .gray)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    transactionViewModel.hasActiveFilter
+                        ? Color.blue.opacity(0.1)
+                        : Color(.systemGray5)
+                )
+                .cornerRadius(8)
+            }
+        }
+    }
+
+    /// 排序按鈕
+    private func sortButton(type: TransactionSortType, label: String) -> some View {
+        let isSelected = transactionViewModel.sortType == type
+
+        return Button(action: {
+            transactionViewModel.toggleSort(type)
+        }) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.subheadline)
+
+                if isSelected {
+                    Image(systemName: transactionViewModel.sortAscending ? "arrow.up" : "arrow.down")
+                        .font(.caption)
+                }
+            }
+            .foregroundColor(isSelected ? .white : .primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color.blue : Color(.systemGray5))
+            .cornerRadius(8)
+        }
+    }
+
+    // MARK: - 篩選 Sheet
+
+    private var filterSheet: some View {
+        NavigationView {
+            List {
+                Section(header: Text("支付方式")) {
+                    Toggle("現金", isOn: $transactionViewModel.filterCash)
+                    Toggle("電子支付", isOn: $transactionViewModel.filterEPayment)
+                }
+
+                Section {
+                    Button("全選") {
+                        transactionViewModel.selectAllFilters()
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+            .navigationTitle("篩選")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") {
+                        showingFilterSheet = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
     
     // MARK: - 空狀態訊息
@@ -75,8 +181,132 @@ struct TransactionHistoryView: View {
         }
     }
     
+    // MARK: - 金額排序的打平卡片
+
+    /// 金額排序時使用的簡化交易卡片
+    private func flatTransactionCard(_ transaction: TransactionModel) -> some View {
+        let isExpanded = transactionViewModel.isTransactionExpanded(transaction.id)
+
+        return VStack(spacing: 0) {
+            Button(action: {
+                transactionViewModel.toggleTransactionExpansion(transaction.id)
+            }) {
+                HStack(spacing: 12) {
+                    // 左側：金額（突出顯示）
+                    Text(transactionViewModel.formatAmount(transaction.totalAmount))
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .frame(width: 100, alignment: .leading)
+
+                    // 中間：商品摘要 + 日期時間
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(transaction.items.map { $0.name }.joined(separator: "、"))
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+
+                        HStack(spacing: 4) {
+                            Text(transactionViewModel.formatDateTime(transaction.displayDate))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+
+                            if transaction.isBackdated {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    // 右側：支付方式 + 展開箭頭
+                    HStack(spacing: 8) {
+                        Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(transactionViewModel.paymentMethodColor(transaction.paymentMethod))
+                            .foregroundColor(.white)
+                            .cornerRadius(4)
+
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .foregroundColor(.gray)
+                            .font(.caption)
+                    }
+                }
+                .padding()
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 展開時顯示商品明細
+            if isExpanded {
+                VStack(spacing: 0) {
+                    // 表頭
+                    HStack(spacing: 8) {
+                        Text("商品")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text("單價")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(width: 60, alignment: .center)
+
+                        Text("數量")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(width: 40, alignment: .center)
+
+                        Text("小計")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(width: 70, alignment: .trailing)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray5))
+
+                    // 商品明細
+                    ForEach(transaction.items) { item in
+                        HStack(spacing: 8) {
+                            Text(item.name)
+                                .font(.caption)
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Text(transactionViewModel.formatAmount(item.price))
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .frame(width: 60, alignment: .center)
+
+                            Text("\(item.quantity)")
+                                .font(.caption)
+                                .foregroundColor(.primary)
+                                .frame(width: 40, alignment: .center)
+
+                            Text(transactionViewModel.formatAmount(item.total))
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                                .frame(width: 70, alignment: .trailing)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+                    }
+                }
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+
     // MARK: - 按日分組視圖
-    
+
     /// 每日交易區塊
     private func dailyTransactionSection(_ dailyGroup: DailyTransactionGroup) -> some View {
         let isExpanded = transactionViewModel.isDailyGroupExpanded(dailyGroup.date)
