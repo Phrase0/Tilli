@@ -58,14 +58,41 @@ class TransactionDataManager: ObservableObject {
     /// 使用 displayDate（優先 occurredAt，否則 timestamp）進行日期篩選
     func fetchTransactions(forSessionId sessionId: UUID, dateRange: DateInterval?) -> [TransactionModel] {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+
+        // 建立 sessionId 條件
+        let sessionPredicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+
+        // 如果有日期範圍，加入 OR 條件（timestamp 或 occurredAt 在範圍內）
+        if let range = dateRange {
+            let timestampPredicate = NSPredicate(
+                format: "timestamp >= %@ AND timestamp <= %@",
+                range.start as NSDate,
+                range.end as NSDate
+            )
+            let occurredAtPredicate = NSPredicate(
+                format: "occurredAt >= %@ AND occurredAt <= %@",
+                range.start as NSDate,
+                range.end as NSDate
+            )
+            let datePredicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
+                timestampPredicate,
+                occurredAtPredicate
+            ])
+
+            // 組合：sessionId AND (timestamp OR occurredAt)
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                sessionPredicate,
+                datePredicate
+            ])
+        } else {
+            request.predicate = sessionPredicate
+        }
 
         do {
             let result = try context.fetch(request)
             var transactions = result.compactMap { $0.toModel() }
 
-            // 如果有指定日期範圍，使用 displayDate 進行記憶體內篩選
+            // 如果有指定日期範圍，使用 displayDate 進行精確篩選
             if let range = dateRange {
                 transactions = transactions.filter { transaction in
                     transaction.displayDate >= range.start && transaction.displayDate <= range.end
