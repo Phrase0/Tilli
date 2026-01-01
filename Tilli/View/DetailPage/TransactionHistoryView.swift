@@ -100,6 +100,7 @@ struct TransactionHistoryView: View {
                 HStack(spacing: 4) {
                     Text(transactionViewModel.paymentFilter.label)
                         .font(.subheadline)
+                        .frame(width: 100, alignment: .leading)
                     Image(systemName: "chevron.down")
                         .font(.caption)
                 }

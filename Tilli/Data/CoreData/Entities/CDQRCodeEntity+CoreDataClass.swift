@@ -7,7 +7,6 @@
 
 import Foundation
 import CoreData
-import UIKit
 
 @objc(CDQRCodeEntity)
 public class CDQRCodeEntity: NSManagedObject {
