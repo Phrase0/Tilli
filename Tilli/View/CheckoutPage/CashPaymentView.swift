@@ -132,6 +132,7 @@ struct CashPaymentView: View {
                 self.focusedField = .receivedAmount
             }
         }
+        .navigationTitle("")
     }
 
     // MARK: - Helper Methods

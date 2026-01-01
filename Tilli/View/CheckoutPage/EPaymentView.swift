@@ -116,6 +116,7 @@ struct EPaymentView: View {
         }
         .padding()
         .background(Color(.systemGroupedBackground))
+        .navigationTitle("")
     }
 
     // MARK: - Helper Methods
