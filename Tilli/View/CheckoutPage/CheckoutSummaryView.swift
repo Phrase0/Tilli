@@ -53,23 +53,6 @@ struct CheckoutSummaryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: Header
-            HStack {
-                Text("訂單摘要")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    closeFlow()
-                } label: {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding()
-
-            Divider()
-
             // MARK: 商品清單
             ScrollView {
                 VStack(spacing: 16) {
@@ -260,7 +243,18 @@ struct CheckoutSummaryView: View {
         } message: {
             Text(dateWarningMessage)
         }
-        .navigationTitle("")
+        .navigationTitle("訂單摘要")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    closeFlow()
+                } label: {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
     }
 }
