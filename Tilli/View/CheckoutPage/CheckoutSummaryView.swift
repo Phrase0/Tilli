@@ -260,5 +260,7 @@ struct CheckoutSummaryView: View {
         } message: {
             Text(dateWarningMessage)
         }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
