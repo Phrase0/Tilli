@@ -91,7 +91,7 @@ struct SessionDetailFromCalendarView: View {
                     dismiss()
                 }) {
                     Image(systemName: "chevron.left")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.gray)
                 }
             }
 
