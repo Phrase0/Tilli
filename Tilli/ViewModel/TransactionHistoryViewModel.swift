@@ -211,7 +211,7 @@ class TransactionViewModel: ObservableObject {
 
         for transaction in transactions.sorted(by: { $0.displayDate > $1.displayDate }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
-            let dateTime = formatDateTime(transaction.displayDate)
+            let dateTime = DateFormatter.transactionDateTime.string(from: transaction.displayDate)
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
@@ -311,12 +311,6 @@ class TransactionViewModel: ObservableObject {
     func formatTransactionId(_ id: String) -> String {
         let prefix = String(id.prefix(8)).uppercased()
         return "TXN\(prefix)"
-    }
-    
-    func formatDateTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter.string(from: date)
     }
     
     func formatAmount(_ amount: Decimal, currency: String? = nil) -> String {
