@@ -8,6 +8,11 @@
 import SwiftUI
 import Foundation
 
+enum ProductLayoutMode: String, Codable {
+    case list
+    case grid
+}
+
 class ProductViewModel: ObservableObject {
 
     @Binding var session: SessionModel
@@ -15,17 +20,24 @@ class ProductViewModel: ObservableObject {
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscountId: UUID?  // 當前選擇的折扣 ID（整筆訂單）
-    
+
     // Alert 相關狀態
     @Published var showAlert = false
     @Published var alertMessage = ""
     @Published var productPendingDeletion: UUID?
     @Published var productPendingRestore: UUID?
     @Published var isDisableAction = false
-    
+
     // Product Detail 相關狀態
     @Published var expandedCategories: Set<UUID> = []
     @Published var showDisabledProducts = false
+
+    // 布局模式（保存到 UserDefaults）
+    @Published var layoutMode: ProductLayoutMode {
+        didSet {
+            UserDefaults.standard.set(layoutMode.rawValue, forKey: "ProductLayoutMode")
+        }
+    }
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
@@ -74,6 +86,14 @@ class ProductViewModel: ObservableObject {
 
     init(session: Binding<SessionModel>) {
         self._session = session
+
+        // 从 UserDefaults 讀取布局模式
+        if let savedMode = UserDefaults.standard.string(forKey: "ProductLayoutMode"),
+           let mode = ProductLayoutMode(rawValue: savedMode) {
+            self.layoutMode = mode
+        } else {
+            self.layoutMode = .list  // 默認為列表模式
+        }
     }
     
     // MARK: - DataManager 管理

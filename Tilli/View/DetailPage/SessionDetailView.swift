@@ -37,8 +37,21 @@ struct SessionDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     switch selectedTab {
-                    case 0: // 商品頁 - 顯示清除按鈕和新增按鈕
+                    case 0: // 商品頁 - 顯示布局切換、清除按鈕和新增按鈕
                         HStack(spacing: 16) {
+                            // 布局切換按鈕
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    viewModel.productViewModel.layoutMode =
+                                        viewModel.productViewModel.layoutMode == .list ? .grid : .list
+                                }
+                            }) {
+                                Image(systemName: viewModel.productViewModel.layoutMode == .list
+                                    ? "square.grid.2x2"
+                                    : "list.bullet")
+                            }
+                            .accessibilityLabel("切換布局")
+
                             Button(action: {
                                 showClearAlert = true
                             }) {
