@@ -81,8 +81,10 @@ extension CDSessionEntity {
 
     // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
-        // 取出所有 CategoryModel
-        let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
+        // 取出所有 CategoryModel 並按 sortOrder 排序
+        let categoryModels = (categories as? Set<CDCategoryEntity>)?
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { $0.toModel() } ?? []
 
         // 解碼 discounts
         let discountModels: [DiscountModel] = {

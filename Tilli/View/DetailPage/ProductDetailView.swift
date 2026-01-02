@@ -262,6 +262,15 @@ struct ProductDetailView: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
+
+                        // 產品描述
+                        if let description = product.note, !description.isEmpty {
+                            Text(description)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+
                         Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
                             .font(.subheadline)
                             .foregroundColor(isOutOfStock ? .gray : .blue)
@@ -374,6 +383,15 @@ struct ProductDetailView: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundColor(.gray)
+
+                        // 產品描述
+                        if let description = product.note, !description.isEmpty {
+                            Text(description)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                        }
+
                         Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
                             .font(.subheadline)
                             .foregroundColor(.gray)
