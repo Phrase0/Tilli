@@ -39,6 +39,15 @@ struct SessionDetailView: View {
                     switch selectedTab {
                     case 0: // 商品頁 - 顯示布局切換、清除按鈕和新增按鈕
                         HStack(spacing: 16) {
+
+                            // 清除所選數量
+                            Button(action: {
+                                showClearAlert = true
+                            }) {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel("清除所有已選數量")
+                            
                             // 布局切換按鈕
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -51,13 +60,6 @@ struct SessionDetailView: View {
                                     : "list.bullet")
                             }
                             .accessibilityLabel("切換布局")
-
-                            Button(action: {
-                                showClearAlert = true
-                            }) {
-                                Image(systemName: "trash")
-                            }
-                            .accessibilityLabel("清除所有已選數量")
 
                             Button(action: {
                                 editingProduct = nil
