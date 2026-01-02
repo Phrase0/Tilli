@@ -82,7 +82,8 @@ class TestDataGenerator {
             name: "飲品",
             products: [product1, product2],
             createdAt: Date(),
-            isDisabled: false
+            isDisabled: false,
+            sortOrder: 0
         )
 
         // 類別 2: 甜點
@@ -117,7 +118,8 @@ class TestDataGenerator {
             name: "甜點",
             products: [product3, product4],
             createdAt: Date(),
-            isDisabled: false
+            isDisabled: false,
+            sortOrder: 1
         )
 
         // 類別 3: 輕食
@@ -139,7 +141,8 @@ class TestDataGenerator {
             name: "輕食",
             products: [product5],
             createdAt: Date(),
-            isDisabled: false
+            isDisabled: false,
+            sortOrder: 2
         )
 
         // 建立永久場次（從 3 個月前開始）
@@ -247,7 +250,8 @@ class TestDataGenerator {
             name: "飲品",
             products: [product1, product2],
             createdAt: Date(),
-            isDisabled: false
+            isDisabled: false,
+            sortOrder: 0
         )
 
         // MARK: - 甜點（小數）
@@ -282,7 +286,8 @@ class TestDataGenerator {
             name: "甜點",
             products: [product3, product4],
             createdAt: Date(),
-            isDisabled: false
+            isDisabled: false,
+            sortOrder: 1
         )
 
         // MARK: - 輕食（小數）
@@ -304,7 +309,8 @@ class TestDataGenerator {
             name: "輕食",
             products: [product5],
             createdAt: Date(),
-            isDisabled: false
+            isDisabled: false,
+            sortOrder: 2
         )
 
         // MARK: - 30 天多日場次
