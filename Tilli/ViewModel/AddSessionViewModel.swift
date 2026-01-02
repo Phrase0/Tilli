@@ -91,17 +91,17 @@ class AddSessionViewModel: ObservableObject {
 
     /// 場次名稱字數上限
     var sessionNameMaxLength: Int {
-        return TextHelper.maxLength(for: sessionName)
+        return TextHelper.sessionNameLimit
     }
 
     /// 場次名稱剩餘字數
     var sessionNameRemainingCharacters: Int {
-        return TextHelper.remainingCharacters(for: sessionName)
+        return TextHelper.remainingCharacters(for: sessionName, limit: TextHelper.sessionNameLimit)
     }
 
     /// 截斷場次名稱至上限
     func enforceSessionNameLimit() {
-        sessionName = TextHelper.truncateToLimit(sessionName)
+        sessionName = TextHelper.truncateToLimit(sessionName, limit: TextHelper.sessionNameLimit)
     }
 
     // MARK: - 日期範圍計算（用於 DatePicker 限制）
