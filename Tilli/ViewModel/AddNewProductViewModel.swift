@@ -56,17 +56,32 @@ class AddNewProductViewModel: ObservableObject {
 
     /// 產品名稱字數上限
     var productNameMaxLength: Int {
-        return TextHelper.maxLength(for: name)
+        return TextHelper.productNameLimit
     }
 
     /// 產品名稱剩餘字數
     var productNameRemainingCharacters: Int {
-        return TextHelper.remainingCharacters(for: name)
+        return TextHelper.remainingCharacters(for: name, limit: TextHelper.productNameLimit)
     }
 
     /// 截斷產品名稱至上限
     func enforceProductNameLimit() {
-        name = TextHelper.truncateToLimit(name)
+        name = TextHelper.truncateToLimit(name, limit: TextHelper.productNameLimit)
+    }
+
+    /// 產品描述字數上限
+    var productDescriptionMaxLength: Int {
+        return TextHelper.productDescriptionLimit
+    }
+
+    /// 產品描述剩餘字數
+    var productDescriptionRemainingCharacters: Int {
+        return TextHelper.remainingCharacters(for: description, limit: TextHelper.productDescriptionLimit)
+    }
+
+    /// 截斷產品描述至上限
+    func enforceProductDescriptionLimit() {
+        description = TextHelper.truncateToLimit(description, limit: TextHelper.productDescriptionLimit)
     }
 
     /// 當前幣別是否支持小數點

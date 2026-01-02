@@ -15,9 +15,9 @@ struct AddNewProductView: View {
 
     enum FocusField: Hashable {
         case name
+        case description
         case price
         case quantity
-        case description
     }
 
     @FocusState private var focusedField: FocusField?
@@ -46,7 +46,7 @@ struct AddNewProductView: View {
                 TextField("請輸入產品名稱", text: $viewModel.name)
                     .focused($focusedField, equals: .name)
                     .submitLabel(.next)
-                    .onSubmit { focusedField = .price }
+                    .onSubmit { focusedField = .description }
                     .disabled(viewModel.isEditingWithTransaction)
                     .foregroundColor(viewModel.isEditingWithTransaction ? .gray : .primary)
                     .onChange(of: viewModel.name) {
@@ -62,6 +62,25 @@ struct AddNewProductView: View {
                     }
                 }
             }
+            
+            // MARK: - 產品描述
+            Section(header: Text("產品描述（選填）")) {
+                TextField("請輸入產品描述", text: $viewModel.description)
+                    .focused($focusedField, equals: .description)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .price }
+                    .onChange(of: viewModel.description) {
+                        viewModel.enforceProductDescriptionLimit()
+                    }
+
+                // 字數計數器
+                HStack {
+                    Text("\(viewModel.description.count)/\(viewModel.productDescriptionMaxLength)")
+                        .font(.caption)
+                        .foregroundColor(viewModel.productDescriptionRemainingCharacters <= 5 ? .orange : .secondary)
+                }
+            }
+            
             // MARK: - 價格
             Section(header: Text("價格")) {
                 TextField(viewModel.pricePlaceholder, text: $viewModel.price)
@@ -126,7 +145,7 @@ struct AddNewProductView: View {
             
             
             // MARK: - 產品圖片
-            Section(header: Text("產品圖片")) {
+            Section(header: Text("產品圖片（選填）")) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
@@ -173,14 +192,6 @@ struct AddNewProductView: View {
                 .onTapGesture {
                     viewModel.selectImage()
                 }
-            }
-            
-            // MARK: - 產品描述
-            Section(header: Text("產品描述")) {
-                TextField("請輸入產品描述", text: $viewModel.description)
-                    .focused($focusedField, equals: .description)
-                    .submitLabel(.done)
-                    .onSubmit { focusedField = nil }
             }
         }
         .navigationTitle(viewModel.editingProduct == nil ? "新增產品" : "編輯產品")
