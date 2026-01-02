@@ -261,169 +261,347 @@ struct ProductDetailView: View {
     // MARK: - Helper Methods
     
     // 啟用產品卡片
+//    private func productCard(_ product: ProductModel) -> some View {
+//        let isOutOfStock = productViewModel.isOutOfStock(product)
+//        
+//        return HStack(alignment: .top, spacing: 12) {
+//            if let image = product.image {
+//                Image(uiImage: image)
+//                    .resizable()
+//                    .aspectRatio(contentMode: .fill)
+//                    .frame(width: 60, height: 60)
+//                    .cornerRadius(8)
+//                    .clipped()
+//                    .grayscale(isOutOfStock ? 1.0 : 0.0)
+//                    .opacity(isOutOfStock ? 0.6 : 1.0)
+//            } else {
+//                Rectangle()
+//                    .foregroundColor(.clear)
+//                    .background(Color(.systemGray5))
+//                    .frame(width: 60, height: 60)
+//                    .cornerRadius(8)
+//                    .clipped()
+//                    .opacity(isOutOfStock ? 0.6 : 1.0)
+//            }
+//            
+//            VStack(alignment: .leading, spacing: 8) {
+//                HStack(alignment: .top) {
+//                    VStack(alignment: .leading, spacing: 4) {
+//                        Text(product.name)
+//                            .font(.headline)
+//                            .foregroundColor(isOutOfStock ? .gray : .primary)
+//
+//                        // 產品描述
+//                        if let description = product.note, !description.isEmpty {
+//                            Text(description)
+//                                .font(.caption)
+//                                .foregroundColor(.secondary)
+//                                .lineLimit(1)
+//                        }
+//
+//                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+//                            .font(.subheadline)
+//                            .foregroundColor(isOutOfStock ? .gray : .blue)
+//                    }
+//                    Spacer()
+//                    Menu {
+//                        Button {
+//                            // 進入編輯頁
+//                            editingProduct = product
+//                            showAddProduct = true
+//                        } label: {
+//                            Label("編輯", systemImage: "pencil")
+//                        }
+//
+//                        // 根據產品狀態顯示不同的操作按鈕
+//                        productActionContent(for: product)
+//                    } label: {
+//                        Image(systemName: "ellipsis")
+//                            .rotationEffect(.degrees(90))
+//                            .foregroundColor(.gray)
+//                            .padding(8)
+//                    }
+//                }
+//
+//                HStack {
+//                    HStack(spacing: 8) {
+//                        Text("庫存: \(product.stock)")
+//                            .font(.caption)
+//                            .foregroundColor(.gray)
+//                        if isOutOfStock {
+//                            Text("無庫存")
+//                                .font(.caption)
+//                                .padding(.horizontal, 6)
+//                                .padding(.vertical, 2)
+//                                .background(Color.red.opacity(0.1))
+//                                .foregroundColor(.red)
+//                                .cornerRadius(4)
+//                        }
+//                    }
+//
+//                    Spacer()
+//
+//                    HStack(spacing: 16) {
+//                        Button {
+//                            productViewModel.decreaseQuantity(for: product)
+//                        } label: {
+//                            Image(systemName: "minus.circle")
+//                                .foregroundColor(isOutOfStock || productViewModel.quantity(for: product) == 0 ? .gray : .blue)
+//                        }
+//                        .disabled(isOutOfStock || productViewModel.quantity(for: product) == 0)
+//
+//                        Text("\(productViewModel.quantity(for: product))")
+//                            .frame(width: 24)
+//                            .foregroundColor(isOutOfStock ? .gray : .primary)
+//
+//                        Button {
+//                            productViewModel.increaseQuantity(for: product)
+//                        } label: {
+//                            Image(systemName: "plus.circle")
+//                                .foregroundColor(isOutOfStock || productViewModel.quantity(for: product) >= product.stock ? .gray : .blue)
+//                        }
+//                        .disabled(isOutOfStock || productViewModel.quantity(for: product) >= product.stock)
+//                    }
+//                    .font(.title3)
+//                    .opacity(isOutOfStock ? 0.6 : 1.0)
+//                }
+//            }
+//        }
+//        .padding()
+//        .background(isOutOfStock ? Color(.systemGray6) : Color.white)
+//        .cornerRadius(12)
+//        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+//        .padding(.horizontal)
+//        .opacity(isOutOfStock ? 0.6 : 1.0)
+//        .onTapGesture {
+//            if isOutOfStock {
+//                // 點擊無庫存商品時給予提示
+//                productViewModel.showOutOfStockAlert(for: product.name)
+//            }
+//        }
+//    }
     private func productCard(_ product: ProductModel) -> some View {
         let isOutOfStock = productViewModel.isOutOfStock(product)
+        let currentQty = productViewModel.quantity(for: product)
         
-        return HStack(alignment: .top, spacing: 12) {
-            if let image = product.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 60, height: 60)
-                    .cornerRadius(8)
-                    .clipped()
-                    .grayscale(isOutOfStock ? 1.0 : 0.0)
-                    .opacity(isOutOfStock ? 0.6 : 1.0)
-            } else {
-                Rectangle()
-                    .foregroundColor(.clear)
-                    .background(Color(.systemGray5))
-                    .frame(width: 60, height: 60)
-                    .cornerRadius(8)
-                    .clipped()
-                    .opacity(isOutOfStock ? 0.6 : 1.0)
+        return HStack(alignment: .center, spacing: 12) { // 改為 center 讓對齊更平衡
+            // 產品圖片
+            ZStack {
+                if let image = product.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 70, height: 70)
+                } else {
+                    Rectangle()
+                        .foregroundColor(Color(.systemGray5))
+                        .frame(width: 70, height: 70)
+                        .overlay(Image(systemName: "photo").foregroundColor(.gray).font(.caption))
+                }
             }
+            .cornerRadius(8)
+            .clipped()
+            .grayscale(isOutOfStock ? 1.0 : 0.0)
+            .opacity(isOutOfStock ? 0.6 : 1.0)
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                // 上半部：名稱與選單
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(product.name)
-                            .font(.headline)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(isOutOfStock ? .gray : .primary)
+                            .lineLimit(1)
 
-                        // 產品描述
                         if let description = product.note, !description.isEmpty {
                             Text(description)
-                                .font(.caption)
+                                .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
-
-                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
-                            .font(.subheadline)
-                            .foregroundColor(isOutOfStock ? .gray : .blue)
                     }
                     Spacer()
+                    
                     Menu {
                         Button {
-                            // 進入編輯頁
                             editingProduct = product
                             showAddProduct = true
                         } label: {
                             Label("編輯", systemImage: "pencil")
                         }
-
-                        // 根據產品狀態顯示不同的操作按鈕
                         productActionContent(for: product)
                     } label: {
                         Image(systemName: "ellipsis")
                             .rotationEffect(.degrees(90))
                             .foregroundColor(.gray)
-                            .padding(8)
+                            .padding(4)
                     }
                 }
 
-                HStack {
-                    HStack(spacing: 8) {
-                        Text("庫存: \(product.stock)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                // 下半部：價格、庫存與數量按鈕
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(isOutOfStock ? .gray : .blue)
+                        
+                        // 庫存邏輯：無庫存時隱藏文字，改顯示紅色標籤
                         if isOutOfStock {
                             Text("無庫存")
-                                .font(.caption)
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundColor(.red)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Color.red.opacity(0.1))
-                                .foregroundColor(.red)
                                 .cornerRadius(4)
+                        } else {
+                            Text("庫存: \(product.stock)")
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
                         }
                     }
-
+                    
                     Spacer()
 
-                    HStack(spacing: 16) {
+                    // 數量操作區
+                    HStack(spacing: 12) {
                         Button {
                             productViewModel.decreaseQuantity(for: product)
                         } label: {
-                            Image(systemName: "minus.circle")
-                                .foregroundColor(isOutOfStock || productViewModel.quantity(for: product) == 0 ? .gray : .blue)
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(isOutOfStock || currentQty == 0 ? Color(.systemGray4) : .blue.opacity(0.8))
                         }
-                        .disabled(isOutOfStock || productViewModel.quantity(for: product) == 0)
+                        .disabled(isOutOfStock || currentQty == 0)
 
-                        Text("\(productViewModel.quantity(for: product))")
-                            .frame(width: 24)
+                        Text("\(currentQty)")
+                            .font(.system(size: 14, weight: .medium))
+                            .frame(minWidth: 18)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
 
                         Button {
                             productViewModel.increaseQuantity(for: product)
                         } label: {
-                            Image(systemName: "plus.circle")
-                                .foregroundColor(isOutOfStock || productViewModel.quantity(for: product) >= product.stock ? .gray : .blue)
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(isOutOfStock || currentQty >= product.stock ? Color(.systemGray4) : .blue.opacity(0.8))
                         }
-                        .disabled(isOutOfStock || productViewModel.quantity(for: product) >= product.stock)
+                        .disabled(isOutOfStock || currentQty >= product.stock)
                     }
-                    .font(.title3)
-                    .opacity(isOutOfStock ? 0.6 : 1.0)
                 }
             }
         }
-        .padding()
+        .padding(12)
         .background(isOutOfStock ? Color(.systemGray6) : Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
-        .opacity(isOutOfStock ? 0.6 : 1.0)
         .onTapGesture {
-            if isOutOfStock {
-                // 點擊無庫存商品時給予提示
-                productViewModel.showOutOfStockAlert(for: product.name)
-            }
+            if isOutOfStock { productViewModel.showOutOfStockAlert(for: product.name) }
         }
     }
     
     // 下架產品卡片
+//    private func disabledProductCard(_ product: ProductModel) -> some View {
+//        HStack(alignment: .top, spacing: 12) {
+//            if let image = product.image {
+//                Image(uiImage: image)
+//                    .resizable()
+//                    .aspectRatio(contentMode: .fill)
+//                    .frame(width: 60, height: 60)
+//                    .cornerRadius(8)
+//                    .clipped()
+//                    .grayscale(1.0) // 灰階效果
+//            } else {
+//                Rectangle()
+//                    .foregroundColor(.clear)
+//                    .background(Color(.systemGray5))
+//                    .frame(width: 60, height: 60)
+//                    .cornerRadius(8)
+//                    .clipped()
+//            }
+//            
+//            VStack(alignment: .leading, spacing: 8) {
+//                HStack(alignment: .top) {
+//                    VStack(alignment: .leading, spacing: 4) {
+//                        Text(product.name)
+//                            .font(.headline)
+//                            .foregroundColor(.gray)
+//
+//                        // 產品描述
+//                        if let description = product.note, !description.isEmpty {
+//                            Text(description)
+//                                .font(.caption)
+//                                .foregroundColor(.gray)
+//                                .lineLimit(1)
+//                        }
+//
+//                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+//                            .font(.subheadline)
+//                            .foregroundColor(.gray)
+//                        Text("庫存: \(product.stock)")
+//                            .font(.caption)
+//                            .foregroundColor(.gray)
+//                    }
+//                    Spacer()
+//                    Menu {
+//                        Button("復原") {
+//                            productViewModel.handleRestoreAction(for: product.id)
+//                        }
+//                    } label: {
+//                        Image(systemName: "ellipsis")
+//                            .rotationEffect(.degrees(90))
+//                            .foregroundColor(.gray)
+//                            .padding(8)
+//                    }
+//                }
+//            }
+//        }
+//        .padding()
+//        .background(Color(.systemGray6))
+//        .cornerRadius(12)
+//        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+//        .padding(.horizontal)
+//    }
     private func disabledProductCard(_ product: ProductModel) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            if let image = product.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 60, height: 60)
-                    .cornerRadius(8)
-                    .clipped()
-                    .grayscale(1.0) // 灰階效果
-            } else {
-                Rectangle()
-                    .foregroundColor(.clear)
-                    .background(Color(.systemGray5))
-                    .frame(width: 60, height: 60)
-                    .cornerRadius(8)
-                    .clipped()
+        HStack(alignment: .center, spacing: 12) {
+            // 產品圖片
+            ZStack {
+                if let image = product.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 70, height: 70)
+                } else {
+                    Rectangle()
+                        .foregroundColor(Color(.systemGray5))
+                        .frame(width: 70, height: 70)
+                        .overlay(Image(systemName: "photo").foregroundColor(.gray).font(.caption))
+                }
             }
+            .cornerRadius(8)
+            .clipped()
+            .grayscale(1.0)
+            .opacity(0.6)
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(product.name)
-                            .font(.headline)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.gray)
+                            .lineLimit(1)
 
-                        // 產品描述
                         if let description = product.note, !description.isEmpty {
                             Text(description)
-                                .font(.caption)
+                                .font(.system(size: 12))
                                 .foregroundColor(.gray)
                                 .lineLimit(1)
                         }
-
-                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        Text("庫存: \(product.stock)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
                     }
                     Spacer()
+                    
                     Menu {
                         Button("復原") {
                             productViewModel.handleRestoreAction(for: product.id)
@@ -432,15 +610,42 @@ struct ProductDetailView: View {
                         Image(systemName: "ellipsis")
                             .rotationEffect(.degrees(90))
                             .foregroundColor(.gray)
-                            .padding(8)
+                            .padding(4)
+                    }
+                }
+
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.gray)
+                        
+                        Text("庫存: \(product.stock)")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    // 保持佔位一致，但顯示禁用狀態
+                    HStack(spacing: 12) {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(Color(.systemGray4))
+                        Text("0")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(Color(.systemGray4))
                     }
                 }
             }
         }
-        .padding()
+        .padding(12)
         .background(Color(.systemGray6))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
     }
     
@@ -561,7 +766,6 @@ struct ProductDetailView: View {
 //            }
 //        }
 //    }
-
     private func gridProductCard(_ product: ProductModel) -> some View {
         let isOutOfStock = productViewModel.isOutOfStock(product)
         let currentQty = productViewModel.quantity(for: product)
@@ -641,7 +845,7 @@ struct ProductDetailView: View {
                             if isOutOfStock {
                                 // 無庫存時：隱藏數字，直接顯示紅色警告標籤
                                 Text("無庫存")
-                                    .font(.system(size: 12, weight: .bold))
+                                    .font(.system(size: 12, weight: .regular))
                                     .foregroundColor(.red)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
