@@ -315,28 +315,24 @@ struct ProductDetailView: View {
 
                     HStack(spacing: 16) {
                         Button {
-                            if !isOutOfStock {
-                                productViewModel.decreaseQuantity(for: product)
-                            }
+                            productViewModel.decreaseQuantity(for: product)
                         } label: {
                             Image(systemName: "minus.circle")
-                                .foregroundColor(isOutOfStock ? .gray : .blue)
+                                .foregroundColor(isOutOfStock || productViewModel.quantity(for: product) == 0 ? .gray : .blue)
                         }
-                        .disabled(isOutOfStock)
+                        .disabled(isOutOfStock || productViewModel.quantity(for: product) == 0)
 
                         Text("\(productViewModel.quantity(for: product))")
                             .frame(width: 24)
                             .foregroundColor(isOutOfStock ? .gray : .primary)
 
                         Button {
-                            if !isOutOfStock {
-                                productViewModel.increaseQuantity(for: product)
-                            }
+                            productViewModel.increaseQuantity(for: product)
                         } label: {
                             Image(systemName: "plus.circle")
-                                .foregroundColor(isOutOfStock ? .gray : .blue)
+                                .foregroundColor(isOutOfStock || productViewModel.quantity(for: product) >= product.stock ? .gray : .blue)
                         }
-                        .disabled(isOutOfStock)
+                        .disabled(isOutOfStock || productViewModel.quantity(for: product) >= product.stock)
                     }
                     .font(.title3)
                     .opacity(isOutOfStock ? 0.6 : 1.0)

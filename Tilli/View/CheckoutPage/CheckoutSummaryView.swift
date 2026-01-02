@@ -15,7 +15,7 @@ struct CheckoutSummaryView: View {
 
     @Binding var session: SessionModel
 
-    @Environment(\.closeCheckoutFlow) private var closeFlow
+    @Environment(\.dismiss) private var dismiss
 
     @State private var navigateToCashPayment = false
     @State private var navigateToEPayment = false
@@ -63,7 +63,7 @@ struct CheckoutSummaryView: View {
                                     .font(.body)
 
                                 HStack(spacing: 8) {
-                                    Text("Qty: \(item.quantity)")
+                                    Text("數量: \(item.quantity)")
                                         .font(.caption)
                                         .foregroundColor(.gray)
 
@@ -249,7 +249,7 @@ struct CheckoutSummaryView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    closeFlow()
+                    dismiss()
                 } label: {
                     Image(systemName: "xmark")
                         .foregroundColor(.gray)
