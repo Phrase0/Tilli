@@ -17,11 +17,16 @@ extension CDTransactionEntity {
 
     @NSManaged public var id: UUID
     @NSManaged public var sessionId: UUID
+    @NSManaged public var sessionTitle: String
+    @NSManaged public var currency: String
     @NSManaged public var itemsData: Data?
     @NSManaged public var totalAmount: NSDecimalNumber
     @NSManaged public var paymentMethod: String
     @NSManaged public var timestamp: Date
-    @NSManaged public var session: CDSessionEntity
+    @NSManaged public var occurredAt: Date?           // 補記帳時的實際發生時間
+    @NSManaged public var discountType: String?       // 折扣類型："percentage" | "amount"
+    @NSManaged public var discountValue: NSDecimalNumber?  // 折扣數值
+    @NSManaged public var session: CDSessionEntity?
 
 }
 
@@ -39,22 +44,40 @@ extension CDTransactionEntity {
     }
 
     func update(from model: TransactionModel, context: NSManagedObjectContext) {
-            self.id = model.id
-            self.sessionId = model.sessionId
-            self.totalAmount = NSDecimalNumber(decimal: model.totalAmount)
-            self.paymentMethod = model.paymentMethod.rawValue
-            self.timestamp = model.timestamp
-            self.items = model.items
+        self.id = model.id
+        self.sessionId = model.sessionId
+        self.sessionTitle = model.sessionTitle
+        self.currency = model.currency
+        self.totalAmount = NSDecimalNumber(decimal: model.totalAmount)
+        self.paymentMethod = model.paymentMethod.rawValue
+        self.timestamp = model.timestamp
+        self.occurredAt = model.occurredAt
+        self.items = model.items
+
+        // 存儲折扣
+        self.discountType = model.discountType?.rawValue
+        self.discountValue = model.discountValue.map { NSDecimalNumber(decimal: $0) }
     }
 
     func toModel() -> TransactionModel {
+        // 解碼折扣類型
+        let discountTypeEnum: DiscountType? = {
+            guard let typeString = discountType else { return nil }
+            return DiscountType(rawValue: typeString)
+        }()
+
         return TransactionModel(
             id: self.id,
             sessionId: self.sessionId,
+            sessionTitle: self.sessionTitle,
+            currency: self.currency,
             items: self.items,
             totalAmount: self.totalAmount.decimalValue,
             paymentMethod: PaymentMethod(rawValue: self.paymentMethod) ?? .cash,
-            timestamp: self.timestamp
+            timestamp: self.timestamp,
+            occurredAt: self.occurredAt,
+            discountType: discountTypeEnum,
+            discountValue: self.discountValue?.decimalValue
         )
     }
 }

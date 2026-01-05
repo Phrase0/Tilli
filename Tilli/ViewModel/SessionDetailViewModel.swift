@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Foundation
+import Combine
 
 class SessionDetailViewModel: ObservableObject {
 
@@ -18,12 +19,20 @@ class SessionDetailViewModel: ObservableObject {
     @Binding var session: SessionModel
     private var transactionDataManager: TransactionDataManager?
     private var currentExportTab: Int = 0
-    
+    private var cancellables = Set<AnyCancellable>()
+
     init(session: Binding<SessionModel>) {
         self._session = session
         self.productViewModel = ProductViewModel(session: session)
         self.transactionViewModel = TransactionViewModel(session: session)
-        self.sessionTotalAmount = session.wrappedValue.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+        self.sessionTotalAmount = 0
+
+        // 轉發子 ViewModel 的變化通知
+        productViewModel.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - DataManager 管理
@@ -52,7 +61,7 @@ class SessionDetailViewModel: ObservableObject {
     /// 更新 sessionTotalAmount
     func updateSessionTotalAmount() {
         guard let transactionDataManager = transactionDataManager else {
-            sessionTotalAmount = session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+            sessionTotalAmount = 0
             return
         }
 

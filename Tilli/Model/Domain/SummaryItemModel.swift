@@ -15,15 +15,11 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
     var categoryId: UUID             // 分類ID（分析用）
     var category: String             // 顯示用快照名稱
     var quantity: Int
-    var discount: Int               // 0~100 百分比折扣
     var timestamp: Date             // 交易發生時間
 
+    /// 小計（不含折扣，折扣在 Transaction 層級計算）
     var total: Decimal {
-        return MoneyHelper.calculateTotal(
-            price: price,
-            quantity: quantity,
-            discountPercentage: discount
-        )
+        return MoneyHelper.multiply(price, Decimal(quantity))
     }
 }
 

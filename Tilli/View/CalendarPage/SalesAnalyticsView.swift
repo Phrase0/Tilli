@@ -7,16 +7,22 @@
 
 import SwiftUI
 import Charts
-import UniformTypeIdentifiers
 
 struct SalesAnalyticsView: View {
     @ObservedObject var salesAnalyticsViewModel: SalesAnalyticsViewModel
     @Binding var session: SessionModel
-    @State private var showingShareSheet = false
+    let timeRange: ReportTimeRange
 
-    init(viewModel: SalesAnalyticsViewModel, session: Binding<SessionModel>) {
+    // 時間分佈圖選中狀態
+    @State private var selectedHourData: HourlyAnalysisData?
+
+    // 營收趨勢選中狀態
+    @State private var selectedDailyData: DailyRevenueData?
+    @State private var selectedMonthlyData: MonthlyRevenueData?
+    init(viewModel: SalesAnalyticsViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
         self.salesAnalyticsViewModel = viewModel
         self._session = session
+        self.timeRange = timeRange
     }
 
     var body: some View {
@@ -37,12 +43,14 @@ struct SalesAnalyticsView: View {
                         VStack(spacing: 20) {
                             // 總銷售額區塊
                             salesSummaryView
-
-                            // 時間分布圖與詳細記錄（合併為一個卡片）
-                            timeDistributionWithDetailView
-
                             // 支付方式分布
                             paymentMethodDistribution
+                            // 時間分布圖與詳細記錄（合併為一個卡片）
+                            timeDistributionWithDetailView
+                            // 營收趨勢（條件顯示：非單日且天數 > 1）
+                            if shouldShowRevenueTrend {
+                                revenueTrendView
+                            }
                         }
                     }
                     .padding()
@@ -50,27 +58,19 @@ struct SalesAnalyticsView: View {
             }
         }
         .refreshable {
-            salesAnalyticsViewModel.loadData()
+            salesAnalyticsViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
+        .onChange(of: timeRange) {
+            selectedHourData = nil
+            selectedDailyData = nil
+            selectedMonthlyData = nil
+        }
         .alert("CSV 導出成功", isPresented: $salesAnalyticsViewModel.showingExportAlert) {
             Button("確定") { }
         } message: {
             Text("銷售分析報告已成功導出為 CSV 檔案")
         }
-        .shareSheet(
-            isPresented: $showingShareSheet,
-            activityItems: [
-                salesAnalyticsViewModel.createHourlyAnalysisCSVFileURL(),
-                salesAnalyticsViewModel.createPaymentMethodCSVFileURL()
-            ],
-            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
-            onComplete: { completed in
-                if completed {
-                    salesAnalyticsViewModel.showExportSuccessAlert()
-                }
-            }
-        )
     }
 
     // MARK: - 總銷售額視圖
@@ -123,7 +123,130 @@ struct SalesAnalyticsView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - 時間分布圖與詳細記錄合併視圖
+    // MARK: - 支付方式分布
+    private var paymentMethodDistribution: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("支付方式分布")
+                .font(.headline)
+                .padding(.horizontal)
+                .padding(.vertical)
+
+            // 圓餅圖 - 置中
+            HStack {
+                Spacer()
+                VStack {
+                    if #available(iOS 16.0, *) {
+                        pieChartView
+                    } else {
+                        legacyPieChart
+                    }
+                }
+                Spacer()
+            }
+            .padding(.vertical, 20)
+
+            // 支付方式詳情
+            VStack(spacing: 0) {
+                HStack {
+                    Text("支付方式")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Text("交易金額")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    Text("交易數")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    Text("占比")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 20)
+                .background(Color(.systemGray6))
+
+                ForEach(salesAnalyticsViewModel.paymentMethodData) { method in
+                    HStack {
+                        HStack {
+                            Circle()
+                                .fill(method.color)
+                                .frame(width: 12, height: 12)
+                            Text(method.name)
+                                .font(.system(size: 14))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text(MoneyHelper.format(method.amount, currencyCode: session.currency))
+                            .font(.system(size: 14, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .center)
+
+                        Text("\(method.transactions)")
+                            .font(.system(size: 14))
+                            .frame(maxWidth: .infinity, alignment: .center)
+
+                        Text("\(method.percentage)%")
+                            .font(.system(size: 14))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                    .background(Color.white)
+
+                    if method.id != salesAnalyticsViewModel.paymentMethodData.last?.id {
+                        Divider()
+                            .padding(.horizontal, 20)
+                    }
+                }
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(12)
+    }
+
+    // MARK: - Pie Chart View (iOS 16+)
+    @available(iOS 16.0, *)
+    private var pieChartView: some View {
+        Chart {
+            ForEach(salesAnalyticsViewModel.paymentMethodData) { method in
+                SectorMark(
+                    angle: .value("交易數", method.transactions),
+                    innerRadius: .ratio(0.5),
+                    angularInset: 2
+                )
+                .foregroundStyle(method.color)
+                .opacity(0.8)
+            }
+        }
+        .frame(width: 150, height: 150)
+    }
+
+    // MARK: - Legacy Pie Chart (iOS 15 and below)
+    private var legacyPieChart: some View {
+        let cashData = salesAnalyticsViewModel.paymentMethodData.first { $0.method == .cash }
+        let ratio = Double(cashData?.transactions ?? 0) / Double(salesAnalyticsViewModel.salesOverview?.totalTransactions ?? 1)
+
+        return ZStack {
+            Circle()
+                .trim(from: 0, to: ratio)
+                .stroke(Color.pink, lineWidth: 40)
+                .rotationEffect(.degrees(-90))
+
+            Circle()
+                .trim(from: ratio, to: 1.0)
+                .stroke(Color.purple, lineWidth: 40)
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: 150, height: 150)
+    }
+    
+    // MARK: - 時間分布圖與詳細記錄
     private var timeDistributionWithDetailView: some View {
         let content = VStack(alignment: .leading, spacing: 0) {
             // 圖表部分
@@ -172,7 +295,7 @@ struct SalesAnalyticsView: View {
                 .padding(.bottom)
             }
 
-            // 詳細記錄表格（直接連接）
+            // 詳細記錄表格
             VStack(spacing: 0) {
                 // 表頭
                 HStack {
@@ -201,144 +324,60 @@ struct SalesAnalyticsView: View {
                 .background(Color(.systemGray6))
 
                 // 可滾動的數據列表
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(salesAnalyticsViewModel.hourlyData) { data in
-                            HStack {
-                                Text(data.hourString)
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(salesAnalyticsViewModel.hourlyData) { data in
+                                HStack {
+                                    Text(data.hourString)
+                                        .font(.system(size: 14, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                        .font(.system(size: 14, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .center)
 
-                                Text("\(data.transactions)")
-                                    .font(.system(size: 14))
-                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    Text("\(data.transactions)")
+                                        .font(.system(size: 14))
+                                        .frame(maxWidth: .infinity, alignment: .center)
 
-                                Text(MoneyHelper.format(data.avgPrice, currencyCode: session.currency))
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                    Text(MoneyHelper.format(data.avgPrice, currencyCode: session.currency))
+                                        .font(.system(size: 14, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .trailing)
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 20)
+                                .background(selectedHourData?.hour == data.hour ? Color.blue.opacity(0.1) : Color.white)
+                                .id(data.hourString)
+                                .onTapGesture {
+                                    selectedHourData = data
+                                }
+
+                                if data.hour != salesAnalyticsViewModel.hourlyData.last?.hour {
+                                    Divider()
+                                        .padding(.horizontal, 20)
+                                }
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
-                            .background(Color.white)
-
-                            if data.id != salesAnalyticsViewModel.hourlyData.last?.id {
-                                Divider()
-                                    .padding(.horizontal, 20)
+                        }
+                        // 強制刷新：當數據變化時重建列表
+                        .id("\(timeRange.displayText)-\(salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0)")
+                    }
+                    .frame(height: 200)
+                    .onChange(of: selectedHourData?.hour) { _, newHour in
+                        if let hour = newHour {
+                            let hourString = String(format: "%02d:00", hour)
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                scrollProxy.scrollTo(hourString, anchor: .center)
                             }
                         }
                     }
                 }
-                .frame(height: 200)
             }
         }
         .background(Color.white)
         .cornerRadius(12)
 
         return content
-    }
-
-    // MARK: - 自定義柱狀圖（適用於 iOS 16 以下）
-    private var customBarChart: some View {
-        let maxAmount = salesAnalyticsViewModel.hourlyData.max { $0.amount < $1.amount }?.amount ?? Decimal(1)
-
-        return HStack(alignment: .bottom, spacing: 2) {
-            ForEach(Array(salesAnalyticsViewModel.hourlyData.enumerated()), id: \.offset) { index, data in
-                Rectangle()
-                    .fill(LinearGradient(
-                        colors: [.blue, .cyan],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    ))
-                    .frame(
-                        width: 8,
-                        height: CGFloat(MoneyHelper.toDouble(data.amount)) / CGFloat(MoneyHelper.toDouble(maxAmount)) * 150
-                    )
-            }
-        }
-        .frame(height: 200)
-        .padding(.horizontal)
-    }
-
-    // MARK: - 支付方式分布
-    private var paymentMethodDistribution: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("支付方式分布")
-                .font(.headline)
-                .padding(.horizontal)
-                .padding(.vertical)
-
-            // 圓餅圖 - 置中
-            HStack {
-                Spacer()
-                VStack {
-                    if #available(iOS 16.0, *) {
-                        pieChartView
-                    } else {
-                        legacyPieChart
-                    }
-                }
-                Spacer()
-            }
-            .padding(.vertical, 20)
-
-            // 支付方式詳情
-            VStack(spacing: 0) {
-                HStack {
-                    Text("支付方式")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text("交易數")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity, alignment: .center)
-
-                    Text("占比")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 20)
-                .background(Color(.systemGray6))
-
-                ForEach(salesAnalyticsViewModel.paymentMethodData) { method in
-                    HStack {
-                        HStack {
-                            Circle()
-                                .fill(method.color)
-                                .frame(width: 12, height: 12)
-                            Text(method.name)
-                                .font(.system(size: 14))
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Text("\(method.transactions)")
-                            .font(.system(size: 14))
-                            .frame(maxWidth: .infinity, alignment: .center)
-
-                        Text("\(method.percentage)%")
-                            .font(.system(size: 14))
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 20)
-                    .background(Color.white)
-
-                    if method.id != salesAnalyticsViewModel.paymentMethodData.last?.id {
-                        Divider()
-                            .padding(.horizontal, 20)
-                    }
-                }
-            }
-        }
-        .background(Color.white)
-        .cornerRadius(12)
     }
 
     // MARK: - Bar Chart View (iOS 16+)
@@ -348,15 +387,26 @@ struct SalesAnalyticsView: View {
             ForEach(salesAnalyticsViewModel.hourlyData) { data in
                 BarMark(
                     x: .value("時間", data.hourString),
-                    y: .value("金額", data.amount)
+                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
                 )
-                .foregroundStyle(.blue.gradient)
+                .foregroundStyle(
+                    selectedHourData?.hour == data.hour
+                        ? Color.blue
+                        : (selectedHourData == nil ? Color.blue : Color.blue.opacity(0.3))
+                )
+            }
+
+            // 選中時顯示標記線
+            if let selected = selectedHourData {
+                RuleMark(x: .value("選中", selected.hourString))
+                    .foregroundStyle(.gray.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
             }
         }
         .chartXAxis {
             AxisMarks { value in
                 AxisGridLine()
-                AxisValueLabel() {
+                AxisValueLabel {
                     if let hourString = value.as(String.self) {
                         let hour = Int(hourString.prefix(2)) ?? 0
                         if hour % 4 == 0 {
@@ -371,41 +421,430 @@ struct SalesAnalyticsView: View {
         }
         .frame(height: 200)
         .padding(.horizontal)
-    }
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        let plotFrame = geometry[proxy.plotFrame!]
+                        let tapX = location.x - plotFrame.origin.x
 
-    // MARK: - Pie Chart View (iOS 16+)
-    @available(iOS 16.0, *)
-    private var pieChartView: some View {
-        Chart {
-            ForEach(salesAnalyticsViewModel.paymentMethodData) { method in
-                SectorMark(
-                    angle: .value("交易數", method.transactions),
-                    innerRadius: .ratio(0.5),
-                    angularInset: 2
-                )
-                .foregroundStyle(method.color)
-                .opacity(0.8)
+                        // 找到最接近點擊位置的柱子
+                        var closestData: HourlyAnalysisData?
+                        var closestDistance: CGFloat = .infinity
+
+                        for data in salesAnalyticsViewModel.hourlyData {
+                            if let barX = proxy.position(forX: data.hourString) {
+                                let distance = abs(barX - tapX)
+                                if distance < closestDistance {
+                                    closestDistance = distance
+                                    closestData = data
+                                }
+                            }
+                        }
+
+                        if let matched = closestData {
+                            selectedHourData = matched
+                        }
+                    }
             }
         }
-        .frame(width: 150, height: 150)
     }
 
-    // MARK: - Legacy Pie Chart (iOS 15 and below)
-    private var legacyPieChart: some View {
-        let cashData = salesAnalyticsViewModel.paymentMethodData.first { $0.method == .cash }
-        let ratio = Double(cashData?.transactions ?? 0) / Double(salesAnalyticsViewModel.salesOverview?.totalTransactions ?? 1)
+    // MARK: - 自定義柱狀圖（適用於 iOS 16 以下）
+    private var customBarChart: some View {
+        let maxAmount = salesAnalyticsViewModel.hourlyData.max { $0.amount < $1.amount }?.amount ?? Decimal(1)
 
-        return ZStack {
-            Circle()
-                .trim(from: 0, to: ratio)
-                .stroke(Color.pink, lineWidth: 40)
-                .rotationEffect(.degrees(-90))
+        return HStack(alignment: .bottom, spacing: 2) {
+            ForEach(salesAnalyticsViewModel.hourlyData) { data in
+                let isSelected = selectedHourData?.hour == data.hour
+                let opacity: Double = selectedHourData == nil ? 1.0 : (isSelected ? 1.0 : 0.3)
 
-            Circle()
-                .trim(from: ratio, to: 1.0)
-                .stroke(Color.purple, lineWidth: 40)
-                .rotationEffect(.degrees(-90))
+                Rectangle()
+                    .fill(LinearGradient(
+                        colors: [.blue.opacity(opacity), .cyan.opacity(opacity)],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    ))
+                    .frame(
+                        width: 8,
+                        height: CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount)) * 150
+                    )
+                    .onTapGesture {
+                        selectedHourData = data
+                    }
+            }
         }
-        .frame(width: 150, height: 150)
+        .frame(height: 200)
+        .padding(.horizontal)
+    }
+
+    // MARK: - Revenue Trend
+
+    /// 是否顯示營收趨勢（單日不顯示，天數 > 1 才顯示）
+    private var shouldShowRevenueTrend: Bool {
+        session.dateType != .single && timeRange.dayCount > 1
+    }
+
+    /// 營收趨勢視圖
+    private var revenueTrendView: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack {
+                Text("營收趨勢")
+                    .font(.headline)
+
+                Spacer()
+
+                // 超過 90 天顯示切換按鈕
+                if timeRange.dayCount > 90 {
+                    Picker("視圖", selection: $salesAnalyticsViewModel.trendViewMode) {
+                        Text("每日").tag(SalesAnalyticsViewModel.TrendViewMode.daily)
+                        Text("每月").tag(SalesAnalyticsViewModel.TrendViewMode.monthly)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 120)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top)
+
+            // 圖表區域
+            if timeRange.dayCount > 90 && salesAnalyticsViewModel.trendViewMode == .monthly {
+                // 每月視圖
+                monthlyRevenueChart
+                monthlyRevenueDetailList
+            } else {
+                // 每日視圖
+                dailyRevenueChart
+                revenueTrendDetailList
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(12)
+    }
+
+    /// 每日營收圖表
+    private var dailyRevenueChart: some View {
+        Group {
+            if timeRange.dayCount <= 7 {
+                // ≤7天：柱狀圖
+                dailyBarChart
+            } else {
+                // >7天：折線圖
+                dailyLineChart
+            }
+        }
+    }
+
+    /// 每日柱狀圖
+    private var dailyBarChart: some View {
+        let maxAmount = salesAnalyticsViewModel.maxDailyAmount
+
+        return VStack(spacing: 8) {
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(salesAnalyticsViewModel.dailyRevenue) { data in
+                    let isSelected = selectedDailyData?.date == data.date
+                    let opacity: Double = selectedDailyData == nil ? 1.0 : (isSelected ? 1.0 : 0.3)
+
+                    VStack(spacing: 4) {
+                        // 金額標籤（≤7天時顯示）
+                        if timeRange.dayCount <= 7 {
+                            Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                .font(.system(size: 9))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
+                        }
+
+                        // 柱狀
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(LinearGradient(
+                                colors: [.blue.opacity(opacity), .cyan.opacity(opacity)],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            ))
+                            .frame(
+                                height: maxAmount > 0
+                                    ? CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount)) * 120
+                                    : 0
+                            )
+                            .frame(minHeight: data.amount > 0 ? 4 : 0)
+
+                        // 日期標籤
+                        Text(data.dateString)
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .onTapGesture {
+                        selectedDailyData = data
+                    }
+                }
+            }
+            .frame(height: timeRange.dayCount <= 7 ? 180 : 150)
+            .padding(.horizontal)
+        }
+    }
+
+    /// 每日折線圖 (iOS 16+)
+    @available(iOS 16.0, *)
+    private var dailyLineChart: some View {
+        Chart {
+            ForEach(salesAnalyticsViewModel.dailyRevenue) { data in
+                LineMark(
+                    x: .value("日期", data.date),
+                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
+                )
+                .foregroundStyle(.blue)
+
+                AreaMark(
+                    x: .value("日期", data.date),
+                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
+                )
+                .foregroundStyle(.blue.opacity(0.1))
+            }
+
+            // 選中時顯示圓點標記
+            if let selected = selectedDailyData {
+                PointMark(
+                    x: .value("日期", selected.date),
+                    y: .value("金額", MoneyHelper.toUIDouble(selected.amount))
+                )
+                .foregroundStyle(.blue)
+                .symbolSize(100)
+
+                // 垂直標記線
+                RuleMark(x: .value("選中", selected.date))
+                    .foregroundStyle(.gray.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
+            }
+        }
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: max(1, timeRange.dayCount / 7))) { value in
+                AxisGridLine()
+                AxisValueLabel(format: .dateTime.month().day())
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading)
+        }
+        .frame(height: 200)
+        .padding(.horizontal)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        let plotFrame = geometry[proxy.plotFrame!]
+                        let tapX = location.x - plotFrame.origin.x
+
+                        // 找到最接近點擊位置的數據點
+                        var closestData: DailyRevenueData?
+                        var closestDistance: CGFloat = .infinity
+
+                        for data in salesAnalyticsViewModel.dailyRevenue {
+                            if let dataX = proxy.position(forX: data.date) {
+                                let distance = abs(dataX - tapX)
+                                if distance < closestDistance {
+                                    closestDistance = distance
+                                    closestData = data
+                                }
+                            }
+                        }
+
+                        if let matched = closestData {
+                            selectedDailyData = matched
+                        }
+                    }
+            }
+        }
+    }
+
+    /// 每月營收圖表
+    private var monthlyRevenueChart: some View {
+        let maxAmount = salesAnalyticsViewModel.maxMonthlyAmount
+
+        return VStack(spacing: 8) {
+            ForEach(salesAnalyticsViewModel.monthlyRevenue) { data in
+                let isSelected = selectedMonthlyData?.year == data.year && selectedMonthlyData?.month == data.month
+                let opacity: Double = selectedMonthlyData == nil ? 1.0 : (isSelected ? 1.0 : 0.3)
+
+                HStack {
+                    Text(data.fullMonthString)
+                        .font(.system(size: 12))
+                        .frame(width: 60, alignment: .leading)
+
+                    GeometryReader { geometry in
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(LinearGradient(
+                                colors: [.purple.opacity(opacity), .pink.opacity(opacity)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(
+                                width: maxAmount > 0
+                                    ? geometry.size.width * CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount))
+                                    : 0
+                            )
+                    }
+                    .frame(height: 24)
+
+                    Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                        .font(.system(size: 12, design: .monospaced))
+                        .frame(width: 80, alignment: .trailing)
+                }
+                .onTapGesture {
+                    selectedMonthlyData = data
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom)
+    }
+
+    /// 營收趨勢明細列表
+    private var revenueTrendDetailList: some View {
+        VStack(spacing: 0) {
+            // 表頭
+            HStack {
+                Text("日期")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("交易數")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Text("營收")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 20)
+            .background(Color(.systemGray6))
+
+            // 數據列表
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(salesAnalyticsViewModel.dailyRevenue) { data in
+                            HStack {
+                                Text(data.fullDateString)
+                                    .font(.system(size: 14))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text("\(data.count)")
+                                    .font(.system(size: 14))
+                                    .frame(maxWidth: .infinity, alignment: .center)
+
+                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                    .font(.system(size: 14, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 20)
+                            .background(selectedDailyData?.date == data.date ? Color.blue.opacity(0.1) : Color.white)
+                            .id(data.fullDateString)
+                            .onTapGesture {
+                                selectedDailyData = data
+                            }
+
+                            if data.id != salesAnalyticsViewModel.dailyRevenue.last?.id {
+                                Divider()
+                                    .padding(.horizontal, 20)
+                            }
+                        }
+                    }
+                    // 強制刷新
+                    .id("\(timeRange.displayText)-\(salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0)-daily")
+                }
+                .frame(height: min(CGFloat(salesAnalyticsViewModel.dailyRevenue.count) * 40, 233))
+                .onChange(of: selectedDailyData?.date) {
+                    if let dateString = selectedDailyData?.fullDateString {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollProxy.scrollTo(dateString, anchor: .center)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// 月度營收明細列表
+    private var monthlyRevenueDetailList: some View {
+        VStack(spacing: 0) {
+            // 表頭
+            HStack {
+                Text("月份")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("交易數")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Text("營收")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 20)
+            .background(Color(.systemGray6))
+
+            // 數據列表
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(salesAnalyticsViewModel.monthlyRevenue) { data in
+                            let isSelected = selectedMonthlyData?.year == data.year && selectedMonthlyData?.month == data.month
+
+                            HStack {
+                                Text(data.fullMonthString)
+                                    .font(.system(size: 14))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text("\(data.count)")
+                                    .font(.system(size: 14))
+                                    .frame(maxWidth: .infinity, alignment: .center)
+
+                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                    .font(.system(size: 14, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 20)
+                            .background(isSelected ? Color.blue.opacity(0.1) : Color.white)
+                            .id(data.fullMonthString)
+                            .onTapGesture {
+                                selectedMonthlyData = data
+                            }
+
+                            if data.id != salesAnalyticsViewModel.monthlyRevenue.last?.id {
+                                Divider()
+                                    .padding(.horizontal, 20)
+                            }
+                        }
+                    }
+                    // 強制刷新
+                    .id("\(timeRange.displayText)-\(salesAnalyticsViewModel.salesOverview?.totalAmount ?? 0)-monthly")
+                }
+                .frame(height: min(CGFloat(salesAnalyticsViewModel.monthlyRevenue.count) * 40, 233))
+                .onChange(of: selectedMonthlyData?.fullMonthString) {
+                    if let monthString = selectedMonthlyData?.fullMonthString {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollProxy.scrollTo(monthString, anchor: .center)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

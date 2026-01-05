@@ -2,7 +2,7 @@
 //  MoneyHelper.swift
 //  Tilli
 //
-//  Created by Claude on 2025/09/26.
+//  Created by Peiyun on 2025/09/26.
 //
 
 import Foundation
@@ -187,6 +187,37 @@ class MoneyHelper {
     }
 
     static func toDouble(_ value: Decimal) -> Double {
+        return NSDecimalNumber(decimal: value).doubleValue
+    }
+    
+    /// 將 Decimal 轉換為可編輯的字串格式（避免精度丟失）
+    static func toEditableString(_ value: Decimal, currency: Currency) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = currency.decimalPlaces
+        formatter.usesGroupingSeparator = false // 編輯時不用千分位
+        
+        return formatter.string(from: NSDecimalNumber(decimal: value)) ?? "0"
+    }
+    
+    /// 將 Decimal 轉換為顯示用字串格式
+    static func toDisplayString(_ value: Decimal, currency: Currency) -> String {
+        // 先根據貨幣規則四捨五入（與 format() 保持一致）
+        let handler = getHandlerForCurrency(currency)
+        let roundedValue = NSDecimalNumber(decimal: value).rounding(accordingToBehavior: handler).decimalValue
+
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "" // 不加千位分隔符
+        formatter.minimumFractionDigits = currency.decimalPlaces
+        formatter.maximumFractionDigits = currency.decimalPlaces
+
+        return formatter.string(from: NSDecimalNumber(decimal: roundedValue)) ?? "0"
+    }
+    
+    /// 將 Decimal 轉換為 Double，僅用於 UI 計算
+    static func toUIDouble(_ value: Decimal) -> Double {
         return NSDecimalNumber(decimal: value).doubleValue
     }
 

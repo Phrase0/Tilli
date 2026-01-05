@@ -15,8 +15,7 @@ struct SessionDetailView: View {
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
-    @Environment(\.dismiss) private var dismiss
-    
+
     @Binding var session: SessionModel
     @State private var showingShareSheet = false
     @State private var showClearAlert = false
@@ -26,61 +25,51 @@ struct SessionDetailView: View {
     @State private var showCheckoutSheet = false
     
     @State private var editingProduct: ProductModel? = nil
-    @State private var showEditProduct = false
-    
+    @State private var showAddProduct = false
+
     init(session: Binding<SessionModel>) {
         self._session = session
         self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
     }
-    
+
     var body: some View {
-        VStack {
-            // 當需要編輯產品時，顯示編輯頁面
-            if let product = editingProduct, showEditProduct {
-                AddNewProductView(
-                    session: session,
-                    productToEdit: product,
-                    onSave: {
-                        // 編輯完成
-                        showEditProduct = false
-                        editingProduct = nil
-                        viewModel.productViewModel.loadProducts()
-                    },
-                    onCancel: {
-                        // 取消編輯
-                        showEditProduct = false
-                        editingProduct = nil
-                    }
-                )
-            }
-            // 否則顯示主要的 SessionDetail 內容
-            else {
-                sessionDetailContent
-            }
-        }
-        .navigationBarHidden(showEditProduct)
-        .navigationBarBackButtonHidden(!showEditProduct)
-        .toolbar {
-            if !showEditProduct {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.blue)
-                    }
-                }
-                
+        sessionDetailContent
+            .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     switch selectedTab {
-                    case 0: // 商品頁 - 顯示清除按鈕
-                        Button(action: {
-                            showClearAlert = true
-                        }) {
-                            Image(systemName: "trash")
+                    case 0: // 商品頁 - 顯示布局切換、清除按鈕和新增按鈕
+                        HStack(spacing: 16) {
+
+                            // 清除所選數量
+                            Button(action: {
+                                showClearAlert = true
+                            }) {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel("清除所有已選數量")
+                            
+                            // 布局切換按鈕
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    viewModel.productViewModel.layoutMode =
+                                        viewModel.productViewModel.layoutMode == .list ? .grid : .list
+                                }
+                            }) {
+                                Image(systemName: viewModel.productViewModel.layoutMode == .list
+                                    ? "square.grid.2x2"
+                                    : "list.bullet")
+                            }
+                            .accessibilityLabel("切換布局")
+
+                            Button(action: {
+                                editingProduct = nil
+                                showAddProduct = true
+                            }) {
+                                Image(systemName: "plus")
+                            }
+                            .accessibilityLabel("新增產品")
                         }
-                        .accessibilityLabel("清除所有已選數量")
-                        
+
                     case 1: // 交易明細頁 - 顯示導出按鈕
                         Button(action: {
                             viewModel.exportTabCSV(tabIndex: selectedTab)
@@ -89,13 +78,21 @@ struct SessionDetailView: View {
                             Image(systemName: "square.and.arrow.up")
                         }
                         .disabled(viewModel.isTabExportDisabled(tabIndex: selectedTab))
-                        
+
                     default:
                         EmptyView()
                     }
                 }
             }
-        }
+            .navigationDestination(isPresented: $showAddProduct) {
+                AddNewProductView(
+                    session: session,
+                    productToEdit: editingProduct,
+                    onSave: {
+                        viewModel.productViewModel.loadProducts()
+                    }
+                )
+            }
     }
     
     private var sessionDetailContent: some View {
@@ -103,15 +100,15 @@ struct SessionDetailView: View {
             // Header
             VStack(spacing: 4) {
                 Text(viewModel.session.title)
-                    .font(.title2)
-                    .bold()
-                Text("\(viewModel.session.date, formatter: DateFormatter.sessionDate) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Text("\(viewModel.session.displayDateRange) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             .padding(.top)
+            .padding(.horizontal, 20)
             
-            // 自定義 Picker
             HStack {
                 ForEach(0..<2, id: \.self) { index in
                     Button(action: {
@@ -122,7 +119,7 @@ struct SessionDetailView: View {
                                 .font(.subheadline)
                                 .foregroundColor(selectedTab == index ? .blue : .gray)
                                 .fontWeight(selectedTab == index ? .semibold : .regular)
-                            
+
                             Rectangle()
                                 .fill(selectedTab == index ? Color.blue : Color.clear)
                                 .frame(height: 2)
@@ -135,7 +132,7 @@ struct SessionDetailView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.top, 20)
             
             Divider()
             
@@ -145,7 +142,7 @@ struct SessionDetailView: View {
                     productViewModel: viewModel.productViewModel,
                     session: $session,
                     editingProduct: $editingProduct,
-                    showEditProduct: $showEditProduct,
+                    showAddProduct: $showAddProduct,
                     showCheckoutSheet: $showCheckoutSheet,
                     checkoutCompleted: $checkoutCompleted
                 )
@@ -163,7 +160,8 @@ struct SessionDetailView: View {
         .background(Color(.systemGroupedBackground))
         .onChange(of: checkoutCompleted) {
                 // 結帳完成後的處理
-                viewModel.loadData()
+                // 只刷新產品庫存，交易明細會在切換頁面時自動載入
+                viewModel.productViewModel.loadProducts()
                 viewModel.productViewModel.clearAllQuantities()
                 viewModel.updateSessionTotalAmount()
 
@@ -183,7 +181,7 @@ struct SessionDetailView: View {
         }
         .shareSheet(
             isPresented: $showingShareSheet,
-            activityItems: viewModel.currentShareItems,
+            activityItems: { viewModel.currentShareItems },
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {

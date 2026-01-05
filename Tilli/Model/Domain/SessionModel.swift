@@ -1,6 +1,6 @@
 
 //
-//  Untitled.swift
+//  SessionModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/4/23.
@@ -9,27 +9,94 @@ import SwiftUI
 
 struct SessionModel: Identifiable, Codable, Hashable {
     var id = UUID()
-    var title: String                  // 場次名稱，例如「2025/08/01 花博市集」
-    var date: Date                    // 場次日期，主要報表依據
-    var categories: [CategoryModel]         // 類別選單，用於過濾商品或報表
-    var createdAt: Date              // 場次建立時間
-    var transactions: [TransactionModel] = []  // 場次中發生的交易記錄（新增）
-    var currency: String = "TWD"     // 場次使用的幣別，預設為台幣
-    
-    var status: SessionStatus {  // 進行中 / 已結束
-        let today = Calendar.current.startOfDay(for: Date())
-        let sessionDay = Calendar.current.startOfDay(for: date)
+    var title: String                   // 場次名稱，例如「2025/08/01 花博市集」
+    var startDate: Date                 // 場次開始日期（必填）
+    var endDate: Date?                  // 場次結束日期（可選，nil 表示無限期）
+    var dateType: SessionDateType       // 場次類型：單日/多日/無限期
+    var categories: [CategoryModel]     // 類別選單，用於過濾商品或報表
+    var createdAt: Date                 // 場次建立時間
+    var currency: String = "TWD"        // 場次使用的幣別，預設為台幣
+    var discounts: [DiscountModel] = [] // 場次可用的折扣選項
 
-        if sessionDay == today {
-            return .ongoing
-        } else if sessionDay < today {
-            return .completed
+    // 計算屬性：顯示用的日期（= startDate）
+    var displayDate: Date {
+        return startDate
+    }
+
+    // 計算屬性：日期範圍字串
+    var displayDateRange: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+
+        switch dateType {
+        case .single:
+            return formatter.string(from: startDate)
+        case .multi:
+            guard let endDate = endDate else { return formatter.string(from: startDate) }
+            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
+        case .permanent:
+            return "\(formatter.string(from: startDate)) 起"
+        }
+    }
+
+    // 計算屬性：場次天數（僅多日場次有值）
+    var dayCount: Int? {
+        guard dateType == .multi, let end = endDate else { return nil }
+        return Calendar.current.dateComponents([.day], from: startDate, to: end).day! + 1
+    }
+
+    // 計算屬性：場次是否在進行中
+    var isActive: Bool {
+        let today = Date()
+        if let end = endDate {
+            return today >= startDate && today <= end
         } else {
-            return .upcoming
+            return today >= startDate  // 無限期永遠 active（只要已開始）
+        }
+    }
+
+    // 計算屬性：場次狀態
+    var status: SessionStatus {
+        let today = Calendar.current.startOfDay(for: Date())
+        let start = Calendar.current.startOfDay(for: startDate)
+
+        switch dateType {
+        case .single, .multi:
+            if let end = endDate {
+                let endDay = Calendar.current.startOfDay(for: end)
+                if today < start {
+                    return .upcoming
+                } else if today > endDay {
+                    return .completed
+                } else {
+                    return .ongoing
+                }
+            } else {
+                // single 類型理論上不應該沒有 endDate，但為了安全處理
+                if today < start {
+                    return .upcoming
+                } else if today == start {
+                    return .ongoing
+                } else {
+                    return .completed
+                }
+            }
+
+        case .permanent:
+            if today < start {
+                return .upcoming
+            } else {
+                return .ongoing  // 永遠不會變成 completed
+            }
         }
     }
 }
 
+enum SessionDateType: String, Codable, Hashable {
+    case single      // 單日場次
+    case multi       // 多日場次
+    case permanent   // 無限期場次
+}
 
 enum SessionStatus: String, Codable {
     case ongoing

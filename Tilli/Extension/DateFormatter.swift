@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  DateFormatter.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/6/17.
@@ -11,14 +11,18 @@ extension DateFormatter {
     static let sessionDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd"
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
         return formatter
     }()
-    
+
     static let csvFileDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmm"
+        return formatter
+    }()
+
+    static let transactionDateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd HH:mm"
         return formatter
     }()
 }

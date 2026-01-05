@@ -60,18 +60,18 @@ extension View {
     /// 顯示分享界面
     /// - Parameters:
     ///   - isPresented: 控制顯示狀態的 Binding
-    ///   - activityItems: 要分享的項目
+    ///   - activityItems: 要分享的項目（closure，在 sheet 顯示時才評估）
     ///   - excludedTypes: 要排除的分享類型
     ///   - onComplete: 完成回調
     func shareSheet(
         isPresented: Binding<Bool>,
-        activityItems: [Any],
+        activityItems: @escaping () -> [Any],
         excludedTypes: [UIActivity.ActivityType] = [],
         onComplete: ((Bool) -> Void)? = nil
     ) -> some View {
         sheet(isPresented: isPresented) {
             ActivityViewController(
-                activityItems: activityItems,
+                activityItems: activityItems(),
                 excludedActivityTypes: excludedTypes,
                 onComplete: { completed in
                     isPresented.wrappedValue = false

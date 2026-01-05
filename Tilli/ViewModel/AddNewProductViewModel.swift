@@ -9,12 +9,10 @@ import SwiftUI
 import Foundation
 
 class AddNewProductViewModel: ObservableObject {
-    
+
     // MARK: - 輸入 Session
     let session: SessionModel
-    let onSave: () -> Void
-    let onCancel: (() -> Void)?
-    
+
     // MARK: - 編輯欄位狀態綁定
     @Published var name: String = ""
     @Published var price: String = ""
@@ -38,7 +36,7 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
-        session.categories.filter { !$0.isDisabled }.sorted(by: { $0.createdAt < $1.createdAt })
+        session.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
 
     var selectedCategory: CategoryModel? {
@@ -55,7 +53,37 @@ class AddNewProductViewModel: ObservableObject {
     var currentCurrency: Currency {
         return Currency(rawValue: session.currency) ?? .twd
     }
-    
+
+    /// 產品名稱字數上限
+    var productNameMaxLength: Int {
+        return TextHelper.productNameLimit
+    }
+
+    /// 產品名稱剩餘字數
+    var productNameRemainingCharacters: Int {
+        return TextHelper.remainingCharacters(for: name, limit: TextHelper.productNameLimit)
+    }
+
+    /// 截斷產品名稱至上限
+    func enforceProductNameLimit() {
+        name = TextHelper.truncateToLimit(name, limit: TextHelper.productNameLimit)
+    }
+
+    /// 產品描述字數上限
+    var productDescriptionMaxLength: Int {
+        return TextHelper.productDescriptionLimit
+    }
+
+    /// 產品描述剩餘字數
+    var productDescriptionRemainingCharacters: Int {
+        return TextHelper.remainingCharacters(for: description, limit: TextHelper.productDescriptionLimit)
+    }
+
+    /// 截斷產品描述至上限
+    func enforceProductDescriptionLimit() {
+        description = TextHelper.truncateToLimit(description, limit: TextHelper.productDescriptionLimit)
+    }
+
     /// 當前幣別是否支持小數點
     var supportsDecimal: Bool {
         return currentCurrency.decimalPlaces > 0
@@ -118,13 +146,9 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 初始化
     init(session: SessionModel,
-         productToEdit: ProductModel? = nil,
-         onSave: @escaping () -> Void,
-         onCancel: (() -> Void)? = nil) {
-        
+         productToEdit: ProductModel? = nil) {
+
         self.session = session
-        self.onSave = onSave
-        self.onCancel = onCancel
         self.editingProduct = productToEdit
         
         // 設置預設選中第一個啟用的類別
@@ -133,7 +157,9 @@ class AddNewProductViewModel: ObservableObject {
         // 如果有編輯的產品，填入現有資料
         if let product = editingProduct {
             self.name = product.name
-            self.price = MoneyHelper.toDouble(product.price).formatted(.number.precision(.fractionLength(0)))
+            // 使用新的轉換方法，避免精度丟失
+            let currency = Currency(rawValue: session.currency) ?? .twd
+            self.price = MoneyHelper.toEditableString(product.price, currency: currency)
             self.quantity = String(product.stock)
             self.selectedCategoryID = product.categoryId
             // optional 欄位
@@ -159,7 +185,7 @@ class AddNewProductViewModel: ObservableObject {
         if let transactionManager = transactionDataManager {
             transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
         } else {
-            transactions = session.transactions
+            transactions = []
         }
         
         // 如果沒有指定 productId，檢查是否有任何交易

@@ -18,7 +18,7 @@ struct ProductPerformanceData: Identifiable {
     let contributionRate: Int
     let unitPrice: Decimal
     let originalPrice: Decimal
-    let discount: Int
+    let discount: Decimal
     let actualRevenue: Decimal
 }
 
@@ -33,21 +33,28 @@ struct CategoryAnalysisData: Identifiable {
 struct SalesInsightsData {
     let hotProductTitle: String
     let hotProductDescription: String
-    let discountTitle: String
-    let discountDescription: String
+    let discountTitle: String?
+    let discountDescription: String?
     let suggestionTitle: String
     let suggestionDescription: String
 
     init() {
         self.hotProductTitle = "熱銷商品"
         self.hotProductDescription = "暫無資料"
-        self.discountTitle = "折扣效果"
-        self.discountDescription = "暫無資料"
+        self.discountTitle = nil
+        self.discountDescription = nil
         self.suggestionTitle = "優化建議"
         self.suggestionDescription = "暫無資料"
     }
 
-    init(hotProductTitle: String, hotProductDescription: String, discountTitle: String, discountDescription: String, suggestionTitle: String, suggestionDescription: String) {
+    init(
+        hotProductTitle: String,
+        hotProductDescription: String,
+        discountTitle: String? = nil,
+        discountDescription: String? = nil,
+        suggestionTitle: String,
+        suggestionDescription: String
+    ) {
         self.hotProductTitle = hotProductTitle
         self.hotProductDescription = hotProductDescription
         self.discountTitle = discountTitle

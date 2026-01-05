@@ -21,6 +21,7 @@ class ProductPerformanceViewModel: ObservableObject {
     private var transactionDataManager: TransactionDataManager?
     private var sessionDataManager: SessionDataManager?
     @Binding var session: SessionModel
+    private(set) var currentTimeRange: ReportTimeRange?
     
     // MARK: - Initialization
     init(session: Binding<SessionModel>) {
@@ -39,16 +40,21 @@ class ProductPerformanceViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
-    func loadData() {
+
+    /// 載入資料（支援時間範圍）
+    func loadData(timeRange: ReportTimeRange? = nil) {
+        // 儲存當前時間範圍（用於 CSV 匯出）- 即使 DataManager 未設定也要保存
+        self.currentTimeRange = timeRange
+
         guard transactionDataManager != nil else { return }
-        
+
         isLoading = true
-        
+
         Task {
             await MainActor.run {
-                calculateTopProducts()
-                calculateCategoryAnalysis() 
-                generateSalesInsights()
+                calculateTopProducts(timeRange: timeRange)
+                calculateCategoryAnalysis(timeRange: timeRange)
+                generateSalesInsights(timeRange: timeRange)
                 isLoading = false
             }
         }
@@ -58,17 +64,28 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func generateTopProductsCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "排名,商品名稱,類別,單價(\(currencyCode)),銷售數量,原價(\(currencyCode)),折扣金額(\(currencyCode)),實際營收(\(currencyCode)),貢獻率%\n"
+        var csvContent = ""
+
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "熱門商品排行_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "熱門商品排行_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "排名,商品名稱,類別,單價(\(currencyCode)),銷售數量,原價(\(currencyCode)),折扣金額(\(currencyCode)),實際營收(\(currencyCode)),貢獻率%\n"
 
         for product in topProducts {
             let rank = "\(product.rank)"
             let name = product.name.replacingOccurrences(of: ",", with: "，")
             let category = product.category.replacingOccurrences(of: ",", with: "，")
-            let unitPrice = String(format: "%.0f", MoneyHelper.toDouble(product.unitPrice))
+            let currency = Currency(rawValue: currencyCode) ?? .twd
+            let unitPrice = MoneyHelper.toDisplayString(product.unitPrice, currency: currency)
             let salesCount = "\(product.salesCount)"
-            let originalPrice = String(format: "%.0f", MoneyHelper.toDouble(product.originalPrice))
+            let originalPrice = MoneyHelper.toDisplayString(product.originalPrice, currency: currency)
             let discount = "\(product.discount)"
-            let actualRevenue = String(format: "%.0f", MoneyHelper.toDouble(product.actualRevenue))
+            let actualRevenue = MoneyHelper.toDisplayString(product.actualRevenue, currency: currency)
             let contributionRate = "\(product.contributionRate)%"
 
             let row = "\(rank),\(name),\(category),\(unitPrice),\(salesCount),\(originalPrice),\(discount),\(actualRevenue),\(contributionRate)\n"
@@ -80,11 +97,22 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func generateCategoryAnalysisCSV() -> String {
         let currencyCode = session.currency
-        var csvContent = "類別名稱,銷售金額(\(currencyCode)),佔比%\n"
+        var csvContent = ""
+
+        // 報表標題行
+        if let timeRange = currentTimeRange {
+            csvContent += "類別銷售匯總_\(session.title), \(timeRange.csvDateRangeText)\n"
+        } else {
+            csvContent += "類別銷售匯總_\(session.title)\n"
+        }
+        csvContent += "\n"
+
+        csvContent += "類別名稱,銷售金額(\(currencyCode)),佔比%\n"
 
         for category in categoryAnalysis {
             let name = category.name.replacingOccurrences(of: ",", with: "，")
-            let amount = String(format: "%.0f", MoneyHelper.toDouble(category.amount))
+            let currency = Currency(rawValue: currencyCode) ?? .twd
+            let amount = MoneyHelper.toDisplayString(category.amount, currency: currency)
             let percentage = "\(category.percentage)%"
 
             let row = "\(name),\(amount),\(percentage)\n"
@@ -96,7 +124,12 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func createTopProductsCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "熱門商品排行_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符（/ : 等）
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "熱門商品排行_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -111,7 +144,12 @@ class ProductPerformanceViewModel: ObservableObject {
 
     func createCategoryAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let fileName = "類別銷售匯總_\(session.title)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        // 過濾檔名中的非法字符（/ : 等）
+        let safeTitle = session.title
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+        let fileName = "類別銷售匯總_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -132,19 +170,48 @@ class ProductPerformanceViewModel: ObservableObject {
 // MARK: - Business Logic Calculations
 private extension ProductPerformanceViewModel {
     
-    /// 計算商品銷售排行榜
-    func calculateTopProducts() {
+    /// 計算商品銷售排行榜（支援時間範圍）
+    func calculateTopProducts(timeRange: ReportTimeRange? = nil) {
         guard let transactionDataManager = transactionDataManager else { return }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
         
         // 建立商品銷售統計字典
         var productStats: [UUID: ProductSalesStats] = [:]
-        
+
         for transaction in transactions {
+            // 計算交易的小計（折扣前）
+            let transactionSubtotal = transaction.items.reduce(Decimal(0)) { result, item in
+                MoneyHelper.add(result, item.total)
+            }
+
+            // 計算交易的折扣金額
+            let transactionDiscountAmount: Decimal = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue,
+                      transactionSubtotal > 0 else {
+                    return 0
+                }
+                switch discountType {
+                case .percentage:
+                    return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
+                case .amount:
+                    return discountValue
+                }
+            }()
+
             for item in transaction.items {
                 let productId = item.productId
-                
+
                 if productStats[productId] == nil {
                     productStats[productId] = ProductSalesStats(
                         productId: productId,
@@ -153,12 +220,18 @@ private extension ProductPerformanceViewModel {
                         categoryId: item.categoryId
                     )
                 }
-                
+
+                // 計算此商品在交易中的佔比，並分攤折扣
+                let itemProportion: Decimal = transactionSubtotal > 0
+                    ? MoneyHelper.divide(item.total, transactionSubtotal)
+                    : 0
+                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
+                let itemActualTotal = MoneyHelper.subtract(item.total, itemDiscountShare)
+
                 productStats[productId]?.addSale(
                     quantity: item.quantity,
                     unitPrice: item.price,
-                    discount: item.discount,
-                    actualTotal: item.total
+                    actualTotal: itemActualTotal
                 )
             }
         }
@@ -192,7 +265,7 @@ private extension ProductPerformanceViewModel {
                 contributionRate: contributionRate,
                 unitPrice: stats.unitPrice,
                 originalPrice: stats.originalRevenue,
-                discount: Int(MoneyHelper.toDouble(discountAmount)),
+                discount: discountAmount,
                 actualRevenue: stats.actualRevenue
             )
         }
@@ -208,27 +281,63 @@ private extension ProductPerformanceViewModel {
         topProducts = Array(performanceData)
     }
     
-    /// 計算分類銷售分析
-    func calculateCategoryAnalysis() {
+    /// 計算分類銷售分析（支援時間範圍）
+    func calculateCategoryAnalysis(timeRange: ReportTimeRange? = nil) {
         guard let transactionDataManager = transactionDataManager else { return }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
         
         // 建立分類銷售統計字典
         var categoryStats: [UUID: CategorySalesStats] = [:]
-        
+
         for transaction in transactions {
+            // 計算交易的小計（折扣前）
+            let transactionSubtotal = transaction.items.reduce(Decimal(0)) { result, item in
+                MoneyHelper.add(result, item.total)
+            }
+
+            // 計算交易的折扣金額
+            let transactionDiscountAmount: Decimal = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue,
+                      transactionSubtotal > 0 else {
+                    return 0
+                }
+                switch discountType {
+                case .percentage:
+                    return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
+                case .amount:
+                    return discountValue
+                }
+            }()
+
             for item in transaction.items {
                 let categoryId = item.categoryId
-                
+
                 if categoryStats[categoryId] == nil {
                     categoryStats[categoryId] = CategorySalesStats(
                         categoryId: categoryId,
                         name: item.category
                     )
                 }
-                
-                categoryStats[categoryId]?.addSale(amount: item.total)
+
+                // 計算此商品在交易中的佔比，並分攤折扣
+                let itemProportion: Decimal = transactionSubtotal > 0
+                    ? MoneyHelper.divide(item.total, transactionSubtotal)
+                    : 0
+                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
+                let itemActualTotal = MoneyHelper.subtract(item.total, itemDiscountShare)
+
+                categoryStats[categoryId]?.addSale(amount: itemActualTotal)
             }
         }
         
@@ -270,34 +379,40 @@ private extension ProductPerformanceViewModel {
         }
     }
     
-    /// 生成銷售洞察
-    func generateSalesInsights() {
+    /// 生成銷售洞察（支援時間範圍）
+    func generateSalesInsights(timeRange: ReportTimeRange? = nil) {
         guard !topProducts.isEmpty, !categoryAnalysis.isEmpty else {
             salesInsights = SalesInsightsData()
             return
         }
-        
+
         let bestProduct = topProducts.first!
-        let bestCategory = categoryAnalysis.first!
         let lowestCategory = categoryAnalysis.last!
-        
+
         let hotProductInsight = "熱銷商品"
         let hotProductDescription = "\(bestProduct.name)表現最佳，佔總銷售額 \(bestProduct.contributionRate)%"
-        
-        // 找出折扣最多的商品
-        let highestDiscountProduct = findHighestDiscountProduct()
-        let discountInsight = "折扣效果"
-        let discountDescription = highestDiscountProduct.isEmpty ? 
-            "\(bestCategory.name)類商品表現優異，銷售狀況良好" :
-            "\(highestDiscountProduct.name)折扣最多，平均折扣達 \(highestDiscountProduct.averageDiscountRate)%"
-        
+
+        // 找出折扣最多的商品（使用相同的時間範圍）
+        let highestDiscountProduct = findHighestDiscountProduct(timeRange: timeRange)
+
+        // 只有在有折扣資料時才設定折扣洞察
+        let discountTitle: String?
+        let discountDescription: String?
+        if !highestDiscountProduct.isEmpty {
+            discountTitle = "折扣效果"
+            discountDescription = "\(highestDiscountProduct.name)折扣最多，平均折扣達 \(highestDiscountProduct.averageDiscountRate)%"
+        } else {
+            discountTitle = nil
+            discountDescription = nil
+        }
+
         let suggestionInsight = "優化建議"
         let suggestionDescription = "可考慮增加\(lowestCategory.name)類商品的促銷活動"
-        
+
         salesInsights = SalesInsightsData(
             hotProductTitle: hotProductInsight,
             hotProductDescription: hotProductDescription,
-            discountTitle: discountInsight,
+            discountTitle: discountTitle,
             discountDescription: discountDescription,
             suggestionTitle: suggestionInsight,
             suggestionDescription: suggestionDescription
@@ -305,41 +420,63 @@ private extension ProductPerformanceViewModel {
     }
     
     /// 找出折扣最多的商品
-    private func findHighestDiscountProduct() -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
+    private func findHighestDiscountProduct(timeRange: ReportTimeRange? = nil) -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
         guard let transactionDataManager = transactionDataManager else {
             return (name: "", averageDiscountRate: 0, isEmpty: true)
         }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        // 根據時間範圍查詢交易
+        let transactions: [TransactionModel]
+        if let timeRange = timeRange {
+            transactions = transactionDataManager.fetchTransactions(
+                forSessionId: session.id,
+                dateRange: timeRange.dateInterval
+            )
+        } else {
+            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+        }
 
-        // 建立商品折扣統計
-        var productDiscountStats: [UUID: (name: String, totalDiscount: Decimal, totalQuantity: Int)] = [:]
+        // 建立商品折扣統計（累計折扣金額和原價）
+        var productDiscountStats: [UUID: (name: String, totalOriginal: Decimal, totalDiscount: Decimal)] = [:]
 
         for transaction in transactions {
+            // 計算交易的小計（折扣前）
+            let transactionSubtotal = transaction.items.reduce(Decimal(0)) { result, item in
+                MoneyHelper.add(result, item.total)
+            }
+
+            // 計算交易的折扣金額
+            let transactionDiscountAmount: Decimal = {
+                guard let discountType = transaction.discountType,
+                      let discountValue = transaction.discountValue,
+                      transactionSubtotal > 0 else {
+                    return 0
+                }
+                switch discountType {
+                case .percentage:
+                    return MoneyHelper.multiply(transactionSubtotal, discountValue / 100)
+                case .amount:
+                    return discountValue
+                }
+            }()
+
             for item in transaction.items {
                 let productId = item.productId
 
                 if productDiscountStats[productId] == nil {
-                    productDiscountStats[productId] = (name: item.name, totalDiscount: 0, totalQuantity: 0)
+                    productDiscountStats[productId] = (name: item.name, totalOriginal: 0, totalDiscount: 0)
                 }
 
-                // 計算該項目的折扣率
-                let originalItemTotal = MoneyHelper.multiply(item.price, Decimal(item.quantity))
-                let discountAmount = MoneyHelper.subtract(originalItemTotal, item.total)
+                // 計算此商品在交易中的佔比，並分攤折扣
+                let itemProportion: Decimal = transactionSubtotal > 0
+                    ? MoneyHelper.divide(item.total, transactionSubtotal)
+                    : 0
+                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
 
-                // 分解複雜的折扣率計算
-                let discountRate: Decimal
-                if originalItemTotal > 0 {
-                    let discountRatio = MoneyHelper.divide(discountAmount, originalItemTotal)
-                    discountRate = MoneyHelper.multiply(discountRatio, Decimal(100))
-                } else {
-                    discountRate = 0
-                }
-
-                // 避免重疊訪問，先讀取再更新
+                // 累計原價和折扣
                 if var stats = productDiscountStats[productId] {
-                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, discountRate)
-                    stats.totalQuantity += 1
+                    stats.totalOriginal = MoneyHelper.add(stats.totalOriginal, item.total)
+                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, itemDiscountShare)
                     productDiscountStats[productId] = stats
                 }
             }
@@ -350,14 +487,21 @@ private extension ProductPerformanceViewModel {
         var maxAverageDiscountRate = Decimal(0)
 
         for (_, stats) in productDiscountStats {
-            let averageDiscountRate = stats.totalQuantity > 0 ?
-                MoneyHelper.divide(stats.totalDiscount, Decimal(stats.totalQuantity)) : 0
-            if averageDiscountRate > maxAverageDiscountRate {
-                maxAverageDiscountRate = averageDiscountRate
+            // 計算折扣率 = 總折扣 / 總原價 * 100
+            let discountRate: Decimal
+            if stats.totalOriginal > 0 {
+                let ratio = MoneyHelper.divide(stats.totalDiscount, stats.totalOriginal)
+                discountRate = MoneyHelper.multiply(ratio, Decimal(100))
+            } else {
+                discountRate = 0
+            }
+
+            if discountRate > maxAverageDiscountRate {
+                maxAverageDiscountRate = discountRate
                 maxDiscountProduct = stats.name
             }
         }
-        
+
         return (
             name: maxDiscountProduct,
             averageDiscountRate: Int(MoneyHelper.toDouble(maxAverageDiscountRate)), 

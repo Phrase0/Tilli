@@ -18,9 +18,12 @@ extension CDSessionEntity {
     
     @NSManaged public var id: UUID
     @NSManaged public var title: String
-    @NSManaged public var date: Date
+    @NSManaged public var startDate: Date        // 場次開始日期（必填）
+    @NSManaged public var endDate: Date?         // 場次結束日期（可選，nil 表示無限期）
+    @NSManaged public var dateType: String       // 場次類型："single" | "multi" | "permanent"
     @NSManaged public var createdAt: Date
     @NSManaged public var currency: String
+    @NSManaged public var discountsData: Data?   // 折扣選項（JSON 編碼）
     @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
 
@@ -65,30 +68,43 @@ extension CDSessionEntity {
         // 更新基本欄位
         self.id = model.id
         self.title = model.title
-        self.date = model.date
+        self.startDate = model.startDate
+        self.endDate = model.endDate
+        self.dateType = model.dateType.rawValue
         self.createdAt = model.createdAt
         self.currency = model.currency
+
+        // 編碼 discounts
+        self.discountsData = try? JSONEncoder().encode(model.discounts)
     }
 
-    
+
     // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
-        // 取出所有 CategoryModel
-        let categoryModels = (categories as? Set<CDCategoryEntity>)?.compactMap { $0.toModel() } ?? []
+        // 取出所有 CategoryModel 並按 sortOrder 排序
+        let categoryModels = (categories as? Set<CDCategoryEntity>)?
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { $0.toModel() } ?? []
 
-        let transactionModels = (transactions as? Set<CDTransactionEntity>)?.compactMap { $0.toModel() } ?? []
+        // 解碼 discounts
+        let discountModels: [DiscountModel] = {
+            guard let data = discountsData else { return [] }
+            return (try? JSONDecoder().decode([DiscountModel].self, from: data)) ?? []
+        }()
 
         return SessionModel(
             id: self.id,
             title: self.title,
-            date: self.date,
+            startDate: self.startDate,
+            endDate: self.endDate,
+            dateType: SessionDateType(rawValue: self.dateType) ?? .single,
             categories: categoryModels,
             createdAt: self.createdAt,
-            transactions: transactionModels,
-            currency: self.currency
+            currency: self.currency,
+            discounts: discountModels
         )
     }
-    
-    
+
+
 }
 

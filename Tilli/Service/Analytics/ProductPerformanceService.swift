@@ -26,13 +26,15 @@ class ProductSalesStats {
         self.categoryId = categoryId
     }
 
-    func addSale(quantity: Int, unitPrice: Decimal, discount: Int, actualTotal: Decimal) {
+    func addSale(quantity: Int, unitPrice: Decimal, actualTotal: Decimal) {
         self.totalQuantity += quantity
         self.unitPrice = unitPrice // 假設同商品單價一致
         let originalTotal = MoneyHelper.multiply(unitPrice, Decimal(quantity))
         self.originalRevenue = MoneyHelper.add(self.originalRevenue, originalTotal)
         self.actualRevenue = MoneyHelper.add(self.actualRevenue, actualTotal)
-        self.totalDiscount = MoneyHelper.add(self.totalDiscount, Decimal(discount))
+        // 折扣總額 = 原價 - 實際價格
+        let discountAmount = MoneyHelper.subtract(originalTotal, actualTotal)
+        self.totalDiscount = MoneyHelper.add(self.totalDiscount, discountAmount)
     }
 }
 

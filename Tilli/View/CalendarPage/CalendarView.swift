@@ -11,24 +11,13 @@ import Foundation
 struct CalendarView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @StateObject private var viewModel: CalendarViewModel
+    @StateObject private var viewModel = CalendarViewModel()
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @State private var showingMonthYearPicker = false
-    @State private var selectedSession: SessionModel = SessionModel(id: UUID(), title: "", date: Date(), categories: [], createdAt: Date(), transactions: [])
-    
-    init() {
-        let defaultSession = SessionModel(id: UUID(), title: "", date: Date(), categories: [], createdAt: Date(), transactions: [])
-        _selectedSession = State(initialValue: defaultSession)
-        _viewModel = StateObject(wrappedValue: CalendarViewModel(session: .constant(defaultSession)))
-    }
-    
+    @State private var refreshID = UUID()
+
     private let calendar = Calendar.current
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        return formatter
-    }()
     
     var body: some View {
         NavigationStack{
@@ -44,7 +33,8 @@ struct CalendarView: View {
                 
                 // 選中日期的 Session 列表
                 sessionList
-                
+                    .id(refreshID)
+
                 Spacer()
             }
             .onAppear {
@@ -52,7 +42,12 @@ struct CalendarView: View {
                     transactionDataManager: transactionDataManager,
                     sessionDataManager: sessionDataManager
                 )
-                viewModel.refresh(using: sessionDataManager)
+                // 設置完 dataManagers 後刷新，確保首次載入資料正確
+                refreshID = UUID()
+            }
+            .onChange(of: transactionDataManager.transactionUpdateTrigger) {
+                // 交易變更時刷新 sessionList
+                refreshID = UUID()
             }
             .navigationTitle("我的行事曆")
         }
@@ -62,15 +57,15 @@ struct CalendarView: View {
     // 月份標題
     private var monthHeader: some View {
         HStack(spacing: 0) {
-            Button(action: { changeMonth(-1) }) {
+            Button(action: { viewModel.changeMonth(-1, currentDate: &currentDate) }) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
                     .foregroundColor(.gray)
                     .frame(width: 44, height: 44)
             }
-            
+
             Spacer()
-            
+
             Button(action: { showingMonthYearPicker = true }) {
                 Text(viewModel.monthYearString(for: currentDate))
                     .font(.title3)
@@ -83,10 +78,10 @@ struct CalendarView: View {
                     isPresented: $showingMonthYearPicker
                 )
             }
-            
+
             Spacer()
-            
-            Button(action: { changeMonth(1) }) {
+
+            Button(action: { viewModel.changeMonth(1, currentDate: &currentDate) }) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
                     .foregroundColor(.gray)
@@ -115,11 +110,15 @@ struct CalendarView: View {
     private var calendarGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
             ForEach(viewModel.daysInMonth(for: currentDate), id: \.self) { date in
+                let sessionsForDate = viewModel.sessionsForDate(date, from: sessionDataManager.sessions)
+                let hasTransactions = viewModel.hasTransactions(on: date)
+
                 DayCell(
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    hasSessions: viewModel.hasSessions(on: date),
+                    sessions: sessionsForDate,
+                    hasOrphanTransactions: hasTransactions && sessionsForDate.isEmpty,
                     currentMonth: currentDate,
                     onTap: { selectedDate = date }
                 )
@@ -130,9 +129,9 @@ struct CalendarView: View {
             DragGesture()
                 .onEnded { value in
                     if value.translation.width > 50 {
-                        changeMonth(-1)
+                        viewModel.changeMonth(-1, currentDate: &currentDate)
                     } else if value.translation.width < -50 {
-                        changeMonth(1)
+                        viewModel.changeMonth(1, currentDate: &currentDate)
                     }
                 }
         )
@@ -141,14 +140,48 @@ struct CalendarView: View {
     // Session 列表
     private var sessionList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !viewModel.sessionsForDate(selectedDate).isEmpty {
+            // 1. 獲取選中日期的場次（不包含永久場次）
+            let (realSessions, virtualSessions) = viewModel.getAllSessionsForDate(selectedDate, from: sessionDataManager.sessions)
+
+            // 2. 獲取所有永久場次（固定顯示，需判斷 startDate <= selectedDate）
+            let permanentSessions = viewModel.getPermanentSessions(from: sessionDataManager.sessions, selectedDate: selectedDate)
+
+            if !realSessions.isEmpty || !virtualSessions.isEmpty || !permanentSessions.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(viewModel.sessionsForDate(selectedDate)) { session in
+                        // 永久場次（固定顯示，紫色底 + ∞ 符號）
+                        if !permanentSessions.isEmpty {
+                            ForEach(permanentSessions) { session in
+                                NavigationLink(destination: SessionDetailFromCalendarView(
+                                    session: .constant(session)
+                                )) {
+                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, selectedDate: selectedDate, viewModel: viewModel)
+                                }
+                            }
+
+                            // 永久場次和當日場次之間的分隔線
+                            if !realSessions.isEmpty || !virtualSessions.isEmpty {
+                                Divider()
+                                    .padding(.vertical, 8)
+                            }
+                        }
+
+                        // 選中日期的真實 Session（藍色底）
+                        ForEach(realSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
                                 session: .constant(session)
                             )) {
-                                SessionRowView(session: session)
+                                SessionRowView(session: session, isVirtual: false, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
+                            }
+                        }
+
+                        // 選中日期的虛擬 Session（孤兒交易，灰色底 + 淡化）
+                        ForEach(virtualSessions) { session in
+                            NavigationLink(destination: SessionDetailFromCalendarView(
+                                session: .constant(session)
+                            )) {
+                                SessionRowView(session: session, isVirtual: true, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
+                                    .opacity(0.7)  // 淡化顯示
                             }
                         }
                     }
@@ -158,13 +191,6 @@ struct CalendarView: View {
             }
         }
     }
-    
-    
-    private func changeMonth(_ direction: Int) {
-        if let newDate = viewModel.changeMonth(direction, currentDate: currentDate) {
-            currentDate = newDate
-        }
-    }
 }
 
 // 日期單元格
@@ -172,12 +198,13 @@ struct DayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-    let hasSessions: Bool
+    let sessions: [SessionModel]
+    let hasOrphanTransactions: Bool
     let currentMonth: Date
     let onTap: () -> Void
-    
+
     private let calendar = Calendar.current
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
@@ -187,26 +214,63 @@ struct DayCell: View {
                             .fill(Color.blue)
                             .frame(width: 30, height: 30)
                     }
-                    
+
                     Text("\(calendar.component(.day, from: date))")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(textColor)
                 }
-                
-                if hasSessions {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 5, height: 5)
-                } else {
-                    Spacer().frame(height: 5)
-                }
+
+                // 場次指示器
+                sessionIndicators
             }
             .frame(height: 44)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
+    // 場次指示器：顯示多個圓點或文字
+    private var sessionIndicators: some View {
+        Group {
+            if !sessions.isEmpty {
+                HStack(spacing: 2) {
+                    // 顯示最多 3 個圓點
+                    ForEach(sessions.prefix(3)) { session in
+                        Circle()
+                            .fill(dotColor(for: session))
+                            .frame(width: 4, height: 4)
+                    }
+
+                    // 如果超過 3 個場次，顯示 "+X"
+                    if sessions.count > 3 {
+                        Text("+\(sessions.count - 3)")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .frame(height: 8)
+            } else if hasOrphanTransactions {
+                // 孤兒交易：灰色圓點
+                Circle()
+                    .fill(Color.gray.opacity(0.5))
+                    .frame(width: 4, height: 4)
+                    .frame(height: 8)
+            } else {
+                Spacer().frame(height: 8)
+            }
+        }
+    }
+
+    // 根據場次類型返回圓點顏色
+    private func dotColor(for session: SessionModel) -> Color {
+        switch session.dateType {
+        case .permanent:
+            return .purple  // 無限期場次用紫色
+        case .single, .multi:
+            return .blue    // 單日和多日場次用藍色
+        }
+    }
+
     private var textColor: Color {
         if isSelected {
             return .white
@@ -224,21 +288,39 @@ struct DayCell: View {
 // Session 行視圖
 struct SessionRowView: View {
     let session: SessionModel
-    
+    let isVirtual: Bool      // 是否為虛擬 Session（孤兒交易）
+    let isPermanent: Bool    // 是否為永久場次
+    let selectedDate: Date   // 日曆選中的日期
+    let viewModel: CalendarViewModel
+
     var body: some View {
+        let summary = viewModel.calculateTransactionSummary(for: session)
+
         HStack(alignment: .top) {
-            Text(session.title)
-                .font(.headline)
-                .foregroundColor(.black)
+            // 左側：標題 + 場次資訊
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.title + (isPermanent ? " ∞" : ""))
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .lineLimit(1)
+
+                // 場次進度資訊
+                if let sessionInfo = sessionProgressInfo {
+                    Text(sessionInfo)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
 
             Spacer()
 
+            // 右側：金額 + 交易筆數
             VStack(alignment: .trailing, spacing: 6) {
-                Text(totalAmount.money(currency: session.currency))
+                Text(summary.totalAmount.money(currency: session.currency))
                     .font(.headline)
-                    .foregroundColor(.blue)
+                    .foregroundColor(isPermanent ? .purple : .blue)
 
-                Text("\(session.transactions.count) 筆交易")
+                Text("\(summary.count) 筆交易")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -246,12 +328,44 @@ struct SessionRowView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.1))
+                .fill(
+                    isVirtual ? Color.gray.opacity(0.1) :
+                    isPermanent ? Color.purple.opacity(0.1) :
+                    Color.blue.opacity(0.1)
+                )
         )
     }
-    
-    private var totalAmount: Decimal {
-        session.transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+
+    // 場次進度資訊（基於選中的日期）
+    private var sessionProgressInfo: String? {
+        let calendar = Calendar.current
+        let referenceDate = calendar.startOfDay(for: selectedDate)
+
+        switch session.dateType {
+        case .single:
+            return nil  // 單日場次不顯示
+
+        case .multi:
+            // 多日場次：顯示「第 X 天/共 Y 天」
+            guard let endDate = session.endDate else { return nil }
+            let start = calendar.startOfDay(for: session.startDate)
+            let end = calendar.startOfDay(for: endDate)
+            let totalDays = calendar.dateComponents([.day], from: start, to: end).day! + 1
+
+            // 計算選中日期是第幾天
+            if referenceDate >= start && referenceDate <= end {
+                let currentDay = calendar.dateComponents([.day], from: start, to: referenceDate).day! + 1
+                return "第 \(currentDay) 天/共 \(totalDays) 天"
+            } else {
+                return "共 \(totalDays) 天"
+            }
+
+        case .permanent:
+            // 無限期場次：顯示「開始至今第 X 天」（基於選中日期）
+            let start = calendar.startOfDay(for: session.startDate)
+            let daysSinceStart = calendar.dateComponents([.day], from: start, to: referenceDate).day! + 1
+            return "開始至今第 \(daysSinceStart) 天"
+        }
     }
 }
 

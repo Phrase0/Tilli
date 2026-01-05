@@ -16,59 +16,140 @@ class TransactionDataManager: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
 
-    @Published var transactions: [TransactionModel] = []
+    /// 交易變更觸發器 - 當交易新增/更新時會改變，用於通知 UI 刷新
+    @Published var transactionUpdateTrigger = UUID()
 
     static let shared = TransactionDataManager()
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
-        fetchAllTransactions()
     }
 
-    // MARK: - Read Operations Only (Transaction CRUD moved to SessionDataManager)
-    
-    /// 取得所有交易記錄
-    func fetchAllTransactions() {
-        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+    // MARK: - Notification
 
-        do {
-            let result = try context.fetch(request)
-            transactions = result.compactMap { $0.toModel() }
-        } catch {
-            print("Fetch transactions failed:", error)
+    /// 通知交易資料已變更，觸發 UI 刷新
+    func notifyTransactionsChanged() {
+        DispatchQueue.main.async {
+            self.transactionUpdateTrigger = UUID()
         }
     }
 
+    // MARK: - Read Operations Only (Transaction CRUD moved to SessionDataManager)
+
     /// 取得指定 Session 的交易記錄
+    /// 按 displayDate（優先 occurredAt，否則 timestamp）排序
     func fetchTransactions(forSessionId sessionId: UUID) -> [TransactionModel] {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
 
         do {
             let result = try context.fetch(request)
-            return result.compactMap { $0.toModel() }
+            let transactions = result.compactMap { $0.toModel() }
+            // 按 displayDate 排序
+            return transactions.sorted { $0.displayDate > $1.displayDate }
         } catch {
             print("Fetch transactions for session failed:", error)
             return []
         }
     }
-    
-    /// 取得指定日期範圍的交易記錄
-    func fetchTransactions(from startDate: Date, to endDate: Date) -> [TransactionModel] {
+
+    /// 根據場次和日期範圍查詢交易記錄（用於多日場次報表）
+    /// 使用 displayDate（優先 occurredAt，否則 timestamp）進行日期篩選
+    func fetchTransactions(forSessionId sessionId: UUID, dateRange: DateInterval?) -> [TransactionModel] {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "timestamp >= %@ AND timestamp <= %@", startDate as NSDate, endDate as NSDate)
-        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
+
+        // 建立 sessionId 條件
+        let sessionPredicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+
+        // 如果有日期範圍，加入 OR 條件（timestamp 或 occurredAt 在範圍內）
+        if let range = dateRange {
+            let timestampPredicate = NSPredicate(
+                format: "timestamp >= %@ AND timestamp <= %@",
+                range.start as NSDate,
+                range.end as NSDate
+            )
+            let occurredAtPredicate = NSPredicate(
+                format: "occurredAt >= %@ AND occurredAt <= %@",
+                range.start as NSDate,
+                range.end as NSDate
+            )
+            let datePredicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
+                timestampPredicate,
+                occurredAtPredicate
+            ])
+
+            // 組合：sessionId AND (timestamp OR occurredAt)
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                sessionPredicate,
+                datePredicate
+            ])
+        } else {
+            request.predicate = sessionPredicate
+        }
 
         do {
             let result = try context.fetch(request)
-            return result.compactMap { $0.toModel() }
+            var transactions = result.compactMap { $0.toModel() }
+
+            // 如果有指定日期範圍，使用 displayDate 進行精確篩選
+            if let range = dateRange {
+                transactions = transactions.filter { transaction in
+                    transaction.displayDate >= range.start && transaction.displayDate <= range.end
+                }
+            }
+
+            // 按 displayDate 排序
+            return transactions.sorted { $0.displayDate > $1.displayDate }
         } catch {
-            print("Fetch transactions for date range failed:", error)
+            print("Failed to fetch transactions with date range: \(error)")
             return []
         }
+    }
+    
+    /// 取得指定日期的所有交易記錄（包括孤兒交易）
+    /// 使用 displayDate（優先 occurredAt，否則 timestamp）進行日期篩選
+    func fetchTransactions(for date: Date) -> [TransactionModel] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        // 用 OR 條件查詢：timestamp 或 occurredAt 在當天範圍內
+        let timestampPredicate = NSPredicate(
+            format: "timestamp >= %@ AND timestamp < %@",
+            startOfDay as NSDate,
+            endOfDay as NSDate
+        )
+        let occurredAtPredicate = NSPredicate(
+            format: "occurredAt >= %@ AND occurredAt < %@",
+            startOfDay as NSDate,
+            endOfDay as NSDate
+        )
+
+        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+        request.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
+            timestampPredicate,
+            occurredAtPredicate
+        ])
+
+        do {
+            let result = try context.fetch(request)
+            let transactions = result.compactMap { $0.toModel() }
+
+            // 使用 displayDate 進行精確篩選
+            return transactions
+                .filter { $0.displayDate >= startOfDay && $0.displayDate < endOfDay }
+                .sorted { $0.displayDate > $1.displayDate }
+        } catch {
+            print("Fetch transactions for date failed:", error)
+            return []
+        }
+    }
+    
+    /// 取得指定日期的交易記錄，按SessionId分組
+    func fetchTransactionsGroupedBySession(for date: Date) -> [String: [TransactionModel]] {
+        let transactions = fetchTransactions(for: date)
+        return Dictionary(grouping: transactions) { $0.sessionId.uuidString }
     }
 
 }

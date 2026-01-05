@@ -7,17 +7,17 @@
 
 import SwiftUI
 import Charts
-import UniformTypeIdentifiers
 
 struct ProductPerformanceView: View {
     @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
     @Binding var session: SessionModel
+    let timeRange: ReportTimeRange
     @State private var expandedProducts: Set<Int> = []
-    @State private var showingShareSheet = false
 
-    init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>) {
+    init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
         self.productPerformanceViewModel = viewModel
         self._session = session
+        self.timeRange = timeRange
     }
     
     var body: some View {
@@ -51,7 +51,7 @@ struct ProductPerformanceView: View {
             }
         }
         .refreshable {
-            productPerformanceViewModel.loadData()
+            productPerformanceViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
         .alert("CSV 導出成功", isPresented: $productPerformanceViewModel.showingExportAlert) {
@@ -59,19 +59,6 @@ struct ProductPerformanceView: View {
         } message: {
             Text("產品績效報告已成功導出為 CSV 檔案")
         }
-        .shareSheet(
-            isPresented: $showingShareSheet,
-            activityItems: [
-                productPerformanceViewModel.createTopProductsCSVFileURL(),
-                productPerformanceViewModel.createCategoryAnalysisCSVFileURL()
-            ],
-            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
-            onComplete: { completed in
-                if completed {
-                    productPerformanceViewModel.showExportSuccessAlert()
-                }
-            }
-        )
     }
     
     
@@ -157,14 +144,18 @@ struct ProductPerformanceView: View {
                     title: productPerformanceViewModel.salesInsights.hotProductTitle,
                     description: productPerformanceViewModel.salesInsights.hotProductDescription
                 )
-                
-                InsightCard(
-                    icon: "percent",
-                    iconColor: .green,
-                    title: productPerformanceViewModel.salesInsights.discountTitle,
-                    description: productPerformanceViewModel.salesInsights.discountDescription
-                )
-                
+
+                // 只在有折扣資料時顯示
+                if let discountTitle = productPerformanceViewModel.salesInsights.discountTitle,
+                   let discountDescription = productPerformanceViewModel.salesInsights.discountDescription {
+                    InsightCard(
+                        icon: "percent",
+                        iconColor: .green,
+                        title: discountTitle,
+                        description: discountDescription
+                    )
+                }
+
                 InsightCard(
                     icon: "lightbulb.fill",
                     iconColor: .orange,

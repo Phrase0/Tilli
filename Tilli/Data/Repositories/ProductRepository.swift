@@ -202,6 +202,80 @@ class ProductRepository: ObservableObject {
         }
     }
 
+    // MARK: - Batch Operations
+    
+    /// 批次更新產品庫存
+    func batchUpdateProductStock(_ stockUpdates: [UUID: Int]) -> Bool {
+        guard !stockUpdates.isEmpty else {
+            return true
+        }
+        
+        let productIds = Array(stockUpdates.keys)
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id IN %@", productIds)
+        
+        do {
+            let products = try context.fetch(request)
+            
+            for product in products {
+                if let newStock = stockUpdates[product.id] {
+                    product.stock = Int32(max(newStock, 0))
+                }
+            }
+            
+            try context.save()
+            
+            print("✅ Batch updated \(products.count) products stock")
+            return true
+            
+        } catch {
+            context.rollback()
+            print("🔴 批次更新產品庫存失敗: \(error)")
+            return false
+        }
+    }
+    
+    /// 批次更新多個產品（完整更新）
+    func batchUpdateProducts(_ productUpdates: [ProductModel]) -> Bool {
+        guard !productUpdates.isEmpty else {
+            return true
+        }
+        
+        let productIds = productUpdates.map { $0.id }
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id IN %@", productIds)
+        
+        do {
+            let entities = try context.fetch(request)
+            let entityDict = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0) })
+            
+            for productModel in productUpdates {
+                if let entity = entityDict[productModel.id] {
+                    entity.name = productModel.name
+                    entity.price = NSDecimalNumber(decimal: productModel.price)
+                    updateStockWithBusinessLogic(entity: entity, newStock: productModel.stock)
+                    entity.categoryId = productModel.categoryId
+                    entity.categoryName = productModel.categoryName
+                    entity.note = productModel.note
+                    if let imageData = productModel.imageData {
+                        entity.imageData = imageData
+                    }
+                }
+            }
+            
+            try context.save()
+            
+            print("✅ Batch updated \(entities.count) products")
+            return true
+            
+        } catch {
+            context.rollback()
+            print("🔴 批次更新多個產品失敗: \(error)")
+            return false
+        }
+    }
+    
+
     // MARK: - Save Context
     private func saveContext() {
         do {

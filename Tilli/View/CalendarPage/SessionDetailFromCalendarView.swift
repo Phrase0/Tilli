@@ -12,15 +12,23 @@ struct SessionDetailFromCalendarView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var showingShareSheet = false
-    
+    @State private var timeRange: ReportTimeRange
+
     init(session: Binding<SessionModel>) {
         self._viewModel = StateObject(wrappedValue: SessionDetailFromCalendarViewModel(session: session))
+
+        // 初始化時間範圍
+        self._timeRange = State(initialValue: ReportTimeRange(session: session.wrappedValue))
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
+            // 時間範圍選擇器
+            ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
+                .padding(.horizontal)
+
             // 自定義 Picker
             HStack {
                 ForEach(0..<viewModel.tabTitles.count, id: \.self) { index in
@@ -53,26 +61,28 @@ struct SessionDetailFromCalendarView: View {
             TabView(selection: $viewModel.selectedTab) {
                 TransactionHistoryView(
                     transactionViewModel: viewModel.transactionViewModel,
-                    session: $viewModel.session
+                    session: $viewModel.session,
+                    timeRange: timeRange
                 )
                 .tag(0)
-                
+
                 ProductPerformanceView(
                     viewModel: viewModel.productPerformanceViewModel,
-                    session: $viewModel.session
+                    session: $viewModel.session,
+                    timeRange: timeRange
                 )
                     .tag(1)
-                
+
                 SalesAnalyticsView(
                     viewModel: viewModel.salesAnalyticsViewModel,
-                    session: $viewModel.session
+                    session: $viewModel.session,
+                    timeRange: timeRange
                 )
                     .tag(2)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(viewModel.session.title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -81,10 +91,22 @@ struct SessionDetailFromCalendarView: View {
                     dismiss()
                 }) {
                     Image(systemName: "chevron.left")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.gray)
                 }
             }
-            
+
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text(viewModel.session.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    Text(viewModel.session.displayDateRange)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     showingShareSheet = true
@@ -99,11 +121,36 @@ struct SessionDetailFromCalendarView: View {
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager
             )
-            viewModel.loadData()
+            // 使用當前的時間範圍載入資料
+            viewModel.transactionViewModel.loadData(timeRange: timeRange)
+            viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+            viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
+        }
+        .onChange(of: timeRange.type) {
+            // 時間範圍類型變更時重新載入資料
+            viewModel.transactionViewModel.loadData(timeRange: timeRange)
+            viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+            viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
+        }
+        .onChange(of: timeRange.customStart) {
+            // 自訂開始日期變更時重新載入資料
+            if timeRange.type == .custom {
+                viewModel.transactionViewModel.loadData(timeRange: timeRange)
+                viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+                viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
+            }
+        }
+        .onChange(of: timeRange.customEnd) {
+            // 自訂結束日期變更時重新載入資料
+            if timeRange.type == .custom {
+                viewModel.transactionViewModel.loadData(timeRange: timeRange)
+                viewModel.productPerformanceViewModel.loadData(timeRange: timeRange)
+                viewModel.salesAnalyticsViewModel.loadData(timeRange: timeRange)
+            }
         }
         .shareSheet(
             isPresented: $showingShareSheet,
-            activityItems: viewModel.getCurrentTabShareItems(),
+            activityItems: { viewModel.getCurrentTabShareItems() },
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {

@@ -10,16 +10,13 @@ import Foundation
 
 struct CashPaymentView: View {
 
-    @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.dismiss) private var dismiss
-
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var productRepository: ProductRepository
 
     @Binding var session: SessionModel
 
-    var onComplete: (SessionModel) -> Void
+    @Environment(\.closeCheckoutFlow) private var closeFlow
 
     @ObservedObject var viewModel: CashPaymentViewModel
 
@@ -28,22 +25,24 @@ struct CashPaymentView: View {
     }
 
     @FocusState private var focusedField: FocusField?
-    
+
     init(
         totalAmount: Decimal,
         session: Binding<SessionModel>,
         summaryItems: [SummaryItemModel],
-        onComplete: @escaping (SessionModel) -> Void
+        selectedDiscount: DiscountModel? = nil,
+        occurredAt: Date? = nil
     ) {
         self._session = session
         self._viewModel = ObservedObject(wrappedValue: CashPaymentViewModel(
             totalAmount: totalAmount,
             session: session.wrappedValue,
-            summaryItems: summaryItems
+            summaryItems: summaryItems,
+            selectedDiscount: selectedDiscount,
+            occurredAt: occurredAt
         ))
-        self.onComplete = onComplete
     }
-    
+
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
@@ -60,9 +59,9 @@ struct CashPaymentView: View {
                         .foregroundColor(.black)
                 }
             }
-            
+
             Divider()
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("支付")
                     .font(.subheadline)
@@ -81,18 +80,10 @@ struct CashPaymentView: View {
                         }
                     }
                     .onSubmit {
-                        if viewModel.isAmountValid {
-                            let updatedSession = viewModel.performCheckout(
-                                sessionDataManager: sessionDataManager,
-                                productRepository: productRepository
-                            )
-                            session = updatedSession
-                            onComplete(updatedSession)
-                            dismiss()
-                        }
+                        completePayment()
                     }
             }
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("找零")
                     .font(.subheadline)
@@ -104,7 +95,7 @@ struct CashPaymentView: View {
                     .foregroundColor(.blue)
                     .bold()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 Group {
                     if !viewModel.isAmountValid {
                         Label("請輸入等於或大於總額的金額", systemImage: "xmark.octagon.fill")
@@ -112,30 +103,18 @@ struct CashPaymentView: View {
                             .font(.footnote)
                             .multilineTextAlignment(.leading)
                     } else {
-                        // 這個 Spacer 是重點：當錯誤不顯示時，保留空間
                         Color.clear
-                            .frame(height: 20) // 要與錯誤訊息大致等高
+                            .frame(height: 20)
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             VStack(spacing: 12) {
-                Button(action: {
-                        //
-                        if viewModel.isAmountValid {
-                            let updatedSession = viewModel.performCheckout(
-                                sessionDataManager: sessionDataManager,
-                                productRepository: productRepository
-                            )
-                            session = updatedSession  // 直接更新 Binding
-                            onComplete(updatedSession)
-                            dismiss()
-                        
-                        //
-                    }
-                }) {
+                Button {
+                    completePayment()
+                } label: {
                     Text("完成付款")
                         .foregroundColor(.white)
                         .font(.headline)
@@ -149,10 +128,30 @@ struct CashPaymentView: View {
         }
         .padding()
         .onAppear {
-            // 自動聚焦到金額輸入欄位
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.focusedField = .receivedAmount
             }
+        }
+        .navigationTitle("")
+    }
+
+    // MARK: - Helper Methods
+
+    private func completePayment() {
+        guard viewModel.isAmountValid else { return }
+
+        let updatedSession = viewModel.performCheckout(
+            sessionDataManager: sessionDataManager,
+            productRepository: productRepository
+        )
+        session = updatedSession
+
+        // 先收起鍵盤
+        focusedField = nil
+
+        // 等鍵盤收起後再關閉整個 flow
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            closeFlow()
         }
     }
 }
