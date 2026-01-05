@@ -10,7 +10,6 @@ import SwiftUI
 struct SessionsView: View {
 
     @EnvironmentObject var sessionDataManager: SessionDataManager
-    @EnvironmentObject var appState: AppState
 
     @State private var searchText = ""
     @State private var isNavigatingToAddSession = false
@@ -72,7 +71,6 @@ struct SessionsView: View {
                                         viewModel.toggleSelection(sessionId: session.id)
                                     } else {
                                         selectedSession = session
-                                        appState.currentSession = session
                                     }
                                 }
                             }
@@ -142,7 +140,6 @@ struct SessionsView: View {
             }
             .onAppear {
                 // SessionDataManager 會自動管理和更新 sessions 數據
-                appState.currentSession = nil
             }
             .toolbar(viewModel.isSelectionMode ? .hidden : .visible, for: .tabBar)
             .animation(.easeInOut(duration: 0.3), value: viewModel.isSelectionMode)

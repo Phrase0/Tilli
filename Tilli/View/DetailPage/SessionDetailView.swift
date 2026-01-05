@@ -13,7 +13,6 @@ struct SessionDetailView: View {
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SessionDetailViewModel
 
     @Binding var session: SessionModel
@@ -171,7 +170,6 @@ struct SessionDetailView: View {
                 }
         }
         .onAppear {
-            appState.currentSession = viewModel.session
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager,

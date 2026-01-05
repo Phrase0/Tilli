@@ -13,15 +13,12 @@ struct TilliApp: App {
     @StateObject private var transactionDataManager = TransactionDataManager()
     @StateObject private var productRepository = ProductRepository()
     @StateObject private var qRCodeDataManager = QRCodeDataManager()
-    
-    @StateObject private var appState = AppState()
     let persistenceController = PersistenceController.shared
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .environmentObject(appState)
                 .environmentObject(sessionDataManager)
                 .environmentObject(transactionDataManager)
                 .environmentObject(productRepository)

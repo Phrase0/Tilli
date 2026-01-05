@@ -10,7 +10,6 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: Int = 0
     @EnvironmentObject var sessionDataManager: SessionDataManager
-    @EnvironmentObject var appState: AppState
 
     // MARK: - 測試用（測試完成後刪除這段）
     @State private var hasGeneratedTestData = false
@@ -18,7 +17,6 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             SessionsView()
-                .environmentObject(appState)
                 .tabItem { Label("場次", systemImage: "list.bullet") }
                 .tag(0)
             
