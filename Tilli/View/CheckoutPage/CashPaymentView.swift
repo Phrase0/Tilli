@@ -20,6 +20,9 @@ struct CashPaymentView: View {
 
     @ObservedObject var viewModel: CashPaymentViewModel
 
+    // 計算機功能開關
+    @AppStorage("calculatorEnabled") private var calculatorEnabled = true
+
     enum FocusField: Hashable {
         case receivedAmount
     }
@@ -44,6 +47,17 @@ struct CashPaymentView: View {
     }
 
     var body: some View {
+        if calculatorEnabled {
+            // 完整計算機模式
+            calculatorModeView
+        } else {
+            // 簡化模式：只顯示總金額
+            simpleModeView
+        }
+    }
+
+    // MARK: - 完整計算機模式
+    private var calculatorModeView: some View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
                 Text("總金額")
@@ -135,8 +149,50 @@ struct CashPaymentView: View {
         .navigationTitle("")
     }
 
+    // MARK: - 簡化模式（關閉計算機功能）
+    private var simpleModeView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            // 總金額置中顯示
+            VStack(spacing: 12) {
+                Text("總金額")
+                    .font(.title3)
+                    .foregroundColor(.gray)
+
+                HStack(spacing: 8) {
+                    Image(systemName: "tag.fill")
+                        .font(.title)
+                        .foregroundColor(.blue)
+                    Text(viewModel.totalAmount.money(currency: session.currency))
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+            }
+
+            Spacer()
+            Spacer()
+            
+            // 完成付款按鈕
+            Button {
+                completePaymentSimple()
+            } label: {
+                Text("完成付款")
+                    .foregroundColor(.white)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(12)
+            }
+        }
+        .padding()
+        .navigationTitle("")
+    }
+
     // MARK: - Helper Methods
 
+    /// 完整模式：需要驗證金額
     private func completePayment() {
         guard viewModel.isAmountValid else { return }
 
@@ -150,8 +206,19 @@ struct CashPaymentView: View {
         focusedField = nil
 
         // 等鍵盤收起後再關閉整個 flow
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+          DispatchQueue.main.async {
             closeFlow()
         }
+    }
+
+    /// 簡化模式：直接完成交易
+    private func completePaymentSimple() {
+        let updatedSession = viewModel.performCheckout(
+            sessionDataManager: sessionDataManager,
+            productRepository: productRepository
+        )
+        session = updatedSession
+        closeFlow()
     }
 }
