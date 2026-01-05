@@ -129,7 +129,7 @@ class ProductPerformanceViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "熱門商品排行_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "熱門商品排行_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -149,7 +149,7 @@ class ProductPerformanceViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "類別銷售匯總_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "類別銷售匯總_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {

@@ -131,15 +131,12 @@ struct ReportTimeRange: Equatable {
 
     /// 顯示用的日期範圍文字
     var displayText: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
-
         switch type {
         case .all:
             if session.dateType == .permanent {
-                return "\(formatter.string(from: actualStart)) 至今"
+                return "\(DateFormatter.standardDate.string(from: actualStart)) 至今"
             } else {
-                return "\(formatter.string(from: actualStart)) - \(formatter.string(from: actualEnd))"
+                return "\(DateFormatter.standardDate.string(from: actualStart)) - \(DateFormatter.standardDate.string(from: actualEnd))"
             }
 
         case .today:
@@ -152,17 +149,14 @@ struct ReportTimeRange: Equatable {
             return "最近 30 天"
 
         case .custom:
-            return "\(formatter.string(from: actualStart)) - \(formatter.string(from: actualEnd))"
+            return "\(DateFormatter.standardDate.string(from: actualStart)) - \(DateFormatter.standardDate.string(from: actualEnd))"
         }
     }
 
     /// CSV 報表用的日期範圍文字（格式：2025-12-22 或 2025-12-01 ~ 2025-12-30）
     var csvDateRangeText: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-
-        let startStr = formatter.string(from: actualStart)
-        let endStr = formatter.string(from: actualEnd)
+        let startStr = DateFormatter.isoDate.string(from: actualStart)
+        let endStr = DateFormatter.isoDate.string(from: actualEnd)
 
         if dayCount == 1 {
             return startStr

@@ -123,10 +123,7 @@ class CalendarViewModel: ObservableObject {
     
     /// 格式化月份年份字符串
     func monthYearString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        formatter.dateFormat = "yyyy年 M月"
-        return formatter.string(from: date)
+        DateFormatter.chineseYearMonth.string(from: date)
     }
     
     /// 週日標題

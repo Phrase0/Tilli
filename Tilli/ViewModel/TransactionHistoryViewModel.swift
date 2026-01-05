@@ -211,7 +211,7 @@ class TransactionViewModel: ObservableObject {
 
         for transaction in transactions.sorted(by: { $0.displayDate > $1.displayDate }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
-            let dateTime = DateFormatter.transactionDateTime.string(from: transaction.displayDate)
+            let dateTime = DateFormatter.dateTime.string(from: transaction.displayDate)
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
@@ -256,7 +256,7 @@ class TransactionViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "交易明細_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "交易明細_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
         
         do {
@@ -357,9 +357,6 @@ struct DailyTransactionGroup: Identifiable {
     
     /// 日期顯示文字
     var dateText: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        formatter.dateFormat = "yyyy/MM/dd (E)"
-        return formatter.string(from: date)
+        DateFormatter.dateWithWeekday.string(from: date)
     }
 }

@@ -241,7 +241,7 @@ struct TransactionHistoryView: View {
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2)  {
                             HStack(spacing: 4) {
-                                Text(DateFormatter.transactionDateTime.string(from: transaction.displayDate))
+                                Text(DateFormatter.dateTime.string(from: transaction.displayDate))
                                     .font(.caption)
                                     .foregroundColor(.gray)
 

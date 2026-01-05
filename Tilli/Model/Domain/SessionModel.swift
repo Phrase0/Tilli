@@ -25,17 +25,14 @@ struct SessionModel: Identifiable, Codable, Hashable {
 
     // 計算屬性：日期範圍字串
     var displayDateRange: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
-
         switch dateType {
         case .single:
-            return formatter.string(from: startDate)
+            return DateFormatter.standardDate.string(from: startDate)
         case .multi:
-            guard let endDate = endDate else { return formatter.string(from: startDate) }
-            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
+            guard let endDate = endDate else { return DateFormatter.standardDate.string(from: startDate) }
+            return "\(DateFormatter.standardDate.string(from: startDate)) - \(DateFormatter.standardDate.string(from: endDate))"
         case .permanent:
-            return "\(formatter.string(from: startDate)) 起"
+            return "\(DateFormatter.standardDate.string(from: startDate)) 起"
         }
     }
 

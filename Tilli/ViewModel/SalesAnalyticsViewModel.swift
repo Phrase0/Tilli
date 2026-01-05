@@ -18,15 +18,11 @@ struct DailyRevenueData: Identifiable {
     let count: Int
 
     var dateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
-        return formatter.string(from: date)
+        DateFormatter.shortDate.string(from: date)
     }
 
     var fullDateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
-        return formatter.string(from: date)
+        DateFormatter.dateWithWeekday.string(from: date)
     }
 }
 
@@ -232,7 +228,7 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "時段銷售分析_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "時段銷售分析_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -252,7 +248,7 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "支付方式分析_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "支付方式分析_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -272,7 +268,7 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "日營收趨勢_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "日營收趨勢_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -292,7 +288,7 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "月營收趨勢_\(safeTitle)_\(DateFormatter.csvFileDate.string(from: Date())).csv"
+        let fileName = "月營收趨勢_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {

@@ -529,8 +529,8 @@ class AddSessionViewModel: ObservableObject {
 
                     // 單日場次：所有交易必須在同一天
                     if minDay != sessionDay || maxDay != sessionDay {
-                        let minDateStr = DateFormatter.sessionDate.string(from: minDate)
-                        let maxDateStr = DateFormatter.sessionDate.string(from: maxDate)
+                        let minDateStr = DateFormatter.standardDate.string(from: minDate)
+                        let maxDateStr = DateFormatter.standardDate.string(from: maxDate)
                         return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
                     }
                 }
@@ -566,8 +566,8 @@ class AddSessionViewModel: ObservableObject {
                     let maxDay = calendar.startOfDay(for: maxDate)
 
                     if startDay > minDay || endDay < maxDay {
-                        let minDateStr = DateFormatter.sessionDate.string(from: minDate)
-                        let maxDateStr = DateFormatter.sessionDate.string(from: maxDate)
+                        let minDateStr = DateFormatter.standardDate.string(from: minDate)
+                        let maxDateStr = DateFormatter.standardDate.string(from: maxDate)
                         return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
                     }
                 }
@@ -584,7 +584,7 @@ class AddSessionViewModel: ObservableObject {
                     let minDay = calendar.startOfDay(for: minDate)
 
                     if startDay > minDay {
-                        let minDateStr = DateFormatter.sessionDate.string(from: minDate)
+                        let minDateStr = DateFormatter.standardDate.string(from: minDate)
                         return (false, "場次開始日期必須早於或等於最早的交易日期（\(minDateStr)）")
                     }
                 }
