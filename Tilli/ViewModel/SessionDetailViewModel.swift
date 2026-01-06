@@ -33,6 +33,12 @@ class SessionDetailViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+        
+        transactionViewModel.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - DataManager 管理
