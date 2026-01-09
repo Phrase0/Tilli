@@ -84,7 +84,7 @@ class ProductPerformanceViewModel: ObservableObject {
             let unitPrice = MoneyHelper.toDisplayString(product.unitPrice, currency: currency)
             let salesCount = "\(product.salesCount)"
             let originalPrice = MoneyHelper.toDisplayString(product.originalPrice, currency: currency)
-            let discount = "\(product.discount)"
+            let discount = MoneyHelper.toDisplayString(product.discount, currency: currency)
             let actualRevenue = MoneyHelper.toDisplayString(product.actualRevenue, currency: currency)
             let contributionRate = "\(product.contributionRate)%"
 
