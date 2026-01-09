@@ -184,13 +184,11 @@ struct AddSessionView: View {
                         .focused($focusedField, equals: .newCategory)
                         .submitLabel(.done)
                         .onSubmit {
-                            // 驗證類別名稱是否合規
-                            if let error = viewModel.validateCategoryValue() {
-                                viewModel.alertMessage = error
-                                viewModel.showAlert = true
-                                focusedField = .newCategory
-                            } else {
+                            // 沒有值時，只關閉鍵盤
+                            if viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty {
                                 focusedField = nil
+                            } else {
+                                addCategoryAction()
                             }
                         }
 
@@ -287,12 +285,11 @@ struct AddSessionView: View {
                 if focusedField == .newDiscount {
                     Spacer()
                     Button("完成") {
-                        // 驗證折扣數值是否合規
-                        if let error = viewModel.validateDiscountValue() {
-                            viewModel.alertMessage = error
-                            viewModel.showAlert = true
-                        } else {
+                        // 沒有值時，只關閉鍵盤
+                        if viewModel.newDiscountValue.trimmingCharacters(in: .whitespaces).isEmpty {
                             focusedField = nil
+                        } else {
+                            addDiscountAction()
                         }
                     }
                 }
