@@ -19,18 +19,22 @@ struct ContentView: View {
             SessionsView()
                 .tabItem { Label("場次", systemImage: "list.bullet") }
                 .tag(0)
-            
+
             CalendarView()
                 .tabItem { Label("日曆", systemImage: "calendar") }
                 .tag(1)
 
+            InventoryTabView()
+                .tabItem { Label("庫存", systemImage: "shippingbox") }
+                .tag(2)
+
             MerchantQRCodeView()
                 .tabItem { Label("QRCode", systemImage: "qrcode") }
-                .tag(2)
+                .tag(3)
 
             ProfileView()
                 .tabItem { Label("個人", systemImage: "person.crop.circle") }
-                .tag(3)
+                .tag(4)
         }
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
         .onAppear {
