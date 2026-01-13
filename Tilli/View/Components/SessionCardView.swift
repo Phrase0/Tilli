@@ -10,7 +10,7 @@ import SwiftUI
 /// 場次卡片樣式
 enum SessionCardStyle {
     case standard       // 標準樣式（SessionsView 使用，有 menu）
-    case simple         // 簡化樣式（InventoryTabView 使用，無 menu，有箭頭）
+    case simple         // 簡化樣式（InventoryTabView 使用，無 menu）
 }
 
 /// 共用的場次卡片元件
@@ -39,13 +39,9 @@ struct SessionCardView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 12) {
-                    // 標準樣式顯示 menu，簡化樣式顯示箭頭
+                    // 標準樣式顯示 menu
                     if style == .standard {
                         menuButton
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.gray)
-                            .font(.caption)
                     }
 
                     statusBadge

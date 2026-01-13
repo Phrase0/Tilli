@@ -11,29 +11,23 @@ import SwiftUI
 /// 顯示場次列表，選擇後進入庫存管理詳情
 struct InventoryTabView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @StateObject private var viewModel = InventoryTabViewModel()
     @State private var selectedSession: SessionModel? = nil
     @State private var searchText = ""
 
-    /// 篩選後的場次列表
-    private var filteredSessions: [SessionModel] {
-        sessionDataManager.sessions
-            .filter { session in
-                if !searchText.isEmpty {
-                    return session.title.localizedCaseInsensitiveContains(searchText)
-                }
-                return true
-            }
-            .sorted { $0.startDate > $1.startDate }
+    /// 當前顯示的場次列表
+    private var displayedSessions: [SessionModel] {
+        viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    if filteredSessions.isEmpty {
+                    if displayedSessions.isEmpty {
                         emptyState
                     } else {
-                        ForEach(filteredSessions) { session in
+                        ForEach(displayedSessions) { session in
                             SessionCardView(session: session, style: .simple)
                                 .onTapGesture {
                                     selectedSession = session
@@ -43,7 +37,6 @@ struct InventoryTabView: View {
                 }
                 .padding()
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("庫存管理")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋場次")
             .navigationDestination(item: $selectedSession) { session in

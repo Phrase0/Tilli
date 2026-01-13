@@ -31,8 +31,8 @@ class InventoryChangeViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var searchText: String = ""
     @Published var selectedTimeRange: ReportTimeRange
-    @Published var selectedCategoryId: UUID? = nil  // nil 表示全部類別
     @Published var inventoryItems: [InventoryProductItem] = []
+    @Published var expandedCategoryIds: Set<UUID> = []
 
     // MARK: - Dependencies
     let session: SessionModel
@@ -41,28 +41,21 @@ class InventoryChangeViewModel: ObservableObject {
 
     // MARK: - Computed Properties
 
-    /// 從 session 取得類別列表（只顯示啟用的）
-    var categories: [CategoryModel] {
-        session.categories.filter { !$0.isDisabled }
+    /// 從 session 取得類別列表（只顯示啟用的，按 sortOrder 排序）
+    var sortedCategories: [CategoryModel] {
+        session.categories
+            .filter { !$0.isDisabled }
+            .sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    /// 篩選後的商品列表
-    var filteredItems: [InventoryProductItem] {
-        var result = inventoryItems
+    /// 檢查是否有任何商品（用於空狀態判斷）
+    var hasNoProducts: Bool {
+        inventoryItems.isEmpty
+    }
 
-        // 類別篩選
-        if let categoryId = selectedCategoryId {
-            result = result.filter { $0.product.categoryId == categoryId }
-        }
-
-        // 搜尋篩選
-        if !searchText.isEmpty {
-            result = result.filter {
-                $0.product.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-
-        return result
+    /// 檢查搜尋是否無結果
+    var isSearchEmpty: Bool {
+        !searchText.isEmpty && sortedCategories.allSatisfy { getItemsForCategory($0.id).isEmpty }
     }
 
     // MARK: - Init
@@ -70,6 +63,8 @@ class InventoryChangeViewModel: ObservableObject {
     init(session: SessionModel) {
         self.session = session
         self.selectedTimeRange = ReportTimeRange(session: session)
+        // 預設展開所有類別
+        self.expandedCategoryIds = Set(session.categories.filter { !$0.isDisabled }.map { $0.id })
     }
 
     // MARK: - Public Methods
@@ -118,5 +113,35 @@ class InventoryChangeViewModel: ObservableObject {
         return item.changes.filter { change in
             dateInterval.contains(change.timestamp)
         }.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    // MARK: - 類別展開/收起
+
+    /// 切換類別展開/收起狀態
+    func toggleCategoryExpansion(_ categoryId: UUID) {
+        if expandedCategoryIds.contains(categoryId) {
+            expandedCategoryIds.remove(categoryId)
+        } else {
+            expandedCategoryIds.insert(categoryId)
+        }
+    }
+
+    /// 檢查類別是否展開
+    func isCategoryExpanded(_ categoryId: UUID) -> Bool {
+        expandedCategoryIds.contains(categoryId)
+    }
+
+    /// 取得特定類別的商品列表（套用搜尋篩選）
+    func getItemsForCategory(_ categoryId: UUID) -> [InventoryProductItem] {
+        var items = inventoryItems.filter { $0.product.categoryId == categoryId }
+
+        // 搜尋篩選
+        if !searchText.isEmpty {
+            items = items.filter {
+                $0.product.name.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+
+        return items
     }
 }

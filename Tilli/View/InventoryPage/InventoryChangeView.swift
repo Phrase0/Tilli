@@ -14,6 +14,7 @@ struct InventoryChangeView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var timeRange: ReportTimeRange
+    @State private var searchText = ""
 
     init(session: SessionModel) {
         self._viewModel = StateObject(wrappedValue: InventoryChangeViewModel(session: session))
@@ -22,23 +23,16 @@ struct InventoryChangeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            
-            // 搜尋框
-            searchBar
-
             // 時間範圍選擇器
             ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
                 .padding(.horizontal)
-
-            // 類別篩選
-            categorySelector
-
-            // 商品列表
+            // 商品列表（按類別分組）
             productList
         }
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+//        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋商品")
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: { dismiss() }) {
@@ -69,6 +63,9 @@ struct InventoryChangeView: View {
                 inventoryChangeRepository: inventoryChangeRepository
             )
         }
+        .onChange(of: searchText) {
+            viewModel.searchText = searchText
+        }
         .onChange(of: timeRange.type) {
             viewModel.selectedTimeRange = timeRange
         }
@@ -84,95 +81,63 @@ struct InventoryChangeView: View {
         }
     }
 
-    // MARK: - 搜尋框
-
-    private var searchBar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
-
-            TextField("輸入商品名稱", text: $viewModel.searchText)
-                .textFieldStyle(.plain)
-
-            if !viewModel.searchText.isEmpty {
-                Button(action: { viewModel.searchText = "" }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
-                }
-            }
-        }
-        .padding(12)
-        .background(Color(.systemGray6))
-        .cornerRadius(10)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: - 類別篩選
-
-    private var categorySelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // 全部類別按鈕
-                categoryButton(id: nil, name: "全部", icon: "square.grid.2x2")
-
-                // 各類別按鈕
-                ForEach(viewModel.categories) { category in
-                    categoryButton(id: category.id, name: category.name, icon: "tag")
-                }
-            }
-            .padding(.horizontal)
-        }
-        .padding(.bottom, 12)
-    }
-
-    private func categoryButton(id: UUID?, name: String, icon: String) -> some View {
-        let isSelected = viewModel.selectedCategoryId == id
-
-        return Button(action: {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                viewModel.selectedCategoryId = id
-            }
-        }) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.caption)
-                Text(name)
-                    .font(.subheadline)
-            }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? Color.blue : Color(.systemGray6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - 商品列表
+    // MARK: - 商品列表（按類別分組，參考 ProductDetailView）
 
     private var productList: some View {
         ScrollView {
-            if viewModel.filteredItems.isEmpty {
+            if viewModel.hasNoProducts {
                 emptyState
+            } else if viewModel.isSearchEmpty {
+                searchEmptyState
             } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(viewModel.filteredItems) { item in
-                        InventoryProductCard(
-                            item: item,
-                            filteredChanges: viewModel.filteredChanges(for: item),
-                            onToggle: { viewModel.toggleExpanded(for: item.id) }
-                        )
+                VStack(alignment: .leading, spacing: 24) {
+                    ForEach(viewModel.sortedCategories, id: \.id) { category in
+                        let items = viewModel.getItemsForCategory(category.id)
+                        if !items.isEmpty {
+                            categorySection(category: category, items: items)
+                        }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.top)
                 .padding(.bottom, 20)
+            }
+        }
+    }
+
+    // MARK: - 類別區塊（可展開/收起）
+
+    private func categorySection(category: CategoryModel, items: [InventoryProductItem]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 可點擊的分類標題
+            Button(action: {
+                viewModel.toggleCategoryExpansion(category.id)
+            }) {
+                HStack {
+                    Text(category.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal)
+
+                    Spacer()
+
+                    Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                        .padding(.horizontal)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 商品列表（可展開/收起）
+            if viewModel.isCategoryExpanded(category.id) {
+                ForEach(items) { item in
+                    InventoryProductCard(
+                        item: item,
+                        filteredChanges: viewModel.filteredChanges(for: item),
+                        onToggle: { viewModel.toggleExpanded(for: item.id) }
+                    )
+                    .padding(.horizontal)
+                }
             }
         }
     }
@@ -185,21 +150,29 @@ struct InventoryChangeView: View {
                 .font(.system(size: 50))
                 .foregroundColor(.gray.opacity(0.5))
 
-            if !viewModel.searchText.isEmpty {
-                Text("查無結果")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                Text("找不到符合「\(viewModel.searchText)」的商品")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            } else {
-                Text("尚無商品")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                Text("請先在場次中新增商品")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+            Text("尚無商品")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text("請先在場次中新增商品")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+
+    private var searchEmptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 50))
+                .foregroundColor(.gray.opacity(0.5))
+
+            Text("查無結果")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text("找不到符合「\(viewModel.searchText)」的商品")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 60)
@@ -231,7 +204,7 @@ struct InventoryProductCard: View {
         }
         .background(Color.white)
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
     }
 
     // MARK: - 商品標題區
@@ -244,7 +217,7 @@ struct InventoryProductCard: View {
             // 商品資訊
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.product.name)
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
@@ -265,24 +238,27 @@ struct InventoryProductCard: View {
                 .foregroundColor(.gray)
                 .font(.caption)
         }
-        .padding()
+        .padding(12)
     }
 
     private var productImage: some View {
-        Group {
+        ZStack {
             if let imageData = item.product.imageData,
                let uiImage = UIImage(data: imageData) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
             } else {
-                Image(systemName: "photo")
-                    .font(.title2)
-                    .foregroundColor(.gray)
+                Rectangle()
+                    .foregroundColor(Color(.systemGray5))
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray)
+                            .font(.caption)
+                    )
             }
         }
-        .frame(width: 50, height: 50)
-        .background(Color(.systemGray6))
+        .frame(width: 70, height: 70)
         .cornerRadius(8)
         .clipped()
     }
@@ -316,7 +292,7 @@ struct InventoryProductCard: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
+        .padding(12)
     }
 
     private var stockCard: some View {
@@ -352,7 +328,7 @@ struct InventoryProductCard: View {
                     .fill(item.isLowStock ? Color.orange.opacity(0.1) : Color.green.opacity(0.1))
             )
         }
-        .padding()
+        .padding(12)
         .background(Color(.systemGray6))
         .cornerRadius(10)
     }
