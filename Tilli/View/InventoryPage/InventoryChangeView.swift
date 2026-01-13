@@ -15,6 +15,8 @@ struct InventoryChangeView: View {
 
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
+    @State private var showShareSheet = false
+    @State private var csvFileURL: URL?
 
     init(session: SessionModel) {
         self._viewModel = StateObject(wrappedValue: InventoryChangeViewModel(session: session))
@@ -49,12 +51,29 @@ struct InventoryChangeView: View {
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    // TODO: CSV 匯出功能
-                }) {
+                Menu {
+                    Button {
+                        csvFileURL = viewModel.createInventorySummaryCSVFileURL()
+                        showShareSheet = true
+                    } label: {
+                        Label("庫存總覽", systemImage: "list.bullet.rectangle")
+                    }
+
+                    Button {
+                        csvFileURL = viewModel.createInventoryDetailCSVFileURL()
+                        showShareSheet = true
+                    } label: {
+                        Label("庫存異動明細", systemImage: "clock.arrow.circlepath")
+                    }
+                } label: {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundColor(.blue)
                 }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = csvFileURL {
+                ActivityViewController(activityItems: [url])
             }
         }
         .onAppear {

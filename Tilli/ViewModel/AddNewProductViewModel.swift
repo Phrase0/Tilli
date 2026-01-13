@@ -164,9 +164,18 @@ class AddNewProductViewModel: ObservableObject {
         editingProduct != nil && stockDelta != 0
     }
 
-    /// 可選擇的異動原因（排除銷售出庫，因為那是自動產生的）
+    /// 可選擇的異動原因（根據庫存增減方向篩選）
     var availableReasons: [InventoryChangeReason] {
-        InventoryChangeReason.allCases.filter { $0 != .salesOut }
+        InventoryChangeReason.availableReasons(for: stockDelta)
+    }
+
+    /// 更新預設的異動原因（當庫存變化方向改變時）
+    func updateDefaultReasonIfNeeded() {
+        let reasons = availableReasons
+        // 如果當前選擇的原因不在可用列表中，自動切換到第一個可用原因
+        if !reasons.contains(stockChangeReason), let firstReason = reasons.first {
+            stockChangeReason = firstReason
+        }
     }
 
     // MARK: - 初始化

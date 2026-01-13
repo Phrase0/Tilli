@@ -51,6 +51,40 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
         default: return false
         }
     }
+
+    /// 是否為減少庫存的操作
+    var isDecrease: Bool {
+        switch self {
+        case .salesOut, .inventoryLoss, .damaged, .expired, .internalUse: return true
+        default: return false
+        }
+    }
+
+    // MARK: - 靜態方法：根據庫存變化方向取得可用原因
+
+    /// 增加庫存時可選的原因
+    static var increaseReasons: [InventoryChangeReason] {
+        [.purchase, .returnIn, .adjustment]
+    }
+
+    /// 減少庫存時可選的原因
+    static var decreaseReasons: [InventoryChangeReason] {
+        [.salesOut, .inventoryLoss, .damaged, .expired, .internalUse, .adjustment]
+    }
+
+    /// 根據庫存變化量取得可用原因（不包含 salesOut，因為那是自動記錄的）
+    static func availableReasons(for stockDelta: Int) -> [InventoryChangeReason] {
+        if stockDelta > 0 {
+            // 增加庫存：進貨入庫、退貨入庫、其他調整
+            return [.purchase, .returnIn, .adjustment]
+        } else if stockDelta < 0 {
+            // 減少庫存：盤損調整、損壞報廢、過期銷毀、內部領用、其他調整
+            // 注意：不包含 salesOut，因為銷售出庫是結帳時自動記錄
+            return [.inventoryLoss, .damaged, .expired, .internalUse, .adjustment]
+        } else {
+            return []
+        }
+    }
 }
 
 // MARK: - 庫存異動紀錄

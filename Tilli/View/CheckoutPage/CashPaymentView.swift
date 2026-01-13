@@ -13,6 +13,7 @@ struct CashPaymentView: View {
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var productRepository: ProductRepository
+    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     @Binding var session: SessionModel
 
@@ -198,7 +199,8 @@ struct CashPaymentView: View {
 
         let updatedSession = viewModel.performCheckout(
             sessionDataManager: sessionDataManager,
-            productRepository: productRepository
+            productRepository: productRepository,
+            inventoryChangeRepository: inventoryChangeRepository
         )
         session = updatedSession
 
@@ -216,7 +218,8 @@ struct CashPaymentView: View {
     private func completePaymentSimple() {
         let updatedSession = viewModel.performCheckout(
             sessionDataManager: sessionDataManager,
-            productRepository: productRepository
+            productRepository: productRepository,
+            inventoryChangeRepository: inventoryChangeRepository
         )
         session = updatedSession
         closeFlow()

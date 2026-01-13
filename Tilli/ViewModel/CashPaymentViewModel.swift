@@ -128,27 +128,28 @@ class CashPaymentViewModel: ObservableObject {
 
     func performCheckout(
         sessionDataManager: SessionDataManager,
-        productRepository: ProductRepository
+        productRepository: ProductRepository,
+        inventoryChangeRepository: InventoryChangeRepository
     ) -> SessionModel {
 
         // 批次更新產品庫存
         var stockUpdates: [UUID: Int] = [:]
-        
+
         // 首先獲取所有相關產品
         let allProducts = productRepository.fetchProducts(forSessionId: session.id)
         let productDict = Dictionary(uniqueKeysWithValues: allProducts.map { ($0.id, $0) })
-        
+
         // 準備批次更新數據
         for item in summaryItems {
             guard let currentProduct = productDict[item.productId] else {
                 print("⚠️ 無法在 CoreData 中找到對應的 productId: \(item.productId)")
                 continue
             }
-            
+
             let newStock = max(currentProduct.stock - item.quantity, 0)
             stockUpdates[item.productId] = newStock
         }
-        
+
         // 執行批次更新
         let success = productRepository.batchUpdateProductStock(stockUpdates)
         if !success {
@@ -171,6 +172,20 @@ class CashPaymentViewModel: ObservableObject {
 
         // 使用 SessionDataManager 添加交易記錄
         sessionDataManager.addTransaction(transaction)
+
+        // 記錄庫存異動（銷售出庫）
+        let changeTimestamp = occurredAt ?? Date()
+        for item in summaryItems {
+            let inventoryChange = InventoryChangeModel(
+                productId: item.productId,
+                sessionId: session.id,
+                change: -item.quantity,
+                reason: .salesOut,
+                customReason: nil,
+                timestamp: changeTimestamp
+            )
+            inventoryChangeRepository.addChange(inventoryChange)
+        }
 
         // 直接返回原 session，UI 更新由 onChange(of: checkoutCompleted) 處理
         return session

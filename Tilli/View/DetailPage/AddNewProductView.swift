@@ -102,6 +102,9 @@ struct AddNewProductView: View {
                 TextField("請輸入庫存數量", text: $viewModel.quantity)
                     .keyboardType(.numberPad)
                     .focused($focusedField, equals: .quantity)
+                    .onChange(of: viewModel.quantity) {
+                        viewModel.updateDefaultReasonIfNeeded()
+                    }
 
                 // 編輯模式且庫存有變化時，顯示異動原因選擇器
                 if viewModel.shouldShowReasonPicker {

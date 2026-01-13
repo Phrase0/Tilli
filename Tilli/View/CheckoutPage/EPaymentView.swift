@@ -14,6 +14,7 @@ struct EPaymentView: View {
     @EnvironmentObject var sessionDataManager: SessionDataManager
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var qrCodeDataManager: QRCodeDataManager
+    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     @Binding var session: SessionModel
 
@@ -126,7 +127,8 @@ struct EPaymentView: View {
 
         let updatedSession = viewModel.performCheckout(
             sessionDataManager: sessionDataManager,
-            productRepository: productRepository
+            productRepository: productRepository,
+            inventoryChangeRepository: inventoryChangeRepository
         )
         session = updatedSession
 
