@@ -303,66 +303,19 @@ struct SessionsView: View {
     // MARK: - 卡片 View
     @ViewBuilder
     private func sessionCard(_ session: SessionModel, showMenu: Bool = true) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(session.title)
-                        .font(.headline)
-                        .lineLimit(1)
-
-                    Text(session.displayDateRange)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+        if showMenu {
+            SessionCardView(
+                session: session,
+                style: .standard,
+                onDuplicate: { viewModel.startDuplicateSession(session) },
+                onEdit: { editingSession = session },
+                onDelete: {
+                    sessionToDelete = session
+                    showDeleteConfirmation = true
                 }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 12) {
-                    if showMenu {
-                        Menu {
-                            Button {
-                                viewModel.startDuplicateSession(session)
-                            } label: {
-                                Label("複製場次", systemImage: "doc.on.doc")
-                            }
-
-                            Button {
-                                editingSession = session
-                            } label: {
-                                Label("編輯", systemImage: "pencil")
-                            }
-
-                            Button(role: .destructive) {
-                                sessionToDelete = session
-                                showDeleteConfirmation = true
-                            } label: {
-                                Label("刪除", systemImage: "trash")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .rotationEffect(.degrees(90))
-                                .foregroundColor(.gray)
-                                .padding(8)
-                        }
-                    }
-
-                    Text(session.status.localizedDescription)
-                        .font(.caption)
-                        .foregroundColor(session.status.textColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(session.status.color)
-                        .clipShape(Capsule())
-                }
-            }
+            )
+        } else {
+            SessionCardView(session: session, style: .simple)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(session.status == .ongoing ? Color.blue.opacity(0.1) : Color.white)
-        )
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }

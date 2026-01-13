@@ -30,19 +30,20 @@ struct InventoryProductItem: Identifiable {
 class InventoryChangeViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var searchText: String = ""
-    @Published var selectedTimeRange: InventoryTimeRange
+    @Published var selectedTimeRange: ReportTimeRange
     @Published var selectedCategoryId: UUID? = nil  // nil 表示全部類別
     @Published var inventoryItems: [InventoryProductItem] = []
 
     // MARK: - Dependencies
-    private let session: SessionModel
-    private var cancellables = Set<AnyCancellable>()
+    let session: SessionModel
+    private var productRepository: ProductRepository?
+    private var inventoryChangeRepository: InventoryChangeRepository?
 
     // MARK: - Computed Properties
 
-    /// 從 session 取得類別列表
+    /// 從 session 取得類別列表（只顯示啟用的）
     var categories: [CategoryModel] {
-        session.categories
+        session.categories.filter { !$0.isDisabled }
     }
 
     /// 篩選後的商品列表
@@ -68,11 +69,41 @@ class InventoryChangeViewModel: ObservableObject {
 
     init(session: SessionModel) {
         self.session = session
-        self.selectedTimeRange = InventoryTimeRange(session: session)
-        loadMockData()
+        self.selectedTimeRange = ReportTimeRange(session: session)
     }
 
     // MARK: - Public Methods
+
+    /// 更新 Repository 引用
+    func updateRepositories(productRepository: ProductRepository,
+                            inventoryChangeRepository: InventoryChangeRepository) {
+        self.productRepository = productRepository
+        self.inventoryChangeRepository = inventoryChangeRepository
+        loadData()
+    }
+
+    /// 載入資料
+    func loadData() {
+        guard let productRepo = productRepository,
+              let changeRepo = inventoryChangeRepository else { return }
+
+        // 取得該場次的所有產品（只顯示啟用的）
+        let products = productRepo.fetchProducts(forSessionId: session.id)
+            .filter { !$0.isDisabled }
+
+        // 取得該場次的所有異動紀錄
+        let allChanges = changeRepo.fetchChanges(forSessionId: session.id)
+
+        // 組合成 InventoryProductItem
+        inventoryItems = products.map { product in
+            let productChanges = allChanges.filter { $0.productId == product.id }
+            return InventoryProductItem(
+                id: product.id,
+                product: product,
+                changes: productChanges
+            )
+        }
+    }
 
     /// 切換商品展開/收起狀態
     func toggleExpanded(for itemId: UUID) {
@@ -87,139 +118,5 @@ class InventoryChangeViewModel: ObservableObject {
         return item.changes.filter { change in
             dateInterval.contains(change.timestamp)
         }.sorted { $0.timestamp > $1.timestamp }
-    }
-
-    // MARK: - Mock Data
-
-    private func loadMockData() {
-        // 建立假商品資料
-        let mockProducts = createMockProducts()
-        let mockChanges = createMockChanges(for: mockProducts)
-
-        inventoryItems = mockProducts.map { product in
-            let changes = mockChanges.filter { $0.productId == product.id }
-            return InventoryProductItem(
-                id: product.id,
-                product: product,
-                changes: changes
-            )
-        }
-    }
-
-    private func createMockProducts() -> [ProductModel] {
-        let categories = session.categories
-        guard !categories.isEmpty else { return [] }
-
-        let category1 = categories[0]
-        let category2 = categories.count > 1 ? categories[1] : categories[0]
-        let category3 = categories.count > 2 ? categories[2] : categories[0]
-
-        return [
-            ProductModel(
-                id: UUID(),
-                sessionId: session.id,
-                name: "無線藍牙耳機 Pro Max",
-                price: 2980,
-                stock: 15,
-                categoryId: category1.id,
-                categoryName: category1.name,
-                note: nil,
-                imageData: nil,
-                isDisabled: false
-            ),
-            ProductModel(
-                id: UUID(),
-                sessionId: session.id,
-                name: "運動健身水壺 750ml",
-                price: 450,
-                stock: 2,  // 低庫存
-                categoryId: category2.id,
-                categoryName: category2.name,
-                note: nil,
-                imageData: nil,
-                isDisabled: false
-            ),
-            ProductModel(
-                id: UUID(),
-                sessionId: session.id,
-                name: "有機綠茶茶葉禮盒",
-                price: 880,
-                stock: 28,
-                categoryId: category3.id,
-                categoryName: category3.name,
-                note: nil,
-                imageData: nil,
-                isDisabled: false
-            ),
-            ProductModel(
-                id: UUID(),
-                sessionId: session.id,
-                name: "手工皮革錢包",
-                price: 1580,
-                stock: 1,  // 低庫存
-                categoryId: category1.id,
-                categoryName: category1.name,
-                note: nil,
-                imageData: nil,
-                isDisabled: false
-            ),
-            ProductModel(
-                id: UUID(),
-                sessionId: session.id,
-                name: "精品咖啡豆 250g",
-                price: 380,
-                stock: 45,
-                categoryId: category3.id,
-                categoryName: category3.name,
-                note: nil,
-                imageData: nil,
-                isDisabled: false
-            )
-        ]
-    }
-
-    private func createMockChanges(for products: [ProductModel]) -> [InventoryChangeModel] {
-        var changes: [InventoryChangeModel] = []
-        let calendar = Calendar.current
-        let now = Date()
-
-        for product in products {
-            // 每個商品建立 3-5 筆異動紀錄
-            let changeCount = Int.random(in: 3...5)
-
-            for i in 0..<changeCount {
-                let daysAgo = Int.random(in: 0...30)
-                let hoursAgo = Int.random(in: 0...23)
-                let timestamp = calendar.date(
-                    byAdding: .hour,
-                    value: -hoursAgo,
-                    to: calendar.date(byAdding: .day, value: -daysAgo, to: now)!
-                )!
-
-                let reasons: [InventoryChangeReason] = [.salesOut, .returnIn, .inventoryLoss, .purchase, .damaged]
-                let reason = reasons[i % reasons.count]
-
-                let change: Int
-                switch reason {
-                case .salesOut, .inventoryLoss, .damaged, .expired, .internalUse:
-                    change = -Int.random(in: 1...5)
-                case .returnIn, .purchase:
-                    change = Int.random(in: 1...10)
-                case .adjustment:
-                    change = Int.random(in: -3...3)
-                }
-
-                changes.append(InventoryChangeModel(
-                    id: UUID(),
-                    productId: product.id,
-                    sessionId: session.id,
-                    change: change,
-                    reason: reason,
-                    timestamp: timestamp
-                ))
-            }
-        }
-
-        return changes.sorted { $0.timestamp > $1.timestamp }
     }
 }

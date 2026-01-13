@@ -20,13 +20,13 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .salesOut: return "銷售出庫（正常售出商品）"
-        case .returnIn: return "退貨入庫（客戶退貨回補庫存)"
-        case .inventoryLoss: return "盤損調整（盤點與帳面不符）"
-        case .damaged: return "損壞報廢（破損、故障或受潮）"
-        case .expired: return "過期銷毀（超過有效期限）"
-        case .internalUse: return "內部領用（公司自用或樣品提供）"
-        case .purchase: return "進貨入庫（廠商採購）"
+        case .salesOut: return "銷售出庫"
+        case .returnIn: return "退貨入庫"
+        case .inventoryLoss: return "盤損調整"
+        case .damaged: return "損壞報廢"
+        case .expired: return "過期銷毀"
+        case .internalUse: return "內部領用"
+        case .purchase: return "進貨入庫"
         case .adjustment: return "其他調整"
         }
     }
@@ -60,6 +60,7 @@ struct InventoryChangeModel: Identifiable, Codable {
     var sessionId: UUID
     var change: Int                        // +10 進貨，-3 銷售
     var reason: InventoryChangeReason      // 異動原因
+    var customReason: String?              // 「其他調整」時的自定義原因
     var timestamp: Date
 
     /// 格式化的變化量文字（如 +10 或 -3）
@@ -80,5 +81,13 @@ struct InventoryChangeModel: Identifiable, Codable {
         } else {
             return .secondary
         }
+    }
+
+    /// 顯示用的原因名稱（若為「其他調整」且有自定義原因，則顯示自定義原因）
+    var displayReasonName: String {
+        if reason == .adjustment, let custom = customReason, !custom.isEmpty {
+            return custom
+        }
+        return reason.displayName
     }
 }

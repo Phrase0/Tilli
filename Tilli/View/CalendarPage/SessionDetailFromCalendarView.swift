@@ -101,11 +101,7 @@ struct SessionDetailFromCalendarView: View {
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
-                    Text(viewModel.session.displayDateRange)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
-                .padding(.top, 4)
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {

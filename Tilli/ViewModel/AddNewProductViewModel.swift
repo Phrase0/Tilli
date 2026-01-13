@@ -29,7 +29,14 @@ class AddNewProductViewModel: ObservableObject {
     @Published var showDuplicateNameAlert = false
     @Published var duplicateNameMessage = ""
 
+    // MARK: - 庫存異動相關
+    @Published var stockChangeReason: InventoryChangeReason = .purchase
+    @Published var customChangeReason: String = ""
+
     var editingProduct: ProductModel?
+
+    /// 原始庫存（編輯模式用於計算變化量）
+    private(set) var originalStock: Int = 0
     
     // MARK: - 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionDataManager?
@@ -143,7 +150,25 @@ class AddNewProductViewModel: ObservableObject {
         guard let product = editingProduct else { return false }
         return hasTransaction(for: product.id)
     }
-    
+
+    // MARK: - 庫存異動計算屬性
+
+    /// 庫存變化量
+    var stockDelta: Int {
+        let newStock = Int(quantity) ?? 0
+        return newStock - originalStock
+    }
+
+    /// 是否顯示異動原因選擇器（編輯模式且庫存有變化）
+    var shouldShowReasonPicker: Bool {
+        editingProduct != nil && stockDelta != 0
+    }
+
+    /// 可選擇的異動原因（排除銷售出庫，因為那是自動產生的）
+    var availableReasons: [InventoryChangeReason] {
+        InventoryChangeReason.allCases.filter { $0 != .salesOut }
+    }
+
     // MARK: - 初始化
     init(session: SessionModel,
          productToEdit: ProductModel? = nil) {
@@ -165,6 +190,8 @@ class AddNewProductViewModel: ObservableObject {
             // optional 欄位
             self.description = product.note ?? ""   // description 先初始化成原有值或空字串
             self.image = product.image
+            // 記錄原始庫存（用於計算變化量）
+            self.originalStock = product.stock
         }
     }
 
@@ -294,23 +321,51 @@ class AddNewProductViewModel: ObservableObject {
     }
     
     // MARK: - 儲存動作
-    func save(using productRepository: ProductRepository) -> Bool {
+    func save(using productRepository: ProductRepository,
+              inventoryChangeRepository: InventoryChangeRepository) -> Bool {
         // 先檢查名稱重複
         if checkDuplicateName(using: productRepository) {
             return false
         }
-        
+
         guard let product = createProductIfValid() else {
             showValidationError = true
             return false
         }
-        
+
         if editingProduct != nil {
             // 編輯模式 → 更新產品
             productRepository.updateProduct(product.id, productModel: product)
+
+            // 如果庫存有變化，記錄異動
+            if stockDelta != 0 {
+                let change = InventoryChangeModel(
+                    productId: product.id,
+                    sessionId: session.id,
+                    change: stockDelta,
+                    reason: stockChangeReason,
+                    customReason: stockChangeReason == .adjustment ? customChangeReason : nil,
+                    timestamp: Date()
+                )
+                inventoryChangeRepository.addChange(change)
+            }
         } else {
             // 新增模式 → 新增產品
             productRepository.addProduct(to: product.categoryId, productModel: product)
+
+            // 新增產品時，記錄初始庫存為「進貨入庫」
+            let initialStock = Int(quantity) ?? 0
+            if initialStock > 0 {
+                let change = InventoryChangeModel(
+                    productId: product.id,
+                    sessionId: session.id,
+                    change: initialStock,
+                    reason: .purchase,
+                    customReason: nil,
+                    timestamp: Date()
+                )
+                inventoryChangeRepository.addChange(change)
+            }
         }
         return true
     }

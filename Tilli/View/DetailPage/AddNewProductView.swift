@@ -9,6 +9,7 @@ import SwiftUI
 struct AddNewProductView: View {
 
     @EnvironmentObject var productRepository: ProductRepository
+    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @EnvironmentObject var transactionDataManager: TransactionDataManager
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddNewProductViewModel
@@ -101,6 +102,30 @@ struct AddNewProductView: View {
                 TextField("請輸入庫存數量", text: $viewModel.quantity)
                     .keyboardType(.numberPad)
                     .focused($focusedField, equals: .quantity)
+
+                // 編輯模式且庫存有變化時，顯示異動原因選擇器
+                if viewModel.shouldShowReasonPicker {
+                    // 異動原因選擇
+                    Picker("異動原因", selection: $viewModel.stockChangeReason) {
+                        ForEach(viewModel.availableReasons, id: \.self) { reason in
+                            Text(reason.displayName).tag(reason)
+                        }
+                    }
+
+                    // 如果選擇「其他調整」，顯示自定義原因輸入欄位
+                    if viewModel.stockChangeReason == .adjustment {
+                        TextField("請輸入調整原因", text: $viewModel.customChangeReason)
+                    }
+
+                    // 顯示庫存變化提示
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.blue)
+                        Text("庫存將從 \(viewModel.originalStock) 調整為 \(Int(viewModel.quantity) ?? 0)（\(viewModel.stockDelta >= 0 ? "+" : "")\(viewModel.stockDelta)）")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             
             // MARK: - 類別
@@ -210,7 +235,8 @@ struct AddNewProductView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("儲存") {
-                    if viewModel.save(using: productRepository) {
+                    if viewModel.save(using: productRepository,
+                                      inventoryChangeRepository: inventoryChangeRepository) {
                         onSave?()
                         dismiss()
                     }

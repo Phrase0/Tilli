@@ -9,19 +9,26 @@ import SwiftUI
 
 struct InventoryChangeView: View {
     @StateObject private var viewModel: InventoryChangeViewModel
+    @EnvironmentObject var productRepository: ProductRepository
+    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @Environment(\.dismiss) private var dismiss
+
+    @State private var timeRange: ReportTimeRange
 
     init(session: SessionModel) {
         self._viewModel = StateObject(wrappedValue: InventoryChangeViewModel(session: session))
+        self._timeRange = State(initialValue: ReportTimeRange(session: session))
     }
 
     var body: some View {
         VStack(spacing: 0) {
+            
             // 搜尋框
             searchBar
 
-            // 時間篩選
-            timeRangeSelector
+            // 時間範圍選擇器
+            ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
+                .padding(.horizontal)
 
             // 類別篩選
             categorySelector
@@ -40,8 +47,12 @@ struct InventoryChangeView: View {
                 }
             }
             ToolbarItem(placement: .principal) {
-                Text("庫存管理")
-                    .font(.headline)
+                VStack(spacing: 2) {
+                    Text(viewModel.session.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
@@ -50,6 +61,25 @@ struct InventoryChangeView: View {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundColor(.blue)
                 }
+            }
+        }
+        .onAppear {
+            viewModel.updateRepositories(
+                productRepository: productRepository,
+                inventoryChangeRepository: inventoryChangeRepository
+            )
+        }
+        .onChange(of: timeRange.type) {
+            viewModel.selectedTimeRange = timeRange
+        }
+        .onChange(of: timeRange.customStart) {
+            if timeRange.type == .custom {
+                viewModel.selectedTimeRange = timeRange
+            }
+        }
+        .onChange(of: timeRange.customEnd) {
+            if timeRange.type == .custom {
+                viewModel.selectedTimeRange = timeRange
             }
         }
     }
@@ -75,43 +105,7 @@ struct InventoryChangeView: View {
         .background(Color(.systemGray6))
         .cornerRadius(10)
         .padding(.horizontal)
-        .padding(.top, 8)
-    }
-
-    // MARK: - 時間篩選
-
-    private var timeRangeSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(InventoryTimeRange.RangeType.allCases, id: \.self) { rangeType in
-                    timeRangeButton(for: rangeType)
-                }
-            }
-            .padding(.horizontal)
-        }
-        .padding(.vertical, 12)
-    }
-
-    private func timeRangeButton(for rangeType: InventoryTimeRange.RangeType) -> some View {
-        let isSelected = viewModel.selectedTimeRange.type == rangeType
-
-        return Button(action: {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                viewModel.selectedTimeRange.type = rangeType
-            }
-        }) {
-            Text(rangeType.displayName)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundColor(isSelected ? .white : .primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color.blue : Color(.systemGray5))
-                )
-        }
-        .buttonStyle(.plain)
+        .padding(.vertical, 8)
     }
 
     // MARK: - 類別篩選
@@ -165,18 +159,50 @@ struct InventoryChangeView: View {
 
     private var productList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(viewModel.filteredItems) { item in
-                    InventoryProductCard(
-                        item: item,
-                        filteredChanges: viewModel.filteredChanges(for: item),
-                        onToggle: { viewModel.toggleExpanded(for: item.id) }
-                    )
+            if viewModel.filteredItems.isEmpty {
+                emptyState
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(viewModel.filteredItems) { item in
+                        InventoryProductCard(
+                            item: item,
+                            filteredChanges: viewModel.filteredChanges(for: item),
+                            onToggle: { viewModel.toggleExpanded(for: item.id) }
+                        )
+                    }
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 20)
         }
+    }
+
+    // MARK: - 空狀態
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "shippingbox")
+                .font(.system(size: 50))
+                .foregroundColor(.gray.opacity(0.5))
+
+            if !viewModel.searchText.isEmpty {
+                Text("查無結果")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                Text("找不到符合「\(viewModel.searchText)」的商品")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            } else {
+                Text("尚無商品")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                Text("請先在場次中新增商品")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
     }
 }
 
@@ -284,6 +310,10 @@ struct InventoryProductCard: View {
             // 異動紀錄
             if !filteredChanges.isEmpty {
                 changesSection
+            } else {
+                Text("此時間範圍內無異動紀錄")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
         .padding()
@@ -341,8 +371,8 @@ struct InventoryProductCard: View {
 
     private func changeRow(_ change: InventoryChangeModel) -> some View {
         HStack {
-            // 原因標籤
-            Text(change.reason.displayName)
+            // 原因標籤（顯示自定義原因或預設名稱）
+            Text(change.displayReasonName)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.white)
