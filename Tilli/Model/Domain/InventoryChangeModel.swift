@@ -95,6 +95,7 @@ struct InventoryChangeModel: Identifiable, Codable {
     var change: Int                        // +10 進貨，-3 銷售
     var reason: InventoryChangeReason      // 異動原因
     var customReason: String?              // 「其他調整」時的自定義原因
+    var transactionId: UUID?               // 關聯的交易 ID（僅銷售出庫時有值）
     var timestamp: Date
 
     /// 格式化的變化量文字（如 +10 或 -3）

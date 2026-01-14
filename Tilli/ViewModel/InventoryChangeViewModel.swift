@@ -26,6 +26,13 @@ struct InventoryProductItem: Identifiable {
     }
 }
 
+/// 庫存匯出類型
+enum InventoryExportType {
+    case all       // 全部匯出
+    case summary   // 庫存總覽
+    case detail    // 庫存異動明細
+}
+
 @MainActor
 class InventoryChangeViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -34,10 +41,16 @@ class InventoryChangeViewModel: ObservableObject {
     @Published var inventoryItems: [InventoryProductItem] = []
     @Published var expandedCategoryIds: Set<UUID> = []
 
+    // MARK: - Export Properties
+    @Published var selectedExportType: InventoryExportType = .all
+    @Published var showingExportAlert = false
+    @Published var currentShareItems: [Any] = []
+
     // MARK: - Dependencies
     let session: SessionModel
     private var productRepository: ProductRepository?
     private var inventoryChangeRepository: InventoryChangeRepository?
+    private var transactionDataManager: TransactionDataManager?
 
     // MARK: - Computed Properties
 
@@ -71,9 +84,11 @@ class InventoryChangeViewModel: ObservableObject {
 
     /// 更新 Repository 引用
     func updateRepositories(productRepository: ProductRepository,
-                            inventoryChangeRepository: InventoryChangeRepository) {
+                            inventoryChangeRepository: InventoryChangeRepository,
+                            transactionDataManager: TransactionDataManager) {
         self.productRepository = productRepository
         self.inventoryChangeRepository = inventoryChangeRepository
+        self.transactionDataManager = transactionDataManager
         loadData()
     }
 
@@ -194,10 +209,31 @@ class InventoryChangeViewModel: ObservableObject {
         csvContent += "庫存異動明細_\(session.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
-        // 欄位標題
-        csvContent += "日期時間,商品名稱,類別,異動原因,異動數量,變動後庫存\n"
+        // 欄位標題（銷售出庫有交易編號，其他為 -）
+        csvContent += "交易編號,日期時間,商品名稱,類別,異動原因,異動數量,變動後庫存\n"
 
         let dateInterval = selectedTimeRange.dateInterval
+
+        // 預先計算每個商品每筆異動的「變動後庫存」
+        var afterStockMap: [UUID: Int] = [:]  // changeId -> afterStock
+
+        for item in inventoryItems {
+            // 取得該商品的所有異動紀錄（按時間升序排列）
+            let sortedChanges = item.changes.sorted { $0.timestamp < $1.timestamp }
+
+            // 計算所有異動的淨變化
+            let totalChange = sortedChanges.reduce(0) { $0 + $1.change }
+
+            // 推算最早異動前的庫存
+            let stockBeforeAll = item.currentStock - totalChange
+
+            // 依序計算每筆異動後的庫存
+            var runningStock = stockBeforeAll
+            for change in sortedChanges {
+                runningStock += change.change
+                afterStockMap[change.id] = runningStock
+            }
+        }
 
         // 收集所有期間內的異動紀錄
         var allChanges: [(change: InventoryChangeModel, product: ProductModel)] = []
@@ -209,7 +245,7 @@ class InventoryChangeViewModel: ObservableObject {
             }
         }
 
-        // 按時間降序排列
+        // 按時間降序排列（最新的在最上面）
         allChanges.sort { $0.change.timestamp > $1.change.timestamp }
 
         // 建立 CSV 行
@@ -217,17 +253,22 @@ class InventoryChangeViewModel: ObservableObject {
             let change = entry.change
             let product = entry.product
 
+            // 交易編號（僅銷售出庫有值）
+            let transactionIdText: String
+            if change.reason == .salesOut, let txId = change.transactionId {
+                transactionIdText = "TXN\(txId.uuidString.prefix(8))"
+            } else {
+                transactionIdText = "-"
+            }
+
             let dateTime = DateFormatter.dateTime.string(from: change.timestamp)
             let productName = product.name.replacingOccurrences(of: ",", with: "，")
             let categoryName = getCategoryName(for: product.categoryId).replacingOccurrences(of: ",", with: "，")
             let reasonName = change.displayReasonName.replacingOccurrences(of: ",", with: "，")
             let changeText = change.change >= 0 ? "+\(change.change)" : "\(change.change)"
+            let afterStock = afterStockMap[change.id].map { String($0) } ?? "-"
 
-            // 計算變動後庫存（從現在庫存倒推）
-            // 這裡無法精確計算，改為顯示 "-"
-            let afterStock = "-"
-
-            let row = "\(dateTime),\(productName),\(categoryName),\(reasonName),\(changeText),\(afterStock)\n"
+            let row = "\(transactionIdText),\(dateTime),\(productName),\(categoryName),\(reasonName),\(changeText),\(afterStock)\n"
             csvContent += row
         }
 
@@ -277,5 +318,38 @@ class InventoryChangeViewModel: ObservableObject {
     /// 取得類別名稱
     private func getCategoryName(for categoryId: UUID) -> String {
         session.categories.first { $0.id == categoryId }?.name ?? "未分類"
+    }
+
+    // MARK: - Export Management
+
+    /// 準備匯出（設定類型並生成 share items）
+    func prepareExport(type: InventoryExportType) {
+        selectedExportType = type
+        currentShareItems = getShareItems(for: type)
+    }
+
+    /// 根據匯出類型取得 share items
+    func getShareItems(for type: InventoryExportType) -> [Any] {
+        switch type {
+        case .all:
+            return [
+                createInventorySummaryCSVFileURL(),
+                createInventoryDetailCSVFileURL()
+            ]
+        case .summary:
+            return [createInventorySummaryCSVFileURL()]
+        case .detail:
+            return [createInventoryDetailCSVFileURL()]
+        }
+    }
+
+    /// 匯出成功後顯示提示
+    func handleExportSuccess() {
+        showingExportAlert = true
+    }
+
+    /// 檢查是否可以匯出
+    var isExportDisabled: Bool {
+        inventoryItems.isEmpty
     }
 }

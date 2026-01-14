@@ -104,12 +104,7 @@ struct SessionDetailFromCalendarView: View {
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingShareSheet = true
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(viewModel.isCurrentTabExportDisabled())
+                exportMenu
             }
         }
         .onAppear {
@@ -146,14 +141,110 @@ struct SessionDetailFromCalendarView: View {
         }
         .shareSheet(
             isPresented: $showingShareSheet,
-            activityItems: { viewModel.getCurrentTabShareItems() },
+            activityItems: { viewModel.currentShareItems },
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {
-                    viewModel.handleCurrentTabExportSuccess()
+                    viewModel.handleExportSuccess()
                 }
             }
         )
+        .alert("匯出成功", isPresented: $viewModel.showingExportSuccessAlert) {
+            Button("確定") { }
+        } message: {
+            Text("報表已成功匯出")
+        }
     }
 
+    // MARK: - 匯出選單
+
+    @ViewBuilder
+    private var exportMenu: some View {
+        Menu {
+            switch viewModel.selectedTab {
+            case 0:
+                // 交易明細 - 只有一個報表
+                Button {
+                    viewModel.prepareExport(type: .transactionDetail)
+                    showingShareSheet = true
+                } label: {
+                    Label("交易明細", systemImage: "list.clipboard")
+                }
+
+            case 1:
+                // 產品績效 - 2 個報表
+                Button {
+                    viewModel.prepareExport(type: .productPerformanceAll)
+                    showingShareSheet = true
+                } label: {
+                    Label("全部匯出", systemImage: "square.and.arrow.up.on.square")
+                }
+
+                Divider()
+
+                Button {
+                    viewModel.prepareExport(type: .topProducts)
+                    showingShareSheet = true
+                } label: {
+                    Label("熱門商品排行", systemImage: "chart.bar")
+                }
+
+                Button {
+                    viewModel.prepareExport(type: .categoryAnalysis)
+                    showingShareSheet = true
+                } label: {
+                    Label("類別銷售匯總", systemImage: "folder")
+                }
+
+            case 2:
+                // 銷售分析 - 3-4 個報表
+                Button {
+                    viewModel.prepareExport(type: .salesAnalyticsAll)
+                    showingShareSheet = true
+                } label: {
+                    Label("全部匯出", systemImage: "square.and.arrow.up.on.square")
+                }
+
+                Divider()
+
+                Button {
+                    viewModel.prepareExport(type: .hourlyAnalysis)
+                    showingShareSheet = true
+                } label: {
+                    Label("時段銷售分析", systemImage: "clock")
+                }
+
+                Button {
+                    viewModel.prepareExport(type: .paymentMethod)
+                    showingShareSheet = true
+                } label: {
+                    Label("支付方式分析", systemImage: "creditcard")
+                }
+
+                Button {
+                    viewModel.prepareExport(type: .dailyRevenueTrend)
+                    showingShareSheet = true
+                } label: {
+                    Label("日營收趨勢", systemImage: "chart.line.uptrend.xyaxis")
+                }
+
+                // 永久場次才顯示月營收趨勢
+                if viewModel.session.dateType == .permanent {
+                    Button {
+                        viewModel.prepareExport(type: .monthlyRevenueTrend)
+                        showingShareSheet = true
+                    } label: {
+                        Label("月營收趨勢", systemImage: "calendar")
+                    }
+                }
+
+            default:
+                EmptyView()
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .foregroundColor(viewModel.isCurrentTabExportDisabled() ? .gray : .blue)
+        }
+        .disabled(viewModel.isCurrentTabExportDisabled())
+    }
 }

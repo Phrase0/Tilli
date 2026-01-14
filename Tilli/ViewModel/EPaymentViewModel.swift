@@ -94,6 +94,7 @@ class EPaymentViewModel: ObservableObject {
                 change: -item.quantity,
                 reason: .salesOut,
                 customReason: nil,
+                transactionId: transaction.id,
                 timestamp: changeTimestamp
             )
             inventoryChangeRepository.addChange(inventoryChange)

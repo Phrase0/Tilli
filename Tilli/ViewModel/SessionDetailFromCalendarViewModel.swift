@@ -7,12 +7,34 @@
 
 import SwiftUI
 
+/// 報表匯出類型
+enum CalendarReportExportType {
+    // Tab 0: 交易明細
+    case transactionDetail
+
+    // Tab 1: 產品績效
+    case productPerformanceAll
+    case topProducts
+    case categoryAnalysis
+
+    // Tab 2: 銷售分析
+    case salesAnalyticsAll
+    case hourlyAnalysis
+    case paymentMethod
+    case dailyRevenueTrend
+    case monthlyRevenueTrend
+}
+
 class SessionDetailFromCalendarViewModel: ObservableObject {
 
     @Published var transactionViewModel: TransactionViewModel
     @Published var productPerformanceViewModel: ProductPerformanceViewModel
     @Published var salesAnalyticsViewModel: SalesAnalyticsViewModel
     @Published var selectedTab = 0
+
+    // MARK: - Export Properties
+    @Published var currentShareItems: [Any] = []
+    @Published var showingExportSuccessAlert = false
 
     @Binding var session: SessionModel
 
@@ -73,78 +95,50 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
             return true
         }
     }
-    
-    /// 獲取當前 tab 的分享內容
-    func getCurrentTabShareItems() -> [Any] {
-        switch selectedTab {
-        case 0: // 交易明細
-            return [
-                CustomActivityItemSource(
-                    csvContent: transactionViewModel.generateCSVContent(),
-                    csvFileURL: transactionViewModel.createTempCSVFileURL(),
-                    reportTitle: "交易明細報表"
-                )
-            ]
-        case 1: // 產品績效
-            return [
-                CustomActivityItemSource(
-                    csvContent: productPerformanceViewModel.generateTopProductsCSV(),
-                    csvFileURL: productPerformanceViewModel.createTopProductsCSVFileURL(),
-                    reportTitle: "熱門商品排行報表"
-                ),
-                CustomActivityItemSource(
-                    csvContent: productPerformanceViewModel.generateCategoryAnalysisCSV(),
-                    csvFileURL: productPerformanceViewModel.createCategoryAnalysisCSVFileURL(),
-                    reportTitle: "類別銷售匯總報表"
-                )
-            ]
-        case 2: // 銷售分析
-            var items: [CustomActivityItemSource] = [
-                CustomActivityItemSource(
-                    csvContent: salesAnalyticsViewModel.generateHourlyAnalysisCSV(),
-                    csvFileURL: salesAnalyticsViewModel.createHourlyAnalysisCSVFileURL(),
-                    reportTitle: "時段銷售分析報表"
-                ),
-                CustomActivityItemSource(
-                    csvContent: salesAnalyticsViewModel.generatePaymentMethodCSV(),
-                    csvFileURL: salesAnalyticsViewModel.createPaymentMethodCSVFileURL(),
-                    reportTitle: "支付方式分析報表"
-                ),
-                CustomActivityItemSource(
-                    csvContent: salesAnalyticsViewModel.generateDailyRevenueTrendCSV(),
-                    csvFileURL: salesAnalyticsViewModel.createDailyRevenueTrendCSVFileURL(),
-                    reportTitle: "日營收趨勢報表"
-                )
-            ]
 
-            // 永久場次額外加入月營收趨勢
+    /// 處理導出成功回調（在父視圖顯示 alert）
+    func handleExportSuccess() {
+        showingExportSuccessAlert = true
+    }
+
+    /// 準備匯出（設定類型並生成 share items）
+    func prepareExport(type: CalendarReportExportType) {
+        currentShareItems = getShareItems(for: type)
+    }
+
+    /// 根據匯出類型取得 share items
+    func getShareItems(for type: CalendarReportExportType) -> [Any] {
+        switch type {
+        case .transactionDetail:
+            return [transactionViewModel.createTempCSVFileURL()]
+        case .productPerformanceAll:
+            return [
+                productPerformanceViewModel.createTopProductsCSVFileURL(),
+                productPerformanceViewModel.createCategoryAnalysisCSVFileURL()
+            ]
+        case .topProducts:
+            return [productPerformanceViewModel.createTopProductsCSVFileURL()]
+        case .categoryAnalysis:
+            return [productPerformanceViewModel.createCategoryAnalysisCSVFileURL()]
+        case .salesAnalyticsAll:
+            var items: [Any] = [
+                salesAnalyticsViewModel.createHourlyAnalysisCSVFileURL(),
+                salesAnalyticsViewModel.createPaymentMethodCSVFileURL(),
+                salesAnalyticsViewModel.createDailyRevenueTrendCSVFileURL()
+            ]
             if session.dateType == .permanent {
-                items.append(
-                    CustomActivityItemSource(
-                        csvContent: salesAnalyticsViewModel.generateMonthlyRevenueTrendCSV(),
-                        csvFileURL: salesAnalyticsViewModel.createMonthlyRevenueTrendCSVFileURL(),
-                        reportTitle: "月營收趨勢報表"
-                    )
-                )
+                items.append(salesAnalyticsViewModel.createMonthlyRevenueTrendCSVFileURL())
             }
-
             return items
-        default:
-            return []
+        case .hourlyAnalysis:
+            return [salesAnalyticsViewModel.createHourlyAnalysisCSVFileURL()]
+        case .paymentMethod:
+            return [salesAnalyticsViewModel.createPaymentMethodCSVFileURL()]
+        case .dailyRevenueTrend:
+            return [salesAnalyticsViewModel.createDailyRevenueTrendCSVFileURL()]
+        case .monthlyRevenueTrend:
+            return [salesAnalyticsViewModel.createMonthlyRevenueTrendCSVFileURL()]
         }
     }
-    
-    /// 處理當前 tab 的導出成功回調
-    func handleCurrentTabExportSuccess() {
-        switch selectedTab {
-        case 0: // 交易明細
-            transactionViewModel.showExportSuccessAlert()
-        case 1: // 產品績效
-            productPerformanceViewModel.showExportSuccessAlert()
-        case 2: // 銷售分析
-            salesAnalyticsViewModel.showExportSuccessAlert()
-        default:
-            break
-        }
-    }
+
 }

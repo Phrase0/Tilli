@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: Int = 0
     @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     // MARK: - 測試用（測試完成後刪除這段）
     @State private var hasGeneratedTestData = false
@@ -38,8 +39,14 @@ struct ContentView: View {
         }
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
         .onAppear {
-            TestDataGenerator.generateTestData(sessionDataManager: sessionDataManager)
-            TestDataGenerator.generate30DaysMultiCafeSession(sessionDataManager: sessionDataManager)
+            TestDataGenerator.generateTestData(
+                sessionDataManager: sessionDataManager,
+                inventoryChangeRepository: inventoryChangeRepository
+            )
+            TestDataGenerator.generate30DaysMultiCafeSession(
+                sessionDataManager: sessionDataManager,
+                inventoryChangeRepository: inventoryChangeRepository
+            )
         }
     }
 }

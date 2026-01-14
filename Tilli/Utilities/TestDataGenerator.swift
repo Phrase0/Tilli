@@ -23,9 +23,12 @@ class TestDataGenerator {
     private static let didGenerateMulti30DaysKey =
         "didGenerateTestMulti30DaysCafeSession"
     
-    /// 生成測試資料：永久場次 + 類別 + 產品 + 跨多月交易
+    /// 生成測試資料：永久場次 + 類別 + 產品 + 跨多月交易 + 庫存異動
     /// 如果已存在測試場次則跳過
-    static func generateTestData(sessionDataManager: SessionDataManager) {
+    static func generateTestData(
+        sessionDataManager: SessionDataManager,
+        inventoryChangeRepository: InventoryChangeRepository
+    ) {
         
         // 已產生過就直接跳過
         if UserDefaults.standard.bool(forKey: didGenerateKey) {
@@ -179,20 +182,38 @@ class TestDataGenerator {
         // 新增場次
         sessionDataManager.addSession(session)
 
+        // 產品資訊（ID, 名稱, 價格, 類別ID, 類別名稱, 初始庫存）
+        let productsInfo: [(UUID, String, Decimal, UUID, String, Int)] = [
+            (product1Id, "拿鐵咖啡", Decimal(120), category1Id, "飲品", 100),
+            (product2Id, "美式咖啡", Decimal(80), category1Id, "飲品", 100),
+            (product3Id, "提拉米蘇", Decimal(150), category2Id, "甜點", 50),
+            (product4Id, "巧克力蛋糕", Decimal(180), category2Id, "甜點", 50),
+            (product5Id, "三明治", Decimal(100), category3Id, "輕食", 80)
+        ]
+
+        // 生成初始庫存異動紀錄（進貨入庫）
+        for productInfo in productsInfo {
+            let initialChange = InventoryChangeModel(
+                productId: productInfo.0,
+                sessionId: sessionId,
+                change: productInfo.5,
+                reason: .purchase,
+                customReason: nil,
+                transactionId: nil,
+                timestamp: startDate
+            )
+            inventoryChangeRepository.addChange(initialChange)
+        }
+
         // 生成跨 3 個月的交易資料
         generateTransactions(
             sessionDataManager: sessionDataManager,
+            inventoryChangeRepository: inventoryChangeRepository,
             sessionId: sessionId,
             sessionTitle: session.title,
             sessionCurrency: "TWD",
             startDate: startDate,
-            products: [
-                (product1Id, "拿鐵咖啡", Decimal(120), category1Id, "飲品"),
-                (product2Id, "美式咖啡", Decimal(80), category1Id, "飲品"),
-                (product3Id, "提拉米蘇", Decimal(150), category2Id, "甜點"),
-                (product4Id, "巧克力蛋糕", Decimal(180), category2Id, "甜點"),
-                (product5Id, "三明治", Decimal(100), category3Id, "輕食")
-            ],
+            products: productsInfo.map { ($0.0, $0.1, $0.2, $0.3, $0.4) },
             discounts: twdDiscounts
         )
 
@@ -200,8 +221,10 @@ class TestDataGenerator {
         print("✅ 測試資料生成完成")
     }
 
-    static func generate30DaysMultiCafeSession(sessionDataManager: SessionDataManager) {
-
+    static func generate30DaysMultiCafeSession(
+        sessionDataManager: SessionDataManager,
+        inventoryChangeRepository: InventoryChangeRepository
+    ) {
         if UserDefaults.standard.bool(forKey: didGenerateMulti30DaysKey) {
             return
         }
@@ -354,29 +377,48 @@ class TestDataGenerator {
 
         sessionDataManager.addSession(session)
 
+        // 產品資訊（ID, 名稱, 價格, 類別ID, 類別名稱, 初始庫存）
+        let productsInfo: [(UUID, String, Decimal, UUID, String, Int)] = [
+            (product1Id, "拿鐵咖啡", Decimal(string: "4.50")!, category1Id, "飲品", 100),
+            (product2Id, "美式咖啡", Decimal(string: "3.20")!, category1Id, "飲品", 100),
+            (product3Id, "提拉米蘇", Decimal(string: "5.80")!, category2Id, "甜點", 50),
+            (product4Id, "巧克力蛋糕", Decimal(string: "6.40")!, category2Id, "甜點", 50),
+            (product5Id, "三明治", Decimal(string: "4.75")!, category3Id, "輕食", 80)
+        ]
+
+        // 生成初始庫存異動紀錄（進貨入庫）
+        for productInfo in productsInfo {
+            let initialChange = InventoryChangeModel(
+                productId: productInfo.0,
+                sessionId: sessionId,
+                change: productInfo.5,
+                reason: .purchase,
+                customReason: nil,
+                transactionId: nil,
+                timestamp: startDate
+            )
+            inventoryChangeRepository.addChange(initialChange)
+        }
+
         // MARK: - 交易（沿用你原本的 generator）
         generateTransactions(
             sessionDataManager: sessionDataManager,
+            inventoryChangeRepository: inventoryChangeRepository,
             sessionId: sessionId,
             sessionTitle: session.title,
             sessionCurrency: "EUR",
             startDate: startDate,
-            products: [
-                (product1Id, "拿鐵咖啡", Decimal(string: "4.50")!, category1Id, "飲品"),
-                (product2Id, "美式咖啡", Decimal(string: "3.20")!, category1Id, "飲品"),
-                (product3Id, "提拉米蘇", Decimal(string: "5.80")!, category2Id, "甜點"),
-                (product4Id, "巧克力蛋糕", Decimal(string: "6.40")!, category2Id, "甜點"),
-                (product5Id, "三明治", Decimal(string: "4.75")!, category3Id, "輕食")
-            ],
+            products: productsInfo.map { ($0.0, $0.1, $0.2, $0.3, $0.4) },
             discounts: eurDiscounts
         )
 
         UserDefaults.standard.set(true, forKey: didGenerateMulti30DaysKey)
     }
 
-    /// 生成跨多月的交易資料
+    /// 生成跨多月的交易資料與庫存異動
     private static func generateTransactions(
         sessionDataManager: SessionDataManager,
+        inventoryChangeRepository: InventoryChangeRepository,
         sessionId: UUID,
         sessionTitle: String,
         sessionCurrency: String,
@@ -475,6 +517,21 @@ class TestDataGenerator {
                 )
 
                 sessionDataManager.addTransaction(transaction)
+
+                // 記錄庫存異動（銷售出庫）
+                let changeTimestamp = occurredAt ?? transactionTime
+                for item in items {
+                    let inventoryChange = InventoryChangeModel(
+                        productId: item.productId,
+                        sessionId: sessionId,
+                        change: -item.quantity,
+                        reason: .salesOut,
+                        customReason: nil,
+                        transactionId: transaction.id,
+                        timestamp: changeTimestamp
+                    )
+                    inventoryChangeRepository.addChange(inventoryChange)
+                }
             }
 
             // 下一天

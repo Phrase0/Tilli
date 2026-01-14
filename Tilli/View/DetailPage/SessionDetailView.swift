@@ -70,11 +70,16 @@ struct SessionDetailView: View {
                         }
 
                     case 1: // 交易明細頁 - 顯示導出按鈕
-                        Button(action: {
-                            viewModel.exportTabCSV(tabIndex: selectedTab)
-                            showingShareSheet = true
-                        }) {
+                        Menu {
+                            Button {
+                                viewModel.prepareExport()
+                                showingShareSheet = true
+                            } label: {
+                                Label("交易明細", systemImage: "list.clipboard")
+                            }
+                        } label: {
                             Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(viewModel.isTabExportDisabled(tabIndex: selectedTab) ? .gray : .blue)
                         }
                         .disabled(viewModel.isTabExportDisabled(tabIndex: selectedTab))
 
@@ -183,10 +188,15 @@ struct SessionDetailView: View {
             excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
             onComplete: { completed in
                 if completed {
-                    viewModel.handleCurrentTabExportSuccess()
+                    viewModel.handleExportSuccess()
                 }
             }
         )
+        .alert("匯出成功", isPresented: $viewModel.showingExportSuccessAlert) {
+            Button("確定") { }
+        } message: {
+            Text("報表已成功匯出")
+        }
         .alert("確定要清除所有已選數量嗎？", isPresented: $showClearAlert) {
             Button("取消", role: .cancel) { }
             Button("清除", role: .destructive) {

@@ -14,11 +14,13 @@ class SessionDetailViewModel: ObservableObject {
     @Published var productViewModel: ProductViewModel
     @Published var transactionViewModel: TransactionViewModel
     @Published var sessionTotalAmount: Decimal = 0
+
+    // MARK: - Export Properties
     @Published var currentShareItems: [Any] = []
+    @Published var showingExportSuccessAlert = false
 
     @Binding var session: SessionModel
     private var transactionDataManager: TransactionDataManager?
-    private var currentExportTab: Int = 0
     private var cancellables = Set<AnyCancellable>()
 
     init(session: Binding<SessionModel>) {
@@ -82,14 +84,12 @@ class SessionDetailViewModel: ObservableObject {
     }
     
     // MARK: - CSV Export Management
-    
-    /// 執行指定 tab 的 CSV 導出準備
-    func exportTabCSV(tabIndex: Int) {
-        currentExportTab = tabIndex
-        // 準備分享內容 - 所有 tab 都直接準備分享
-        currentShareItems = getTabShareItems(tabIndex: tabIndex)
+
+    /// 準備匯出交易明細
+    func prepareExport() {
+        currentShareItems = [transactionViewModel.createTempCSVFileURL()]
     }
-    
+
     /// 檢查指定 tab 是否可以導出
     func isTabExportDisabled(tabIndex: Int) -> Bool {
         switch tabIndex {
@@ -101,30 +101,9 @@ class SessionDetailViewModel: ObservableObject {
             return true
         }
     }
-    
-    /// 獲取指定 tab 的分享內容
-    func getTabShareItems(tabIndex: Int) -> [Any] {
-        switch tabIndex {
-        case 1: // 交易明細
-            return [
-                CustomActivityItemSource(
-                    csvContent: transactionViewModel.generateCSVContent(),
-                    csvFileURL: transactionViewModel.createTempCSVFileURL(),
-                    reportTitle: "交易明細報表"
-                )
-            ]
-        default:
-            return []
-        }
-    }
-    
+
     /// 處理導出成功回調
-    func handleCurrentTabExportSuccess() {
-        switch currentExportTab {
-        case 1: // 交易明細
-            transactionViewModel.showExportSuccessAlert()
-        default:
-            break
-        }
+    func handleExportSuccess() {
+        showingExportSuccessAlert = true
     }
 }

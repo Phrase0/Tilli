@@ -11,12 +11,12 @@ struct InventoryChangeView: View {
     @StateObject private var viewModel: InventoryChangeViewModel
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
+    @EnvironmentObject var transactionDataManager: TransactionDataManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
     @State private var showShareSheet = false
-    @State private var csvFileURL: URL?
 
     init(session: SessionModel) {
         self._viewModel = StateObject(wrappedValue: InventoryChangeViewModel(session: session))
@@ -53,33 +53,54 @@ struct InventoryChangeView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button {
-                        csvFileURL = viewModel.createInventorySummaryCSVFileURL()
+                        viewModel.prepareExport(type: .all)
+                        showShareSheet = true
+                    } label: {
+                        Label("全部匯出", systemImage: "square.and.arrow.up.on.square")
+                    }
+
+                    Divider()
+
+                    Button {
+                        viewModel.prepareExport(type: .summary)
                         showShareSheet = true
                     } label: {
                         Label("庫存總覽", systemImage: "list.bullet.rectangle")
                     }
 
                     Button {
-                        csvFileURL = viewModel.createInventoryDetailCSVFileURL()
+                        viewModel.prepareExport(type: .detail)
                         showShareSheet = true
                     } label: {
                         Label("庫存異動明細", systemImage: "clock.arrow.circlepath")
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
-                        .foregroundColor(.blue)
+                        .foregroundColor(viewModel.isExportDisabled ? .gray : .blue)
                 }
+                .disabled(viewModel.isExportDisabled)
             }
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let url = csvFileURL {
-                ActivityViewController(activityItems: [url])
+        .shareSheet(
+            isPresented: $showShareSheet,
+            activityItems: { viewModel.currentShareItems },
+            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
+            onComplete: { completed in
+                if completed {
+                    viewModel.handleExportSuccess()
+                }
             }
+        )
+        .alert("匯出成功", isPresented: $viewModel.showingExportAlert) {
+            Button("確定") { }
+        } message: {
+            Text("庫存報表已成功匯出")
         }
         .onAppear {
             viewModel.updateRepositories(
                 productRepository: productRepository,
-                inventoryChangeRepository: inventoryChangeRepository
+                inventoryChangeRepository: inventoryChangeRepository,
+                transactionDataManager: transactionDataManager
             )
         }
         .onChange(of: searchText) {

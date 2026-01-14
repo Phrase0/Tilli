@@ -20,6 +20,7 @@ extension CDInventoryChangeEntity {
     @NSManaged public var change: Int32
     @NSManaged public var reason: String
     @NSManaged public var customReason: String?
+    @NSManaged public var transactionId: UUID?
     @NSManaged public var timestamp: Date
 }
 
@@ -32,6 +33,7 @@ extension CDInventoryChangeEntity {
         self.change = Int32(model.change)
         self.reason = model.reason.rawValue
         self.customReason = model.customReason
+        self.transactionId = model.transactionId
         self.timestamp = model.timestamp
     }
 
@@ -43,6 +45,7 @@ extension CDInventoryChangeEntity {
             change: Int(self.change),
             reason: InventoryChangeReason(rawValue: self.reason) ?? .adjustment,
             customReason: self.customReason,
+            transactionId: self.transactionId,
             timestamp: self.timestamp
         )
     }

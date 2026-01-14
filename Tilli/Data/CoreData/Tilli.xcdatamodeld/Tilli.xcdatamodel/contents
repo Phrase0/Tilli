@@ -1,14 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="24G231" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="CDInventoryChangeEntity" representedClassName="CDInventoryChangeEntity" syncable="YES">
-        <attribute name="change" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="customReason" optional="YES" attributeType="String"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="productId" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="reason" attributeType="String"/>
-        <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
-    </entity>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="23H311" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="CDCategoryEntity" representedClassName="CDCategoryEntity" syncable="YES">
         <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
@@ -17,6 +8,16 @@
         <attribute name="sortOrder" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="products" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDProductEntity" inverseName="category" inverseEntity="CDProductEntity"/>
         <relationship name="session" maxCount="1" deletionRule="Nullify" destinationEntity="CDSessionEntity" inverseName="categories" inverseEntity="CDSessionEntity"/>
+    </entity>
+    <entity name="CDInventoryChangeEntity" representedClassName="CDInventoryChangeEntity" syncable="YES">
+        <attribute name="change" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="customReason" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="productId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="reason" attributeType="String"/>
+        <attribute name="sessionId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="transactionId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
     </entity>
     <entity name="CDProductEntity" representedClassName="CDProductEntity" syncable="YES">
         <attribute name="categoryId" attributeType="UUID" usesScalarValueType="NO"/>
