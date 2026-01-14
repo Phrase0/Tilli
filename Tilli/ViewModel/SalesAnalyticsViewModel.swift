@@ -49,8 +49,6 @@ class SalesAnalyticsViewModel: ObservableObject {
     @Published var paymentMethodData: [PaymentMethodAnalysisData] = []
     @Published var salesOverview: SalesOverviewData? = nil
     @Published var isLoading = false
-    @Published var showingExportAlert = false
-    @Published var csvContent = ""
 
     // MARK: - Revenue Trend Properties
     @Published var dailyRevenue: [DailyRevenueData] = []
@@ -299,10 +297,6 @@ class SalesAnalyticsViewModel: ObservableObject {
         }
 
         return fileURL
-    }
-
-    func showExportSuccessAlert() {
-        showingExportAlert = true
     }
 }
 

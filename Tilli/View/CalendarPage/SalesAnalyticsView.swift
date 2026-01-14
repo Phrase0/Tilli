@@ -66,11 +66,6 @@ struct SalesAnalyticsView: View {
             selectedDailyData = nil
             selectedMonthlyData = nil
         }
-        .alert("CSV 導出成功", isPresented: $salesAnalyticsViewModel.showingExportAlert) {
-            Button("確定") { }
-        } message: {
-            Text("銷售分析報告已成功導出為 CSV 檔案")
-        }
     }
 
     // MARK: - 總銷售額視圖

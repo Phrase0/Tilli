@@ -40,8 +40,6 @@ class TransactionViewModel: ObservableObject {
     @Published var groupedTransactions: [DailyTransactionGroup] = []
     @Published var expandedTransactionIds: Set<UUID> = []
     @Published var expandedDailyGroupIds: Set<Date> = []  // 日期分組展開狀態
-    @Published var showingExportAlert = false
-    @Published var csvContent = ""
     @Published var currentTimeRange: ReportTimeRange?
 
     // 排序狀態
@@ -244,11 +242,7 @@ class TransactionViewModel: ObservableObject {
 
         return csvContent
     }
-    
-    func exportCSV() {
-        csvContent = generateCSVContent()
-    }
-    
+
     func createTempCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符（/ : 等）
@@ -268,12 +262,7 @@ class TransactionViewModel: ObservableObject {
         
         return fileURL
     }
-    
-    
-    func showExportSuccessAlert() {
-        showingExportAlert = true
-    }
-    
+
     // MARK: - 交易展開/收合
     
     func toggleTransactionExpansion(_ transactionId: UUID) {

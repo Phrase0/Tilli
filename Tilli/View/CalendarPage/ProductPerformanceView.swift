@@ -54,11 +54,6 @@ struct ProductPerformanceView: View {
             productPerformanceViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
-        .alert("CSV 導出成功", isPresented: $productPerformanceViewModel.showingExportAlert) {
-            Button("確定") { }
-        } message: {
-            Text("產品績效報告已成功導出為 CSV 檔案")
-        }
     }
     
     

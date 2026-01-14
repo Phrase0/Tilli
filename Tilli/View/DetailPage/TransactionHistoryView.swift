@@ -66,11 +66,6 @@ struct TransactionHistoryView: View {
             transactionViewModel.loadData(timeRange: timeRange)
         }
         .background(Color(.systemGray6))
-        .alert("CSV 導出成功", isPresented: $transactionViewModel.showingExportAlert) {
-            Button("確定") { }
-        } message: {
-            Text("交易明細已成功導出為 CSV 檔案")
-        }
     }
 
     // MARK: - 排序和篩選工具列

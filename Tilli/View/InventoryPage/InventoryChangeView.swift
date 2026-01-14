@@ -94,7 +94,7 @@ struct InventoryChangeView: View {
         .alert("匯出成功", isPresented: $viewModel.showingExportAlert) {
             Button("確定") { }
         } message: {
-            Text("庫存報表已成功匯出")
+            Text("報表已成功匯出")
         }
         .onAppear {
             viewModel.updateRepositories(

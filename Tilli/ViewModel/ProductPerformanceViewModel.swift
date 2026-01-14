@@ -14,8 +14,6 @@ class ProductPerformanceViewModel: ObservableObject {
     @Published var categoryAnalysis: [CategoryAnalysisData] = []
     @Published var salesInsights: SalesInsightsData = SalesInsightsData()
     @Published var isLoading = false
-    @Published var showingExportAlert = false
-    @Published var csvContent = ""
     
     // MARK: - Dependencies
     private var transactionDataManager: TransactionDataManager?
@@ -160,10 +158,6 @@ class ProductPerformanceViewModel: ObservableObject {
         }
 
         return fileURL
-    }
-
-    func showExportSuccessAlert() {
-        showingExportAlert = true
     }
 }
 
