@@ -51,10 +51,10 @@ extension DateFormatter {
         return formatter
     }()
 
-    /// 檔案名稱時間戳：yyyyMMdd_HHmm（例：20260104_1430）- 用於匯出檔案命名
+    /// 檔案名稱時間戳：yyyyMMdd_HHmm（例：20260104_143012）- 用於匯出檔案命名
     static let fileTimestamp: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd_HHmm"
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
         return formatter
     }()
 
