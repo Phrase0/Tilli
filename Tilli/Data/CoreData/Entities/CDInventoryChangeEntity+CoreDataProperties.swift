@@ -34,7 +34,6 @@ extension CDInventoryChangeEntity {
         self.customReason = model.customReason
         self.transactionId = model.transactionId
         self.timestamp = model.timestamp
-        // session relationship 需要在外部设置
     }
 
     func toModel() -> InventoryChangeModel {

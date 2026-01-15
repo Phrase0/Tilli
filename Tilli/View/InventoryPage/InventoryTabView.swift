@@ -44,6 +44,13 @@ struct InventoryTabView: View {
                     InventoryChangeView(session: sessionDataManager.sessions[index])
                 }
             }
+            .onChange(of: sessionDataManager.sessions) {
+                // 檢查當前選中的場次是否還存在，若已被刪除則重置選擇
+                if let selected = selectedSession,
+                   !sessionDataManager.sessions.contains(where: { $0.id == selected.id }) {
+                    selectedSession = nil
+                }
+            }
         }
     }
 

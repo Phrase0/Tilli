@@ -12,6 +12,7 @@ struct InventoryChangeView: View {
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var sessionDataManager: SessionDataManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var timeRange: ReportTimeRange
@@ -117,6 +118,13 @@ struct InventoryChangeView: View {
         .onChange(of: timeRange.customEnd) {
             if timeRange.type == .custom {
                 viewModel.selectedTimeRange = timeRange
+            }
+        }
+        .onChange(of: sessionDataManager.sessions) {
+            // 檢查當前場次是否還存在，若已被刪除則返回上一頁
+            let sessionExists = sessionDataManager.sessions.contains { $0.id == viewModel.session.id }
+            if !sessionExists {
+                dismiss()
             }
         }
     }

@@ -158,9 +158,6 @@ class InventoryChangeRepository: ObservableObject {
         }
     }
 
-    // 注意：deleteChanges(forSessionId:) 已移除
-    // 刪除場次時會透過 CoreData relationship 的 Cascade 規則自動刪除相關的庫存異動紀錄
-
     // MARK: - Save Context
 
     private func saveContext() {
