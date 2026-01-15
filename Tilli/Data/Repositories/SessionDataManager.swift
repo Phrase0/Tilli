@@ -357,6 +357,19 @@ class SessionDataManager: ObservableObject {
                             newProductEntity.imageData = originalProduct.imageData
                             newProductEntity.isDisabled = originalProduct.isDisabled
                             newProductEntity.category = newCategoryEntity
+
+                            // 若有庫存，建立「進貨入庫」記錄
+                            if originalProduct.stock > 0 {
+                                let changeEntity = CDInventoryChangeEntity(context: context)
+                                changeEntity.id = UUID()
+                                changeEntity.productId = newProductEntity.id
+                                changeEntity.sessionId = newSessionEntity.id
+                                changeEntity.change = originalProduct.stock
+                                changeEntity.reason = InventoryChangeReason.purchase.rawValue
+                                changeEntity.customReason = nil
+                                changeEntity.transactionId = nil
+                                changeEntity.timestamp = Date()
+                            }
                         }
                     }
                 }
