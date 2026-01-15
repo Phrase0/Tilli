@@ -39,7 +39,9 @@ class InventoryChangeViewModel: ObservableObject {
     @Published var searchText: String = ""
     @Published var selectedTimeRange: ReportTimeRange
     @Published var inventoryItems: [InventoryProductItem] = []
+    @Published var disabledInventoryItems: [InventoryProductItem] = []  // 已下架商品
     @Published var expandedCategoryIds: Set<UUID> = []
+    @Published var showDisabledProducts: Bool = false  // 下架商品區展開/收合狀態（預設收合）
 
     // MARK: - Export Properties
     @Published var selectedExportType: InventoryExportType = .all
@@ -63,12 +65,24 @@ class InventoryChangeViewModel: ObservableObject {
 
     /// 檢查是否有任何商品（用於空狀態判斷）
     var hasNoProducts: Bool {
-        inventoryItems.isEmpty
+        inventoryItems.isEmpty && disabledInventoryItems.isEmpty
     }
 
     /// 檢查搜尋是否無結果
     var isSearchEmpty: Bool {
-        !searchText.isEmpty && sortedCategories.allSatisfy { getItemsForCategory($0.id).isEmpty }
+        !searchText.isEmpty &&
+        sortedCategories.allSatisfy { getItemsForCategory($0.id).isEmpty } &&
+        filteredDisabledItems.isEmpty
+    }
+
+    /// 篩選後的下架商品（套用搜尋）
+    var filteredDisabledItems: [InventoryProductItem] {
+        if searchText.isEmpty {
+            return disabledInventoryItems.sorted { $0.product.name.localizedStandardCompare($1.product.name) == .orderedAscending }
+        }
+        return disabledInventoryItems
+            .filter { $0.product.name.localizedCaseInsensitiveContains(searchText) }
+            .sorted { $0.product.name.localizedStandardCompare($1.product.name) == .orderedAscending }
     }
 
     // MARK: - Init
@@ -97,15 +111,26 @@ class InventoryChangeViewModel: ObservableObject {
         guard let productRepo = productRepository,
               let changeRepo = inventoryChangeRepository else { return }
 
-        // 取得該場次的所有產品（只顯示啟用的）
-        let products = productRepo.fetchProducts(forSessionId: session.id)
-            .filter { !$0.isDisabled }
+        // 取得該場次的所有產品
+        let allProducts = productRepo.fetchProducts(forSessionId: session.id)
+        let enabledProducts = allProducts.filter { !$0.isDisabled }
+        let disabledProducts = allProducts.filter { $0.isDisabled }
 
         // 取得該場次的所有異動紀錄
         let allChanges = changeRepo.fetchChanges(forSessionId: session.id)
 
-        // 組合成 InventoryProductItem
-        inventoryItems = products.map { product in
+        // 組合成 InventoryProductItem（啟用的商品）
+        inventoryItems = enabledProducts.map { product in
+            let productChanges = allChanges.filter { $0.productId == product.id }
+            return InventoryProductItem(
+                id: product.id,
+                product: product,
+                changes: productChanges
+            )
+        }
+
+        // 組合成 InventoryProductItem（已下架的商品）
+        disabledInventoryItems = disabledProducts.map { product in
             let productChanges = allChanges.filter { $0.productId == product.id }
             return InventoryProductItem(
                 id: product.id,
@@ -119,6 +144,13 @@ class InventoryChangeViewModel: ObservableObject {
     func toggleExpanded(for itemId: UUID) {
         if let index = inventoryItems.firstIndex(where: { $0.id == itemId }) {
             inventoryItems[index].isExpanded.toggle()
+        }
+    }
+
+    /// 切換下架商品展開/收起狀態
+    func toggleDisabledExpanded(for itemId: UUID) {
+        if let index = disabledInventoryItems.firstIndex(where: { $0.id == itemId }) {
+            disabledInventoryItems[index].isExpanded.toggle()
         }
     }
 
@@ -172,17 +204,21 @@ class InventoryChangeViewModel: ObservableObject {
         csvContent += "庫存總覽_\(session.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
-        // 欄位標題
-        csvContent += "商品名稱,類別,單價(\(currencyCode)),現有庫存,庫存狀態,期間入庫,期間出庫,淨異動\n"
+        // 欄位標題（新增「狀態」欄位）
+        csvContent += "商品名稱,類別,單價(\(currencyCode)),現有庫存,庫存狀態,狀態,期間入庫,期間出庫,淨異動\n"
 
         let dateInterval = selectedTimeRange.dateInterval
 
-        for item in inventoryItems {
+        // 合併啟用和下架商品
+        let allItems = inventoryItems + disabledInventoryItems
+
+        for item in allItems {
             let productName = item.product.name.replacingOccurrences(of: ",", with: "，")
             let categoryName = getCategoryName(for: item.product.categoryId).replacingOccurrences(of: ",", with: "，")
             let unitPrice = MoneyHelper.toDisplayString(item.product.price, currency: currency)
             let currentStock = "\(item.currentStock)"
             let stockStatus = item.isLowStock ? "庫存不足" : "庫存正常"
+            let productStatus = item.product.isDisabled ? "已下架" : "銷售中"
 
             // 計算期間內的入庫和出庫
             let periodChanges = item.changes.filter { dateInterval.contains($0.timestamp) }
@@ -194,7 +230,7 @@ class InventoryChangeViewModel: ObservableObject {
             let periodOutText = periodOut > 0 ? "-\(periodOut)" : "0"
             let netChangeText = netChange >= 0 ? "+\(netChange)" : "\(netChange)"
 
-            let row = "\(productName),\(categoryName),\(unitPrice),\(currentStock),\(stockStatus),\(periodInText),\(periodOutText),\(netChangeText)\n"
+            let row = "\(productName),\(categoryName),\(unitPrice),\(currentStock),\(stockStatus),\(productStatus),\(periodInText),\(periodOutText),\(netChangeText)\n"
             csvContent += row
         }
 
@@ -209,15 +245,18 @@ class InventoryChangeViewModel: ObservableObject {
         csvContent += "庫存異動明細_\(session.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
-        // 欄位標題（銷售出庫有交易編號，其他為 -）
-        csvContent += "交易編號,日期時間,商品名稱,類別,異動原因,異動數量,變動後庫存\n"
+        // 欄位標題（新增「狀態」欄位）
+        csvContent += "交易編號,日期時間,商品名稱,類別,狀態,異動原因,異動數量,變動後庫存\n"
 
         let dateInterval = selectedTimeRange.dateInterval
+
+        // 合併啟用和下架商品
+        let allItems = inventoryItems + disabledInventoryItems
 
         // 預先計算每個商品每筆異動的「變動後庫存」
         var afterStockMap: [UUID: Int] = [:]  // changeId -> afterStock
 
-        for item in inventoryItems {
+        for item in allItems {
             // 取得該商品的所有異動紀錄（按時間升序排列）
             let sortedChanges = item.changes.sorted { $0.timestamp < $1.timestamp }
 
@@ -238,7 +277,7 @@ class InventoryChangeViewModel: ObservableObject {
         // 收集所有期間內的異動紀錄
         var allChanges: [(change: InventoryChangeModel, product: ProductModel)] = []
 
-        for item in inventoryItems {
+        for item in allItems {
             let periodChanges = item.changes.filter { dateInterval.contains($0.timestamp) }
             for change in periodChanges {
                 allChanges.append((change: change, product: item.product))
@@ -264,11 +303,12 @@ class InventoryChangeViewModel: ObservableObject {
             let dateTime = DateFormatter.dateTime.string(from: change.timestamp)
             let productName = product.name.replacingOccurrences(of: ",", with: "，")
             let categoryName = getCategoryName(for: product.categoryId).replacingOccurrences(of: ",", with: "，")
+            let productStatus = product.isDisabled ? "已下架" : "銷售中"
             let reasonName = change.displayReasonName.replacingOccurrences(of: ",", with: "，")
             let changeText = change.change >= 0 ? "+\(change.change)" : "\(change.change)"
             let afterStock = afterStockMap[change.id].map { String($0) } ?? "-"
 
-            let row = "\(transactionIdText),\(dateTime),\(productName),\(categoryName),\(reasonName),\(changeText),\(afterStock)\n"
+            let row = "\(transactionIdText),\(dateTime),\(productName),\(categoryName),\(productStatus),\(reasonName),\(changeText),\(afterStock)\n"
             csvContent += row
         }
 
@@ -350,6 +390,6 @@ class InventoryChangeViewModel: ObservableObject {
 
     /// 檢查是否可以匯出
     var isExportDisabled: Bool {
-        inventoryItems.isEmpty
+        inventoryItems.isEmpty && disabledInventoryItems.isEmpty
     }
 }

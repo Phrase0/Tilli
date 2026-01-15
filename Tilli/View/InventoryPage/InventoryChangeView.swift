@@ -139,15 +139,61 @@ struct InventoryChangeView: View {
                 searchEmptyState
             } else {
                 VStack(alignment: .leading, spacing: 24) {
+                    // 啟用的商品（按類別分組）
                     ForEach(viewModel.sortedCategories, id: \.id) { category in
                         let items = viewModel.getItemsForCategory(category.id)
                         if !items.isEmpty {
                             categorySection(category: category, items: items)
                         }
                     }
+
+                    // 下架商品區
+                    if !viewModel.filteredDisabledItems.isEmpty {
+                        disabledProductsSection
+                    }
                 }
                 .padding(.top)
                 .padding(.bottom, 20)
+            }
+        }
+    }
+
+    // MARK: - 下架商品區（參考 ProductDetailView）
+
+    private var disabledProductsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 可點擊的標題（展開/收合）
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    viewModel.showDisabledProducts.toggle()
+                }
+            }) {
+                HStack {
+                    Text("下架商品")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
+
+                    Spacer()
+
+                    Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                        .padding(.horizontal)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 下架商品列表（展開時顯示）
+            if viewModel.showDisabledProducts {
+                ForEach(viewModel.filteredDisabledItems) { item in
+                    DisabledInventoryProductCard(
+                        item: item,
+                        filteredChanges: viewModel.filteredChanges(for: item),
+                        onToggle: { viewModel.toggleDisabledExpanded(for: item.id) }
+                    )
+                    .padding(.horizontal)
+                }
             }
         }
     }
@@ -378,6 +424,184 @@ struct InventoryProductCard: View {
         }
         .padding(12)
         .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+
+    private var changesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("異動紀錄")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            ForEach(filteredChanges) { change in
+                changeRow(change)
+            }
+        }
+    }
+
+    private func changeRow(_ change: InventoryChangeModel) -> some View {
+        HStack {
+            // 原因標籤（顯示自定義原因或預設名稱）
+            Text(change.displayReasonName)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(change.reason.tagColor)
+                )
+
+            // 變化量
+            Text(change.changeText)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(change.changeColor)
+
+            Spacer()
+
+            // 時間
+            Text(DateFormatter.dateTime.string(from: change.timestamp))
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - 下架商品卡片（灰度樣式）
+
+struct DisabledInventoryProductCard: View {
+    let item: InventoryProductItem
+    let filteredChanges: [InventoryChangeModel]
+    let onToggle: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 商品基本資訊（可點擊展開）
+            Button(action: onToggle) {
+                productHeader
+            }
+            .buttonStyle(.plain)
+
+            // 展開內容
+            if item.isExpanded {
+                Divider()
+                    .padding(.horizontal)
+
+                expandedContent
+            }
+        }
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+    }
+
+    // MARK: - 商品標題區
+
+    private var productHeader: some View {
+        HStack(spacing: 12) {
+            // 商品圖片（灰度效果）
+            productImage
+
+            // 商品資訊
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.product.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.gray)
+                    .lineLimit(1)
+
+                Text("NT$ \(item.product.price.formatted())")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+
+            Spacer()
+
+            // 庫存狀態（收起時顯示）
+            if !item.isExpanded {
+                stockBadge
+            }
+
+            // 展開/收起箭頭
+            Image(systemName: item.isExpanded ? "chevron.up" : "chevron.down")
+                .foregroundColor(.gray)
+                .font(.caption)
+        }
+        .padding(12)
+    }
+
+    private var productImage: some View {
+        ZStack {
+            if let imageData = item.product.imageData,
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Rectangle()
+                    .foregroundColor(Color(.systemGray5))
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray)
+                            .font(.caption)
+                    )
+            }
+        }
+        .frame(width: 70, height: 70)
+        .cornerRadius(8)
+        .clipped()
+        .grayscale(1.0)
+        .opacity(0.6)
+    }
+
+    private var stockBadge: some View {
+        Text("\(item.currentStock) 件")
+            .font(.caption)
+            .foregroundColor(.gray)
+    }
+
+    // MARK: - 展開內容
+
+    private var expandedContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 現有庫存卡片
+            stockCard
+
+            // 異動紀錄
+            if !filteredChanges.isEmpty {
+                changesSection
+            } else {
+                Text("此時間範圍內無異動紀錄")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(12)
+    }
+
+    private var stockCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("現有庫存")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(item.currentStock)")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.gray)
+                    Text("件")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .background(Color(.systemGray5))
         .cornerRadius(10)
     }
 
