@@ -26,6 +26,7 @@ extension CDSessionEntity {
     @NSManaged public var discountsData: Data?   // 折扣選項（JSON 編碼）
     @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
+    @NSManaged public var inventoryChanges: NSSet?
 
 }
 
@@ -60,6 +61,23 @@ extension CDSessionEntity {
 
     @objc(removeCategories:)
     @NSManaged public func removeFromCategories(_ values: NSSet)
+
+}
+
+// MARK: Generated accessors for inventoryChanges
+extension CDSessionEntity {
+
+    @objc(addInventoryChangesObject:)
+    @NSManaged public func addToInventoryChanges(_ value: CDInventoryChangeEntity)
+
+    @objc(removeInventoryChangesObject:)
+    @NSManaged public func removeFromInventoryChanges(_ value: CDInventoryChangeEntity)
+
+    @objc(addInventoryChanges:)
+    @NSManaged public func addToInventoryChanges(_ values: NSSet)
+
+    @objc(removeInventoryChanges:)
+    @NSManaged public func removeFromInventoryChanges(_ values: NSSet)
 
 }
 

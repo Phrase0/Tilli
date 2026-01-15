@@ -350,13 +350,12 @@ class AddNewProductViewModel: ObservableObject {
             if stockDelta != 0 {
                 let change = InventoryChangeModel(
                     productId: product.id,
-                    sessionId: session.id,
                     change: stockDelta,
                     reason: stockChangeReason,
                     customReason: stockChangeReason == .adjustment ? customChangeReason : nil,
                     timestamp: Date()
                 )
-                inventoryChangeRepository.addChange(change)
+                inventoryChangeRepository.addChange(change, sessionId: session.id)
             }
         } else {
             // 新增模式 → 新增產品
@@ -367,13 +366,12 @@ class AddNewProductViewModel: ObservableObject {
             if initialStock > 0 {
                 let change = InventoryChangeModel(
                     productId: product.id,
-                    sessionId: session.id,
                     change: initialStock,
                     reason: .purchase,
                     customReason: nil,
                     timestamp: Date()
                 )
-                inventoryChangeRepository.addChange(change)
+                inventoryChangeRepository.addChange(change, sessionId: session.id)
             }
         }
         return true

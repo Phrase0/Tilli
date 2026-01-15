@@ -20,19 +20,37 @@ class InventoryChangeRepository: ObservableObject {
     // MARK: - Create
 
     /// 新增庫存異動紀錄
-    func addChange(_ change: InventoryChangeModel) {
+    func addChange(_ change: InventoryChangeModel, sessionId: UUID) {
+        guard let sessionEntity = fetchSessionEntity(by: sessionId) else {
+            print("Session not found for id: \(sessionId)")
+            return
+        }
         let entity = CDInventoryChangeEntity(context: context)
         entity.update(from: change, context: context)
+        entity.session = sessionEntity
         saveContext()
     }
 
     /// 批次新增庫存異動紀錄
-    func addChanges(_ changes: [InventoryChangeModel]) {
+    func addChanges(_ changes: [InventoryChangeModel], sessionId: UUID) {
+        guard let sessionEntity = fetchSessionEntity(by: sessionId) else {
+            print("Session not found for id: \(sessionId)")
+            return
+        }
         for change in changes {
             let entity = CDInventoryChangeEntity(context: context)
             entity.update(from: change, context: context)
+            entity.session = sessionEntity
         }
         saveContext()
+    }
+
+    /// 根據 sessionId 取得 CDSessionEntity
+    private func fetchSessionEntity(by sessionId: UUID) -> CDSessionEntity? {
+        let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
     }
 
     // MARK: - Read
@@ -55,7 +73,7 @@ class InventoryChangeRepository: ObservableObject {
     /// 取得指定場次的所有異動紀錄
     func fetchChanges(forSessionId sessionId: UUID) -> [InventoryChangeModel] {
         let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        request.predicate = NSPredicate(format: "session.id == %@", sessionId as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
 
         do {
@@ -71,7 +89,7 @@ class InventoryChangeRepository: ObservableObject {
     func fetchChanges(forSessionId sessionId: UUID, in dateInterval: DateInterval) -> [InventoryChangeModel] {
         let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "sessionId == %@ AND timestamp >= %@ AND timestamp <= %@",
+            format: "session.id == %@ AND timestamp >= %@ AND timestamp <= %@",
             sessionId as CVarArg,
             dateInterval.start as CVarArg,
             dateInterval.end as CVarArg
@@ -140,21 +158,8 @@ class InventoryChangeRepository: ObservableObject {
         }
     }
 
-    /// 刪除指定場次的所有異動紀錄
-    func deleteChanges(forSessionId sessionId: UUID) {
-        let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
-
-        do {
-            let entities = try context.fetch(request)
-            for entity in entities {
-                context.delete(entity)
-            }
-            saveContext()
-        } catch {
-            print("Delete inventory changes for session failed:", error)
-        }
-    }
+    // 注意：deleteChanges(forSessionId:) 已移除
+    // 刪除場次時會透過 CoreData relationship 的 Cascade 規則自動刪除相關的庫存異動紀錄
 
     // MARK: - Save Context
 

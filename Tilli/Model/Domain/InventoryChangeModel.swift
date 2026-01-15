@@ -91,7 +91,6 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
 struct InventoryChangeModel: Identifiable, Codable {
     var id = UUID()
     var productId: UUID
-    var sessionId: UUID
     var change: Int                        // +10 進貨，-3 銷售
     var reason: InventoryChangeReason      // 異動原因
     var customReason: String?              // 「其他調整」時的自定義原因

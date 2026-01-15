@@ -195,14 +195,13 @@ class TestDataGenerator {
         for productInfo in productsInfo {
             let initialChange = InventoryChangeModel(
                 productId: productInfo.0,
-                sessionId: sessionId,
                 change: productInfo.5,
                 reason: .purchase,
                 customReason: nil,
                 transactionId: nil,
                 timestamp: startDate
             )
-            inventoryChangeRepository.addChange(initialChange)
+            inventoryChangeRepository.addChange(initialChange, sessionId: sessionId)
         }
 
         // 生成跨 3 個月的交易資料
@@ -390,14 +389,13 @@ class TestDataGenerator {
         for productInfo in productsInfo {
             let initialChange = InventoryChangeModel(
                 productId: productInfo.0,
-                sessionId: sessionId,
                 change: productInfo.5,
                 reason: .purchase,
                 customReason: nil,
                 transactionId: nil,
                 timestamp: startDate
             )
-            inventoryChangeRepository.addChange(initialChange)
+            inventoryChangeRepository.addChange(initialChange, sessionId: sessionId)
         }
 
         // MARK: - 交易（沿用你原本的 generator）
@@ -523,14 +521,13 @@ class TestDataGenerator {
                 for item in items {
                     let inventoryChange = InventoryChangeModel(
                         productId: item.productId,
-                        sessionId: sessionId,
                         change: -item.quantity,
                         reason: .salesOut,
                         customReason: nil,
                         transactionId: transaction.id,
                         timestamp: changeTimestamp
                     )
-                    inventoryChangeRepository.addChange(inventoryChange)
+                    inventoryChangeRepository.addChange(inventoryChange, sessionId: sessionId)
                 }
             }
 

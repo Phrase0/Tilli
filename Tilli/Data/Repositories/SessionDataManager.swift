@@ -248,7 +248,7 @@ class SessionDataManager: ObservableObject {
                     print("🔥 已刪除 Session，檢查交易記錄狀態:")
                     debugTransactionStatus(forSessionId: sessionId)
                     print("")
-                    debugAllTransactions()
+//                    debugAllTransactions()
                     fetchSessions() // 僅在成功保存後重新載入
                 }
             }
@@ -363,7 +363,7 @@ class SessionDataManager: ObservableObject {
                                 let changeEntity = CDInventoryChangeEntity(context: context)
                                 changeEntity.id = UUID()
                                 changeEntity.productId = newProductEntity.id
-                                changeEntity.sessionId = newSessionEntity.id
+                                changeEntity.session = newSessionEntity
                                 changeEntity.change = originalProduct.stock
                                 changeEntity.reason = InventoryChangeReason.purchase.rawValue
                                 changeEntity.customReason = nil

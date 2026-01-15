@@ -178,14 +178,13 @@ class CashPaymentViewModel: ObservableObject {
         for item in summaryItems {
             let inventoryChange = InventoryChangeModel(
                 productId: item.productId,
-                sessionId: session.id,
                 change: -item.quantity,
                 reason: .salesOut,
                 customReason: nil,
                 transactionId: transaction.id,
                 timestamp: changeTimestamp
             )
-            inventoryChangeRepository.addChange(inventoryChange)
+            inventoryChangeRepository.addChange(inventoryChange, sessionId: session.id)
         }
 
         // 直接返回原 session，UI 更新由 onChange(of: checkoutCompleted) 處理
