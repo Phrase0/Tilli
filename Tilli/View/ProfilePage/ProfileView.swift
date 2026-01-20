@@ -9,9 +9,8 @@ import SwiftUI
 
 struct ProfileView: View {
 
-    // MARK: - 假資料
-    private let userName = "王小明"
-    private let userEmail = "xiaoming@example.com"
+    // MARK: - 認證管理
+    @EnvironmentObject var authManager: AuthenticationManager
 
     // MARK: - 設定狀態
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
@@ -20,6 +19,7 @@ struct ProfileView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
 
     @State private var showTilliProSheet = false
+    @State private var showSignInSheet = false
 
     // MARK: - App Version
     private var appVersion: String {
@@ -56,46 +56,92 @@ struct ProfileView: View {
             .sheet(isPresented: $showTilliProSheet) {
                 TilliProSheetView()
             }
+            .sheet(isPresented: $showSignInSheet) {
+                SignInSheet()
+                    .environmentObject(authManager)
+            }
         }
         .preferredColorScheme(darkModeEnabled ? .dark : .light)
     }
 
     // MARK: - 用戶資訊卡片
     private var userInfoCard: some View {
-        HStack(spacing: 16) {
-            // 頭像（顯示姓名縮寫）
-            ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.2))
-                    .frame(width: 70, height: 70)
-
-                Text(userNameInitials)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.blue)
+        Button(action: {
+            if !authManager.isLoggedIn {
+                showSignInSheet = true
             }
+        }) {
+            HStack(spacing: 16) {
+                // 頭像
+                if let user = authManager.currentUser {
+                    // 已登入：顯示姓名縮寫
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.2))
+                            .frame(width: 70, height: 70)
 
-            // 用戶資訊
-            VStack(alignment: .leading, spacing: 4) {
-                Text(userName)
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                        Text(userNameInitials(from: user.name))
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                    }
+                } else {
+                    // 未登入：灰色圓形 Placeholder
+                    Circle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 70, height: 70)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.title)
+                                .foregroundColor(.gray)
+                        )
+                }
 
-                Text(userEmail)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                // 用戶資訊
+                VStack(alignment: .leading, spacing: 4) {
+                    if let user = authManager.currentUser {
+                        // 已登入
+                        Text(user.name)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text(user.email)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    } else {
+                        // 未登入
+                        Text("尚未登入")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text("登入以同步資料並使用進階功能")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.leading)
+                    }
+                }
+
+                Spacer()
+
+                // 未登入時顯示箭頭
+                if !authManager.isLoggedIn {
+                    Image(systemName: "chevron.right")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
             }
-
-            Spacer()
+            .padding(16)
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
         }
-        .padding(16)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .buttonStyle(PlainButtonStyle())
     }
 
     // MARK: - 姓名縮寫
-    private var userNameInitials: String {
-        let components = userName.prefix(2)
+    private func userNameInitials(from name: String) -> String {
+        let components = name.prefix(2)
         return String(components)
     }
 
@@ -236,20 +282,31 @@ struct ProfileView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Log Out 按鈕
+    // MARK: - 底部按鈕（登入/登出）
     private var logOutButton: some View {
         Button(action: {
-            // TODO: 實作登出功能
+            if authManager.isLoggedIn {
+                // 登出
+                authManager.signOut()
+            } else {
+                // 開啟登入 Sheet
+                showSignInSheet = true
+            }
         }) {
             HStack {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                Text("登出")
+                if authManager.isLoggedIn {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    Text("登出")
+                } else {
+                    Image(systemName: "person.badge.plus")
+                    Text("註冊 / 登入")
+                }
             }
             .font(.headline)
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(Color.blue)
+            .background(authManager.isLoggedIn ? Color.red : Color.blue)
             .cornerRadius(12)
         }
     }

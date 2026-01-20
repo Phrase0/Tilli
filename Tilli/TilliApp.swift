@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct TilliApp: App {
+    @StateObject private var authenticationManager = AuthenticationManager()
     @StateObject private var sessionDataManager = SessionDataManager()
     @StateObject private var transactionDataManager = TransactionDataManager()
     @StateObject private var productRepository = ProductRepository()
@@ -20,6 +21,7 @@ struct TilliApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environmentObject(authenticationManager)
                 .environmentObject(sessionDataManager)
                 .environmentObject(transactionDataManager)
                 .environmentObject(productRepository)
