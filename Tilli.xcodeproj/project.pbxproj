@@ -11,15 +11,30 @@
 		211060232F1F2D1E00BB0E0F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 211060222F1F2D1E00BB0E0F /* FirebaseFirestore */; };
 		211060252F1F2D1E00BB0E0F /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 211060242F1F2D1E00BB0E0F /* FirebaseStorage */; };
 		211060E92F1F329E00BB0E0F /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 211060E82F1F329E00BB0E0F /* FirebaseAnalytics */; };
+		211060F52F1F84FE00BB0E0F /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 211060F42F1F84FE00BB0E0F /* GoogleSignIn */; };
+		211060F72F1F84FE00BB0E0F /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		F84D81F62DB85002006730C2 /* Tilli.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tilli.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		211060F92F1F853F00BB0E0F /* Exceptions for "Tilli" folder in "Tilli" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F84D81F52DB85002006730C2 /* Tilli */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F84D81F82DB85002006730C2 /* Tilli */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				211060F92F1F853F00BB0E0F /* Exceptions for "Tilli" folder in "Tilli" target */,
+			);
 			path = Tilli;
 			sourceTree = "<group>";
 		};
@@ -30,8 +45,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				211060F52F1F84FE00BB0E0F /* GoogleSignIn in Frameworks */,
 				211060212F1F2D1E00BB0E0F /* FirebaseAuth in Frameworks */,
 				211060232F1F2D1E00BB0E0F /* FirebaseFirestore in Frameworks */,
+				211060F72F1F84FE00BB0E0F /* GoogleSignInSwift in Frameworks */,
 				211060E92F1F329E00BB0E0F /* FirebaseAnalytics in Frameworks */,
 				211060252F1F2D1E00BB0E0F /* FirebaseStorage in Frameworks */,
 			);
@@ -88,6 +105,8 @@
 				211060222F1F2D1E00BB0E0F /* FirebaseFirestore */,
 				211060242F1F2D1E00BB0E0F /* FirebaseStorage */,
 				211060E82F1F329E00BB0E0F /* FirebaseAnalytics */,
+				211060F42F1F84FE00BB0E0F /* GoogleSignIn */,
+				211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */,
 			);
 			productName = Tilli;
 			productReference = F84D81F62DB85002006730C2 /* Tilli.app */;
@@ -119,6 +138,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				2110601F2F1F2D1E00BB0E0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				211060F32F1F84FE00BB0E0F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F84D81F72DB85002006730C2 /* Products */;
@@ -285,6 +305,7 @@
 				DEVELOPMENT_TEAM = 594AXKN55X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Tilli/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -314,6 +335,7 @@
 				DEVELOPMENT_TEAM = 594AXKN55X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Tilli/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -364,6 +386,14 @@
 				minimumVersion = 12.8.0;
 			};
 		};
+		211060F32F1F84FE00BB0E0F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -386,6 +416,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2110601F2F1F2D1E00BB0E0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAnalytics;
+		};
+		211060F42F1F84FE00BB0E0F /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 211060F32F1F84FE00BB0E0F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 211060F32F1F84FE00BB0E0F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

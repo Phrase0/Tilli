@@ -9,6 +9,8 @@ import Foundation
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import GoogleSignIn
+import FirebaseCore
 
 @MainActor
 class AuthenticationManager: ObservableObject {
@@ -112,34 +114,36 @@ class AuthenticationManager: ObservableObject {
         }
     }
 
-    // MARK: - Email 登入/註冊（Link 升級匿名帳號）
-    func signInWithEmail(email: String, password: String) async {
+    // MARK: - Google 登入（Link 升級匿名帳號）
+    func signInWithGoogle() async {
         isLoading = true
         errorMessage = nil
 
         do {
-            guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
-                // 如果不是匿名用戶，直接登入
-                let result = try await Auth.auth().signIn(withEmail: email, password: password)
-                await handleSignInSuccess(user: result.user, provider: .email, email: email)
+            // 取得 Google credential
+            guard let credential = try await getGoogleCredential() else {
+                isLoading = false
                 return
             }
 
-            // 嘗試 Link 匿名帳號到 Email
-            let credential = EmailAuthProvider.credential(withEmail: email, password: password)
+            guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
+                // 如果不是匿名用戶，直接登入
+                let result = try await Auth.auth().signIn(with: credential)
+                await handleSignInSuccess(user: result.user, provider: .google)
+                return
+            }
 
+            // 嘗試 Link 匿名帳號到 Google
             do {
-                // 先嘗試 link（註冊新帳號）
                 let result = try await currentAuthUser.link(with: credential)
-                await handleLinkSuccess(user: result.user, provider: .email, email: email)
+                await handleLinkSuccess(user: result.user, provider: .google)
             } catch let error as NSError {
-                if error.code == AuthErrorCode.emailAlreadyInUse.rawValue {
-                    // Email 已存在，嘗試登入並合併
-                    try await signInAndMerge(email: email, password: password)
-                } else if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
-                    // Credential 已被使用，直接登入
-                    let result = try await Auth.auth().signIn(withEmail: email, password: password)
-                    await handleSignInSuccess(user: result.user, provider: .email, email: email)
+                if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
+                   error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
+                    // Credential 已被使用，刪除匿名帳號後登入
+                    try await Auth.auth().currentUser?.delete()
+                    let result = try await Auth.auth().signIn(with: credential)
+                    await handleSignInSuccess(user: result.user, provider: .google)
                 } else {
                     throw error
                 }
@@ -149,25 +153,47 @@ class AuthenticationManager: ObservableObject {
         } catch {
             isLoading = false
             errorMessage = getErrorMessage(from: error)
-            print("Email sign in error: \(error)")
+            print("Google sign in error: \(error)")
         }
     }
 
-    // MARK: - 登入並合併資料
-    private func signInAndMerge(email: String, password: String) async throws {
-        // 刪除匿名用戶
-        try await Auth.auth().currentUser?.delete()
+    // MARK: - 取得 Google Credential
+    private func getGoogleCredential() async throws -> AuthCredential? {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            errorMessage = "Firebase 設定錯誤"
+            return nil
+        }
 
-        // 登入現有帳號
-        let result = try await Auth.auth().signIn(withEmail: email, password: password)
-        await handleSignInSuccess(user: result.user, provider: .email, email: email)
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            errorMessage = "無法取得視窗"
+            return nil
+        }
+
+        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+
+        guard let idToken = result.user.idToken?.tokenString else {
+            errorMessage = "無法取得 Google Token"
+            return nil
+        }
+
+        let accessToken = result.user.accessToken.tokenString
+        let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+
+        return credential
     }
 
     // MARK: - 處理 Link 成功
-    private func handleLinkSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider, email: String) async {
+    private func handleLinkSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
         do {
+            let email = user.email ?? ""
+            let name = user.displayName ?? email.components(separatedBy: "@").first ?? "使用者"
+            let photoURL = user.photoURL?.absoluteString
+
             // 升級現有的 UserProfile
-            let name = email.components(separatedBy: "@").first ?? "使用者"
             try await userRepository.upgradeToMember(
                 uid: user.uid,
                 email: email,
@@ -175,9 +201,15 @@ class AuthenticationManager: ObservableObject {
                 provider: provider
             )
 
+            // 更新照片 URL
+            if let photoURL = photoURL {
+                try await userRepository.updateProfile(uid: user.uid, name: nil, photoURL: photoURL)
+            }
+
             // 更新本地 currentUser
             if var profile = currentUser {
                 profile.upgradeToMember(email: email, name: name, provider: provider)
+                profile.photoURL = photoURL
                 self.currentUser = profile
             }
 
@@ -189,7 +221,7 @@ class AuthenticationManager: ObservableObject {
     }
 
     // MARK: - 處理登入成功
-    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider, email: String) async {
+    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
         do {
             if let profile = try await userRepository.getUser(uid: user.uid) {
                 self.currentUser = profile
@@ -197,12 +229,15 @@ class AuthenticationManager: ObservableObject {
                 try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
             } else {
                 // 如果沒有 UserProfile，建立一個新的
-                let name = email.components(separatedBy: "@").first ?? "使用者"
+                let email = user.email ?? ""
+                let name = user.displayName ?? email.components(separatedBy: "@").first ?? "使用者"
+                let photoURL = user.photoURL?.absoluteString
+
                 let newProfile = UserProfile(
                     uid: user.uid,
                     email: email,
                     name: name,
-                    photoURL: nil,
+                    photoURL: photoURL,
                     provider: provider,
                     accountStatus: .member,
                     membership: .free,
@@ -225,6 +260,7 @@ class AuthenticationManager: ObservableObject {
     func signOut() {
         do {
             try Auth.auth().signOut()
+            GIDSignIn.sharedInstance.signOut()
             currentUser = nil
             errorMessage = nil
 
@@ -290,18 +326,16 @@ class AuthenticationManager: ObservableObject {
     private func getErrorMessage(from error: Error) -> String {
         let nsError = error as NSError
         switch nsError.code {
-        case AuthErrorCode.wrongPassword.rawValue:
-            return "密碼錯誤"
-        case AuthErrorCode.invalidEmail.rawValue:
-            return "無效的 Email 格式"
-        case AuthErrorCode.emailAlreadyInUse.rawValue:
-            return "此 Email 已被註冊"
-        case AuthErrorCode.weakPassword.rawValue:
-            return "密碼強度不足（至少 6 個字元）"
         case AuthErrorCode.userNotFound.rawValue:
             return "找不到此帳號"
         case AuthErrorCode.networkError.rawValue:
             return "網路連線錯誤"
+        case AuthErrorCode.userDisabled.rawValue:
+            return "此帳號已被停用"
+        case AuthErrorCode.operationNotAllowed.rawValue:
+            return "此登入方式未啟用"
+        case GIDSignInError.canceled.rawValue:
+            return "" // 使用者取消，不顯示錯誤
         default:
             return error.localizedDescription
         }
