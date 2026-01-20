@@ -10,6 +10,7 @@
 		211060212F1F2D1E00BB0E0F /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 211060202F1F2D1E00BB0E0F /* FirebaseAuth */; };
 		211060232F1F2D1E00BB0E0F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 211060222F1F2D1E00BB0E0F /* FirebaseFirestore */; };
 		211060252F1F2D1E00BB0E0F /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 211060242F1F2D1E00BB0E0F /* FirebaseStorage */; };
+		211060E92F1F329E00BB0E0F /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 211060E82F1F329E00BB0E0F /* FirebaseAnalytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 			files = (
 				211060212F1F2D1E00BB0E0F /* FirebaseAuth in Frameworks */,
 				211060232F1F2D1E00BB0E0F /* FirebaseFirestore in Frameworks */,
+				211060E92F1F329E00BB0E0F /* FirebaseAnalytics in Frameworks */,
 				211060252F1F2D1E00BB0E0F /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -38,10 +40,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		211060E72F1F329E00BB0E0F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		F84D81ED2DB85002006730C2 = {
 			isa = PBXGroup;
 			children = (
 				F84D81F82DB85002006730C2 /* Tilli */,
+				211060E72F1F329E00BB0E0F /* Frameworks */,
 				F84D81F72DB85002006730C2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -77,6 +87,7 @@
 				211060202F1F2D1E00BB0E0F /* FirebaseAuth */,
 				211060222F1F2D1E00BB0E0F /* FirebaseFirestore */,
 				211060242F1F2D1E00BB0E0F /* FirebaseStorage */,
+				211060E82F1F329E00BB0E0F /* FirebaseAnalytics */,
 			);
 			productName = Tilli;
 			productReference = F84D81F62DB85002006730C2 /* Tilli.app */;
@@ -370,6 +381,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2110601F2F1F2D1E00BB0E0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		211060E82F1F329E00BB0E0F /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2110601F2F1F2D1E00BB0E0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
