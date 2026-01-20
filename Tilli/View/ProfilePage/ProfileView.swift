@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct ProfileView: View {
 
@@ -20,6 +21,13 @@ struct ProfileView: View {
 
     @State private var showTilliProSheet = false
     @State private var showSignInSheet = false
+
+    // MARK: - 編輯模式
+    @State private var isEditing = false
+    @State private var editedName = ""
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoData: Data?
+    @State private var isUploadingPhoto = false
 
     // MARK: - App Version
     private var appVersion: String {
@@ -53,12 +61,45 @@ struct ProfileView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("個人資料")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // 右上角編輯按鈕（只在已登入時顯示）
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if authManager.isLoggedIn {
+                        Button {
+                            if isEditing {
+                                // 儲存編輯
+                                saveProfile()
+                            } else {
+                                // 進入編輯模式
+                                startEditing()
+                            }
+                        } label: {
+                            Image(systemName: isEditing ? "checkmark" : "pencil")
+                                .font(.body)
+                        }
+                    }
+                }
+
+                // 取消編輯按鈕
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if isEditing {
+                        Button("取消") {
+                            cancelEditing()
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showTilliProSheet) {
                 TilliProSheetView()
             }
             .sheet(isPresented: $showSignInSheet) {
-                SignInSheet()
+                SignInSheetView()
                     .environmentObject(authManager)
+            }
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                Task {
+                    await loadSelectedPhoto(from: newItem)
+                }
             }
         }
         .preferredColorScheme(darkModeEnabled ? .dark : .light)
@@ -67,44 +108,31 @@ struct ProfileView: View {
     // MARK: - 用戶資訊卡片
     private var userInfoCard: some View {
         Button(action: {
-            if !authManager.isLoggedIn {
+            if !authManager.isLoggedIn && !isEditing {
                 showSignInSheet = true
             }
         }) {
             HStack(spacing: 16) {
                 // 頭像
-                if let user = authManager.currentUser {
-                    // 已登入：顯示姓名縮寫
-                    ZStack {
-                        Circle()
-                            .fill(Color.blue.opacity(0.2))
-                            .frame(width: 70, height: 70)
-
-                        Text(userNameInitials(from: user.name))
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
-                    }
-                } else {
-                    // 未登入：灰色圓形 Placeholder
-                    Circle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 70, height: 70)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.title)
-                                .foregroundColor(.gray)
-                        )
-                }
+                profileImageView
 
                 // 用戶資訊
                 VStack(alignment: .leading, spacing: 4) {
-                    if let user = authManager.currentUser {
+                    if authManager.isLoggedIn, let user = authManager.currentUser {
                         // 已登入
-                        Text(user.name)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
+                        if isEditing {
+                            // 編輯模式：顯示文字輸入框
+                            TextField("輸入您的名稱", text: $editedName)
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .textFieldStyle(.plain)
+                        } else {
+                            // 顯示模式
+                            Text(user.name.isEmpty ? "未設定名稱" : user.name)
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                        }
 
                         Text(user.email)
                             .font(.subheadline)
@@ -137,12 +165,133 @@ struct ProfileView: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
+        .disabled(isEditing)
     }
 
-    // MARK: - 姓名縮寫
-    private func userNameInitials(from name: String) -> String {
-        let components = name.prefix(2)
-        return String(components)
+    // MARK: - 頭像顯示
+    @ViewBuilder
+    private var profileImageView: some View {
+        if authManager.isLoggedIn, let user = authManager.currentUser {
+            // 已登入
+            if isEditing {
+                // 編輯模式：可點擊選擇照片
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    profileImageContent(user: user)
+                        .overlay(
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.4))
+
+                                Image(systemName: "camera.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.white)
+                            }
+                        )
+                }
+            } else {
+                // 顯示模式
+                profileImageContent(user: user)
+            }
+        } else {
+            // 未登入：灰色圓形 Placeholder
+            Circle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 70, height: 70)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.title)
+                        .foregroundColor(.gray)
+                )
+        }
+    }
+
+    // MARK: - 頭像內容
+    @ViewBuilder
+    private func profileImageContent(user: UserProfile) -> some View {
+        if let photoData = selectedPhotoData, let uiImage = UIImage(data: photoData) {
+            // 顯示選擇的新照片
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 70, height: 70)
+                .clipShape(Circle())
+        } else if let photoURL = user.photoURL, let url = URL(string: photoURL) {
+            // 顯示現有照片
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 70, height: 70)
+                        .clipShape(Circle())
+                case .failure, .empty:
+                    nameInitialsView(name: user.name)
+                @unknown default:
+                    nameInitialsView(name: user.name)
+                }
+            }
+        } else {
+            // 顯示姓名縮寫
+            nameInitialsView(name: user.name)
+        }
+    }
+
+    // MARK: - 姓名縮寫圓形
+    private func nameInitialsView(name: String) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.blue.opacity(0.2))
+                .frame(width: 70, height: 70)
+
+            Text(name.isEmpty ? "?" : String(name.prefix(2)))
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+        }
+    }
+
+    // MARK: - 編輯操作
+    private func startEditing() {
+        editedName = authManager.currentUser?.name ?? ""
+        selectedPhotoData = nil
+        selectedPhotoItem = nil
+        isEditing = true
+    }
+
+    private func cancelEditing() {
+        editedName = ""
+        selectedPhotoData = nil
+        selectedPhotoItem = nil
+        isEditing = false
+    }
+
+    private func saveProfile() {
+        Task {
+            // 更新名稱
+            let newName = editedName.isEmpty ? nil : editedName
+
+            // TODO: 上傳照片到 Firebase Storage 並取得 URL
+            // 目前先只更新名稱
+            await authManager.updateProfile(name: newName, photoURL: nil)
+
+            isEditing = false
+            editedName = ""
+            selectedPhotoData = nil
+            selectedPhotoItem = nil
+        }
+    }
+
+    private func loadSelectedPhoto(from item: PhotosPickerItem?) async {
+        guard let item = item else { return }
+
+        do {
+            if let data = try await item.loadTransferable(type: Data.self) {
+                selectedPhotoData = data
+            }
+        } catch {
+            print("Error loading photo: \(error)")
+        }
     }
 
     // MARK: - 上方設定卡片
@@ -153,14 +302,21 @@ struct ProfileView: View {
                 showTilliProSheet = true
             }) {
                 HStack {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.secondary)
+                    Image(systemName: "crown.fill")
+                        .foregroundColor(.orange)
                         .frame(width: 24)
 
                     Text("Tilli Pro")
                         .foregroundColor(.primary)
 
                     Spacer()
+
+                    // 顯示會員狀態
+                    if let user = authManager.currentUser {
+                        Text(user.membership == .pro ? "Pro 會員" : "免費版")
+                            .font(.footnote)
+                            .foregroundColor(user.membership == .pro ? .orange : .secondary)
+                    }
 
                     Image(systemName: "chevron.right")
                         .font(.footnote)
@@ -309,6 +465,8 @@ struct ProfileView: View {
             .background(authManager.isLoggedIn ? Color.red : Color.blue)
             .cornerRadius(12)
         }
+        .disabled(isEditing)
+        .opacity(isEditing ? 0.5 : 1)
     }
 }
 

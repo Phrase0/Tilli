@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct TilliApp: App {
@@ -17,6 +18,12 @@ struct TilliApp: App {
     @StateObject private var qRCodeDataManager = QRCodeDataManager()
     let persistenceController = PersistenceController.shared
 
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        FirebaseApp.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -27,6 +34,31 @@ struct TilliApp: App {
                 .environmentObject(productRepository)
                 .environmentObject(inventoryChangeRepository)
                 .environmentObject(qRCodeDataManager)
+                .task {
+                    // App 啟動時自動匿名登入
+                    await authenticationManager.signInAnonymously()
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active {
+                        // App 回到前景時檢查 deviceId
+                        Task {
+                            await authenticationManager.checkDeviceId()
+                        }
+                    }
+                }
+                .alert("帳號已在其他裝置登入", isPresented: $authenticationManager.showDeviceConflictAlert) {
+                    Button("取消", role: .cancel) {
+                        // 不踢掉其他裝置，登出當前帳號
+                        authenticationManager.signOut()
+                    }
+                    Button("登出其他裝置") {
+                        Task {
+                            await authenticationManager.kickOtherDevice()
+                        }
+                    }
+                } message: {
+                    Text("您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？")
+                }
         }
     }
 }
