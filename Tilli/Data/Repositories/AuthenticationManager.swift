@@ -126,7 +126,9 @@ class AuthenticationManager: ObservableObject {
     }
 
     // MARK: - Google 登入（Link 升級匿名帳號）
-    func signInWithGoogle() async {
+    /// - Returns: 是否為新帳號（需要填寫個人資料）
+    @discardableResult
+    func signInWithGoogle() async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -134,37 +136,41 @@ class AuthenticationManager: ObservableObject {
             // 取得 Google credential
             guard let credential = try await getGoogleCredential() else {
                 isLoading = false
-                return
+                return false
             }
 
             guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
                 // 如果不是匿名用戶，直接登入
                 let result = try await Auth.auth().signIn(with: credential)
-                await handleSignInSuccess(user: result.user, provider: .google)
-                return
+                let isNew = await handleSignInSuccess(user: result.user, provider: .google)
+                isLoading = false
+                return isNew
             }
 
-            // 嘗試 Link 匿名帳號到 Google
+            // 嘗試 Link 匿名帳號到 Google（Link 成功一定是新帳號）
             do {
                 let result = try await currentAuthUser.link(with: credential)
                 await handleLinkSuccess(user: result.user, provider: .google)
+                isLoading = false
+                return true // Link 成功 = 新帳號
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
                     // Credential 已被使用，刪除匿名帳號後登入
                     try await Auth.auth().currentUser?.delete()
                     let result = try await Auth.auth().signIn(with: credential)
-                    await handleSignInSuccess(user: result.user, provider: .google)
+                    let isNew = await handleSignInSuccess(user: result.user, provider: .google)
+                    isLoading = false
+                    return isNew
                 } else {
                     throw error
                 }
             }
-
-            isLoading = false
         } catch {
             isLoading = false
             errorMessage = getErrorMessage(from: error)
             print("Google sign in error: \(error)")
+            return false
         }
     }
 
@@ -214,27 +220,28 @@ class AuthenticationManager: ObservableObject {
             guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
                 // 如果不是匿名用戶，直接登入
                 let result = try await Auth.auth().signIn(with: firebaseCredential)
-                await handleAppleSignInSuccess(user: result.user, credential: credential)
+                await handleAppleSignInSuccess(user: result.user)
+                isLoading = false
                 return
             }
 
-            // 嘗試 Link 匿名帳號到 Apple
+            // 嘗試 Link 匿名帳號到 Apple（Link 成功一定是新帳號）
             do {
                 let result = try await currentAuthUser.link(with: firebaseCredential)
-                await handleAppleLinkSuccess(user: result.user, credential: credential)
+                await handleAppleLinkSuccess(user: result.user)
+                isLoading = false
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
                     // Credential 已被使用，刪除匿名帳號後登入
                     try await Auth.auth().currentUser?.delete()
                     let result = try await Auth.auth().signIn(with: firebaseCredential)
-                    await handleAppleSignInSuccess(user: result.user, credential: credential)
+                    await handleAppleSignInSuccess(user: result.user)
+                    isLoading = false
                 } else {
                     throw error
                 }
             }
-
-            isLoading = false
         } catch {
             isLoading = false
             errorMessage = getErrorMessage(from: error)
@@ -242,23 +249,22 @@ class AuthenticationManager: ObservableObject {
         }
     }
 
-    // MARK: - 處理 Apple Link 成功
-    private func handleAppleLinkSuccess(user: FirebaseAuth.User, credential: ASAuthorizationAppleIDCredential) async {
+    // MARK: - 處理 Apple Link 成功（新帳號，不取得第三方姓名和頭貼）
+    private func handleAppleLinkSuccess(user: FirebaseAuth.User) async {
         do {
-            let email = user.email ?? credential.email ?? ""
-            let name = getAppleDisplayName(from: credential) ?? emailPrefix(from: email)
+            let email = user.email ?? ""
 
-            // 升級現有的 UserProfile
+            // 升級現有的 UserProfile（姓名留空，讓用戶自己填寫）
             try await userRepository.upgradeToMember(
                 uid: user.uid,
                 email: email,
-                name: name,
+                name: "",
                 provider: .apple
             )
 
             // 更新本地 currentUser
             if var profile = currentUser {
-                profile.upgradeToMember(email: email, name: name, provider: .apple)
+                profile.upgradeToMember(email: email, name: "", provider: .apple)
                 self.currentUser = profile
             }
 
@@ -270,21 +276,21 @@ class AuthenticationManager: ObservableObject {
     }
 
     // MARK: - 處理 Apple 登入成功
-    private func handleAppleSignInSuccess(user: FirebaseAuth.User, credential: ASAuthorizationAppleIDCredential) async {
+    private func handleAppleSignInSuccess(user: FirebaseAuth.User) async {
         do {
             if let profile = try await userRepository.getUser(uid: user.uid) {
+                // 既有帳號
                 self.currentUser = profile
                 // 更新 deviceId
                 try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
             } else {
-                // 如果沒有 UserProfile，建立一個新的
-                let email = user.email ?? credential.email ?? ""
-                let name = getAppleDisplayName(from: credential) ?? emailPrefix(from: email)
+                // 新帳號：只存 email，姓名留空讓用戶自己填寫
+                let email = user.email ?? ""
 
                 let newProfile = UserProfile(
                     uid: user.uid,
                     email: email,
-                    name: name,
+                    name: "",
                     photoURL: nil,
                     provider: .apple,
                     accountStatus: .member,
@@ -296,28 +302,9 @@ class AuthenticationManager: ObservableObject {
                 try await userRepository.createUser(newProfile)
                 self.currentUser = newProfile
             }
-
-            isLoading = false
         } catch {
             print("Error handling Apple sign in success: \(error)")
-            isLoading = false
         }
-    }
-
-    // MARK: - 從 Apple Credential 取得顯示名稱
-    private func getAppleDisplayName(from credential: ASAuthorizationAppleIDCredential) -> String? {
-        guard let fullName = credential.fullName else { return nil }
-
-        let givenName = fullName.givenName ?? ""
-        let familyName = fullName.familyName ?? ""
-
-        let name = "\(givenName) \(familyName)".trimmingCharacters(in: .whitespaces)
-        return name.isEmpty ? nil : name
-    }
-
-    // MARK: - Email 前綴（作為預設名稱）
-    private func emailPrefix(from email: String) -> String {
-        return email.components(separatedBy: "@").first ?? "使用者"
     }
 
     // MARK: - 生成隨機 Nonce
@@ -377,30 +364,22 @@ class AuthenticationManager: ObservableObject {
         return credential
     }
 
-    // MARK: - 處理 Link 成功
+    // MARK: - 處理 Link 成功（新帳號，不取得第三方姓名和頭貼）
     private func handleLinkSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
         do {
             let email = user.email ?? ""
-            let name = user.displayName ?? email.components(separatedBy: "@").first ?? "使用者"
-            let photoURL = user.photoURL?.absoluteString
 
-            // 升級現有的 UserProfile
+            // 升級現有的 UserProfile（姓名和頭貼留空，讓用戶自己填寫）
             try await userRepository.upgradeToMember(
                 uid: user.uid,
                 email: email,
-                name: name,
+                name: "",
                 provider: provider
             )
 
-            // 更新照片 URL
-            if let photoURL = photoURL {
-                try await userRepository.updateProfile(uid: user.uid, name: nil, photoURL: photoURL)
-            }
-
             // 更新本地 currentUser
             if var profile = currentUser {
-                profile.upgradeToMember(email: email, name: name, provider: provider)
-                profile.photoURL = photoURL
+                profile.upgradeToMember(email: email, name: "", provider: provider)
                 self.currentUser = profile
             }
 
@@ -412,23 +391,25 @@ class AuthenticationManager: ObservableObject {
     }
 
     // MARK: - 處理登入成功
-    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
+    /// - Returns: 是否需要完成個人資料設定（name 為空）
+    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async -> Bool {
         do {
             if let profile = try await userRepository.getUser(uid: user.uid) {
+                // 既有帳號
                 self.currentUser = profile
                 // 更新 deviceId
                 try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
+                // 檢查是否需要完成個人資料設定（name 為空表示之前未完成設定）
+                return profile.name.trimmingCharacters(in: .whitespaces).isEmpty
             } else {
-                // 如果沒有 UserProfile，建立一個新的
+                // 新帳號：只存 email，姓名和頭貼留空讓用戶自己填寫
                 let email = user.email ?? ""
-                let name = user.displayName ?? email.components(separatedBy: "@").first ?? "使用者"
-                let photoURL = user.photoURL?.absoluteString
 
                 let newProfile = UserProfile(
                     uid: user.uid,
                     email: email,
-                    name: name,
-                    photoURL: photoURL,
+                    name: "",
+                    photoURL: nil,
                     provider: provider,
                     accountStatus: .member,
                     membership: .free,
@@ -438,12 +419,11 @@ class AuthenticationManager: ObservableObject {
                 )
                 try await userRepository.createUser(newProfile)
                 self.currentUser = newProfile
+                return true
             }
-
-            isLoading = false
         } catch {
             print("Error handling sign in success: \(error)")
-            isLoading = false
+            return false
         }
     }
 
@@ -496,18 +476,19 @@ class AuthenticationManager: ObservableObject {
 
     // MARK: - 更新個人資料
     func updateProfile(name: String?, photoURL: String?) async {
-        guard let user = currentUser else { return }
+        guard var user = currentUser else { return }
 
         do {
             try await userRepository.updateProfile(uid: user.uid, name: name, photoURL: photoURL)
 
-            // 更新本地 currentUser
+            // 更新本地 currentUser（整個重新賦值以確保 @Published 正確觸發）
             if let name = name {
-                currentUser?.name = name
+                user.name = name
             }
             if let photoURL = photoURL {
-                currentUser?.photoURL = photoURL
+                user.photoURL = photoURL
             }
+            self.currentUser = user
         } catch {
             print("Error updating profile: \(error)")
         }
