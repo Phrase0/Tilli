@@ -11,8 +11,8 @@ struct InventoryChangeView: View {
     @StateObject private var viewModel: InventoryChangeViewModel
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var transactionDataManager: TransactionRepository
+    @EnvironmentObject var sessionDataManager: SessionRepository
     @Environment(\.dismiss) private var dismiss
 
     @State private var timeRange: ReportTimeRange

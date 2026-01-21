@@ -13,7 +13,7 @@ struct AddSessionView: View {
     var onSave: (SessionModel) -> Void
     
     @Environment(\.presentationMode) private var presentationMode
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var transactionDataManager: TransactionRepository
     @EnvironmentObject var productRepository: ProductRepository
     
     enum FocusField: Hashable {

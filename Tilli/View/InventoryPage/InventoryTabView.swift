@@ -10,7 +10,7 @@ import SwiftUI
 /// 庫存管理 Tab 入口頁面
 /// 顯示場次列表，選擇後進入庫存管理詳情
 struct InventoryTabView: View {
-    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var sessionDataManager: SessionRepository
     @StateObject private var viewModel = InventoryTabViewModel()
     @State private var selectedSession: SessionModel? = nil
     @State private var searchText = ""

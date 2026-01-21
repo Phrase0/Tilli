@@ -9,15 +9,15 @@ import SwiftUI
 
 class CalendarViewModel: ObservableObject {
 
-    private var sessionDataManager: SessionDataManager?
-    private var transactionDataManager: TransactionDataManager?
+    private var sessionDataManager: SessionRepository?
+    private var transactionDataManager: TransactionRepository?
 
     // MARK: - DataManager 管理
 
     /// 更新 DataManager 引用
     func updateDataManagers(
-        transactionDataManager: TransactionDataManager,
-        sessionDataManager: SessionDataManager
+        transactionDataManager: TransactionRepository,
+        sessionDataManager: SessionRepository
     ) {
         self.sessionDataManager = sessionDataManager
         self.transactionDataManager = transactionDataManager

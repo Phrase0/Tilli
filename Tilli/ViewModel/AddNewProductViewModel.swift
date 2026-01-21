@@ -39,7 +39,7 @@ class AddNewProductViewModel: ObservableObject {
     private(set) var originalStock: Int = 0
     
     // MARK: - 用於獲取最新狀態的 DataManager
-    private var transactionDataManager: TransactionDataManager?
+    private var transactionDataManager: TransactionRepository?
     
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
@@ -206,7 +206,7 @@ class AddNewProductViewModel: ObservableObject {
 
     // MARK: - 更新 DataManager 引用
     /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager) {
+    func updateDataManagers(transactionDataManager: TransactionRepository) {
          self.transactionDataManager = transactionDataManager
      }
     

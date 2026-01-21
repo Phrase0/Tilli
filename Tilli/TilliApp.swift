@@ -11,11 +11,11 @@ import FirebaseCore
 @main
 struct TilliApp: App {
     @StateObject private var authenticationManager = AuthenticationManager()
-    @StateObject private var sessionDataManager = SessionDataManager()
-    @StateObject private var transactionDataManager = TransactionDataManager()
+    @StateObject private var sessionDataManager = SessionRepository()
+    @StateObject private var transactionDataManager = TransactionRepository()
     @StateObject private var productRepository = ProductRepository()
     @StateObject private var inventoryChangeRepository = InventoryChangeRepository()
-    @StateObject private var qRCodeDataManager = QRCodeDataManager()
+    @StateObject private var qRCodeDataManager = QRCodeRepository()
     let persistenceController = PersistenceController.shared
 
     @Environment(\.scenePhase) private var scenePhase

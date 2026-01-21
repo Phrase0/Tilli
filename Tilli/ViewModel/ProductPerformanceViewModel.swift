@@ -16,8 +16,8 @@ class ProductPerformanceViewModel: ObservableObject {
     @Published var isLoading = false
     
     // MARK: - Dependencies
-    private var transactionDataManager: TransactionDataManager?
-    private var sessionDataManager: SessionDataManager?
+    private var transactionDataManager: TransactionRepository?
+    private var sessionDataManager: SessionRepository?
     @Binding var session: SessionModel
     private(set) var currentTimeRange: ReportTimeRange?
     
@@ -30,8 +30,8 @@ class ProductPerformanceViewModel: ObservableObject {
     
     /// 更新 DataManager 引用
     func updateDataManagers(
-        transactionDataManager: TransactionDataManager,
-        sessionDataManager: SessionDataManager
+        transactionDataManager: TransactionRepository,
+        sessionDataManager: SessionRepository
     ) {
         self.transactionDataManager = transactionDataManager
         self.sessionDataManager = sessionDataManager

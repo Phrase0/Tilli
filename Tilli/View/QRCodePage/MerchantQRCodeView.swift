@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MerchantQRCodeView: View {
     
-    @EnvironmentObject var qrCodeDataManager: QRCodeDataManager
+    @EnvironmentObject var qrCodeDataManager: QRCodeRepository
     @State private var showingImagePicker = false
     @State private var tempSelectedImage: UIImage?
     @State private var showDeleteAlert = false

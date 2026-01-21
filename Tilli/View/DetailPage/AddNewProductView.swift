@@ -10,7 +10,7 @@ struct AddNewProductView: View {
 
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var transactionDataManager: TransactionRepository
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddNewProductViewModel
 

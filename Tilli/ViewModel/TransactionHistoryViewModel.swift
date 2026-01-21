@@ -50,7 +50,7 @@ class TransactionViewModel: ObservableObject {
     @Published var paymentFilter: PaymentMethodFilter = .all
 
     // 用於獲取最新狀態的 DataManager
-    private var transactionDataManager: TransactionDataManager?
+    private var transactionDataManager: TransactionRepository?
     
     var sessionTotalAmount: Decimal {
         if let transactionManager = transactionDataManager {
@@ -138,7 +138,7 @@ class TransactionViewModel: ObservableObject {
     
     /// 更新 DataManager 引用
     func updateDataManagers(
-        transactionDataManager: TransactionDataManager
+        transactionDataManager: TransactionRepository
     ) {
         self.transactionDataManager = transactionDataManager
     }

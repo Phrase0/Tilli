@@ -1,5 +1,5 @@
 //
-//  QRCodeDataManager.swift
+//  QRCodeRepository.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/9/18.
@@ -8,7 +8,7 @@
 import CoreData
 import SwiftUI
 
-class QRCodeDataManager: ObservableObject {
+class QRCodeRepository: ObservableObject {
 
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext

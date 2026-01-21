@@ -11,8 +11,8 @@ import Foundation
 struct SessionDetailView: View {
     
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var sessionDataManager: SessionDataManager
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var transactionDataManager: TransactionRepository
     @StateObject private var viewModel: SessionDetailViewModel
 
     @Binding var session: SessionModel

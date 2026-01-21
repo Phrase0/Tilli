@@ -9,8 +9,8 @@ import SwiftUI
 import Foundation
 
 struct CalendarView: View {
-    @EnvironmentObject var sessionDataManager: SessionDataManager
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var transactionDataManager: TransactionRepository
     @StateObject private var viewModel = CalendarViewModel()
     @State private var currentDate = Date()
     @State private var selectedDate = Date()

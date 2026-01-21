@@ -20,7 +20,7 @@ class SessionDetailViewModel: ObservableObject {
     @Published var showingExportSuccessAlert = false
 
     @Binding var session: SessionModel
-    private var transactionDataManager: TransactionDataManager?
+    private var transactionDataManager: TransactionRepository?
     private var cancellables = Set<AnyCancellable>()
 
     init(session: Binding<SessionModel>) {
@@ -47,8 +47,8 @@ class SessionDetailViewModel: ObservableObject {
     
     /// 更新 DataManager 引用給所有子 ViewModel
     func updateDataManagers(
-        transactionDataManager: TransactionDataManager,
-        sessionDataManager: SessionDataManager,
+        transactionDataManager: TransactionRepository,
+        sessionDataManager: SessionRepository,
         productRepository: ProductRepository
     ) {
         self.transactionDataManager = transactionDataManager

@@ -51,8 +51,8 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     
     /// 更新 DataManager 引用給所有子 ViewModel
     func updateDataManagers(
-        transactionDataManager: TransactionDataManager,
-        sessionDataManager: SessionDataManager
+        transactionDataManager: TransactionRepository,
+        sessionDataManager: SessionRepository
     ) {
         transactionViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager

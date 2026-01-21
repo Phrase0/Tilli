@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SessionsView: View {
 
-    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var sessionDataManager: SessionRepository
 
     @State private var searchText = ""
     @State private var isNavigatingToAddSession = false

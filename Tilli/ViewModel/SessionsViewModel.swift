@@ -56,15 +56,15 @@ class SessionViewModel: ObservableObject {
     }
 
     
-    func addSession(_ newSession: SessionModel, using sessionDataManager: SessionDataManager) {
+    func addSession(_ newSession: SessionModel, using sessionDataManager: SessionRepository) {
         sessionDataManager.addSession(newSession)
     }
 
-    func updateSession(_ updatedSession: SessionModel, using sessionDataManager: SessionDataManager) {
+    func updateSession(_ updatedSession: SessionModel, using sessionDataManager: SessionRepository) {
         sessionDataManager.updateSession(updatedSession)
     }
     
-    func deleteSession(_ session: SessionModel, using sessionDataManager: SessionDataManager) {
+    func deleteSession(_ session: SessionModel, using sessionDataManager: SessionRepository) {
         sessionDataManager.deleteSession(session.id)
     }
     
@@ -74,7 +74,7 @@ class SessionViewModel: ObservableObject {
         newStartDate: Date,
         newEndDate: Date?,
         newDateType: SessionDateType,
-        using sessionDataManager: SessionDataManager
+        using sessionDataManager: SessionRepository
     ) -> SessionModel? {
         let duplicatedSession = sessionDataManager.duplicateSession(
             originalSessionId: originalSession.id,
@@ -122,7 +122,7 @@ class SessionViewModel: ObservableObject {
     }
     
     /// 確認複製場次
-    func confirmDuplicateSession(using sessionDataManager: SessionDataManager) {
+    func confirmDuplicateSession(using sessionDataManager: SessionRepository) {
         guard let sessionToDuplicate = sessionToDuplicate,
               !duplicateSessionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
@@ -217,7 +217,7 @@ class SessionViewModel: ObservableObject {
     }
 
     /// 批次刪除選取的場次
-    func deleteSelectedSessions(using sessionDataManager: SessionDataManager) {
+    func deleteSelectedSessions(using sessionDataManager: SessionRepository) {
         for sessionId in selectedSessionIds {
             sessionDataManager.deleteSession(sessionId)
         }

@@ -12,14 +12,14 @@ import SwiftUI
 /// TransactionDataManager: 專門用於查詢 Transaction 數據
 /// 注意：Transaction 的 CRUD 操作已移至 SessionDataManager
 /// 這個 class 主要用於查詢和統計用途
-class TransactionDataManager: ObservableObject {
+class TransactionRepository: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
 
     /// 交易變更觸發器 - 當交易新增/更新時會改變，用於通知 UI 刷新
     @Published var transactionUpdateTrigger = UUID()
 
-    static let shared = TransactionDataManager()
+    static let shared = TransactionRepository()
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container

@@ -1,5 +1,5 @@
 //
-//  SessionDataManager.swift
+//  SessionRepository.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/27.
@@ -28,7 +28,7 @@ enum SessionValidationResult {
     }
 }
 
-class SessionDataManager: ObservableObject {
+class SessionRepository: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
 
@@ -276,7 +276,7 @@ class SessionDataManager: ObservableObject {
 
             if saveContext() {
                 // UI 更新由 notifyTransactionsChanged() 觸發
-                TransactionDataManager.shared.notifyTransactionsChanged()
+                TransactionRepository.shared.notifyTransactionsChanged()
             }
         } catch {
             print("加入 transaction 失敗:", error)
@@ -293,7 +293,7 @@ class SessionDataManager: ObservableObject {
                 entity.update(from: model, context: context)
                 if saveContext() {
                     fetchSessions() // 僅在成功保存後重新載入
-                    TransactionDataManager.shared.notifyTransactionsChanged() // 通知交易變更
+                    TransactionRepository.shared.notifyTransactionsChanged() // 通知交易變更
                 }
             }
         } catch {

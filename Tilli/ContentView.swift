@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Int = 0
-    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var sessionDataManager: SessionRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     // MARK: - 測試用（測試完成後刪除這段）

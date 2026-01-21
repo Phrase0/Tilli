@@ -9,8 +9,8 @@ import SwiftUI
 
 struct SessionDetailFromCalendarView: View {
     @StateObject private var viewModel: SessionDetailFromCalendarViewModel
-    @EnvironmentObject var sessionDataManager: SessionDataManager
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
+    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var transactionDataManager: TransactionRepository
     @Environment(\.dismiss) private var dismiss
 
     @State private var showingShareSheet = false

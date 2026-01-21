@@ -52,7 +52,7 @@ class InventoryChangeViewModel: ObservableObject {
     let session: SessionModel
     private var productRepository: ProductRepository?
     private var inventoryChangeRepository: InventoryChangeRepository?
-    private var transactionDataManager: TransactionDataManager?
+    private var transactionDataManager: TransactionRepository?
 
     // MARK: - Computed Properties
 
@@ -99,7 +99,7 @@ class InventoryChangeViewModel: ObservableObject {
     /// 更新 Repository 引用
     func updateRepositories(productRepository: ProductRepository,
                             inventoryChangeRepository: InventoryChangeRepository,
-                            transactionDataManager: TransactionDataManager) {
+                            transactionDataManager: TransactionRepository) {
         self.productRepository = productRepository
         self.inventoryChangeRepository = inventoryChangeRepository
         self.transactionDataManager = transactionDataManager

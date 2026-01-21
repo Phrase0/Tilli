@@ -40,8 +40,8 @@ class ProductViewModel: ObservableObject {
     }
     
     // 用於獲取最新狀態的 DataManager
-    private var transactionDataManager: TransactionDataManager?
-    private var sessionDataManager: SessionDataManager?
+    private var transactionDataManager: TransactionRepository?
+    private var sessionDataManager: SessionRepository?
     private var productRepository: ProductRepository?
     
     // 計算屬性：可顯示的產品（Product.isDisabled == false && Category.isDisabled == false）
@@ -100,8 +100,8 @@ class ProductViewModel: ObservableObject {
     
     /// 更新 DataManager 引用
     func updateDataManagers(
-        transactionDataManager: TransactionDataManager,
-        sessionDataManager: SessionDataManager,
+        transactionDataManager: TransactionRepository,
+        sessionDataManager: SessionRepository,
         productRepository: ProductRepository
     ) {
         self.transactionDataManager = transactionDataManager

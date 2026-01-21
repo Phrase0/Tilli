@@ -127,7 +127,7 @@ class CashPaymentViewModel: ObservableObject {
     }
 
     func performCheckout(
-        sessionDataManager: SessionDataManager,
+        sessionDataManager: SessionRepository,
         productRepository: ProductRepository,
         inventoryChangeRepository: InventoryChangeRepository
     ) -> SessionModel {

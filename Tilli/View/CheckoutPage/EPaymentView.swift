@@ -10,10 +10,10 @@ import Foundation
 
 struct EPaymentView: View {
 
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var transactionDataManager: TransactionRepository
+    @EnvironmentObject var sessionDataManager: SessionRepository
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var qrCodeDataManager: QRCodeDataManager
+    @EnvironmentObject var qrCodeDataManager: QRCodeRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     @Binding var session: SessionModel

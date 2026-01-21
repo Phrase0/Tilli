@@ -41,7 +41,7 @@ class AddSessionViewModel: ObservableObject {
     var editingSession: SessionModel?
 
     // 用於獲取最新狀態的 DataManager
-    private var transactionDataManager: TransactionDataManager?
+    private var transactionDataManager: TransactionRepository?
     private var productRepository: ProductRepository?
 
     // 判斷是否有交易記錄（用於決定是否可編輯幣別）
@@ -139,7 +139,7 @@ class AddSessionViewModel: ObservableObject {
     }
     
     /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager, productRepository: ProductRepository) {
+    func updateDataManagers(transactionDataManager: TransactionRepository, productRepository: ProductRepository) {
         self.transactionDataManager = transactionDataManager
         self.productRepository = productRepository
     }

@@ -26,7 +26,7 @@ class TestDataGenerator {
     /// 生成測試資料：永久場次 + 類別 + 產品 + 跨多月交易 + 庫存異動
     /// 如果已存在測試場次則跳過
     static func generateTestData(
-        sessionDataManager: SessionDataManager,
+        sessionDataManager: SessionRepository,
         inventoryChangeRepository: InventoryChangeRepository
     ) {
         
@@ -221,7 +221,7 @@ class TestDataGenerator {
     }
 
     static func generate30DaysMultiCafeSession(
-        sessionDataManager: SessionDataManager,
+        sessionDataManager: SessionRepository,
         inventoryChangeRepository: InventoryChangeRepository
     ) {
         if UserDefaults.standard.bool(forKey: didGenerateMulti30DaysKey) {
@@ -415,7 +415,7 @@ class TestDataGenerator {
 
     /// 生成跨多月的交易資料與庫存異動
     private static func generateTransactions(
-        sessionDataManager: SessionDataManager,
+        sessionDataManager: SessionRepository,
         inventoryChangeRepository: InventoryChangeRepository,
         sessionId: UUID,
         sessionTitle: String,
@@ -537,7 +537,7 @@ class TestDataGenerator {
     }
 
     /// 清除測試資料（根據場次名稱）
-    static func clearTestData(sessionDataManager: SessionDataManager) {
+    static func clearTestData(sessionDataManager: SessionRepository) {
         if let testSession = sessionDataManager.sessions.first(where: {
             $0.id == testSessionId
         }) {

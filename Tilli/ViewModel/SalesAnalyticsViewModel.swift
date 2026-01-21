@@ -71,7 +71,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     // MARK: - Dependencies
-    private var transactionDataManager: TransactionDataManager?
+    private var transactionDataManager: TransactionRepository?
     @Binding var session: SessionModel
     private(set) var currentTimeRange: ReportTimeRange?
 
@@ -83,7 +83,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     // MARK: - DataManager 管理
 
     /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionDataManager) {
+    func updateDataManagers(transactionDataManager: TransactionRepository) {
         self.transactionDataManager = transactionDataManager
     }
 

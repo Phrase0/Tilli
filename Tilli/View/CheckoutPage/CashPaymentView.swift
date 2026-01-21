@@ -10,8 +10,8 @@ import Foundation
 
 struct CashPaymentView: View {
 
-    @EnvironmentObject var transactionDataManager: TransactionDataManager
-    @EnvironmentObject var sessionDataManager: SessionDataManager
+    @EnvironmentObject var transactionDataManager: TransactionRepository
+    @EnvironmentObject var sessionDataManager: SessionRepository
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
