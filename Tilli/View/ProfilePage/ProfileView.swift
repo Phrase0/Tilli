@@ -147,7 +147,15 @@ struct ProfileView: View {
     @ViewBuilder
     private var profileImageView: some View {
         if let user = authManager.currentUser {
-            if let photoURL = user.photoURL, let url = URL(string: photoURL) {
+            // 優先顯示本地圖片（剛上傳的）
+            if let localImage = authManager.localProfileImage {
+                Image(uiImage: localImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 70, height: 70)
+                    .clipShape(Circle())
+            } else if let photoURL = user.photoURL, !photoURL.isEmpty, let url = URL(string: photoURL) {
+                // 沒有本地圖片時，用 AsyncImage 載入
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
@@ -156,17 +164,23 @@ struct ProfileView: View {
                             .scaledToFill()
                             .frame(width: 70, height: 70)
                             .clipShape(Circle())
-                    default:
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 70, height: 70)
+                            .background(Color.gray.opacity(0.1))
+                            .clipShape(Circle())
+                    case .failure:
+                        nameInitialsView(name: user.name)
+                    @unknown default:
                         nameInitialsView(name: user.name)
                     }
                 }
-                .id(photoURL) // 當 photoURL 變化時強制重建 AsyncImage
             } else {
                 nameInitialsView(name: user.name)
             }
         }
     }
-
+    
     // MARK: - 姓名縮寫圓形
     private func nameInitialsView(name: String) -> some View {
         ZStack {

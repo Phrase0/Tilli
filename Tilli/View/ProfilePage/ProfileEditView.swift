@@ -104,11 +104,11 @@ struct ProfileEditView: View {
                                 Circle()
                                     .fill(Color.black.opacity(0.3))
                                     .frame(width: 120, height: 120)
-                                    .overlay(
-                                        Image(systemName: "pencil")
-                                            .font(.title2)
-                                            .foregroundColor(.white)
-                                    )
+//                                    .overlay(
+//                                        Image(systemName: "pencil")
+//                                            .font(.title2)
+//                                            .foregroundColor(.white)
+//                                    )
                             }
                         }
                     }
@@ -229,9 +229,9 @@ struct ProfileEditView: View {
                 photoURL = try await uploadPhoto(imageData)
             }
 
-            // 更新 UserProfile
+            // 更新 UserProfile（同時傳遞本地圖片）
             let trimmedName = name.trimmingCharacters(in: .whitespaces)
-            await authManager.updateProfile(name: trimmedName, photoURL: photoURL)
+            await authManager.updateProfile(name: trimmedName, photoURL: photoURL, localImage: selectedImage)
 
             isSaving = false
             dismiss()
@@ -258,6 +258,7 @@ struct ProfileEditView: View {
         _ = try await photoRef.putDataAsync(data, metadata: metadata)
 
         let downloadURL = try await photoRef.downloadURL()
-        return downloadURL.absoluteString
+        let timestamp = Int(Date().timeIntervalSince1970)
+        return "\(downloadURL.absoluteString)&t=\(timestamp)"
     }
 }

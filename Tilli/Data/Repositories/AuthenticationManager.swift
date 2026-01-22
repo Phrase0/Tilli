@@ -29,6 +29,7 @@ class AuthenticationManager: ObservableObject {
     // MARK: - Published Properties
     @Published var authState: AuthState = .loading
     @Published var currentUser: UserProfile?
+    @Published var localProfileImage: UIImage?  // 暫存本地圖片，優先顯示
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showDeviceConflictAlert = false
@@ -515,13 +516,13 @@ class AuthenticationManager: ObservableObject {
     }
 
     // MARK: - 更新個人資料
-    func updateProfile(name: String?, photoURL: String?) async {
+    func updateProfile(name: String?, photoURL: String?, localImage: UIImage? = nil) async {
         guard var user = currentUser else { return }
 
         do {
             try await userRepository.updateProfile(uid: user.uid, name: name, photoURL: photoURL)
 
-            // 更新本地 currentUser（整個重新賦值以確保 @Published 正確觸發）
+            // 更新本地 currentUser
             if let name = name {
                 user.name = name
             }
@@ -530,7 +531,11 @@ class AuthenticationManager: ObservableObject {
             }
             self.currentUser = user
 
-            // 更新 authState
+            // 儲存本地圖片，讓 ProfileView 優先顯示
+            if let localImage = localImage {
+                self.localProfileImage = localImage
+            }
+
             updateAuthState()
         } catch {
             print("Error updating profile: \(error)")
