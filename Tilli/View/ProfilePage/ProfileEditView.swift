@@ -255,12 +255,9 @@ struct ProfileEditView: View {
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
 
-        // 上傳照片
         _ = try await photoRef.putDataAsync(data, metadata: metadata)
 
-        // 取得下載 URL，加上時間戳以打破 AsyncImage 快取
         let downloadURL = try await photoRef.downloadURL()
-        let timestamp = Int(Date().timeIntervalSince1970)
-        return "\(downloadURL.absoluteString)&t=\(timestamp)"
+        return downloadURL.absoluteString
     }
 }

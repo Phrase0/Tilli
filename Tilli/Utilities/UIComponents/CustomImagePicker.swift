@@ -20,8 +20,6 @@ struct CustomImagePicker: UIViewControllerRepresentable {
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            picker.dismiss(animated: true)
-
             var finalImage: UIImage?
 
             if let editedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage {
@@ -48,7 +46,6 @@ struct CustomImagePicker: UIViewControllerRepresentable {
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
             parent.isPresented = false
         }
     }

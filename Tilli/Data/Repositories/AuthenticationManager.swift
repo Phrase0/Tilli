@@ -81,6 +81,16 @@ class AuthenticationManager: ObservableObject {
 
     // MARK: - 處理認證狀態變化
     private func handleAuthStateChanged(user: FirebaseAuth.User) async {
+        // 如果正在設定 profile（needsSetup），不要干擾
+        guard authState != .needsSetup else { return }
+
+        // 如果記憶體中已經有這個用戶的資料，不需要重新從 Firestore 讀取
+        // 這可以防止 Token 刷新時，Firestore 的舊資料覆蓋剛更新的本地資料
+        if let current = currentUser, current.uid == user.uid {
+            return
+        }
+
+        // 只有在沒有本地資料時才從 Firestore 讀取（例如 App 啟動時）
         do {
             if let userProfile = try await userRepository.getUser(uid: user.uid) {
                 // 檢查 Pro 會員是否過期
