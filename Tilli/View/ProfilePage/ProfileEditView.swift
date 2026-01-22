@@ -42,7 +42,7 @@ struct ProfileEditView: View {
 
     /// 是否有任何圖片可顯示
     private var hasImage: Bool {
-        selectedImage != nil || authManager.currentUser?.photoURL != nil
+        selectedImage != nil || authManager.localProfileImage != nil || authManager.currentUser?.photoURL != nil
     }
 
     var body: some View {
@@ -73,15 +73,22 @@ struct ProfileEditView: View {
                         ZStack {
                             // 圖片內容
                             if let image = selectedImage {
-                                // 顯示選擇的新照片
+                                // 1. 優先顯示剛選的新照片
                                 Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                            } else if let localImage = authManager.localProfileImage {
+                                // 2. 顯示本地快取的照片（立即顯示）
+                                Image(uiImage: localImage)
                                     .resizable()
                                     .scaledToFill()
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                             } else if let photoURL = authManager.currentUser?.photoURL,
                                       let url = URL(string: photoURL) {
-                                // 顯示現有照片
+                                // 3. 用 AsyncImage 載入現有照片
                                 AsyncImage(url: url) { phase in
                                     switch phase {
                                     case .success(let image):
@@ -95,20 +102,8 @@ struct ProfileEditView: View {
                                     }
                                 }
                             } else {
-                                // 沒有圖片：顯示 placeholder + 相機 icon
+                                // 4. 沒有圖片：顯示 placeholder
                                 placeholderWithCamera
-                            }
-
-                            // 只有在有圖片時，顯示半透明的編輯提示
-                            if hasImage {
-                                Circle()
-                                    .fill(Color.black.opacity(0.3))
-                                    .frame(width: 120, height: 120)
-//                                    .overlay(
-//                                        Image(systemName: "pencil")
-//                                            .font(.title2)
-//                                            .foregroundColor(.white)
-//                                    )
                             }
                         }
                     }
