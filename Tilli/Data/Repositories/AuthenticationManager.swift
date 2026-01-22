@@ -199,7 +199,17 @@ class AuthenticationManager: ObservableObject {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
                     // Credential 已被使用，刪除匿名帳號後登入
+                    // 先記錄要刪除的匿名 uid
+                    let anonymousUid = Auth.auth().currentUser?.uid
+
+                    // 刪除 Firebase Auth 的匿名帳號
                     try await Auth.auth().currentUser?.delete()
+
+                    // 刪除 Firestore 中的 Guest UserProfile（避免孤兒資料）
+                    if let uid = anonymousUid {
+                        try? await userRepository.deleteUser(uid: uid)
+                    }
+
                     let result = try await Auth.auth().signIn(with: credential)
                     await handleSignInSuccess(user: result.user, provider: .google)
                     isLoading = false
@@ -473,6 +483,7 @@ class AuthenticationManager: ObservableObject {
             try Auth.auth().signOut()
             GIDSignIn.sharedInstance.signOut()
             currentUser = nil
+            localProfileImage = nil
             errorMessage = nil
             authState = .guest
 
