@@ -11,9 +11,6 @@ struct SignInView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authManager: AuthenticationManager
 
-    /// 控制是否顯示新用戶個人資料設定
-    @State private var showProfileSetup = false
-
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground)
@@ -66,16 +63,12 @@ struct SignInView: View {
                     // Google 登入按鈕
                     Button {
                         Task {
-                            let isNewUser = await authManager.signInWithGoogle()
-                            // 登入成功後檢查是否為新用戶
-                            if authManager.errorMessage == nil && authManager.isLoggedIn {
-                                if isNewUser {
-                                    // 新用戶：顯示個人資料設定
-                                    showProfileSetup = true
-                                } else {
-                                    // 既有用戶：直接返回
-                                    dismiss()
-                                }
+                            await authManager.signInWithGoogle()
+                            // 登入成功後直接 dismiss
+                            // ContentView 會根據 authState 自動顯示 ProfileEditView
+                            if authManager.errorMessage == nil &&
+                               (authManager.authState == .needsSetup || authManager.authState == .ready) {
+                                dismiss()
                             }
                         }
                     } label: {
@@ -122,21 +115,6 @@ struct SignInView: View {
                     ProgressView()
                         .scaleEffect(1.5)
                         .tint(.white)
-                }
-            }
-        }
-        // 新用戶：全屏顯示個人資料設定
-        .fullScreenCover(isPresented: $showProfileSetup) {
-            NavigationStack {
-                ProfileEditView(isNewUser: true)
-                    .environmentObject(authManager)
-            }
-            .interactiveDismissDisabled()
-            .onDisappear {
-                // ProfileEditView 完成後，也關閉 SignInView
-                if authManager.isLoggedIn &&
-                   !(authManager.currentUser?.name.trimmingCharacters(in: .whitespaces).isEmpty ?? true) {
-                    dismiss()
                 }
             }
         }

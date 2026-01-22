@@ -18,7 +18,16 @@ import FirebaseCore
 @MainActor
 class AuthenticationManager: ObservableObject {
 
+    // MARK: - Auth State
+    enum AuthState: Equatable {
+        case loading      // Firebase Auth 還在載入
+        case guest        // 匿名用戶
+        case needsSetup   // 已登入但需要設定 profile（name 為空）
+        case ready        // 已登入且 profile 完整
+    }
+
     // MARK: - Published Properties
+    @Published var authState: AuthState = .loading
     @Published var currentUser: UserProfile?
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -64,6 +73,7 @@ class AuthenticationManager: ObservableObject {
                     await self?.handleAuthStateChanged(user: user)
                 } else {
                     self?.currentUser = nil
+                    self?.authState = .guest
                 }
             }
         }
@@ -80,9 +90,31 @@ class AuthenticationManager: ObservableObject {
                     try await userRepository.updateMembership(uid: profile.uid, membership: .free, expiryDate: nil)
                 }
                 self.currentUser = profile
+                // 更新 authState
+                updateAuthState()
+            } else {
+                // 有 Firebase Auth 用戶但沒有 UserProfile（可能是匿名用戶首次）
+                self.authState = .guest
             }
         } catch {
             print("Error fetching user profile: \(error)")
+            self.authState = .guest
+        }
+    }
+
+    // MARK: - 更新 AuthState
+    private func updateAuthState() {
+        guard let user = currentUser else {
+            authState = .guest
+            return
+        }
+
+        if user.accountStatus == .guest {
+            authState = .guest
+        } else if user.name.trimmingCharacters(in: .whitespaces).isEmpty {
+            authState = .needsSetup
+        } else {
+            authState = .ready
         }
     }
 
@@ -118,17 +150,17 @@ class AuthenticationManager: ObservableObject {
             }
 
             isLoading = false
+            updateAuthState()
         } catch {
             isLoading = false
+            authState = .guest
             errorMessage = error.localizedDescription
             print("Anonymous sign in error: \(error)")
         }
     }
 
     // MARK: - Google 登入（Link 升級匿名帳號）
-    /// - Returns: 是否為新帳號（需要填寫個人資料）
-    @discardableResult
-    func signInWithGoogle() async -> Bool {
+    func signInWithGoogle() async {
         isLoading = true
         errorMessage = nil
 
@@ -136,15 +168,15 @@ class AuthenticationManager: ObservableObject {
             // 取得 Google credential
             guard let credential = try await getGoogleCredential() else {
                 isLoading = false
-                return false
+                return
             }
 
             guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
                 // 如果不是匿名用戶，直接登入
                 let result = try await Auth.auth().signIn(with: credential)
-                let isNew = await handleSignInSuccess(user: result.user, provider: .google)
+                await handleSignInSuccess(user: result.user, provider: .google)
                 isLoading = false
-                return isNew
+                return
             }
 
             // 嘗試 Link 匿名帳號到 Google（Link 成功一定是新帳號）
@@ -152,16 +184,14 @@ class AuthenticationManager: ObservableObject {
                 let result = try await currentAuthUser.link(with: credential)
                 await handleLinkSuccess(user: result.user, provider: .google)
                 isLoading = false
-                return true // Link 成功 = 新帳號
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
                     // Credential 已被使用，刪除匿名帳號後登入
                     try await Auth.auth().currentUser?.delete()
                     let result = try await Auth.auth().signIn(with: credential)
-                    let isNew = await handleSignInSuccess(user: result.user, provider: .google)
+                    await handleSignInSuccess(user: result.user, provider: .google)
                     isLoading = false
-                    return isNew
                 } else {
                     throw error
                 }
@@ -170,7 +200,6 @@ class AuthenticationManager: ObservableObject {
             isLoading = false
             errorMessage = getErrorMessage(from: error)
             print("Google sign in error: \(error)")
-            return false
         }
     }
 
@@ -385,22 +414,22 @@ class AuthenticationManager: ObservableObject {
 
             // 更新 deviceId
             try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
+
+            // 更新 authState（Link 成功 = 新帳號，需要設定 profile）
+            authState = .needsSetup
         } catch {
             print("Error upgrading user: \(error)")
         }
     }
 
     // MARK: - 處理登入成功
-    /// - Returns: 是否需要完成個人資料設定（name 為空）
-    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async -> Bool {
+    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
         do {
             if let profile = try await userRepository.getUser(uid: user.uid) {
                 // 既有帳號
                 self.currentUser = profile
                 // 更新 deviceId
                 try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
-                // 檢查是否需要完成個人資料設定（name 為空表示之前未完成設定）
-                return profile.name.trimmingCharacters(in: .whitespaces).isEmpty
             } else {
                 // 新帳號：只存 email，姓名和頭貼留空讓用戶自己填寫
                 let email = user.email ?? ""
@@ -419,11 +448,11 @@ class AuthenticationManager: ObservableObject {
                 )
                 try await userRepository.createUser(newProfile)
                 self.currentUser = newProfile
-                return true
             }
+            // 更新 authState
+            updateAuthState()
         } catch {
             print("Error handling sign in success: \(error)")
-            return false
         }
     }
 
@@ -434,6 +463,7 @@ class AuthenticationManager: ObservableObject {
             GIDSignIn.sharedInstance.signOut()
             currentUser = nil
             errorMessage = nil
+            authState = .guest
 
             // 重新匿名登入
             Task {
@@ -489,6 +519,9 @@ class AuthenticationManager: ObservableObject {
                 user.photoURL = photoURL
             }
             self.currentUser = user
+
+            // 更新 authState
+            updateAuthState()
         } catch {
             print("Error updating profile: \(error)")
         }
