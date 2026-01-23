@@ -30,6 +30,9 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 
+# Firebase / Google Services
+GoogleService-Info.plist
+
 ## Playgrounds
 timeline.xctimeline
 playground.xcworkspace
