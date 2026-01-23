@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseStorage
+import Kingfisher
 
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
@@ -29,20 +30,6 @@ struct ProfileEditView: View {
 
     private var canSave: Bool {
         isNameValid && !isSaving
-    }
-
-    /// 目前顯示的圖片（優先選擇的新圖片，其次是現有頭貼）
-    private var displayImage: UIImage? {
-        if let selected = selectedImage {
-            return selected
-        }
-        // 如果沒有選擇新圖片，嘗試從現有 URL 載入（這裡只返回 nil，用 AsyncImage 處理）
-        return nil
-    }
-
-    /// 是否有任何圖片可顯示
-    private var hasImage: Bool {
-        selectedImage != nil || authManager.localProfileImage != nil || authManager.currentUser?.photoURL != nil
     }
 
     var body: some View {
@@ -88,19 +75,14 @@ struct ProfileEditView: View {
                                     .clipShape(Circle())
                             } else if let photoURL = authManager.currentUser?.photoURL,
                                       let url = URL(string: photoURL) {
-                                // 3. 用 AsyncImage 載入現有照片
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 120, height: 120)
-                                            .clipShape(Circle())
-                                    default:
-                                        placeholderWithCamera
-                                    }
-                                }
+                                // 3. 用 Kingfisher 載入現有照片
+                                KFImage(url)
+                                    .placeholder { placeholderWithCamera }
+                                    .onFailure { _ in }
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
                             } else {
                                 // 4. 沒有圖片：顯示 placeholder
                                 placeholderWithCamera
@@ -251,9 +233,10 @@ struct ProfileEditView: View {
         metadata.contentType = "image/jpeg"
 
         _ = try await photoRef.putDataAsync(data, metadata: metadata)
-
         let downloadURL = try await photoRef.downloadURL()
-        let timestamp = Int(Date().timeIntervalSince1970)
-        return "\(downloadURL.absoluteString)&t=\(timestamp)"
+
+        let urlString = downloadURL.absoluteString
+        let separator = urlString.contains("?") ? "&" : "?"
+        return "\(urlString)\(separator)t=\(Int(Date().timeIntervalSince1970))"
     }
 }

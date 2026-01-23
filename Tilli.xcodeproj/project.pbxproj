@@ -13,6 +13,7 @@
 		211060E92F1F329E00BB0E0F /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 211060E82F1F329E00BB0E0F /* FirebaseAnalytics */; };
 		211060F52F1F84FE00BB0E0F /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 211060F42F1F84FE00BB0E0F /* GoogleSignIn */; };
 		211060F72F1F84FE00BB0E0F /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */; };
+		214091952F236766000AAB46 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 214091942F236766000AAB46 /* Kingfisher */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 			files = (
 				211060F52F1F84FE00BB0E0F /* GoogleSignIn in Frameworks */,
 				211060212F1F2D1E00BB0E0F /* FirebaseAuth in Frameworks */,
+				214091952F236766000AAB46 /* Kingfisher in Frameworks */,
 				211060232F1F2D1E00BB0E0F /* FirebaseFirestore in Frameworks */,
 				211060F72F1F84FE00BB0E0F /* GoogleSignInSwift in Frameworks */,
 				211060E92F1F329E00BB0E0F /* FirebaseAnalytics in Frameworks */,
@@ -107,6 +109,7 @@
 				211060E82F1F329E00BB0E0F /* FirebaseAnalytics */,
 				211060F42F1F84FE00BB0E0F /* GoogleSignIn */,
 				211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */,
+				214091942F236766000AAB46 /* Kingfisher */,
 			);
 			productName = Tilli;
 			productReference = F84D81F62DB85002006730C2 /* Tilli.app */;
@@ -139,6 +142,7 @@
 			packageReferences = (
 				2110601F2F1F2D1E00BB0E0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				211060F32F1F84FE00BB0E0F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				214091932F236766000AAB46 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F84D81F72DB85002006730C2 /* Products */;
@@ -394,6 +398,14 @@
 				minimumVersion = 9.1.0;
 			};
 		};
+		214091932F236766000AAB46 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.6.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -426,6 +438,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 211060F32F1F84FE00BB0E0F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		214091942F236766000AAB46 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 214091932F236766000AAB46 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

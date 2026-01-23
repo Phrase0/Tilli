@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Kingfisher
 
 struct ProfileView: View {
 
@@ -155,26 +156,19 @@ struct ProfileView: View {
                     .frame(width: 70, height: 70)
                     .clipShape(Circle())
             } else if let photoURL = user.photoURL, !photoURL.isEmpty, let url = URL(string: photoURL) {
-                // 沒有本地圖片時，用 AsyncImage 載入
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 70, height: 70)
-                            .clipShape(Circle())
-                    case .empty:
+                // 沒有本地圖片時，用 Kingfisher 載入
+                KFImage(url)
+                    .placeholder {
                         ProgressView()
                             .frame(width: 70, height: 70)
                             .background(Color.gray.opacity(0.1))
                             .clipShape(Circle())
-                    case .failure:
-                        nameInitialsView(name: user.name)
-                    @unknown default:
-                        nameInitialsView(name: user.name)
                     }
-                }
+                    .onFailure { _ in }
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 70, height: 70)
+                    .clipShape(Circle())
             } else {
                 nameInitialsView(name: user.name)
             }
