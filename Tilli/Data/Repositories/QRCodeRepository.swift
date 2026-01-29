@@ -13,7 +13,12 @@ class QRCodeRepository: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
 
-    @Published var qrCodeImage: UIImage?
+    @Published var qrCode: QRCodeModel?
+
+    /// 便利屬性：取得 QR Code 圖片
+    var qrCodeImage: UIImage? {
+        return qrCode?.image
+    }
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
@@ -23,7 +28,7 @@ class QRCodeRepository: ObservableObject {
 
     // MARK: - QR Code Operations
 
-    /// 載入 QR Code 圖片
+    /// 載入 QR Code
     func loadQRCode() {
         let request: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
         request.fetchLimit = 1
@@ -31,43 +36,41 @@ class QRCodeRepository: ObservableObject {
         do {
             let result = try context.fetch(request)
             if let qrEntity = result.first {
-                qrCodeImage = UIImage(data: qrEntity.imageData)
+                qrCode = qrEntity.toModel()
             } else {
-                qrCodeImage = nil
+                qrCode = nil
             }
         } catch {
             print("Load QR Code failed:", error)
-            qrCodeImage = nil
+            qrCode = nil
         }
     }
 
-    /// 儲存 QR Code 圖片
-    func saveQRCode(_ image: UIImage) {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            print("Failed to convert image to data")
-            return
-        }
-
+    /// 儲存 QR Code
+    func saveQRCode(_ model: QRCodeModel) {
         // 先刪除所有現有的 QR Code，然後新增
         deleteAllQRCodes()
 
-        // 新增 QR Code
-        let qrEntity = CDQRCodeEntity(context: context)
-        qrEntity.id = UUID()
-        qrEntity.createdAt = Date()
-        qrEntity.imageData = imageData
+        // 新增 QR Code Entity
+        let entity = CDQRCodeEntity(context: context)
+        entity.update(from: model, context: context)
+
+        // 設定 sync 相關欄位（由 Repository 處理）
+        // entity.userId = AuthManager.shared.currentUserId  // Phase 1.4 時啟用
+        entity.updatedAt = Date()
+        entity.syncStatus = "pending"
 
         saveContext()
 
         // 更新 Published 屬性
         DispatchQueue.main.async {
-            self.qrCodeImage = image
+            self.qrCode = model
         }
     }
 
-    /// 更新 QR Code 圖片
-    func updateQRCode(_ image: UIImage) {
-        saveQRCode(image) // 因為邏輯相同，直接呼叫 saveQRCode
+    /// 更新 QR Code
+    func updateQRCode(_ model: QRCodeModel) {
+        saveQRCode(model)
     }
 
     /// 刪除 QR Code
@@ -77,7 +80,7 @@ class QRCodeRepository: ObservableObject {
 
         // 更新 Published 屬性
         DispatchQueue.main.async {
-            self.qrCodeImage = nil
+            self.qrCode = nil
         }
     }
 
@@ -95,9 +98,9 @@ class QRCodeRepository: ObservableObject {
         }
     }
 
-    /// 取得 QR Code 圖片
-    func getQRCode() -> UIImage? {
-        return qrCodeImage
+    /// 取得 QR Code Model
+    func getQRCode() -> QRCodeModel? {
+        return qrCode
     }
 
     // MARK: - Save Context

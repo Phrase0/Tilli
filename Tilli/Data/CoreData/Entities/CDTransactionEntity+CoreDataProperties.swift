@@ -28,6 +28,10 @@ extension CDTransactionEntity {
     @NSManaged public var discountValue: NSDecimalNumber?  // 折扣數值
     @NSManaged public var session: CDSessionEntity?
 
+    // MARK: - Sync 相關欄位
+    @NSManaged public var userId: String?        // 所屬用戶 ID
+    @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
+
 }
 
 

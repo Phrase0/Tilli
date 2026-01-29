@@ -94,8 +94,15 @@ struct MerchantQRCodeView: View {
             CustomImagePicker(image: $tempSelectedImage, isPresented: $showingImagePicker)
         }
         .onChange(of: tempSelectedImage) {
-            if let image = tempSelectedImage {
-                qrCodeDataManager.saveQRCode(image)
+            if let image = tempSelectedImage,
+               let imageData = image.jpegData(compressionQuality: 0.8) {
+                let model = QRCodeModel(
+                    id: UUID(),
+                    imageData: imageData,
+                    imageURL: nil,
+                    createdAt: Date()
+                )
+                qrCodeDataManager.saveQRCode(model)
                 tempSelectedImage = nil
             }
         }

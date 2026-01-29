@@ -13,6 +13,7 @@ struct CategoryModel: Identifiable, Codable, Hashable {
     var createdAt: Date = Date()
     var isDisabled: Bool = false
     var sortOrder: Int = 0
+    var sessionId: UUID?             // Firestore 同步用
 }
 
 extension CategoryModel {
@@ -23,6 +24,7 @@ extension CategoryModel {
         self.products = (entity.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
         self.isDisabled = entity.isDisabled
         self.sortOrder = Int(entity.sortOrder)
+        self.sessionId = entity.sessionId ?? entity.session.id
     }
 }
 

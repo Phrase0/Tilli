@@ -18,6 +18,8 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var note: String?
     var imageData: Data?             // 可選圖片（轉 UIImage 用 image）
     var isDisabled: Bool
+    var imageURL: String?            // Firebase Storage URL（雲端圖片）
+    var createdAt: Date = Date()     // 產品建立時間
     
     var image: UIImage? {
         get {
@@ -39,10 +41,12 @@ extension ProductModel {
         self.stock = Int(entity.stock)
         self.note = entity.note
         self.imageData = entity.imageData
-        
+
         self.categoryId = entity.categoryId
         self.categoryName = entity.categoryName
         self.isDisabled = entity.isDisabled
+        self.imageURL = entity.imageURL
+        self.createdAt = entity.createdAt ?? Date()
     }
 }
 

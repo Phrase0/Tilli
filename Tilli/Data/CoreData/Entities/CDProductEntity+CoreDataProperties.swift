@@ -27,6 +27,13 @@ extension CDProductEntity {
     @NSManaged public var category: CDCategoryEntity
     @NSManaged public var isDisabled: Bool
 
+    // MARK: - Sync 相關欄位
+    @NSManaged public var userId: String?        // 所屬用戶 ID
+    @NSManaged public var createdAt: Date?       // 產品建立時間
+    @NSManaged public var updatedAt: Date?       // 最後更新時間
+    @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
+    @NSManaged public var imageURL: String?      // Firebase Storage URL
+
 }
 
 extension CDProductEntity {
@@ -44,6 +51,8 @@ extension CDProductEntity {
             self.imageData = imageData
         }
         self.isDisabled = model.isDisabled
+        self.imageURL = model.imageURL
+        self.createdAt = model.createdAt
     }
 
     func toModel() -> ProductModel {

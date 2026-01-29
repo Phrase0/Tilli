@@ -24,6 +24,12 @@ extension CDCategoryEntity {
     @NSManaged public var isDisabled: Bool
     @NSManaged public var sortOrder: Int16
 
+    // MARK: - Sync 相關欄位
+    @NSManaged public var userId: String?        // 所屬用戶 ID
+    @NSManaged public var sessionId: UUID?       // Firestore 同步用
+    @NSManaged public var updatedAt: Date?       // 最後更新時間
+    @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
+
 }
 
 // MARK: Generated accessors for products
@@ -50,6 +56,7 @@ extension CDCategoryEntity {
         self.createdAt = model.createdAt
         self.isDisabled = model.isDisabled
         self.sortOrder = Int16(model.sortOrder)
+        self.sessionId = model.sessionId
     }
 
     func toModel() -> CategoryModel {
@@ -60,7 +67,8 @@ extension CDCategoryEntity {
             products: products,
             createdAt: self.createdAt,
             isDisabled: self.isDisabled,
-            sortOrder: Int(self.sortOrder)
+            sortOrder: Int(self.sortOrder),
+            sessionId: self.sessionId ?? self.session.id
         )
     }
 

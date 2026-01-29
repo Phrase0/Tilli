@@ -22,6 +22,11 @@ extension CDInventoryChangeEntity {
     @NSManaged public var transactionId: UUID?
     @NSManaged public var timestamp: Date
     @NSManaged public var session: CDSessionEntity?
+
+    // MARK: - Sync 相關欄位
+    @NSManaged public var userId: String?        // 所屬用戶 ID
+    @NSManaged public var sessionId: UUID?       // Firestore 同步用
+    @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
 }
 
 extension CDInventoryChangeEntity {
@@ -34,6 +39,7 @@ extension CDInventoryChangeEntity {
         self.customReason = model.customReason
         self.transactionId = model.transactionId
         self.timestamp = model.timestamp
+        self.sessionId = model.sessionId
     }
 
     func toModel() -> InventoryChangeModel {
@@ -44,7 +50,8 @@ extension CDInventoryChangeEntity {
             reason: InventoryChangeReason(rawValue: self.reason) ?? .adjustment,
             customReason: self.customReason,
             transactionId: self.transactionId,
-            timestamp: self.timestamp
+            timestamp: self.timestamp,
+            sessionId: self.sessionId ?? self.session?.id
         )
     }
 }

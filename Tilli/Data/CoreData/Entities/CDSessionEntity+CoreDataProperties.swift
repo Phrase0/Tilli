@@ -28,6 +28,11 @@ extension CDSessionEntity {
     @NSManaged public var transactions: NSSet?
     @NSManaged public var inventoryChanges: NSSet?
 
+    // MARK: - Sync 相關欄位
+    @NSManaged public var userId: String?        // 所屬用戶 ID
+    @NSManaged public var updatedAt: Date?       // 最後更新時間
+    @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
+
 }
 
 // MARK: Generated accessors for transactions
