@@ -2,6 +2,7 @@
 //  DecimalHelper.swift
 //  Tilli
 //
+//  Created by Peiyun on 2026/1/30.
 //  Created for CoreData + Firebase Sync
 //  用於 Decimal ↔ Integer（分）轉換，避免 Firestore 浮點精度問題
 //

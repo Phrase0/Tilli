@@ -1660,29 +1660,29 @@ func saveProduct(_ product: ProductModel) async {
 
 ### Phase 1：基礎建設（預估 2-3 天）
 
-- [ ] **1.1 Domain Model 更新**
-  - [ ] 新增 `QRCodeModel.swift`
-  - [ ] 為所有 Model 新增 Firestore 轉換 Extension（toFirestoreData / init(from:)）
-  - [ ] 新增 Decimal ↔ Integer（分）轉換工具函數
+- [x] **1.1 Domain Model 更新**
+  - [x] 新增 `QRCodeModel.swift`
+  - [x] 為所有 Model 新增 Firestore 轉換 Extension（toFirestoreData / init(from:)）
+  - [x] 新增 Decimal ↔ Integer（分）轉換工具函數
 
-- [ ] **1.2 CoreData Schema 更新**（App 尚未上架，無需 Migration 腳本）
-  - [ ] 新增 `userId`, `updatedAt`, `syncStatus` 欄位到所有 Entity
-  - [ ] 新增 `sessionId` 冗餘欄位到 Category 和 InventoryChange
-  - [ ] 新增 `imageURL` 欄位到 Product 和 QRCode
-  - [ ] 新增 `createdAt` 欄位到 Product
-  - [ ] 新增 `CDPendingSyncOperation` Entity
+- [x] **1.2 CoreData Schema 更新**（App 尚未上架，無需 Migration 腳本）
+  - [x] 新增 `userId`, `updatedAt`, `syncStatus` 欄位到所有 Entity
+  - [x] 新增 `sessionId` 欄位到 Category 和 InventoryChange（Firestore 同步用）
+  - [x] 新增 `imageURL` 欄位到 Product 和 QRCode
+  - [x] 新增 `createdAt` 欄位到 Product
+  - [x] 新增 `CDPendingSyncOperation` Entity
 
-- [ ] **1.3 Firestore Schema 建立**
-  - [ ] 在 Firebase Console 建立 Collections
-  - [ ] 設定 Security Rules
-  - [ ] 設定 Storage Rules
-  - [ ] 設定複合索引（firestore.indexes.json）
+- [x] **1.3 Firestore Schema 建立**
+  - [x] 設定 Security Rules（Firebase/firestore.rules）
+  - [x] 設定 Storage Rules（Firebase/storage.rules）
+  - [x] 設定複合索引（Firebase/firestore.indexes.json）
+  - [ ] 部署到 Firebase（firebase deploy）
 
-- [ ] **1.4 建立基礎服務類別**
-  - [ ] `SyncManager` - 同步管理器
-  - [ ] `SyncStatus` enum
-  - [ ] `NetworkMonitor` - 網路狀態監控（使用 Alamofire）
-  - [ ] `AuthManager` - 管理 currentUserId
+- [x] **1.4 建立基礎服務類別**
+  - [x] `SyncManager` - 同步管理器
+  - [x] `SyncStatus` enum
+  - [x] `NetworkMonitor` - 網路狀態監控（使用 Alamofire）
+  - [x] 使用現有 `AuthenticationManager`（不需要新建 AuthManager）
 
 ### Phase 2：上傳同步（預估 3-4 天）
 
