@@ -212,6 +212,7 @@ class TestDataGenerator {
             sessionTitle: session.title,
             sessionCurrency: "TWD",
             startDate: startDate,
+            endDate: nil,
             products: productsInfo.map { ($0.0, $0.1, $0.2, $0.3, $0.4) },
             discounts: twdDiscounts
         )
@@ -406,6 +407,7 @@ class TestDataGenerator {
             sessionTitle: session.title,
             sessionCurrency: "EUR",
             startDate: startDate,
+            endDate: endDate,
             products: productsInfo.map { ($0.0, $0.1, $0.2, $0.3, $0.4) },
             discounts: eurDiscounts
         )
@@ -421,16 +423,17 @@ class TestDataGenerator {
         sessionTitle: String,
         sessionCurrency: String,
         startDate: Date,
+        endDate: Date?,
         products: [(UUID, String, Decimal, UUID, String)],
         discounts: [DiscountModel]
     ) {
         let calendar = Calendar.current
-        let today = Date()
+        let finalEndDate = endDate ?? Date()
 
-        // 從開始日期到今天，每天生成 1-5 筆交易
+        // 從開始日期到結束日期，每天生成交易
         var currentDate = startDate
 
-        while currentDate <= today {
+        while currentDate <= finalEndDate {
             // 每天隨機生成 8-10 筆交易
             let transactionCount = Int.random(in: 5...10)
 
