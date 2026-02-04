@@ -10,6 +10,16 @@ import Foundation
 
 class AddNewProductViewModel: ObservableObject {
 
+    // MARK: - 輸入限制常數
+    /// 價格最大整數位數
+    static let priceMaxIntegerDigits = 10
+    /// 庫存數量最大位數
+    static let stockMaxDigits = 9
+    /// 價格提示顯示門檻（整數位數）
+    static let priceWarningThreshold = 8
+    /// 庫存提示顯示門檻（位數）
+    static let stockWarningThreshold = 7
+
     // MARK: - 輸入 Session
     let session: SessionModel
 
@@ -100,40 +110,113 @@ class AddNewProductViewModel: ObservableObject {
     var maxDecimalPlaces: Int {
         return currentCurrency.decimalPlaces
     }
+
+    // MARK: - 價格輸入提示相關
+
+    /// 價格整數部分位數
+    var priceIntegerDigits: Int {
+        let components = price.components(separatedBy: ".")
+        return components[0].filter { $0.isNumber }.count
+    }
+
+    /// 價格小數部分位數
+    var priceDecimalDigits: Int {
+        let components = price.components(separatedBy: ".")
+        guard components.count > 1 else { return 0 }
+        return components[1].filter { $0.isNumber }.count
+    }
+
+    /// 是否顯示價格輸入提示
+    var shouldShowPriceHint: Bool {
+        if supportsDecimal {
+            // 有小數幣別：整數達 8 位或小數達 2 位時顯示
+            return priceIntegerDigits >= Self.priceWarningThreshold || priceDecimalDigits >= maxDecimalPlaces
+        } else {
+            // 無小數幣別：整數達 8 位時顯示
+            return priceIntegerDigits >= Self.priceWarningThreshold
+        }
+    }
+
+    /// 價格提示文字
+    var priceHintText: String {
+        if supportsDecimal {
+            return "最多可輸入 \(Self.priceMaxIntegerDigits) 位數及兩位小數"
+        } else {
+            return "最多可輸入 \(Self.priceMaxIntegerDigits) 位數"
+        }
+    }
+
+    // MARK: - 庫存輸入提示相關
+
+    /// 庫存位數
+    var stockDigits: Int {
+        return quantity.filter { $0.isNumber }.count
+    }
+
+    /// 是否顯示庫存輸入提示
+    var shouldShowStockHint: Bool {
+        return stockDigits >= Self.stockWarningThreshold
+    }
+
+    /// 庫存提示文字
+    var stockHintText: String {
+        return "最多可輸入 \(Self.stockMaxDigits) 位數"
+    }
     
     /// 驗證並格式化價格輸入
     func validateAndFormatPrice(_ input: String) -> String {
         // 移除非數字和小數點的字符
-        let filtered = input.filter { $0.isNumber || $0 == "." }
-        
-        // 如果不支持小數點，移除所有小數點
+        var filtered = input.filter { $0.isNumber || $0 == "." }
+
+        // 如果不支持小數點，移除所有小數點並限制整數位數
         if !supportsDecimal {
-            return filtered.filter { $0 != "." }
+            let digitsOnly = filtered.filter { $0 != "." }
+            if digitsOnly.count > Self.priceMaxIntegerDigits {
+                return String(digitsOnly.prefix(Self.priceMaxIntegerDigits))
+            }
+            return digitsOnly
         }
-        
+
         // 處理小數點
-        let components = filtered.components(separatedBy: ".")
-        
-        // 如果沒有小數點或只有一個小數點
-        if components.count <= 1 {
-            return filtered
-        }
-        
+        var components = filtered.components(separatedBy: ".")
+
         // 如果有多個小數點，只保留第一個
         if components.count > 2 {
-            return components[0] + "." + components[1]
+            filtered = components[0] + "." + components[1]
+            components = [components[0], components[1]]
         }
-        
+
+        // 限制整數位數
+        var integerPart = components[0]
+        if integerPart.count > Self.priceMaxIntegerDigits {
+            integerPart = String(integerPart.prefix(Self.priceMaxIntegerDigits))
+        }
+
+        // 如果沒有小數點
+        if components.count <= 1 {
+            return integerPart
+        }
+
         // 限制小數位數
-        let integerPart = components[0]
-        let decimalPart = components[1]
-        
+        var decimalPart = components[1]
         if decimalPart.count > maxDecimalPlaces {
-            let limitedDecimal = String(decimalPart.prefix(maxDecimalPlaces))
-            return integerPart + "." + limitedDecimal
+            decimalPart = String(decimalPart.prefix(maxDecimalPlaces))
         }
-        
-        return filtered
+
+        return integerPart + "." + decimalPart
+    }
+
+    /// 驗證並格式化庫存數量輸入
+    func validateAndFormatQuantity(_ input: String) -> String {
+        // 只保留數字
+        let digitsOnly = input.filter { $0.isNumber }
+
+        // 限制位數
+        if digitsOnly.count > Self.stockMaxDigits {
+            return String(digitsOnly.prefix(Self.stockMaxDigits))
+        }
+
+        return digitsOnly
     }
     
     var isValid: Bool {

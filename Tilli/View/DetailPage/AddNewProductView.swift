@@ -95,6 +95,13 @@ struct AddNewProductView: View {
                             viewModel.price = validatedPrice
                         }
                     }
+
+                // 價格輸入提示
+                if viewModel.shouldShowPriceHint && !viewModel.isEditingWithTransaction {
+                    Text(viewModel.priceHintText)
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
             }
             
             // MARK: - 庫存數量
@@ -103,8 +110,19 @@ struct AddNewProductView: View {
                     .keyboardType(.numberPad)
                     .focused($focusedField, equals: .quantity)
                     .onChange(of: viewModel.quantity) {
+                        let validatedQuantity = viewModel.validateAndFormatQuantity(viewModel.quantity)
+                        if validatedQuantity != viewModel.quantity {
+                            viewModel.quantity = validatedQuantity
+                        }
                         viewModel.updateDefaultReasonIfNeeded()
                     }
+
+                // 庫存輸入提示
+                if viewModel.shouldShowStockHint {
+                    Text(viewModel.stockHintText)
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
 
                 // 編輯模式且庫存有變化時，顯示異動原因選擇器
                 if viewModel.shouldShowReasonPicker {
