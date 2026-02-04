@@ -27,7 +27,12 @@ struct ProductModel: Identifiable, Hashable, Codable {
             return UIImage(data: data)
         }
         set {
-            imageData = newValue?.jpegData(compressionQuality: 0.8)
+            guard let newImage = newValue else {
+                imageData = nil
+                return
+            }
+            // 使用 ImageSyncService 處理：200x200 JPEG 壓縮
+            imageData = ImageSyncService.shared.processImageForLocal(newImage, type: .thumbnail)
         }
     }
 }

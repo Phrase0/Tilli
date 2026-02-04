@@ -94,14 +94,15 @@ struct MerchantQRCodeView: View {
             CustomImagePicker(image: $tempSelectedImage, isPresented: $showingImagePicker)
         }
         .onChange(of: tempSelectedImage) {
-            if let image = tempSelectedImage,
-               let imageData = image.jpegData(compressionQuality: 0.8) {
-                let model = QRCodeModel(
+            if let image = tempSelectedImage {
+                // QRCodeModel 的 image setter 會自動處理：512x512 PNG 無損
+                var model = QRCodeModel(
                     id: UUID(),
-                    imageData: imageData,
+                    imageData: nil,
                     imageURL: nil,
                     createdAt: Date()
                 )
+                model.image = image  // 觸發 ImageSyncService 處理
                 qrCodeDataManager.saveQRCode(model)
                 tempSelectedImage = nil
             }

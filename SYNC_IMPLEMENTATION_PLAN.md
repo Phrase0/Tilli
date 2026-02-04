@@ -1676,7 +1676,7 @@ func saveProduct(_ product: ProductModel) async {
   - [x] 設定 Security Rules（Firebase/firestore.rules）
   - [x] 設定 Storage Rules（Firebase/storage.rules）
   - [x] 設定複合索引（Firebase/firestore.indexes.json）
-  - [ ] 部署到 Firebase（firebase deploy）
+  - [x] 部署到 Firebase（firebase deploy）
 
 - [x] **1.4 建立基礎服務類別**
   - [x] `SyncManager` - 同步管理器

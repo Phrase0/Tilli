@@ -21,7 +21,12 @@ struct QRCodeModel: Identifiable, Codable, Hashable {
             return UIImage(data: data)
         }
         set {
-            imageData = newValue?.jpegData(compressionQuality: 0.8)
+            guard let newImage = newValue else {
+                imageData = nil
+                return
+            }
+            // 使用 ImageSyncService 處理：512x512 PNG 無損
+            imageData = ImageSyncService.shared.processImageForLocal(newImage, type: .qrCode)
         }
     }
 }

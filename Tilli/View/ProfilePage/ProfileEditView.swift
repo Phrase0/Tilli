@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseStorage
 import Kingfisher
 
 struct ProfileEditView: View {
@@ -200,15 +199,16 @@ struct ProfileEditView: View {
         do {
             var photoURL: String? = nil
 
-            // 如果有選擇新照片，上傳到 Firebase Storage
+            // 如果有選擇新照片，使用 ImageSyncService 上傳
             if let image = selectedImage,
-               let imageData = image.jpegData(compressionQuality: 0.7) {
-                photoURL = try await uploadPhoto(imageData)
+               let uid = authManager.currentUser?.uid {
+                photoURL = try await ImageSyncService.shared.uploadProfileImage(image, uid: uid)
             }
 
-            // 更新 UserProfile（同時傳遞本地圖片）
+            // 更新 UserProfile（同時傳遞處理過的本地圖片）
             let trimmedName = name.trimmingCharacters(in: .whitespaces)
-            await authManager.updateProfile(name: trimmedName, photoURL: photoURL, localImage: selectedImage)
+            let processedImage = selectedImage.map { ImageSyncService.shared.processImage($0, type: .thumbnail) }
+            await authManager.updateProfile(name: trimmedName, photoURL: photoURL, localImage: processedImage)
 
             isSaving = false
             dismiss()
@@ -218,25 +218,5 @@ struct ProfileEditView: View {
             errorMessage = "儲存失敗：\(error.localizedDescription)"
             print("Save profile error: \(error)")
         }
-    }
-
-    // MARK: - Upload Photo to Firebase Storage
-    private func uploadPhoto(_ data: Data) async throws -> String {
-        guard let uid = authManager.currentUser?.uid else {
-            throw NSError(domain: "ProfileEdit", code: -1, userInfo: [NSLocalizedDescriptionKey: "用戶未登入"])
-        }
-
-        let storageRef = Storage.storage().reference()
-        let photoRef = storageRef.child("profile_photos/\(uid).jpg")
-
-        let metadata = StorageMetadata()
-        metadata.contentType = "image/jpeg"
-
-        _ = try await photoRef.putDataAsync(data, metadata: metadata)
-        let downloadURL = try await photoRef.downloadURL()
-
-        let urlString = downloadURL.absoluteString
-        let separator = urlString.contains("?") ? "&" : "?"
-        return "\(urlString)\(separator)t=\(Int(Date().timeIntervalSince1970))"
     }
 }
