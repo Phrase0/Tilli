@@ -5,6 +5,7 @@
 //  Created by Peiyun on 2026/2/4.
 //  Created for CoreData + Firebase Sync
 //  處理各 Entity 上傳到 Firestore，支援 Batch Write 確保原子性
+//  整合 Hybrid Listener：每次上傳同時更新 syncState
 //
 
 import Foundation
@@ -13,10 +14,14 @@ import FirebaseAuth
 
 /// Firestore 上傳服務
 /// 負責將本地資料上傳到 Firestore，支援單一上傳和批次上傳
+/// 每次上傳都會同時更新 syncState，供 Hybrid Listener 使用
 class FirestoreUploader {
     static let shared = FirestoreUploader()
 
     private let db = Firestore.firestore()
+
+    /// pendingChanges 上限，超過就清空（觸發全量同步）
+    private let pendingChangesLimit = 50
 
     private init() {}
 
@@ -37,6 +42,84 @@ class FirestoreUploader {
         static let qrCodes = "qrCodes"
     }
 
+    /// syncState 中 pendingChanges 的 key
+    private enum SyncStateKey: String {
+        case sessions
+        case categories
+        case products
+        case transactions
+        case inventoryChanges
+        case qrCodes
+    }
+
+    // MARK: - SyncState Reference
+
+    /// 取得 syncState 文件的 reference
+    private func syncStateRef(userId: String) -> DocumentReference {
+        return db.collection("users").document(userId)
+            .collection("private").document("syncState")
+    }
+
+    // MARK: - Initialize SyncState
+
+    /// 初始化 syncState（首次登入或 syncState 不存在時呼叫）
+    func initializeSyncState() async throws {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let ref = syncStateRef(userId: userId)
+        let doc = try await ref.getDocument()
+
+        if !doc.exists {
+            try await ref.setData([
+                "version": 0,
+                "lastUpdate": FieldValue.serverTimestamp(),
+                "pendingChanges": [
+                    SyncStateKey.sessions.rawValue: [],
+                    SyncStateKey.categories.rawValue: [],
+                    SyncStateKey.products.rawValue: [],
+                    SyncStateKey.transactions.rawValue: [],
+                    SyncStateKey.inventoryChanges.rawValue: [],
+                    SyncStateKey.qrCodes.rawValue: []
+                ]
+            ])
+        }
+    }
+
+    /// 檢查 syncState 是否存在
+    func syncStateExists() async throws -> Bool {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let ref = syncStateRef(userId: userId)
+        let doc = try await ref.getDocument()
+        return doc.exists
+    }
+
+    // MARK: - Trim PendingChanges
+
+    /// 清理超過上限的 pendingChanges（非同步呼叫，不影響主流程）
+    private func trimPendingChangesIfNeeded(userId: String, entityType: SyncStateKey) async {
+        let ref = syncStateRef(userId: userId)
+
+        do {
+            let doc = try await ref.getDocument()
+            guard let data = doc.data(),
+                  let pendingChanges = data["pendingChanges"] as? [String: [String]],
+                  let ids = pendingChanges[entityType.rawValue],
+                  ids.count > pendingChangesLimit else { return }
+
+            // 超過上限，清空該類別
+            try await ref.updateData([
+                "pendingChanges.\(entityType.rawValue)": FieldValue.delete()
+            ])
+        } catch {
+            print("trimPendingChanges error: \(error)")
+        }
+    }
+
     // MARK: - Single Entity Upload
 
     /// 上傳 Session
@@ -45,10 +128,27 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
+        let batch = db.batch()
+
+        // 1. 上傳資料
+        let sessionRef = db.collection(Collection.sessions).document(session.id.uuidString)
         let data = session.toFirestoreData(userId: userId)
-        try await db.collection(Collection.sessions)
-            .document(session.id.uuidString)
-            .setData(data)
+        batch.setData(data, forDocument: sessionRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([session.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        // 3. 檢查是否超過上限
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .sessions)
+        }
     }
 
     /// 上傳 Category
@@ -57,10 +157,26 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
+        let batch = db.batch()
+
+        // 1. 上傳資料
+        let categoryRef = db.collection(Collection.categories).document(category.id.uuidString)
         let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
-        try await db.collection(Collection.categories)
-            .document(category.id.uuidString)
-            .setData(data)
+        batch.setData(data, forDocument: categoryRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion([category.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .categories)
+        }
     }
 
     /// 上傳 Product
@@ -77,10 +193,26 @@ class FirestoreUploader {
             productToUpload.imageURL = url
         }
 
+        let batch = db.batch()
+
+        // 1. 上傳資料
+        let productRef = db.collection(Collection.products).document(product.id.uuidString)
         let data = productToUpload.toFirestoreData(userId: userId)
-        try await db.collection(Collection.products)
-            .document(product.id.uuidString)
-            .setData(data)
+        batch.setData(data, forDocument: productRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion([product.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .products)
+        }
     }
 
     /// 上傳 Transaction
@@ -89,10 +221,26 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
+        let batch = db.batch()
+
+        // 1. 上傳資料
+        let transactionRef = db.collection(Collection.transactions).document(transaction.id.uuidString)
         let data = transaction.toFirestoreData(userId: userId)
-        try await db.collection(Collection.transactions)
-            .document(transaction.id.uuidString)
-            .setData(data)
+        batch.setData(data, forDocument: transactionRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.transactions.rawValue)": FieldValue.arrayUnion([transaction.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .transactions)
+        }
     }
 
     /// 上傳 InventoryChange
@@ -101,10 +249,26 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
+        let batch = db.batch()
+
+        // 1. 上傳資料
+        let changeRef = db.collection(Collection.inventoryChanges).document(change.id.uuidString)
         let data = change.toFirestoreData(userId: userId, sessionId: sessionId)
-        try await db.collection(Collection.inventoryChanges)
-            .document(change.id.uuidString)
-            .setData(data)
+        batch.setData(data, forDocument: changeRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)": FieldValue.arrayUnion([change.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .inventoryChanges)
+        }
     }
 
     /// 上傳 QRCode
@@ -121,10 +285,26 @@ class FirestoreUploader {
             qrCodeToUpload.imageURL = url
         }
 
+        let batch = db.batch()
+
+        // 1. 上傳資料
+        let qrCodeRef = db.collection(Collection.qrCodes).document(qrCode.id.uuidString)
         let data = qrCodeToUpload.toFirestoreData(userId: userId)
-        try await db.collection(Collection.qrCodes)
-            .document(qrCode.id.uuidString)
-            .setData(data)
+        batch.setData(data, forDocument: qrCodeRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.qrCodes.rawValue)": FieldValue.arrayUnion([qrCode.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .qrCodes)
+        }
     }
 
     // MARK: - Update Entity
@@ -135,10 +315,26 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
+        let batch = db.batch()
+
+        // 1. 更新資料
+        let sessionRef = db.collection(Collection.sessions).document(session.id.uuidString)
         let data = session.toFirestoreData(userId: userId)
-        try await db.collection(Collection.sessions)
-            .document(session.id.uuidString)
-            .updateData(data)
+        batch.updateData(data, forDocument: sessionRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([session.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .sessions)
+        }
     }
 
     /// 更新 Category
@@ -147,10 +343,26 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
+        let batch = db.batch()
+
+        // 1. 更新資料
+        let categoryRef = db.collection(Collection.categories).document(category.id.uuidString)
         let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
-        try await db.collection(Collection.categories)
-            .document(category.id.uuidString)
-            .updateData(data)
+        batch.updateData(data, forDocument: categoryRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion([category.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .categories)
+        }
     }
 
     /// 更新 Product
@@ -164,10 +376,26 @@ class FirestoreUploader {
             productToUpdate.imageURL = url
         }
 
+        let batch = db.batch()
+
+        // 1. 更新資料
+        let productRef = db.collection(Collection.products).document(product.id.uuidString)
         let data = productToUpdate.toFirestoreData(userId: userId)
-        try await db.collection(Collection.products)
-            .document(product.id.uuidString)
-            .updateData(data)
+        batch.updateData(data, forDocument: productRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion([product.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .products)
+        }
     }
 
     /// 更新 QRCode
@@ -181,47 +409,131 @@ class FirestoreUploader {
             qrCodeToUpdate.imageURL = url
         }
 
+        let batch = db.batch()
+
+        // 1. 更新資料
+        let qrCodeRef = db.collection(Collection.qrCodes).document(qrCode.id.uuidString)
         let data = qrCodeToUpdate.toFirestoreData(userId: userId)
-        try await db.collection(Collection.qrCodes)
-            .document(qrCode.id.uuidString)
-            .updateData(data)
+        batch.updateData(data, forDocument: qrCodeRef)
+
+        // 2. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.qrCodes.rawValue)": FieldValue.arrayUnion([qrCode.id.uuidString])
+        ], forDocument: syncRef)
+
+        try await batch.commit()
+
+        Task {
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .qrCodes)
+        }
     }
 
     // MARK: - Delete Entity
 
     /// 刪除 Session
     func deleteSession(_ sessionId: UUID) async throws {
-        try await db.collection(Collection.sessions)
-            .document(sessionId.uuidString)
-            .delete()
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let batch = db.batch()
+
+        // 1. 刪除資料
+        let sessionRef = db.collection(Collection.sessions).document(sessionId.uuidString)
+        batch.deleteDocument(sessionRef)
+
+        // 2. 更新 syncState（version +1，但不加入 pendingChanges）
+        // 刪除操作：其他裝置會透過 version 變更觸發全量同步
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await batch.commit()
     }
 
     /// 刪除 Category
     func deleteCategory(_ categoryId: UUID) async throws {
-        try await db.collection(Collection.categories)
-            .document(categoryId.uuidString)
-            .delete()
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let batch = db.batch()
+
+        let categoryRef = db.collection(Collection.categories).document(categoryId.uuidString)
+        batch.deleteDocument(categoryRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await batch.commit()
     }
 
     /// 刪除 Product
     func deleteProduct(_ productId: UUID) async throws {
-        try await db.collection(Collection.products)
-            .document(productId.uuidString)
-            .delete()
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let batch = db.batch()
+
+        let productRef = db.collection(Collection.products).document(productId.uuidString)
+        batch.deleteDocument(productRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await batch.commit()
     }
 
     /// 刪除 InventoryChange
     func deleteInventoryChange(_ changeId: UUID) async throws {
-        try await db.collection(Collection.inventoryChanges)
-            .document(changeId.uuidString)
-            .delete()
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let batch = db.batch()
+
+        let changeRef = db.collection(Collection.inventoryChanges).document(changeId.uuidString)
+        batch.deleteDocument(changeRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await batch.commit()
     }
 
     /// 刪除 QRCode
     func deleteQRCode(_ qrCodeId: UUID) async throws {
-        try await db.collection(Collection.qrCodes)
-            .document(qrCodeId.uuidString)
-            .delete()
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let batch = db.batch()
+
+        let qrCodeRef = db.collection(Collection.qrCodes).document(qrCodeId.uuidString)
+        batch.deleteDocument(qrCodeRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        batch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await batch.commit()
     }
 
     // MARK: - Batch Upload (Parent-First)
@@ -235,6 +547,11 @@ class FirestoreUploader {
 
         let batch = db.batch()
 
+        // 收集所有 ID 用於更新 syncState
+        var sessionIds: [String] = [session.id.uuidString]
+        var categoryIds: [String] = []
+        var productIds: [String] = []
+
         // 1. Parent: Session
         let sessionRef = db.collection(Collection.sessions).document(session.id.uuidString)
         let sessionData = session.toFirestoreData(userId: userId)
@@ -245,13 +562,41 @@ class FirestoreUploader {
             let categoryRef = db.collection(Collection.categories).document(category.id.uuidString)
             let categoryData = category.toFirestoreData(userId: userId, sessionId: session.id)
             batch.setData(categoryData, forDocument: categoryRef)
+            categoryIds.append(category.id.uuidString)
 
             // 3. Grandchildren: Products
             for product in category.products {
                 let productRef = db.collection(Collection.products).document(product.id.uuidString)
                 let productData = product.toFirestoreData(userId: userId)
                 batch.setData(productData, forDocument: productRef)
+                productIds.append(product.id.uuidString)
             }
+        }
+
+        // 4. 更新 syncState
+        let syncRef = syncStateRef(userId: userId)
+
+        // 計算總變更數，決定是否清空 pendingChanges
+        let totalChanges = sessionIds.count + categoryIds.count + productIds.count
+
+        if totalChanges > pendingChangesLimit {
+            // 變更太多，只增加 version（觸發全量同步）
+            batch.updateData([
+                "version": FieldValue.increment(Int64(1)),
+                "lastUpdate": FieldValue.serverTimestamp(),
+                "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.delete(),
+                "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.delete(),
+                "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.delete()
+            ], forDocument: syncRef)
+        } else {
+            // 正常更新 pendingChanges
+            batch.updateData([
+                "version": FieldValue.increment(Int64(1)),
+                "lastUpdate": FieldValue.serverTimestamp(),
+                "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion(sessionIds),
+                "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion(categoryIds),
+                "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion(productIds)
+            ], forDocument: syncRef)
         }
 
         // 原子提交
@@ -265,15 +610,34 @@ class FirestoreUploader {
         }
 
         // Firestore batch 最多 500 筆，分批處理
-        let chunks = categories.chunked(into: 450)
+        // 預留空間給 syncState 更新
+        let chunks = categories.chunked(into: 400)
 
         for chunk in chunks {
             let batch = db.batch()
+            var categoryIds: [String] = []
 
             for category in chunk {
                 let ref = db.collection(Collection.categories).document(category.id.uuidString)
                 let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
                 batch.setData(data, forDocument: ref)
+                categoryIds.append(category.id.uuidString)
+            }
+
+            // 更新 syncState
+            let syncRef = syncStateRef(userId: userId)
+            if categoryIds.count > pendingChangesLimit {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.delete()
+                ], forDocument: syncRef)
+            } else {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion(categoryIds)
+                ], forDocument: syncRef)
             }
 
             try await batch.commit()
@@ -286,15 +650,32 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
-        let chunks = products.chunked(into: 450)
+        let chunks = products.chunked(into: 400)
 
         for chunk in chunks {
             let batch = db.batch()
+            var productIds: [String] = []
 
             for product in chunk {
                 let ref = db.collection(Collection.products).document(product.id.uuidString)
                 let data = product.toFirestoreData(userId: userId)
                 batch.setData(data, forDocument: ref)
+                productIds.append(product.id.uuidString)
+            }
+
+            let syncRef = syncStateRef(userId: userId)
+            if productIds.count > pendingChangesLimit {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.delete()
+                ], forDocument: syncRef)
+            } else {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion(productIds)
+                ], forDocument: syncRef)
             }
 
             try await batch.commit()
@@ -307,15 +688,32 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
-        let chunks = transactions.chunked(into: 450)
+        let chunks = transactions.chunked(into: 400)
 
         for chunk in chunks {
             let batch = db.batch()
+            var transactionIds: [String] = []
 
             for transaction in chunk {
                 let ref = db.collection(Collection.transactions).document(transaction.id.uuidString)
                 let data = transaction.toFirestoreData(userId: userId)
                 batch.setData(data, forDocument: ref)
+                transactionIds.append(transaction.id.uuidString)
+            }
+
+            let syncRef = syncStateRef(userId: userId)
+            if transactionIds.count > pendingChangesLimit {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.transactions.rawValue)": FieldValue.delete()
+                ], forDocument: syncRef)
+            } else {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.transactions.rawValue)": FieldValue.arrayUnion(transactionIds)
+                ], forDocument: syncRef)
             }
 
             try await batch.commit()
@@ -328,15 +726,32 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
-        let chunks = changes.chunked(into: 450)
+        let chunks = changes.chunked(into: 400)
 
         for chunk in chunks {
             let batch = db.batch()
+            var changeIds: [String] = []
 
             for change in chunk {
                 let ref = db.collection(Collection.inventoryChanges).document(change.id.uuidString)
                 let data = change.toFirestoreData(userId: userId, sessionId: sessionId)
                 batch.setData(data, forDocument: ref)
+                changeIds.append(change.id.uuidString)
+            }
+
+            let syncRef = syncStateRef(userId: userId)
+            if changeIds.count > pendingChangesLimit {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)": FieldValue.delete()
+                ], forDocument: syncRef)
+            } else {
+                batch.updateData([
+                    "version": FieldValue.increment(Int64(1)),
+                    "lastUpdate": FieldValue.serverTimestamp(),
+                    "pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)": FieldValue.arrayUnion(changeIds)
+                ], forDocument: syncRef)
             }
 
             try await batch.commit()
@@ -348,6 +763,10 @@ class FirestoreUploader {
     /// 刪除 Session 及其所有相關資料（Cascade Delete）
     /// - Note: Transactions 不刪除，保留歷史記錄
     func deleteSessionWithChildren(_ sessionId: UUID) async throws {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
         let sessionIdString = sessionId.uuidString
 
         // 1. 查詢並刪除 Categories
@@ -371,27 +790,47 @@ class FirestoreUploader {
         allDocuments.append(contentsOf: productsSnapshot.documents)
         allDocuments.append(contentsOf: changesSnapshot.documents)
 
-        // 分批刪除（Firestore batch 最多 500 筆）
-        let chunks = allDocuments.chunked(into: 450)
+        // 分批刪除（Firestore batch 最多 500 筆，預留空間給 syncState）
+        let chunks = allDocuments.chunked(into: 400)
 
         for chunk in chunks {
             let batch = db.batch()
             for doc in chunk {
                 batch.deleteDocument(doc.reference)
             }
+
+            // 每批都更新 syncState
+            let syncRef = syncStateRef(userId: userId)
+            batch.updateData([
+                "version": FieldValue.increment(Int64(1)),
+                "lastUpdate": FieldValue.serverTimestamp()
+            ], forDocument: syncRef)
+
             try await batch.commit()
         }
 
         // 4. 刪除 Session 本身
-        try await db.collection(Collection.sessions)
-            .document(sessionIdString)
-            .delete()
+        let finalBatch = db.batch()
+        let sessionRef = db.collection(Collection.sessions).document(sessionIdString)
+        finalBatch.deleteDocument(sessionRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        finalBatch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await finalBatch.commit()
 
         // ⚠️ Transactions 不刪除，保留歷史記錄
     }
 
     /// 刪除 Category 及其所有 Products
     func deleteCategoryWithProducts(_ categoryId: UUID) async throws {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
         let categoryIdString = categoryId.uuidString
 
         // 1. 查詢並刪除 Products
@@ -400,20 +839,35 @@ class FirestoreUploader {
             .getDocuments()
 
         // 分批刪除
-        let chunks = productsSnapshot.documents.chunked(into: 450)
+        let chunks = productsSnapshot.documents.chunked(into: 400)
 
         for chunk in chunks {
             let batch = db.batch()
             for doc in chunk {
                 batch.deleteDocument(doc.reference)
             }
+
+            let syncRef = syncStateRef(userId: userId)
+            batch.updateData([
+                "version": FieldValue.increment(Int64(1)),
+                "lastUpdate": FieldValue.serverTimestamp()
+            ], forDocument: syncRef)
+
             try await batch.commit()
         }
 
         // 2. 刪除 Category 本身
-        try await db.collection(Collection.categories)
-            .document(categoryIdString)
-            .delete()
+        let finalBatch = db.batch()
+        let categoryRef = db.collection(Collection.categories).document(categoryIdString)
+        finalBatch.deleteDocument(categoryRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        finalBatch.updateData([
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp()
+        ], forDocument: syncRef)
+
+        try await finalBatch.commit()
     }
 
     // MARK: - Get Product Image URLs for Deletion
