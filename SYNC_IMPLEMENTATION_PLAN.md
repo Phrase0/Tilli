@@ -10,12 +10,13 @@
 7. [CDPendingSyncOperation 詳解](#cdpendingsyncoperation-詳解)
 8. [圖片處理策略](#圖片處理策略)
 9. [同步機制設計](#同步機制設計)
-10. [衝突處理與刪除策略](#衝突處理與刪除策略)
-11. [登入流程與資料處理](#登入流程與資料處理)
-12. [網路監控](#網路監控)
-13. [實作排序與任務清單](#實作排序與任務清單)
-14. [錯誤處理](#錯誤處理)
-15. [測試計畫](#測試計畫)
+10. [**Hybrid Listener 費用優化**](#hybrid-listener-費用優化)
+11. [衝突處理與刪除策略](#衝突處理與刪除策略)
+12. [登入流程與資料處理](#登入流程與資料處理)
+13. [網路監控](#網路監控)
+14. [實作排序與任務清單](#實作排序與任務清單)
+15. [錯誤處理](#錯誤處理)
+16. [測試計畫](#測試計畫)
 
 ---
 
@@ -42,6 +43,8 @@
 | 孤立圖片 | 同步刪除 | 刪除 Product/QRCode 時一併刪除 Storage 圖片 |
 | 網路監控 | Alamofire | 使用 NetworkReachabilityManager |
 | 錯誤 UI | 顯示 + 重試 | syncStatus = error 時顯示錯誤圖示和重試按鈕 |
+| **Listener 策略** | **Hybrid Listener** | **只監聽 syncState 文件（200-500 bytes），不監聽完整資料，節省約 73% 費用** |
+| **資料讀取** | **本地優先** | **平時只讀 CoreData，Listener 收到通知後才下載變更的資料** |
 
 ---
 
@@ -1121,6 +1124,235 @@ class ImageSyncService {
 
 ---
 
+## Hybrid Listener 費用優化
+
+### 核心概念
+
+傳統的 Firestore Listener 會監聽完整的資料 collection，每次有變更都會讀取完整文件（1-2 KB），產生大量讀取費用。
+
+**Hybrid Listener 策略**：只監聽一個輕量的 `syncState` 文件（200-500 bytes），收到變更通知後再精確下載需要的資料。
+
+### 費用對比
+
+| 項目 | 傳統 Listener | Hybrid Listener |
+|------|--------------|-----------------|
+| Listener 讀取大小 | 1-2 KB/次 | **200-500 bytes/次** |
+| 100 用戶/月 | $9.30 | **$2.50** |
+| 1000 用戶/月 | $93 | **$25** |
+| **節省** | - | **約 73%** |
+
+### Firestore 結構
+
+```
+firestore/
+├── products/{productId}              // 完整資料（不監聽）
+├── sessions/{sessionId}              // 完整資料（不監聯）
+├── categories/{categoryId}           // 完整資料（不監聽）
+├── transactions/{transactionId}      // 完整資料（不監聽）
+└── users/{userId}/
+    └── private/
+        └── syncState                 // ⚡ 只監聽這個文件！
+            {
+              "version": 123,
+              "lastUpdate": timestamp,
+              "pendingChanges": {
+                "products": ["id1", "id2"],
+                "sessions": ["id3"],
+                "categories": [],
+                "transactions": ["id4"]
+              }
+            }
+```
+
+**syncState 文件大小：約 200-500 bytes**
+
+### 運作規則
+
+1. **Listener 只監聽 `syncState`**（不監聽實際資料 collection）
+2. **pendingChanges 上限 50 個 ID**（超過就清空該類別）
+3. **清空時 version +1**（其他裝置看到空清單 + 版本號變大 → 全量下載）
+
+### 寫入邏輯
+
+```swift
+/// 上傳資料時，同時更新 syncState
+func uploadProduct(_ product: ProductModel) async throws {
+    guard let userId = currentUserId else { throw SyncError.authenticationRequired }
+
+    let batch = db.batch()
+
+    // 1. 上傳完整資料
+    let productRef = db.collection("products").document(product.id.uuidString)
+    batch.setData(product.toFirestoreData(userId: userId), forDocument: productRef)
+
+    // 2. 更新 syncState
+    let syncStateRef = db.collection("users").document(userId)
+        .collection("private").document("syncState")
+
+    batch.updateData([
+        "version": FieldValue.increment(Int64(1)),
+        "lastUpdate": FieldValue.serverTimestamp(),
+        "pendingChanges.products": FieldValue.arrayUnion([product.id.uuidString])
+    ], forDocument: syncStateRef)
+
+    try await batch.commit()
+
+    // 3. 檢查是否超過上限（非同步處理）
+    Task {
+        await trimPendingChangesIfNeeded(userId: userId, entityType: "products")
+    }
+}
+
+/// 清理超過上限的 pendingChanges
+private func trimPendingChangesIfNeeded(userId: String, entityType: String) async {
+    let syncStateRef = db.collection("users").document(userId)
+        .collection("private").document("syncState")
+
+    do {
+        let doc = try await syncStateRef.getDocument()
+        guard let data = doc.data(),
+              let pendingChanges = data["pendingChanges"] as? [String: [String]],
+              let ids = pendingChanges[entityType],
+              ids.count > 50 else { return }
+
+        // 超過 50 個，清空該類別
+        try await syncStateRef.updateData([
+            "pendingChanges.\(entityType)": FieldValue.delete()
+        ])
+    } catch {
+        print("trimPendingChanges error: \(error)")
+    }
+}
+```
+
+### 監聽邏輯
+
+```swift
+class HybridSyncListener {
+    private var listener: ListenerRegistration?
+    private var localVersion: Int = 0
+
+    func startListening(userId: String) {
+        let syncStateRef = db.collection("users").document(userId)
+            .collection("private").document("syncState")
+
+        // 讀取本地版本號
+        localVersion = UserDefaults.standard.integer(forKey: "syncVersion")
+
+        listener = syncStateRef.addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self,
+                  let data = snapshot?.data() else { return }
+
+            let cloudVersion = data["version"] as? Int ?? 0
+
+            // 版本號沒變，不處理
+            guard cloudVersion > self.localVersion else { return }
+
+            let pendingChanges = data["pendingChanges"] as? [String: [String]] ?? [:]
+
+            Task {
+                await self.processChanges(pendingChanges, cloudVersion: cloudVersion)
+            }
+        }
+    }
+
+    private func processChanges(_ pendingChanges: [String: [String]], cloudVersion: Int) async {
+        // Products
+        if let productIds = pendingChanges["products"], !productIds.isEmpty {
+            // 有精確清單：只下載這些
+            for id in productIds {
+                await downloadProduct(id: id)
+            }
+        } else if cloudVersion > localVersion {
+            // 清單是空的但版本號變了：全量下載
+            await downloadAllProducts()
+        }
+
+        // Sessions（同樣邏輯）
+        if let sessionIds = pendingChanges["sessions"], !sessionIds.isEmpty {
+            for id in sessionIds {
+                await downloadSession(id: id)
+            }
+        } else if cloudVersion > localVersion {
+            await downloadAllSessions()
+        }
+
+        // Categories、Transactions... 同樣邏輯
+
+        // 更新本地版本號
+        localVersion = cloudVersion
+        UserDefaults.standard.set(cloudVersion, forKey: "syncVersion")
+
+        // 清除已處理的 pendingChanges
+        await clearProcessedChanges()
+    }
+
+    private func clearProcessedChanges() async {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        let syncStateRef = db.collection("users").document(userId)
+            .collection("private").document("syncState")
+
+        try? await syncStateRef.updateData([
+            "pendingChanges": [
+                "products": [],
+                "sessions": [],
+                "categories": [],
+                "transactions": []
+            ]
+        ])
+    }
+
+    func stopListening() {
+        listener?.remove()
+        listener = nil
+    }
+}
+```
+
+### 初始化 syncState（首次登入時）
+
+```swift
+func initializeSyncState(userId: String) async throws {
+    let syncStateRef = db.collection("users").document(userId)
+        .collection("private").document("syncState")
+
+    let doc = try await syncStateRef.getDocument()
+
+    if !doc.exists {
+        try await syncStateRef.setData([
+            "version": 0,
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges": [
+                "products": [],
+                "sessions": [],
+                "categories": [],
+                "transactions": []
+            ]
+        ])
+    }
+}
+```
+
+### Firestore Security Rules 更新
+
+```javascript
+// 在 firestore.rules 中新增
+match /users/{userId}/private/{document=**} {
+    allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+```
+
+### 使用場景
+
+| 場景 | 行為 |
+|------|------|
+| **正常使用**（每天少量變更）| 精確下載 pendingChanges 中的 ID |
+| **離線 3 天後重新連線** | pendingChanges 已清空，根據 version 全量下載 |
+| **批次匯入 100 個產品** | 超過 50 個後自動清空，觸發全量下載 |
+
+---
+
 ## 衝突處理與刪除策略
 
 ### 運行時衝突：Last-Write-Wins
@@ -1684,26 +1916,33 @@ func saveProduct(_ product: ProductModel) async {
   - [x] `NetworkMonitor` - 網路狀態監控（使用 Alamofire）
   - [x] 使用現有 `AuthenticationManager`（不需要新建 AuthManager）
 
-### Phase 2：上傳同步（預估 3-4 天）
+### Phase 2：上傳同步（預估 3-4 天）✅ **已完成大部分**
 
-- [ ] **2.1 資料上傳服務**
-  - [ ] `FirestoreUploader` - 上傳資料到 Firestore
-  - [ ] Session 上傳
-  - [ ] Category 上傳
-  - [ ] Product 上傳
-  - [ ] Transaction 上傳
-  - [ ] InventoryChange 上傳
-  - [ ] QRCode 上傳
+- [x] **2.1 資料上傳服務**
+  - [x] `FirestoreUploader` - 上傳資料到 Firestore
+  - [x] Session 上傳（單一 + 批次 + Batch Write）
+  - [x] Category 上傳（單一 + 批次）
+  - [x] Product 上傳（單一 + 批次）
+  - [x] Transaction 上傳（單一 + 批次）
+  - [x] InventoryChange 上傳（單一 + 批次）
+  - [x] QRCode 上傳（單一）
+  - [x] Update 功能（Session, Category, Product, QRCode）
+  - [x] Delete 功能（所有 Entity + Cascade Delete）
 
-- [ ] **2.2 圖片上傳服務**
-  - [ ] `ImageSyncService` - 圖片壓縮與上傳
-  - [ ] 產品圖片上傳
-  - [ ] QR Code 圖片上傳
+- [x] **2.2 圖片上傳服務**
+  - [x] `ImageSyncService` - 圖片壓縮與上傳
+  - [x] 產品圖片上傳（200x200 JPEG）
+  - [x] QR Code 圖片上傳（512x512 PNG）
+  - [x] 頭貼圖片上傳（200x200 JPEG）
+  - [x] 圖片刪除（單一 + 批次）
+  - [x] 圖片處理（調整尺寸為正方形）
 
-- [ ] **2.3 離線排隊機制**
-  - [ ] `SyncQueue` - 操作排隊
-  - [ ] `CDPendingSyncOperation` CRUD
-  - [ ] 網路恢復時自動處理排隊
+- [x] **2.3 離線排隊機制**
+  - [x] `SyncManager` 基礎實作
+  - [x] `CDPendingSyncOperation` CRUD
+  - [x] 網路恢復時自動處理排隊（processPendingQueue）
+  - [x] 重試機制（syncWithRetry）
+  - [ ] 整合到 Repository（待 Phase 2.4）
 
 - [ ] **2.4 整合到現有 Repository**
   - [ ] `SessionRepository` 整合同步
@@ -1759,26 +1998,35 @@ func saveProduct(_ product: ProductModel) async {
   - [ ] 修改 `signOut()`
   - [ ] 新增 `handleDataConflict()`
 
-### Phase 5：即時監聽（預估 2-3 天）
+### Phase 5：Hybrid Listener 即時監聽（預估 2-3 天）
 
-- [ ] **5.1 Firestore 監聽服務**
-  - [ ] `FirestoreListener` - 監聽變更
-  - [ ] Session 變更監聯
-  - [ ] Category 變更監聽
-  - [ ] Product 變更監聽
-  - [ ] Transaction 變更監聽
-  - [ ] InventoryChange 變更監聽
-  - [ ] QRCode 變更監聽
+- [ ] **5.1 syncState 基礎建設**
+  - [ ] 新增 `users/{userId}/private/syncState` 文件結構
+  - [ ] 更新 Firestore Security Rules（允許存取 private subcollection）
+  - [ ] `initializeSyncState()` - 首次登入時初始化 syncState
+  - [ ] 在 FirestoreUploader 中整合 syncState 更新
 
-- [ ] **5.2 變更處理**
-  - [ ] 新增：寫入 CoreData
-  - [ ] 修改：更新 CoreData
-  - [ ] 刪除：從 CoreData 刪除
+- [ ] **5.2 HybridSyncListener 實作**
+  - [ ] `HybridSyncListener` - 只監聽 syncState 文件
+  - [ ] `startListening()` - 開始監聽
+  - [ ] `stopListening()` - 停止監聯
+  - [ ] `processChanges()` - 根據 pendingChanges 下載資料
+  - [ ] `clearProcessedChanges()` - 清除已處理的變更
 
-- [ ] **5.3 整合到 App 生命週期**
-  - [ ] 登入時開始監聽
+- [ ] **5.3 pendingChanges 管理**
+  - [ ] 寫入時加入 pendingChanges（arrayUnion）
+  - [ ] `trimPendingChangesIfNeeded()` - 超過 50 個時清空
+  - [ ] 版本號遞增邏輯
+
+- [ ] **5.4 變更處理**
+  - [ ] 精確下載：根據 pendingChanges 的 ID 下載
+  - [ ] 全量下載：pendingChanges 為空但版本號變了
+  - [ ] 本地版本號快取（UserDefaults）
+
+- [ ] **5.5 整合到 App 生命週期**
+  - [ ] 登入時開始監聽 + 初始化 syncState
   - [ ] 登出時停止監聽
-  - [ ] App 進入前台時檢查
+  - [ ] App 進入前台時檢查版本號
 
 ### Phase 6：測試與優化（預估 2-3 天）
 
