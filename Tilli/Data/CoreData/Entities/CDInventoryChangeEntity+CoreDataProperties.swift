@@ -43,15 +43,6 @@ extension CDInventoryChangeEntity {
     }
 
     func toModel() -> InventoryChangeModel {
-        return InventoryChangeModel(
-            id: self.id,
-            productId: self.productId,
-            change: Int(self.change),
-            reason: InventoryChangeReason(rawValue: self.reason) ?? .adjustment,
-            customReason: self.customReason,
-            transactionId: self.transactionId,
-            timestamp: self.timestamp,
-            sessionId: self.sessionId ?? self.session?.id
-        )
+        InventoryChangeModel(entity: self)
     }
 }

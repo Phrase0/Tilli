@@ -88,7 +88,6 @@ extension CDSessionEntity {
 
 extension CDSessionEntity {
     func update(from model: SessionModel, context: NSManagedObjectContext) {
-        // 更新基本欄位
         self.id = model.id
         self.title = model.title
         self.startDate = model.startDate
@@ -96,38 +95,11 @@ extension CDSessionEntity {
         self.dateType = model.dateType.rawValue
         self.createdAt = model.createdAt
         self.currency = model.currency
-
-        // 編碼 discounts
         self.discountsData = try? JSONEncoder().encode(model.discounts)
     }
 
-
-    // Core Data 載入資料後 → 轉成 SessionModel 給 UI 用
     func toModel() -> SessionModel {
-        // 取出所有 CategoryModel 並按 sortOrder 排序
-        let categoryModels = (categories as? Set<CDCategoryEntity>)?
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { $0.toModel() } ?? []
-
-        // 解碼 discounts
-        let discountModels: [DiscountModel] = {
-            guard let data = discountsData else { return [] }
-            return (try? JSONDecoder().decode([DiscountModel].self, from: data)) ?? []
-        }()
-
-        return SessionModel(
-            id: self.id,
-            title: self.title,
-            startDate: self.startDate,
-            endDate: self.endDate,
-            dateType: SessionDateType(rawValue: self.dateType) ?? .single,
-            categories: categoryModels,
-            createdAt: self.createdAt,
-            currency: self.currency,
-            discounts: discountModels
-        )
+        SessionModel(entity: self)
     }
-
-
 }
 

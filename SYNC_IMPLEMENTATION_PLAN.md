@@ -1928,6 +1928,13 @@ func saveProduct(_ product: ProductModel) async {
   - [x] QRCode 上傳（單一）
   - [x] Update 功能（Session, Category, Product, QRCode）
   - [x] Delete 功能（所有 Entity + Cascade Delete）
+  - [x] **Hybrid Listener 整合**
+    - [x] `initializeSyncState()` - 初始化 syncState 文件
+    - [x] `syncStateExists()` - 檢查 syncState 是否存在
+    - [x] `trimPendingChangesIfNeeded()` - 超過 50 個時清空
+    - [x] 所有上傳/更新方法整合 syncState 更新（Batch Write）
+    - [x] 所有刪除方法整合 version 遞增
+    - [x] 更新 firestore.rules（允許 private subcollection）
 
 - [x] **2.2 圖片上傳服務**
   - [x] `ImageSyncService` - 圖片壓縮與上傳

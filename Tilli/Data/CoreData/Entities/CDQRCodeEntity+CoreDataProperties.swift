@@ -39,11 +39,6 @@ extension CDQRCodeEntity {
     }
 
     func toModel() -> QRCodeModel {
-        return QRCodeModel(
-            id: self.id,
-            imageData: self.imageData,
-            imageURL: self.imageURL,
-            createdAt: self.createdAt
-        )
+        QRCodeModel(entity: self)
     }
 }

@@ -36,7 +36,7 @@ extension CDTransactionEntity {
 
 
 extension CDTransactionEntity {
-    
+
     var items: [SummaryItemModel] {
         get {
             guard let data = self.itemsData else { return [] }
@@ -57,31 +57,11 @@ extension CDTransactionEntity {
         self.timestamp = model.timestamp
         self.occurredAt = model.occurredAt
         self.items = model.items
-
-        // 存儲折扣
         self.discountType = model.discountType?.rawValue
         self.discountValue = model.discountValue.map { NSDecimalNumber(decimal: $0) }
     }
 
     func toModel() -> TransactionModel {
-        // 解碼折扣類型
-        let discountTypeEnum: DiscountType? = {
-            guard let typeString = discountType else { return nil }
-            return DiscountType(rawValue: typeString)
-        }()
-
-        return TransactionModel(
-            id: self.id,
-            sessionId: self.sessionId,
-            sessionTitle: self.sessionTitle,
-            currency: self.currency,
-            items: self.items,
-            totalAmount: self.totalAmount.decimalValue,
-            paymentMethod: PaymentMethod(rawValue: self.paymentMethod) ?? .cash,
-            timestamp: self.timestamp,
-            occurredAt: self.occurredAt,
-            discountType: discountTypeEnum,
-            discountValue: self.discountValue?.decimalValue
-        )
+        TransactionModel(entity: self)
     }
 }

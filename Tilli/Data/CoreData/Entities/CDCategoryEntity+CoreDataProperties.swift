@@ -60,17 +60,7 @@ extension CDCategoryEntity {
     }
 
     func toModel() -> CategoryModel {
-        let products = (self.products as? Set<CDProductEntity>)?.compactMap { $0.toModel() } ?? []
-        return CategoryModel(
-            id: self.id,
-            name: self.name,
-            products: products,
-            createdAt: self.createdAt,
-            isDisabled: self.isDisabled,
-            sortOrder: Int(self.sortOrder),
-            sessionId: self.sessionId ?? self.session.id
-        )
+        CategoryModel(entity: self)
     }
-
 }
 

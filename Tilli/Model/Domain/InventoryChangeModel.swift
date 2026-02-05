@@ -126,3 +126,17 @@ struct InventoryChangeModel: Identifiable, Codable {
         return reason.displayName
     }
 }
+
+// MARK: - CoreData 轉換
+extension InventoryChangeModel {
+    init(entity: CDInventoryChangeEntity) {
+        self.id = entity.id
+        self.productId = entity.productId
+        self.change = Int(entity.change)
+        self.reason = InventoryChangeReason(rawValue: entity.reason) ?? .adjustment
+        self.customReason = entity.customReason
+        self.transactionId = entity.transactionId
+        self.timestamp = entity.timestamp
+        self.sessionId = entity.sessionId ?? entity.session?.id
+    }
+}

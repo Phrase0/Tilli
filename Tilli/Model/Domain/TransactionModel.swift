@@ -34,3 +34,33 @@ enum PaymentMethod: String, Codable {
     case cash
     case ePayment
 }
+
+// MARK: - CoreData 轉換
+extension TransactionModel {
+    init(entity: CDTransactionEntity) {
+        self.id = entity.id
+        self.sessionId = entity.sessionId
+        self.sessionTitle = entity.sessionTitle
+        self.currency = entity.currency
+        self.totalAmount = entity.totalAmount.decimalValue
+        self.paymentMethod = PaymentMethod(rawValue: entity.paymentMethod) ?? .cash
+        self.timestamp = entity.timestamp
+        self.occurredAt = entity.occurredAt
+
+        // 解碼 items
+        if let data = entity.itemsData,
+           let decoded = try? JSONDecoder().decode([SummaryItemModel].self, from: data) {
+            self.items = decoded
+        } else {
+            self.items = []
+        }
+
+        // 解碼折扣
+        if let typeString = entity.discountType {
+            self.discountType = DiscountType(rawValue: typeString)
+        } else {
+            self.discountType = nil
+        }
+        self.discountValue = entity.discountValue?.decimalValue
+    }
+}

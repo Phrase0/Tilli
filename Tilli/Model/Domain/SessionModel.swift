@@ -124,3 +124,29 @@ enum SessionStatus: String, Codable {
         }
     }
 }
+
+// MARK: - CoreData 轉換
+extension SessionModel {
+    init(entity: CDSessionEntity) {
+        self.id = entity.id
+        self.title = entity.title
+        self.startDate = entity.startDate
+        self.endDate = entity.endDate
+        self.dateType = SessionDateType(rawValue: entity.dateType) ?? .single
+        self.createdAt = entity.createdAt
+        self.currency = entity.currency
+
+        // Categories 按 sortOrder 排序
+        self.categories = (entity.categories as? Set<CDCategoryEntity>)?
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .map { CategoryModel(entity: $0) } ?? []
+
+        // 解碼 discounts
+        if let data = entity.discountsData,
+           let decoded = try? JSONDecoder().decode([DiscountModel].self, from: data) {
+            self.discounts = decoded
+        } else {
+            self.discounts = []
+        }
+    }
+}
