@@ -48,6 +48,10 @@ class QRCodeRepository: ObservableObject {
 
     /// 儲存 QR Code
     func saveQRCode(_ model: QRCodeModel) {
+        // 檢查是否已有 QR Code（決定是 create 還是 update）
+        let isUpdate = qrCode != nil
+        let oldQRCodeId = qrCode?.id
+
         // 先刪除所有現有的 QR Code，然後新增
         deleteAllQRCodes()
 
@@ -55,8 +59,6 @@ class QRCodeRepository: ObservableObject {
         let entity = CDQRCodeEntity(context: context)
         entity.update(from: model, context: context)
 
-        // 設定 sync 相關欄位（由 Repository 處理）
-        // entity.userId = AuthManager.shared.currentUserId  // Phase 1.4 時啟用
         entity.updatedAt = Date()
         entity.syncStatus = "pending"
 
@@ -65,6 +67,20 @@ class QRCodeRepository: ObservableObject {
         // 更新 Published 屬性
         DispatchQueue.main.async {
             self.qrCode = model
+        }
+
+        // 同步到 Firestore
+        // 注意：圖片上傳需要在 View 層處理，取得 imageURL 後再同步
+        Task { @MainActor in
+            if isUpdate {
+                // 如果有舊的，先刪除舊的
+                if let oldId = oldQRCodeId, oldId != model.id {
+                    SyncManager.shared.syncDeleteQRCode(oldId)
+                }
+                SyncManager.shared.syncQRCode(model, operation: .update)
+            } else {
+                SyncManager.shared.syncQRCode(model, operation: .create)
+            }
         }
     }
 
@@ -75,12 +91,21 @@ class QRCodeRepository: ObservableObject {
 
     /// 刪除 QR Code
     func deleteQRCode() {
+        let deletedId = qrCode?.id
+
         deleteAllQRCodes()
         saveContext()
 
         // 更新 Published 屬性
         DispatchQueue.main.async {
             self.qrCode = nil
+        }
+
+        // 同步刪除到 Firestore
+        if let id = deletedId {
+            Task { @MainActor in
+                SyncManager.shared.syncDeleteQRCode(id)
+            }
         }
     }
 

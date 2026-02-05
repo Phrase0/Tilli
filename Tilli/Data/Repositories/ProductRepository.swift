@@ -35,6 +35,10 @@ class ProductRepository: ObservableObject {
             productEntity.category = categoryEntity
 
             saveContext()
+            // 同步到 Firestore
+            Task { @MainActor in
+                SyncManager.shared.syncProduct(productModel, operation: .create)
+            }
         } catch {
             print("加入 product 失敗:", error)
         }
@@ -62,8 +66,12 @@ class ProductRepository: ObservableObject {
                 if let imageData = productModel.imageData {
                     entity.imageData = imageData
                 }
-                
+
                 saveContext()
+                // 同步到 Firestore
+                Task { @MainActor in
+                    SyncManager.shared.syncProduct(productModel, operation: .update)
+                }
             }
         } catch {
             print("Update product failed:", error)
@@ -79,6 +87,11 @@ class ProductRepository: ObservableObject {
             if let entity = try context.fetch(request).first {
                 entity.isDisabled = true
                 saveContext()
+                // 同步到 Firestore
+                let productModel = entity.toModel()
+                Task { @MainActor in
+                    SyncManager.shared.syncProduct(productModel, operation: .update)
+                }
             }
         } catch {
             print("Disable product failed:", error)
@@ -94,6 +107,11 @@ class ProductRepository: ObservableObject {
             if let entity = try context.fetch(request).first {
                 entity.isDisabled = false
                 saveContext()
+                // 同步到 Firestore
+                let productModel = entity.toModel()
+                Task { @MainActor in
+                    SyncManager.shared.syncProduct(productModel, operation: .update)
+                }
             }
         } catch {
             print("Enable product failed:", error)
@@ -115,11 +133,20 @@ class ProductRepository: ObservableObject {
                 // 有 Transaction，只能停用
                 productEntity.isDisabled = true
                 saveContext()
+                // 同步停用狀態到 Firestore
+                let productModel = productEntity.toModel()
+                Task { @MainActor in
+                    SyncManager.shared.syncProduct(productModel, operation: .update)
+                }
                 return .disabledInstead("此產品已有交易記錄，已改為停用狀態")
             } else {
                 // 沒有 Transaction，可以硬刪除
                 context.delete(productEntity)
                 saveContext()
+                // 同步刪除到 Firestore
+                Task { @MainActor in
+                    SyncManager.shared.syncDeleteProduct(productId)
+                }
                 return .deleted("產品已成功刪除")
             }
         } catch {

@@ -548,7 +548,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 收集所有 ID 用於更新 syncState
-        var sessionIds: [String] = [session.id.uuidString]
+        let sessionIds: [String] = [session.id.uuidString]
         var categoryIds: [String] = []
         var productIds: [String] = []
 

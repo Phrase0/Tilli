@@ -103,6 +103,11 @@ class AuthenticationManager: ObservableObject {
                 self.currentUser = profile
                 // 更新 authState
                 updateAuthState()
+
+                // App 啟動時，如果是 member 就初始化同步環境
+                if profile.accountStatus == .member {
+                    await SyncManager.shared.initializeSync()
+                }
             } else {
                 // 有 Firebase Auth 用戶但沒有 UserProfile（可能是匿名用戶首次）
                 self.authState = .guest
@@ -436,6 +441,9 @@ class AuthenticationManager: ObservableObject {
             // 更新 deviceId
             try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
 
+            // 初始化同步環境（新帳號）
+            await SyncManager.shared.initializeSync()
+
             // 更新 authState（Link 成功 = 新帳號，需要設定 profile）
             authState = .needsSetup
         } catch {
@@ -451,6 +459,8 @@ class AuthenticationManager: ObservableObject {
                 self.currentUser = profile
                 // 更新 deviceId
                 try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
+                // 初始化同步環境（既有帳號，確保 syncState 存在）
+                await SyncManager.shared.initializeSync()
             } else {
                 // 新帳號：只存 email，姓名和頭貼留空讓用戶自己填寫
                 let email = user.email ?? ""
@@ -469,6 +479,8 @@ class AuthenticationManager: ObservableObject {
                 )
                 try await userRepository.createUser(newProfile)
                 self.currentUser = newProfile
+                // 初始化同步環境（新帳號）
+                await SyncManager.shared.initializeSync()
             }
             // 更新 authState
             updateAuthState()

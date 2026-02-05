@@ -105,7 +105,11 @@ class SessionRepository: ObservableObject {
         }
 
         if saveContext() {
-            fetchSessions() // 僅在成功保存後重新載入
+            fetchSessions()
+            // 同步到 Firestore（包含 Categories 和 Products）
+            Task { @MainActor in
+                SyncManager.shared.syncSessionWithChildren(model)
+            }
         }
     }
 
@@ -153,7 +157,11 @@ class SessionRepository: ObservableObject {
             updateCategoriesForSession(entity: entity, newCategories: model.categories)
 
             if saveContext() {
-                fetchSessions() // 僅在成功保存後重新載入
+                fetchSessions()
+                // 同步到 Firestore
+                Task { @MainActor in
+                    SyncManager.shared.syncSession(model, operation: .update)
+                }
             }
         } catch {
             print("Update session failed:", error)
@@ -225,7 +233,7 @@ class SessionRepository: ObservableObject {
     }
 
     /// 刪除 Session（硬刪除，但保留 Transaction）
-    /// 
+    ///
     /// ⚠️ 注意：刪除 Session 後，相關的 Transaction 記錄會保留，
     /// 但 Transaction.session 關聯會被設為 nil（deletionRule="Nullify"）。
     /// Transaction 記錄仍可透過 sessionId 欄位查詢。
@@ -233,7 +241,7 @@ class SessionRepository: ObservableObject {
         // 調試：刪除前檢查
         print("🔥 準備刪除 Session: \(sessionId)")
         debugTransactionStatus(forSessionId: sessionId)
-        
+
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
 
@@ -248,8 +256,11 @@ class SessionRepository: ObservableObject {
                     print("🔥 已刪除 Session，檢查交易記錄狀態:")
                     debugTransactionStatus(forSessionId: sessionId)
                     print("")
-//                    debugAllTransactions()
-                    fetchSessions() // 僅在成功保存後重新載入
+                    fetchSessions()
+                    // 同步刪除到 Firestore（包含 Categories、Products、InventoryChanges）
+                    Task { @MainActor in
+                        SyncManager.shared.syncDeleteSession(sessionId, withChildren: true)
+                    }
                 }
             }
         } catch {
@@ -275,8 +286,11 @@ class SessionRepository: ObservableObject {
             sessionEntity.addToTransactions(entity)
 
             if saveContext() {
-                // UI 更新由 notifyTransactionsChanged() 觸發
                 TransactionRepository.shared.notifyTransactionsChanged()
+                // 同步到 Firestore
+                Task { @MainActor in
+                    SyncManager.shared.syncTransaction(model)
+                }
             }
         } catch {
             print("加入 transaction 失敗:", error)
@@ -376,9 +390,14 @@ class SessionRepository: ObservableObject {
             }
             
             if saveContext() {
-                fetchSessions() // 僅在成功保存後重新載入
+                fetchSessions()
                 // 返回新建立的 SessionModel
-                return newSessionEntity.toModel()
+                let newSession = newSessionEntity.toModel()
+                // 同步到 Firestore（包含 Categories 和 Products）
+                Task { @MainActor in
+                    SyncManager.shared.syncSessionWithChildren(newSession)
+                }
+                return newSession
             } else {
                 return nil
             }

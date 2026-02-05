@@ -29,6 +29,10 @@ class InventoryChangeRepository: ObservableObject {
         entity.update(from: change, context: context)
         entity.session = sessionEntity
         saveContext()
+        // 同步到 Firestore
+        Task { @MainActor in
+            SyncManager.shared.syncInventoryChange(change, sessionId: sessionId)
+        }
     }
 
     /// 批次新增庫存異動紀錄
@@ -43,6 +47,12 @@ class InventoryChangeRepository: ObservableObject {
             entity.session = sessionEntity
         }
         saveContext()
+        // 批次同步到 Firestore
+        Task { @MainActor in
+            for change in changes {
+                SyncManager.shared.syncInventoryChange(change, sessionId: sessionId)
+            }
+        }
     }
 
     /// 根據 sessionId 取得 CDSessionEntity

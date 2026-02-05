@@ -1949,7 +1949,6 @@ func saveProduct(_ product: ProductModel) async {
   - [x] `CDPendingSyncOperation` CRUD
   - [x] 網路恢復時自動處理排隊（processPendingQueue）
   - [x] 重試機制（syncWithRetry）
-  - [ ] 整合到 Repository（待 Phase 2.4）
 
 - [ ] **2.4 整合到現有 Repository**
   - [ ] `SessionRepository` 整合同步
