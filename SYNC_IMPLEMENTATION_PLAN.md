@@ -1959,22 +1959,22 @@ func saveProduct(_ product: ProductModel) async {
 
 ### Phase 3：下載同步（預估 2-3 天）
 
-- [ ] **3.1 資料下載服務**
-  - [ ] `FirestoreDownloader` - 從 Firestore 下載資料
-  - [ ] Session 下載並寫入 CoreData
-  - [ ] Category 下載
-  - [ ] Product 下載
-  - [ ] Transaction 下載
-  - [ ] InventoryChange 下載
-  - [ ] QRCode 下載
+- [x] **3.1 資料下載服務**
+  - [x] `FirestoreDownloader` - 從 Firestore 下載資料
+  - [x] Session 下載並寫入 CoreData
+  - [x] Category 下載
+  - [x] Product 下載
+  - [x] Transaction 下載
+  - [x] InventoryChange 下載
+  - [x] QRCode 下載
 
-- [ ] **3.2 圖片下載服務**
-  - [ ] 使用 Kingfisher 下載並快取
-  - [ ] 下載後更新 CoreData 的 imageData
+- [x] **3.2 圖片下載服務**
+  - [x] 使用 Kingfisher 下載並快取
+  - [x] 下載後更新 CoreData 的 imageData
 
-- [ ] **3.3 完整同步功能**
-  - [ ] `fullSync()` - 完整同步所有資料
-  - [ ] 進度回報 UI
+- [x] **3.3 完整同步功能**
+  - [x] `fullSync()` - 完整同步所有資料
+  - [x] 進度回報 UI
 
 ### Phase 4：登入流程整合（預估 3-4 天）
 
