@@ -32,12 +32,17 @@ struct MerchantQRCodeView: View {
                                         .frame(width: 300, height: 300)
                                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
 
-                                    if let qrImage = qrCodeDataManager.qrCodeImage {
-                                        Image(uiImage: qrImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 280, height: 280)
-                                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    if let qrCode = qrCodeDataManager.qrCode,
+                                       (qrCode.imageData != nil || qrCode.imageURL != nil) {
+                                        SyncableImageView(
+                                            imageData: qrCode.imageData,
+                                            imageURL: qrCode.imageURL,
+                                            entityId: qrCode.id,
+                                            entityType: .qrCode,
+                                            contentMode: .fit
+                                        )
+                                        .frame(width: 280, height: 280)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
                                     } else {
                                         VStack(spacing: 16) {
                                             RoundedRectangle(cornerRadius: 16)
@@ -65,7 +70,7 @@ struct MerchantQRCodeView: View {
                             .buttonStyle(PlainButtonStyle())
 
                             // 刪除按鈕（只在有 QR Code 時顯示）
-                            if qrCodeDataManager.qrCodeImage != nil {
+                            if qrCodeDataManager.qrCode != nil {
                                 Button(action: {
                                     showDeleteAlert = true
                                 }) {

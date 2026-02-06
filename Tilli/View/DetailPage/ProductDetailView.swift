@@ -267,24 +267,19 @@ struct ProductDetailView: View {
         
         return HStack(alignment: .center, spacing: 12) { // 改為 center 讓對齊更平衡
             // 產品圖片
-            ZStack {
-                if let image = product.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 70, height: 70)
-                } else {
-                    Rectangle()
-                        .foregroundColor(Color(.systemGray5))
-                        .frame(width: 70, height: 70)
-                        .overlay(Image(systemName: "photo").foregroundColor(.gray).font(.caption))
-                }
-            }
+            SyncableImageView(
+                imageData: product.imageData,
+                imageURL: product.imageURL,
+                entityId: product.id,
+                entityType: .product,
+                contentMode: .fill
+            )
+            .frame(width: 70, height: 70)
             .cornerRadius(8)
             .clipped()
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 // 上半部：名稱與選單
                 HStack(alignment: .top) {
@@ -387,19 +382,14 @@ struct ProductDetailView: View {
     private func disabledProductCard(_ product: ProductModel) -> some View {
         HStack(alignment: .center, spacing: 12) {
             // 產品圖片
-            ZStack {
-                if let image = product.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 70, height: 70)
-                } else {
-                    Rectangle()
-                        .foregroundColor(Color(.systemGray5))
-                        .frame(width: 70, height: 70)
-                        .overlay(Image(systemName: "photo").foregroundColor(.gray).font(.caption))
-                }
-            }
+            SyncableImageView(
+                imageData: product.imageData,
+                imageURL: product.imageURL,
+                entityId: product.id,
+                entityType: .product,
+                contentMode: .fill
+            )
+            .frame(width: 70, height: 70)
             .cornerRadius(8)
             .clipped()
             .grayscale(1.0)
@@ -476,22 +466,14 @@ struct ProductDetailView: View {
 
         return VStack(alignment: .leading, spacing: 0) {
             // MARK: 產品圖片 (1:1 比例)
-            ZStack {
-                if let image = product.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(1, contentMode: .fill) // 強制 1:1
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Rectangle()
-                        .foregroundColor(Color(.systemGray5))
-                        .aspectRatio(1, contentMode: .fill)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(.gray)
-                        )
-                }
-            }
+            SyncableImageView(
+                imageData: product.imageData,
+                imageURL: product.imageURL,
+                entityId: product.id,
+                entityType: .product,
+                contentMode: .fill
+            )
+            .aspectRatio(1, contentMode: .fill)
             .frame(minWidth: 0, maxWidth: .infinity)
             .clipped()
             .grayscale(isOutOfStock ? 1.0 : 0.0)
@@ -669,22 +651,14 @@ struct ProductDetailView: View {
     private func gridDisabledProductCard(_ product: ProductModel) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // MARK: 產品圖片 (1:1 比例)
-            ZStack {
-                if let image = product.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(1, contentMode: .fill)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Rectangle()
-                        .foregroundColor(Color(.systemGray5))
-                        .aspectRatio(1, contentMode: .fill)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(.gray)
-                        )
-                }
-            }
+            SyncableImageView(
+                imageData: product.imageData,
+                imageURL: product.imageURL,
+                entityId: product.id,
+                entityType: .product,
+                contentMode: .fill
+            )
+            .aspectRatio(1, contentMode: .fill)
             .frame(minWidth: 0, maxWidth: .infinity)
             .clipped()
             .grayscale(1.0)

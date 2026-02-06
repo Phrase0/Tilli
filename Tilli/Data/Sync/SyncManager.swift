@@ -6,8 +6,8 @@
 //  Created for CoreData + Firebase Sync
 //  統一管理同步邏輯，協調上傳/下載/衝突處理
 //
-//  Repository → SyncManager → FirestoreUploader
-//  SyncManager 負責：檢查同步條件、檢查網路、決定即時上傳或排隊
+//  Repository → SyncManager → FirestoreUploader / FirestoreDownloader
+//  SyncManager 負責：檢查同步條件、檢查網路、決定即時上傳或排隊、協調下載同步
 //
 
 import Foundation
@@ -23,9 +23,12 @@ class SyncManager: ObservableObject {
     private let context: NSManagedObjectContext
     private let db = Firestore.firestore()
     private let uploader = FirestoreUploader.shared
+    private let downloader = FirestoreDownloader.shared
 
     // MARK: - Published Properties
     @Published var isSyncing = false
+    @Published var isDownloading = false
+    @Published var downloadProgress: FirestoreDownloader.SyncProgress?
     @Published var lastSyncDate: Date?
     @Published var syncError: SyncError?
 
@@ -560,6 +563,90 @@ class SyncManager: ObservableObject {
         case "inventoryChange": return "CDInventoryChangeEntity"
         case "qrCode": return "CDQRCodeEntity"
         default: return entityType
+        }
+    }
+
+    // MARK: - Download Sync
+
+    /// 全量下載（從 Firestore 下載所有資料到本地）
+    func performFullSync() async {
+        guard shouldSync else { return }
+        guard isNetworkAvailable else {
+            syncError = .networkUnavailable
+            return
+        }
+        guard !isDownloading else { return }
+
+        isDownloading = true
+        isSyncing = true
+        syncError = nil
+
+        // 設定進度回報
+        downloader.onProgressUpdate = { [weak self] progress in
+            Task { @MainActor in
+                self?.downloadProgress = progress
+            }
+        }
+
+        do {
+            try await downloader.fullSync()
+            lastSyncDate = Date()
+            print("✅ SyncManager: 全量下載完成")
+        } catch {
+            print("❌ SyncManager: 全量下載失敗 - \(error)")
+            syncError = .unknown(error)
+        }
+
+        isDownloading = false
+        isSyncing = false
+        downloadProgress = nil
+    }
+
+    /// 下載特定 Session 及其子項目
+    func performSessionDownload(sessionId: UUID) async {
+        guard shouldSync else { return }
+        guard isNetworkAvailable else {
+            syncError = .networkUnavailable
+            return
+        }
+
+        isDownloading = true
+
+        do {
+            try await downloader.downloadSessionWithChildren(id: sessionId)
+            print("✅ SyncManager: Session 下載完成 - \(sessionId)")
+        } catch {
+            print("❌ SyncManager: Session 下載失敗 - \(error)")
+            syncError = .unknown(error)
+        }
+
+        isDownloading = false
+    }
+
+    /// 增量下載（Phase 5 Hybrid Listener 用）
+    func performIncrementalSync(
+        sessionIds: [UUID] = [],
+        categoryIds: [UUID] = [],
+        productIds: [UUID] = [],
+        transactionIds: [UUID] = [],
+        inventoryChangeIds: [UUID] = [],
+        qrCodeIds: [UUID] = []
+    ) async {
+        guard shouldSync else { return }
+        guard isNetworkAvailable else { return }
+
+        do {
+            try await downloader.downloadEntities(
+                sessionIds: sessionIds,
+                categoryIds: categoryIds,
+                productIds: productIds,
+                transactionIds: transactionIds,
+                inventoryChangeIds: inventoryChangeIds,
+                qrCodeIds: qrCodeIds
+            )
+            print("✅ SyncManager: 增量下載完成")
+        } catch {
+            print("❌ SyncManager: 增量下載失敗 - \(error)")
         }
     }
 

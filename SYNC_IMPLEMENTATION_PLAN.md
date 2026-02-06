@@ -1950,12 +1950,12 @@ func saveProduct(_ product: ProductModel) async {
   - [x] 網路恢復時自動處理排隊（processPendingQueue）
   - [x] 重試機制（syncWithRetry）
 
-- [ ] **2.4 整合到現有 Repository**
-  - [ ] `SessionRepository` 整合同步
-  - [ ] `ProductRepository` 整合同步
-  - [ ] `TransactionRepository` 整合同步
-  - [ ] `InventoryChangeRepository` 整合同步
-  - [ ] `QRCodeRepository` 整合同步
+- [x] **2.4 整合到現有 Repository**
+  - [x] `SessionRepository` 整合同步
+  - [x] `ProductRepository` 整合同步
+  - [x] `TransactionRepository` 整合同步
+  - [x] `InventoryChangeRepository` 整合同步
+  - [x] `QRCodeRepository` 整合同步
 
 ### Phase 3：下載同步（預估 2-3 天）
 

@@ -336,22 +336,13 @@ struct InventoryProductCard: View {
     }
 
     private var productImage: some View {
-        ZStack {
-            if let imageData = item.product.imageData,
-               let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Rectangle()
-                    .foregroundColor(Color(.systemGray5))
-                    .overlay(
-                        Image(systemName: "photo")
-                            .foregroundColor(.gray)
-                            .font(.caption)
-                    )
-            }
-        }
+        SyncableImageView(
+            imageData: item.product.imageData,
+            imageURL: item.product.imageURL,
+            entityId: item.product.id,
+            entityType: .product,
+            contentMode: .fill
+        )
         .frame(width: 70, height: 70)
         .cornerRadius(8)
         .clipped()
@@ -533,22 +524,13 @@ struct DisabledInventoryProductCard: View {
     }
 
     private var productImage: some View {
-        ZStack {
-            if let imageData = item.product.imageData,
-               let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Rectangle()
-                    .foregroundColor(Color(.systemGray5))
-                    .overlay(
-                        Image(systemName: "photo")
-                            .foregroundColor(.gray)
-                            .font(.caption)
-                    )
-            }
-        }
+        SyncableImageView(
+            imageData: item.product.imageData,
+            imageURL: item.product.imageURL,
+            entityId: item.product.id,
+            entityType: .product,
+            contentMode: .fill
+        )
         .frame(width: 70, height: 70)
         .cornerRadius(8)
         .clipped()

@@ -148,9 +148,9 @@ class TestDataGenerator {
             sortOrder: 2
         )
 
-        // 建立永久場次（從 3 個月前開始）
+        // 建立永久場次（從 1 個月前開始）
         let calendar = Calendar.current
-        let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: Date())!
+        let threeMonthsAgo = calendar.date(byAdding: .month, value: -1, to: Date())!
         let startDate = calendar.startOfDay(for: threeMonthsAgo)
 
         // TWD 折扣測試資料（8個：4個百分比 + 4個金額）
@@ -204,7 +204,7 @@ class TestDataGenerator {
             inventoryChangeRepository.addChange(initialChange, sessionId: sessionId)
         }
 
-        // 生成跨 3 個月的交易資料
+        // 生成跨 1 個月的交易資料
         generateTransactions(
             sessionDataManager: sessionDataManager,
             inventoryChangeRepository: inventoryChangeRepository,
@@ -434,8 +434,8 @@ class TestDataGenerator {
         var currentDate = startDate
 
         while currentDate <= finalEndDate {
-            // 每天隨機生成 8-10 筆交易
-            let transactionCount = Int.random(in: 5...10)
+            // 每天隨機生成 1-5 筆交易
+            let transactionCount = Int.random(in: 1...5)
 
             for _ in 0..<transactionCount {
                 // 隨機選擇 1-3 個產品
