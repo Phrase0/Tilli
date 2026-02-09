@@ -370,8 +370,19 @@ class SyncManager: ObservableObject {
         print("❌ \(entityType.rawValue) 同步失敗: \(error)")
         updateEntitySyncStatus(entityType: entityType.rawValue, entityId: entityId, status: .error)
 
-        // 加入重試佇列
-        if let payload = try? JSONEncoder().encode(model) {
+        // 加入重試佇列（確保 sessionId 被寫入 payload）
+        var payload: Data?
+        if var category = model as? CategoryModel, let sid = sessionId {
+            category.sessionId = sid
+            payload = try? JSONEncoder().encode(category)
+        } else if var change = model as? InventoryChangeModel, let sid = sessionId {
+            change.sessionId = sid
+            payload = try? JSONEncoder().encode(change)
+        } else {
+            payload = try? JSONEncoder().encode(model)
+        }
+
+        if let payload = payload {
             enqueueOperation(entityType: entityType, entityId: entityId, operationType: operation, payload: payload)
         }
     }
@@ -386,7 +397,9 @@ class SyncManager: ObservableObject {
     }
 
     private func enqueueCategoryOperation(_ category: CategoryModel, sessionId: UUID, operation: SyncOperationType) {
-        if let payload = try? JSONEncoder().encode(category) {
+        var categoryToEnqueue = category
+        categoryToEnqueue.sessionId = sessionId
+        if let payload = try? JSONEncoder().encode(categoryToEnqueue) {
             enqueueOperation(entityType: .category, entityId: category.id, operationType: operation, payload: payload)
         }
         updateEntitySyncStatus(entityType: SyncEntityType.category.rawValue, entityId: category.id, status: .pending)
@@ -407,7 +420,9 @@ class SyncManager: ObservableObject {
     }
 
     private func enqueueInventoryChangeOperation(_ change: InventoryChangeModel, sessionId: UUID) {
-        if let payload = try? JSONEncoder().encode(change) {
+        var changeToEnqueue = change
+        changeToEnqueue.sessionId = sessionId
+        if let payload = try? JSONEncoder().encode(changeToEnqueue) {
             enqueueOperation(entityType: .inventoryChange, entityId: change.id, operationType: .create, payload: payload)
         }
         updateEntitySyncStatus(entityType: SyncEntityType.inventoryChange.rawValue, entityId: change.id, status: .pending)
@@ -469,16 +484,15 @@ class SyncManager: ObservableObject {
     }
 
     /// 處理單一操作
+    /// 使用 FirestoreUploader 的正確方法，確保：
+    /// 1. Date 被序列化為 Firestore Timestamp（而非 JSON string）
+    /// 2. syncState 會被同步更新
     private func processOperation(_ op: CDPendingSyncOperation) async throws {
-        guard let userId = currentUserId else {
-            throw SyncError.authenticationRequired
-        }
-
         switch op.operationType {
         case "create":
-            try await uploadEntity(op, userId: userId)
+            try await uploadEntity(op)
         case "update":
-            try await updateEntity(op, userId: userId)
+            try await updateEntity(op)
         case "delete":
             try await deleteEntity(op)
         default:
@@ -486,40 +500,100 @@ class SyncManager: ObservableObject {
         }
     }
 
-    /// 上傳新實體到 Firestore
-    private func uploadEntity(_ op: CDPendingSyncOperation, userId: String) async throws {
-        guard let payload = op.payload,
-              let data = try? JSONSerialization.jsonObject(with: payload) as? [String: Any]
-        else {
+    /// 上傳新實體到 Firestore（透過 uploader 的正確方法）
+    private func uploadEntity(_ op: CDPendingSyncOperation) async throws {
+        guard let payload = op.payload else {
             throw SyncError.dataCorrupted
         }
 
-        let collectionName = getCollectionName(for: op.entityType)
-        try await db.collection(collectionName)
-            .document(op.entityId.uuidString)
-            .setData(data)
+        let decoder = JSONDecoder()
+
+        switch op.entityType {
+        case SyncEntityType.session.rawValue:
+            let model = try decoder.decode(SessionModel.self, from: payload)
+            try await uploader.uploadSession(model)
+
+        case SyncEntityType.category.rawValue:
+            let model = try decoder.decode(CategoryModel.self, from: payload)
+            guard let sessionId = model.sessionId else { throw SyncError.dataCorrupted }
+            try await uploader.uploadCategory(model, sessionId: sessionId)
+
+        case SyncEntityType.product.rawValue:
+            let model = try decoder.decode(ProductModel.self, from: payload)
+            try await uploader.uploadProduct(model)
+
+        case SyncEntityType.transaction.rawValue:
+            let model = try decoder.decode(TransactionModel.self, from: payload)
+            try await uploader.uploadTransaction(model)
+
+        case SyncEntityType.inventoryChange.rawValue:
+            let model = try decoder.decode(InventoryChangeModel.self, from: payload)
+            guard let sessionId = model.sessionId else { throw SyncError.dataCorrupted }
+            try await uploader.uploadInventoryChange(model, sessionId: sessionId)
+
+        case SyncEntityType.qrCode.rawValue:
+            let model = try decoder.decode(QRCodeModel.self, from: payload)
+            try await uploader.uploadQRCode(model)
+
+        default:
+            break
+        }
     }
 
-    /// 更新 Firestore 中的實體
-    private func updateEntity(_ op: CDPendingSyncOperation, userId: String) async throws {
-        guard let payload = op.payload,
-              let data = try? JSONSerialization.jsonObject(with: payload) as? [String: Any]
-        else {
+    /// 更新 Firestore 中的實體（透過 uploader 的正確方法）
+    private func updateEntity(_ op: CDPendingSyncOperation) async throws {
+        guard let payload = op.payload else {
             throw SyncError.dataCorrupted
         }
 
-        let collectionName = getCollectionName(for: op.entityType)
-        try await db.collection(collectionName)
-            .document(op.entityId.uuidString)
-            .updateData(data)
+        let decoder = JSONDecoder()
+
+        switch op.entityType {
+        case SyncEntityType.session.rawValue:
+            let model = try decoder.decode(SessionModel.self, from: payload)
+            try await uploader.updateSession(model)
+
+        case SyncEntityType.category.rawValue:
+            let model = try decoder.decode(CategoryModel.self, from: payload)
+            guard let sessionId = model.sessionId else { throw SyncError.dataCorrupted }
+            try await uploader.updateCategory(model, sessionId: sessionId)
+
+        case SyncEntityType.product.rawValue:
+            let model = try decoder.decode(ProductModel.self, from: payload)
+            try await uploader.updateProduct(model)
+
+        case SyncEntityType.qrCode.rawValue:
+            let model = try decoder.decode(QRCodeModel.self, from: payload)
+            try await uploader.updateQRCode(model)
+
+        default:
+            break
+        }
     }
 
-    /// 從 Firestore 刪除實體
+    /// 從 Firestore 刪除實體（透過 uploader 的正確方法）
     private func deleteEntity(_ op: CDPendingSyncOperation) async throws {
-        let collectionName = getCollectionName(for: op.entityType)
-        try await db.collection(collectionName)
-            .document(op.entityId.uuidString)
-            .delete()
+        let entityId = op.entityId
+
+        switch op.entityType {
+        case SyncEntityType.session.rawValue:
+            try await uploader.deleteSession(entityId)
+
+        case SyncEntityType.category.rawValue:
+            try await uploader.deleteCategory(entityId)
+
+        case SyncEntityType.product.rawValue:
+            try await uploader.deleteProduct(entityId)
+
+        case SyncEntityType.inventoryChange.rawValue:
+            try await uploader.deleteInventoryChange(entityId)
+
+        case SyncEntityType.qrCode.rawValue:
+            try await uploader.deleteQRCode(entityId)
+
+        default:
+            break
+        }
     }
 
     // MARK: - Enqueue Operations
@@ -619,6 +693,9 @@ class SyncManager: ObservableObject {
             try await downloader.fullSync()
             lastSyncDate = Date()
             print("✅ SyncManager: 全量下載完成")
+
+            // 通知 UI 刷新（Repository 層重新從 CoreData 讀取）
+            NotificationCenter.default.post(name: .syncDidComplete, object: nil)
         } catch {
             print("❌ SyncManager: 全量下載失敗 - \(error)")
             syncError = .unknown(error)
@@ -672,6 +749,9 @@ class SyncManager: ObservableObject {
                 qrCodeIds: qrCodeIds
             )
             print("✅ SyncManager: 增量下載完成")
+
+            // 通知 UI 刷新
+            NotificationCenter.default.post(name: .syncDidComplete, object: nil)
         } catch {
             print("❌ SyncManager: 增量下載失敗 - \(error)")
         }
@@ -698,6 +778,13 @@ class SyncManager: ObservableObject {
 
         throw lastError ?? SyncError.unknown(NSError())
     }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// Full sync 完成後發送，通知 Repository 層重新讀取 CoreData
+    static let syncDidComplete = Notification.Name("syncDidComplete")
 }
 
 // MARK: - SyncError

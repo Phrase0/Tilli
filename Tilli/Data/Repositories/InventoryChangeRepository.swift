@@ -135,39 +135,6 @@ class InventoryChangeRepository: ObservableObject {
         }
     }
 
-    // MARK: - Delete
-
-    /// 刪除指定的異動紀錄
-    func deleteChange(_ changeId: UUID) {
-        let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", changeId as CVarArg)
-
-        do {
-            if let entity = try context.fetch(request).first {
-                context.delete(entity)
-                saveContext()
-            }
-        } catch {
-            print("Delete inventory change failed:", error)
-        }
-    }
-
-    /// 刪除指定產品的所有異動紀錄
-    func deleteChanges(forProductId productId: UUID) {
-        let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "productId == %@", productId as CVarArg)
-
-        do {
-            let entities = try context.fetch(request)
-            for entity in entities {
-                context.delete(entity)
-            }
-            saveContext()
-        } catch {
-            print("Delete inventory changes for product failed:", error)
-        }
-    }
-
     // MARK: - Save Context
 
     private func saveContext() {

@@ -21,9 +21,24 @@ class TransactionRepository: ObservableObject {
 
     static let shared = TransactionRepository()
 
+    private var syncObserver: NSObjectProtocol?
+
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
+
+        // 監聽 full sync 完成通知，觸發 UI 刷新
+        syncObserver = NotificationCenter.default.addObserver(
+            forName: .syncDidComplete, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.notifyTransactionsChanged()
+        }
+    }
+
+    deinit {
+        if let observer = syncObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Notification

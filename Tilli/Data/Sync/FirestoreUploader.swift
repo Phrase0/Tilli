@@ -773,16 +773,19 @@ class FirestoreUploader {
 
         let sessionIdString = sessionId.uuidString
 
-        // 1. 查詢所有子項目
+        // 1. 查詢所有子項目（加入 userId filter 以通過 Firestore Security Rules）
         let categoriesSnapshot = try await db.collection(Collection.categories)
+            .whereField("userId", isEqualTo: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
         let productsSnapshot = try await db.collection(Collection.products)
+            .whereField("userId", isEqualTo: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
         let changesSnapshot = try await db.collection(Collection.inventoryChanges)
+            .whereField("userId", isEqualTo: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
@@ -853,8 +856,9 @@ class FirestoreUploader {
 
         let categoryIdString = categoryId.uuidString
 
-        // 1. 查詢 Products
+        // 1. 查詢 Products（加入 userId filter 以通過 Firestore Security Rules）
         let productsSnapshot = try await db.collection(Collection.products)
+            .whereField("userId", isEqualTo: userId)
             .whereField("categoryId", isEqualTo: categoryIdString)
             .getDocuments()
 
@@ -897,7 +901,12 @@ class FirestoreUploader {
 
     /// 取得 Session 下所有產品的圖片 URL（用於刪除 Storage 圖片）
     func getProductImageURLs(forSessionId sessionId: UUID) async throws -> [String] {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
         let productsSnapshot = try await db.collection(Collection.products)
+            .whereField("userId", isEqualTo: userId)
             .whereField("sessionId", isEqualTo: sessionId.uuidString)
             .getDocuments()
 
@@ -908,7 +917,12 @@ class FirestoreUploader {
 
     /// 取得 Category 下所有產品的圖片 URL
     func getProductImageURLs(forCategoryId categoryId: UUID) async throws -> [String] {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
         let productsSnapshot = try await db.collection(Collection.products)
+            .whereField("userId", isEqualTo: userId)
             .whereField("categoryId", isEqualTo: categoryId.uuidString)
             .getDocuments()
 

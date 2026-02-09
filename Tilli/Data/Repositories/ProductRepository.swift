@@ -251,31 +251,39 @@ class ProductRepository: ObservableObject {
             }
             
             try context.save()
-            
+
+            // 同步到 Firestore
+            let updatedModels = products.map { $0.toModel() }
+            Task { @MainActor in
+                for model in updatedModels {
+                    SyncManager.shared.syncProduct(model, operation: .update)
+                }
+            }
+
             print("✅ Batch updated \(products.count) products stock")
             return true
-            
+
         } catch {
             context.rollback()
             print("🔴 批次更新產品庫存失敗: \(error)")
             return false
         }
     }
-    
+
     /// 批次更新多個產品（完整更新）
     func batchUpdateProducts(_ productUpdates: [ProductModel]) -> Bool {
         guard !productUpdates.isEmpty else {
             return true
         }
-        
+
         let productIds = productUpdates.map { $0.id }
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id IN %@", productIds)
-        
+
         do {
             let entities = try context.fetch(request)
             let entityDict = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0) })
-            
+
             for productModel in productUpdates {
                 if let entity = entityDict[productModel.id] {
                     entity.name = productModel.name
@@ -289,12 +297,19 @@ class ProductRepository: ObservableObject {
                     }
                 }
             }
-            
+
             try context.save()
-            
+
+            // 同步到 Firestore
+            Task { @MainActor in
+                for model in productUpdates {
+                    SyncManager.shared.syncProduct(model, operation: .update)
+                }
+            }
+
             print("✅ Batch updated \(entities.count) products")
             return true
-            
+
         } catch {
             context.rollback()
             print("🔴 批次更新多個產品失敗: \(error)")

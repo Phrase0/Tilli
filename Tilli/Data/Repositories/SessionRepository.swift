@@ -34,10 +34,25 @@ class SessionRepository: ObservableObject {
 
     @Published var sessions: [SessionModel] = []
 
+    private var syncObserver: NSObjectProtocol?
+
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
         fetchSessions()
+
+        // 監聽 full sync 完成通知，重新讀取 CoreData
+        syncObserver = NotificationCenter.default.addObserver(
+            forName: .syncDidComplete, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.fetchSessions()
+        }
+    }
+
+    deinit {
+        if let observer = syncObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Session CRUD Operations
@@ -153,14 +168,57 @@ class SessionRepository: ObservableObject {
                 )
             }
 
-            // 處理 Categories 的變更
-            updateCategoriesForSession(entity: entity, newCategories: model.categories)
+            // 處理 Categories 的變更，收集 sync 需要的資訊
+            let categoryChanges = updateCategoriesForSession(entity: entity, newCategories: model.categories)
 
             if saveContext() {
                 fetchSessions()
                 // 同步到 Firestore
                 Task { @MainActor in
+                    // 1. 同步 Session 本身
                     SyncManager.shared.syncSession(model, operation: .update)
+
+                    // 2. 同步 Category 變更
+                    let sessionId = model.id
+
+                    // 新增的 Categories（含其 Products）
+                    for category in categoryChanges.added {
+                        SyncManager.shared.syncCategory(category, sessionId: sessionId, operation: .create)
+                        for product in category.products {
+                            SyncManager.shared.syncProduct(product, operation: .create)
+                        }
+                    }
+
+                    // 刪除的 Categories（含其 Products）
+                    for categoryId in categoryChanges.deletedIds {
+                        SyncManager.shared.syncDeleteCategory(categoryId, withProducts: true)
+                    }
+
+                    // 停用的 Categories
+                    for category in categoryChanges.disabled {
+                        SyncManager.shared.syncCategory(category, sessionId: sessionId, operation: .update)
+                    }
+
+                    // 更新的 Categories
+                    for category in categoryChanges.updated {
+                        SyncManager.shared.syncCategory(category, sessionId: sessionId, operation: .update)
+                        // 同步更新 Products 的 categoryName
+                        for product in category.products {
+                            SyncManager.shared.syncProduct(product, operation: .update)
+                        }
+                    }
+
+                    // 如果標題變更，同步受影響的 Transaction（sessionTitle 欄位）
+                    if titleChanged {
+                        let txRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+                        txRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+                        if let transactions = try? self.context.fetch(txRequest) {
+                            for tx in transactions {
+                                let txModel = tx.toModel()
+                                SyncManager.shared.syncTransaction(txModel)
+                            }
+                        }
+                    }
                 }
             }
         } catch {
@@ -168,42 +226,58 @@ class SessionRepository: ObservableObject {
         }
     }
     
-    /// 更新 Session 的 Categories
-    private func updateCategoriesForSession(entity: CDSessionEntity, newCategories: [CategoryModel]) {
+    /// Category 變更記錄（供 sync 使用）
+    struct CategoryChanges {
+        var added: [CategoryModel] = []       // 新增的 categories
+        var deletedIds: [UUID] = []            // 硬刪除的 category IDs
+        var disabled: [CategoryModel] = []     // 停用的 categories
+        var updated: [CategoryModel] = []      // 更新的 categories
+    }
+
+    /// 更新 Session 的 Categories，回傳變更記錄供 sync 使用
+    @discardableResult
+    private func updateCategoriesForSession(entity: CDSessionEntity, newCategories: [CategoryModel]) -> CategoryChanges {
+        var changes = CategoryChanges()
+
         let existingCategories = entity.categories as? Set<CDCategoryEntity> ?? Set()
         let existingCategoryIds = Set(existingCategories.map { $0.id })
         let newCategoryIds = Set(newCategories.map { $0.id })
-        
+
         // 找出需要刪除的 categories
         let categoriesToDelete = existingCategories.filter { !newCategoryIds.contains($0.id) }
-        
+
         // 找出需要新增的 categories
         let categoriesToAdd = newCategories.filter { !existingCategoryIds.contains($0.id) }
-        
+
         // 找出需要更新的 categories
         let categoriesToUpdate = newCategories.filter { existingCategoryIds.contains($0.id) }
-        
+
         // 刪除不再需要的 categories（但要檢查是否有交易記錄）
         for categoryEntity in categoriesToDelete {
             // 檢查是否有相關交易記錄
             if hasRelatedTransactionsForCategory(categoryId: categoryEntity.id) {
                 // 有交易記錄，只能停用
                 categoryEntity.isDisabled = true
+                // 記錄停用變更（需要轉成 model，停用後的狀態）
+                var disabledModel = categoryEntity.toModel()
+                disabledModel.isDisabled = true
+                changes.disabled.append(disabledModel)
                 print("Category \(categoryEntity.name) has transactions, disabled instead of deleted")
             } else {
                 // 無交易記錄，可以硬刪除
+                changes.deletedIds.append(categoryEntity.id)
                 entity.removeFromCategories(categoryEntity)
                 context.delete(categoryEntity)
             }
         }
-        
+
         // 新增新的 categories
         for categoryModel in categoriesToAdd {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
             categoryEntity.session = entity
             entity.addToCategories(categoryEntity)
-            
+
             // 新增該 category 下的 products
             for productModel in categoryModel.products {
                 let productEntity = CDProductEntity(context: context)
@@ -211,11 +285,18 @@ class SessionRepository: ObservableObject {
                 productEntity.category = categoryEntity
                 categoryEntity.addToProducts(productEntity)
             }
+
+            changes.added.append(categoryModel)
         }
-        
+
         // 更新現有的 categories
         for categoryModel in categoriesToUpdate {
             if let categoryEntity = existingCategories.first(where: { $0.id == categoryModel.id }) {
+                // 檢查是否有實際變更
+                let nameChanged = categoryEntity.name != categoryModel.name
+                let disabledChanged = categoryEntity.isDisabled != categoryModel.isDisabled
+                let sortOrderChanged = categoryEntity.sortOrder != Int16(categoryModel.sortOrder)
+
                 // 更新基本屬性
                 categoryEntity.name = categoryModel.name
                 categoryEntity.isDisabled = categoryModel.isDisabled
@@ -223,13 +304,21 @@ class SessionRepository: ObservableObject {
 
                 // 只更新 products 的 categoryName（不處理 products 的新增/刪除）
                 // Products 的 CRUD 由 ProductRepository 負責
-                if let products = categoryEntity.products as? Set<CDProductEntity> {
-                    for product in products {
-                        product.categoryName = categoryModel.name
+                if nameChanged {
+                    if let products = categoryEntity.products as? Set<CDProductEntity> {
+                        for product in products {
+                            product.categoryName = categoryModel.name
+                        }
                     }
+                }
+
+                if nameChanged || disabledChanged || sortOrderChanged {
+                    changes.updated.append(categoryModel)
                 }
             }
         }
+
+        return changes
     }
 
     /// 刪除 Session（硬刪除，但保留 Transaction）
@@ -306,8 +395,12 @@ class SessionRepository: ObservableObject {
             if let entity = try context.fetch(request).first {
                 entity.update(from: model, context: context)
                 if saveContext() {
-                    fetchSessions() // 僅在成功保存後重新載入
-                    TransactionRepository.shared.notifyTransactionsChanged() // 通知交易變更
+                    fetchSessions()
+                    TransactionRepository.shared.notifyTransactionsChanged()
+                    // 同步到 Firestore
+                    Task { @MainActor in
+                        SyncManager.shared.syncTransaction(model)
+                    }
                 }
             }
         } catch {
@@ -345,6 +438,8 @@ class SessionRepository: ObservableObject {
             newSessionEntity.discountsData = originalEntity.discountsData
 
             // 複製所有 Categories 和 Products（按 sortOrder 排序以保持順序）
+            var inventoryChangeEntities: [CDInventoryChangeEntity] = []
+
             if let originalCategories = originalEntity.categories as? Set<CDCategoryEntity> {
                 let sortedCategories = originalCategories.sorted { $0.sortOrder < $1.sortOrder }
                 for originalCategory in sortedCategories {
@@ -383,19 +478,26 @@ class SessionRepository: ObservableObject {
                                 changeEntity.customReason = nil
                                 changeEntity.transactionId = nil
                                 changeEntity.timestamp = Date()
+                                inventoryChangeEntities.append(changeEntity)
                             }
                         }
                     }
                 }
             }
-            
+
             if saveContext() {
                 fetchSessions()
                 // 返回新建立的 SessionModel
                 let newSession = newSessionEntity.toModel()
+                let newSessionId = newSessionEntity.id
+                let changeModels = inventoryChangeEntities.map { $0.toModel() }
                 // 同步到 Firestore（包含 Categories 和 Products）
                 Task { @MainActor in
                     SyncManager.shared.syncSessionWithChildren(newSession)
+                    // 同步庫存異動記錄
+                    for change in changeModels {
+                        SyncManager.shared.syncInventoryChange(change, sessionId: newSessionId)
+                    }
                 }
                 return newSession
             } else {

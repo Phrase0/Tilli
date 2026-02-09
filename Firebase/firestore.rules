@@ -1,64 +1,93 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+ rules_version = '2';
 
-    // 用戶資料：只能讀寫自己的
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+ service cloud.firestore {
+   match /databases/{database}/documents {
 
-      // syncState（Hybrid Listener 用）：只能讀寫自己的
-      match /private/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
+     // ===== User Private Data (syncState) =====
+     match /users/{userId}/{document=**} {
+       allow read, write: if request.auth != null && request.auth.uid ==
+ userId;
+     }
 
-    // 場次：只能讀寫自己的
-    match /sessions/{sessionId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
+     // ===== Entity Collections =====
+     // 共用邏輯：只能存取自己的資料（userId 欄位 == auth uid）
 
-    // 類別：只能讀寫自己的
-    match /categories/{categoryId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
+     match /sessions/{docId} {
+       allow get: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow list: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId ==
+  request.auth.uid;
+       allow update: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow delete: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+     }
 
-    // 產品：只能讀寫自己的
-    match /products/{productId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
+     match /categories/{docId} {
+       allow get: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow list: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId ==
+  request.auth.uid;
+       allow update: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow delete: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+     }
 
-    // 交易記錄：只能讀取和創建自己的（不允許更新和刪除）
-    match /transactions/{transactionId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-      // 交易記錄不允許更新和刪除
-    }
+     match /products/{docId} {
+       allow get: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow list: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId ==
+  request.auth.uid;
+       allow update: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow delete: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+     }
 
-    // 庫存異動：只能讀取和創建自己的
-    match /inventoryChanges/{changeId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
+     match /transactions/{docId} {
+       allow get: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow list: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId ==
+  request.auth.uid;
+       allow update: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow delete: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+     }
 
-    // QR Code：只能讀寫自己的
-    match /qrCodes/{qrCodeId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
-  }
-}
+     match /inventoryChanges/{docId} {
+       allow get: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow list: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId ==
+  request.auth.uid;
+       allow update: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow delete: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+     }
+
+     match /qrCodes/{docId} {
+       allow get: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow list: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId ==
+  request.auth.uid;
+       allow update: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+       allow delete: if request.auth != null && resource.data.userId ==
+ request.auth.uid;
+     }
+   }
+ }
