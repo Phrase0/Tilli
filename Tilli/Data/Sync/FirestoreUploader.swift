@@ -445,12 +445,12 @@ class FirestoreUploader {
         let sessionRef = db.collection(Collection.sessions).document(sessionId.uuidString)
         batch.deleteDocument(sessionRef)
 
-        // 2. 更新 syncState（version +1，但不加入 pendingChanges）
-        // 刪除操作：其他裝置會透過 version 變更觸發全量同步
+        // 2. 更新 syncState（version +1，加入 pendingChanges 供 Listener 增量偵測刪除）
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([sessionId.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
@@ -470,7 +470,8 @@ class FirestoreUploader {
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion([categoryId.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
@@ -490,7 +491,8 @@ class FirestoreUploader {
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion([productId.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
@@ -510,7 +512,8 @@ class FirestoreUploader {
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)": FieldValue.arrayUnion([changeId.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
@@ -530,7 +533,8 @@ class FirestoreUploader {
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.qrCodes.rawValue)": FieldValue.arrayUnion([qrCodeId.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
@@ -769,57 +773,73 @@ class FirestoreUploader {
 
         let sessionIdString = sessionId.uuidString
 
-        // 1. 查詢並刪除 Categories
+        // 1. 查詢所有子項目
         let categoriesSnapshot = try await db.collection(Collection.categories)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
-        // 2. 查詢並刪除 Products
         let productsSnapshot = try await db.collection(Collection.products)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
-        // 3. 查詢並刪除 InventoryChanges
         let changesSnapshot = try await db.collection(Collection.inventoryChanges)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
-        // 收集所有需要刪除的文件
+        // 收集所有被刪除的 ID（供 pendingChanges 使用）
+        let deletedCategoryIds = categoriesSnapshot.documents.map { $0.documentID }
+        let deletedProductIds = productsSnapshot.documents.map { $0.documentID }
+        let deletedChangeIds = changesSnapshot.documents.map { $0.documentID }
+
+        // 2. 收集所有需要刪除的文件
         var allDocuments: [QueryDocumentSnapshot] = []
         allDocuments.append(contentsOf: categoriesSnapshot.documents)
         allDocuments.append(contentsOf: productsSnapshot.documents)
         allDocuments.append(contentsOf: changesSnapshot.documents)
 
-        // 分批刪除（Firestore batch 最多 500 筆，預留空間給 syncState）
-        let chunks = allDocuments.chunked(into: 400)
+        // 3. 分批刪除子項目（不更新 syncState，最後統一更新）
+        let chunks = allDocuments.chunked(into: 450)
 
         for chunk in chunks {
             let batch = db.batch()
             for doc in chunk {
                 batch.deleteDocument(doc.reference)
             }
-
-            // 每批都更新 syncState
-            let syncRef = syncStateRef(userId: userId)
-            batch.updateData([
-                "version": FieldValue.increment(Int64(1)),
-                "lastUpdate": FieldValue.serverTimestamp()
-            ], forDocument: syncRef)
-
             try await batch.commit()
         }
 
-        // 4. 刪除 Session 本身
+        // 4. 刪除 Session 本身 + 統一更新 syncState（含所有被刪的 ID）
         let finalBatch = db.batch()
         let sessionRef = db.collection(Collection.sessions).document(sessionIdString)
         finalBatch.deleteDocument(sessionRef)
 
         let syncRef = syncStateRef(userId: userId)
-        finalBatch.updateData([
+        var syncUpdate: [String: Any] = [
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
-        ], forDocument: syncRef)
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([sessionIdString])
+        ]
 
+        // 各類型：超過上限就清空（觸發全量同步），否則加入 ID
+        if deletedCategoryIds.count > pendingChangesLimit {
+            syncUpdate["pendingChanges.\(SyncStateKey.categories.rawValue)"] = FieldValue.delete()
+        } else if !deletedCategoryIds.isEmpty {
+            syncUpdate["pendingChanges.\(SyncStateKey.categories.rawValue)"] = FieldValue.arrayUnion(deletedCategoryIds)
+        }
+
+        if deletedProductIds.count > pendingChangesLimit {
+            syncUpdate["pendingChanges.\(SyncStateKey.products.rawValue)"] = FieldValue.delete()
+        } else if !deletedProductIds.isEmpty {
+            syncUpdate["pendingChanges.\(SyncStateKey.products.rawValue)"] = FieldValue.arrayUnion(deletedProductIds)
+        }
+
+        if deletedChangeIds.count > pendingChangesLimit {
+            syncUpdate["pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)"] = FieldValue.delete()
+        } else if !deletedChangeIds.isEmpty {
+            syncUpdate["pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)"] = FieldValue.arrayUnion(deletedChangeIds)
+        }
+
+        finalBatch.updateData(syncUpdate, forDocument: syncRef)
         try await finalBatch.commit()
 
         // ⚠️ Transactions 不刪除，保留歷史記錄
@@ -833,40 +853,43 @@ class FirestoreUploader {
 
         let categoryIdString = categoryId.uuidString
 
-        // 1. 查詢並刪除 Products
+        // 1. 查詢 Products
         let productsSnapshot = try await db.collection(Collection.products)
             .whereField("categoryId", isEqualTo: categoryIdString)
             .getDocuments()
 
-        // 分批刪除
-        let chunks = productsSnapshot.documents.chunked(into: 400)
+        let deletedProductIds = productsSnapshot.documents.map { $0.documentID }
+
+        // 2. 分批刪除 Products（不更新 syncState）
+        let chunks = productsSnapshot.documents.chunked(into: 450)
 
         for chunk in chunks {
             let batch = db.batch()
             for doc in chunk {
                 batch.deleteDocument(doc.reference)
             }
-
-            let syncRef = syncStateRef(userId: userId)
-            batch.updateData([
-                "version": FieldValue.increment(Int64(1)),
-                "lastUpdate": FieldValue.serverTimestamp()
-            ], forDocument: syncRef)
-
             try await batch.commit()
         }
 
-        // 2. 刪除 Category 本身
+        // 3. 刪除 Category 本身 + 統一更新 syncState
         let finalBatch = db.batch()
         let categoryRef = db.collection(Collection.categories).document(categoryIdString)
         finalBatch.deleteDocument(categoryRef)
 
         let syncRef = syncStateRef(userId: userId)
-        finalBatch.updateData([
+        var syncUpdate: [String: Any] = [
             "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp()
-        ], forDocument: syncRef)
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion([categoryIdString])
+        ]
 
+        if deletedProductIds.count > pendingChangesLimit {
+            syncUpdate["pendingChanges.\(SyncStateKey.products.rawValue)"] = FieldValue.delete()
+        } else if !deletedProductIds.isEmpty {
+            syncUpdate["pendingChanges.\(SyncStateKey.products.rawValue)"] = FieldValue.arrayUnion(deletedProductIds)
+        }
+
+        finalBatch.updateData(syncUpdate, forDocument: syncRef)
         try await finalBatch.commit()
     }
 

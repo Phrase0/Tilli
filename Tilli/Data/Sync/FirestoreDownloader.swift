@@ -457,6 +457,117 @@ class FirestoreDownloader {
         }
     }
 
+    // MARK: - Sync From Server (for Hybrid Listener)
+
+    /// 從 Firestore 同步單一實體（下載或偵測刪除）
+    /// 供 HybridSyncListener 使用
+    /// - Returns: true 表示實體存在並已同步，false 表示實體已從 Firestore 刪除
+    func syncFromServer(type: SyncEntityType, id: UUID) async throws -> Bool {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let collectionName: String
+        switch type {
+        case .session: collectionName = Collection.sessions
+        case .category: collectionName = Collection.categories
+        case .product: collectionName = Collection.products
+        case .transaction: collectionName = Collection.transactions
+        case .inventoryChange: collectionName = Collection.inventoryChanges
+        case .qrCode: collectionName = Collection.qrCodes
+        }
+
+        let doc = try await db.collection(collectionName).document(id.uuidString).getDocument()
+
+        guard doc.exists else {
+            // 文件已從 Firestore 刪除 → 刪除本地對應實體
+            await MainActor.run {
+                deleteLocalEntity(type: type, id: id)
+            }
+            return false
+        }
+
+        guard let data = doc.data(), data["userId"] as? String == userId else {
+            return true // 文件存在但不屬於當前用戶，跳過
+        }
+
+        // 文件存在，根據類型執行對應的 save/create 邏輯
+        switch type {
+        case .session:
+            guard let model = SessionModel(from: data),
+                  let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
+            else { return true }
+            await MainActor.run {
+                saveSession(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+            }
+
+        case .category:
+            guard let model = CategoryModel(from: data),
+                  let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
+            else { return true }
+            await MainActor.run {
+                saveCategory(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+            }
+
+        case .product:
+            guard let model = ProductModel(from: data),
+                  let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
+            else { return true }
+            await MainActor.run {
+                saveProduct(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+            }
+
+        case .transaction:
+            guard let model = TransactionModel(from: data) else { return true }
+            await MainActor.run {
+                createTransaction(model, userId: userId)
+            }
+
+        case .inventoryChange:
+            guard let model = InventoryChangeModel(from: data) else { return true }
+            await MainActor.run {
+                createInventoryChange(model, userId: userId)
+            }
+
+        case .qrCode:
+            guard let model = QRCodeModel(from: data),
+                  let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
+            else { return true }
+            await MainActor.run {
+                saveQRCode(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+            }
+        }
+
+        return true
+    }
+
+    /// 刪除本地 CoreData 中的實體（Listener 偵測到 Firestore 文件已刪除時呼叫）
+    @MainActor
+    private func deleteLocalEntity(type: SyncEntityType, id: UUID) {
+        let entityName: String
+        switch type {
+        case .session: entityName = "CDSessionEntity"
+        case .category: entityName = "CDCategoryEntity"
+        case .product: entityName = "CDProductEntity"
+        case .transaction: entityName = "CDTransactionEntity"
+        case .inventoryChange: entityName = "CDInventoryChangeEntity"
+        case .qrCode: entityName = "CDQRCodeEntity"
+        }
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+
+        do {
+            if let entity = try context.fetch(request).first {
+                context.delete(entity)
+                try context.save()
+                print("🗑️ Listener: 本地 \(type.rawValue) 已刪除: \(id)")
+            }
+        } catch {
+            print("❌ deleteLocalEntity 失敗: \(error)")
+        }
+    }
+
     // MARK: - Cleanup Deleted Entities
 
     /// 清理本地有但雲端沒有的資料

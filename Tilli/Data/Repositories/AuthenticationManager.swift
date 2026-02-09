@@ -492,6 +492,9 @@ class AuthenticationManager: ObservableObject {
     // MARK: - 登出
     func signOut() {
         do {
+            // 停止監聽並重置同步狀態
+            SyncManager.shared.resetSync()
+
             try Auth.auth().signOut()
             GIDSignIn.sharedInstance.signOut()
             currentUser = nil

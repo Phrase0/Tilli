@@ -44,6 +44,8 @@ struct TilliApp: App {
                         Task {
                             await authenticationManager.checkDeviceId()
                         }
+                        // 確保 Listener 運行中（可能因進入背景而中斷）
+                        SyncManager.shared.startListening()
                     }
                 }
                 .alert("帳號已在其他裝置登入", isPresented: $authenticationManager.showDeviceConflictAlert) {

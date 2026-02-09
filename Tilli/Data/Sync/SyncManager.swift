@@ -64,6 +64,9 @@ class SyncManager: ObservableObject {
         return NetworkMonitor.shared.isConnected
     }
 
+    // MARK: - Hybrid Listener
+    private let hybridListener = HybridSyncListener.shared
+
     // MARK: - Initialize Sync (登入成功後呼叫)
 
     /// 初始化同步環境（登入成功後呼叫）
@@ -76,6 +79,30 @@ class SyncManager: ObservableObject {
         } catch {
             print("❌ SyncManager: syncState 初始化失敗 - \(error)")
         }
+
+        // 初始化後立即開始監聽
+        startListening()
+    }
+
+    // MARK: - Listener Management
+
+    /// 開始監聽 syncState（登入後呼叫）
+    func startListening() {
+        guard let userId = currentUserId else { return }
+        guard shouldSync else { return }
+
+        hybridListener.startListening(userId: userId)
+    }
+
+    /// 停止監聽（登出時呼叫）
+    func stopListening() {
+        hybridListener.stopListening()
+    }
+
+    /// 重置同步狀態（登出時呼叫）
+    func resetSync() {
+        stopListening()
+        hybridListener.resetLocalVersion()
     }
 
     // MARK: - Session Sync
