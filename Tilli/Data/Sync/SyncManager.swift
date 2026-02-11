@@ -275,6 +275,33 @@ class SyncManager: ObservableObject {
         }
     }
 
+    /// 同步刪除 Product 及其所有 InventoryChanges（Cascade Delete）
+    func syncDeleteProductWithInventoryChanges(_ productId: UUID, inventoryChangeIds: [UUID] = []) {
+        guard shouldSync else { return }
+
+        Task {
+            if isNetworkAvailable {
+                do {
+                    try await uploader.deleteProductWithInventoryChanges(productId)
+                    print("✅ Product（含庫存異動）刪除同步成功: \(productId)")
+                } catch {
+                    print("❌ Product（含庫存異動）刪除同步失敗: \(error)")
+                    // 分別加入佇列
+                    enqueueOperation(entityType: .product, entityId: productId, operationType: .delete, payload: nil)
+                    for changeId in inventoryChangeIds {
+                        enqueueOperation(entityType: .inventoryChange, entityId: changeId, operationType: .delete, payload: nil)
+                    }
+                }
+            } else {
+                // 離線：分別 enqueue
+                enqueueOperation(entityType: .product, entityId: productId, operationType: .delete, payload: nil)
+                for changeId in inventoryChangeIds {
+                    enqueueOperation(entityType: .inventoryChange, entityId: changeId, operationType: .delete, payload: nil)
+                }
+            }
+        }
+    }
+
     // MARK: - Transaction Sync
 
     /// 同步 Transaction（只有新增，不可修改刪除）

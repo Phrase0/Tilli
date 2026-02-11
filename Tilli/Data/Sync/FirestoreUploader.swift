@@ -498,6 +498,55 @@ class FirestoreUploader {
         try await batch.commit()
     }
 
+    /// 刪除 Product 及其所有 InventoryChanges（Cascade Delete）
+    func deleteProductWithInventoryChanges(_ productId: UUID) async throws {
+        guard let userId = currentUserId else {
+            throw SyncError.authenticationRequired
+        }
+
+        let productIdString = productId.uuidString
+
+        // 1. 查詢該產品的所有 InventoryChanges
+        let changesSnapshot = try await db.collection(Collection.inventoryChanges)
+            .whereField("userId", isEqualTo: userId)
+            .whereField("productId", isEqualTo: productIdString)
+            .getDocuments()
+
+        let deletedChangeIds = changesSnapshot.documents.map { $0.documentID }
+
+        // 2. 分批刪除 InventoryChanges（不更新 syncState）
+        let chunks = changesSnapshot.documents.chunked(into: 450)
+
+        for chunk in chunks {
+            let batch = db.batch()
+            for doc in chunk {
+                batch.deleteDocument(doc.reference)
+            }
+            try await batch.commit()
+        }
+
+        // 3. 刪除 Product 本身 + 統一更新 syncState
+        let finalBatch = db.batch()
+        let productRef = db.collection(Collection.products).document(productIdString)
+        finalBatch.deleteDocument(productRef)
+
+        let syncRef = syncStateRef(userId: userId)
+        var syncUpdate: [String: Any] = [
+            "version": FieldValue.increment(Int64(1)),
+            "lastUpdate": FieldValue.serverTimestamp(),
+            "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion([productIdString])
+        ]
+
+        if deletedChangeIds.count > pendingChangesLimit {
+            syncUpdate["pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)"] = FieldValue.delete()
+        } else if !deletedChangeIds.isEmpty {
+            syncUpdate["pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)"] = FieldValue.arrayUnion(deletedChangeIds)
+        }
+
+        finalBatch.updateData(syncUpdate, forDocument: syncRef)
+        try await finalBatch.commit()
+    }
+
     /// 刪除 InventoryChange
     func deleteInventoryChange(_ changeId: UUID) async throws {
         guard let userId = currentUserId else {
@@ -848,7 +897,7 @@ class FirestoreUploader {
         // ⚠️ Transactions 不刪除，保留歷史記錄
     }
 
-    /// 刪除 Category 及其所有 Products
+    /// 刪除 Category 及其所有 Products 和相關 InventoryChanges
     func deleteCategoryWithProducts(_ categoryId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
@@ -864,8 +913,25 @@ class FirestoreUploader {
 
         let deletedProductIds = productsSnapshot.documents.map { $0.documentID }
 
-        // 2. 分批刪除 Products（不更新 syncState）
-        let chunks = productsSnapshot.documents.chunked(into: 450)
+        // 2. 查詢這些 Products 的所有 InventoryChanges
+        var deletedChangeIds: [String] = []
+        var allChangeDocs: [QueryDocumentSnapshot] = []
+
+        for productDocId in deletedProductIds {
+            let changesSnapshot = try await db.collection(Collection.inventoryChanges)
+                .whereField("userId", isEqualTo: userId)
+                .whereField("productId", isEqualTo: productDocId)
+                .getDocuments()
+            deletedChangeIds.append(contentsOf: changesSnapshot.documents.map { $0.documentID })
+            allChangeDocs.append(contentsOf: changesSnapshot.documents)
+        }
+
+        // 3. 分批刪除 InventoryChanges + Products（不更新 syncState）
+        var allDocuments: [QueryDocumentSnapshot] = []
+        allDocuments.append(contentsOf: allChangeDocs)
+        allDocuments.append(contentsOf: productsSnapshot.documents)
+
+        let chunks = allDocuments.chunked(into: 450)
 
         for chunk in chunks {
             let batch = db.batch()
@@ -875,7 +941,7 @@ class FirestoreUploader {
             try await batch.commit()
         }
 
-        // 3. 刪除 Category 本身 + 統一更新 syncState
+        // 4. 刪除 Category 本身 + 統一更新 syncState
         let finalBatch = db.batch()
         let categoryRef = db.collection(Collection.categories).document(categoryIdString)
         finalBatch.deleteDocument(categoryRef)
@@ -891,6 +957,12 @@ class FirestoreUploader {
             syncUpdate["pendingChanges.\(SyncStateKey.products.rawValue)"] = FieldValue.delete()
         } else if !deletedProductIds.isEmpty {
             syncUpdate["pendingChanges.\(SyncStateKey.products.rawValue)"] = FieldValue.arrayUnion(deletedProductIds)
+        }
+
+        if deletedChangeIds.count > pendingChangesLimit {
+            syncUpdate["pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)"] = FieldValue.delete()
+        } else if !deletedChangeIds.isEmpty {
+            syncUpdate["pendingChanges.\(SyncStateKey.inventoryChanges.rawValue)"] = FieldValue.arrayUnion(deletedChangeIds)
         }
 
         finalBatch.updateData(syncUpdate, forDocument: syncRef)

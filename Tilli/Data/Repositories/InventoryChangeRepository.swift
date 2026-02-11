@@ -135,6 +135,56 @@ class InventoryChangeRepository: ObservableObject {
         }
     }
 
+    // MARK: - Delete
+
+    /// 刪除指定產品的所有庫存異動（本地 CoreData）
+    /// - Returns: 被刪除的 InventoryChange IDs（供 Sync 使用）
+    func deleteChanges(forProductId productId: UUID) -> [UUID] {
+        let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "productId == %@", productId as CVarArg)
+
+        do {
+            let entities = try context.fetch(request)
+            let deletedIds = entities.map { $0.id }
+
+            for entity in entities {
+                context.delete(entity)
+            }
+
+            saveContext()
+            print("🗑️ 已刪除 \(entities.count) 筆庫存異動（productId: \(productId)）")
+            return deletedIds
+        } catch {
+            print("刪除庫存異動失敗:", error)
+            return []
+        }
+    }
+
+    /// 批次刪除指定多個產品的所有庫存異動（本地 CoreData）
+    /// - Returns: 被刪除的 InventoryChange IDs（供 Sync 使用）
+    func deleteChanges(forProductIds productIds: [UUID]) -> [UUID] {
+        guard !productIds.isEmpty else { return [] }
+
+        let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "productId IN %@", productIds)
+
+        do {
+            let entities = try context.fetch(request)
+            let deletedIds = entities.map { $0.id }
+
+            for entity in entities {
+                context.delete(entity)
+            }
+
+            saveContext()
+            print("🗑️ 已批次刪除 \(entities.count) 筆庫存異動（\(productIds.count) 個產品）")
+            return deletedIds
+        } catch {
+            print("批次刪除庫存異動失敗:", error)
+            return []
+        }
+    }
+
     // MARK: - Save Context
 
     private func saveContext() {

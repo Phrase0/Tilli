@@ -11,10 +11,12 @@ import SwiftUI
 class ProductRepository: ObservableObject {
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
+    private let inventoryChangeRepository: InventoryChangeRepository
 
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
+        self.inventoryChangeRepository = InventoryChangeRepository(container: container)
     }
 
     // MARK: - Product CRUD Operations
@@ -141,11 +143,13 @@ class ProductRepository: ObservableObject {
                 return .disabledInstead("此產品已有交易記錄，已改為停用狀態")
             } else {
                 // 沒有 Transaction，可以硬刪除
+                // 先刪除該產品的所有庫存異動記錄
+                let deletedChangeIds = inventoryChangeRepository.deleteChanges(forProductId: productId)
                 context.delete(productEntity)
                 saveContext()
-                // 同步刪除到 Firestore
+                // 同步刪除到 Firestore（含庫存異動）
                 Task { @MainActor in
-                    SyncManager.shared.syncDeleteProduct(productId)
+                    SyncManager.shared.syncDeleteProductWithInventoryChanges(productId, inventoryChangeIds: deletedChangeIds)
                 }
                 return .deleted("產品已成功刪除")
             }
