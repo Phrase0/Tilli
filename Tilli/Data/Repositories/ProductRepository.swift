@@ -36,6 +36,8 @@ class ProductRepository: ObservableObject {
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: productModel, context: context)
             productEntity.userId = Auth.auth().currentUser?.uid
+            productEntity.syncStatus = "pending"
+            productEntity.updatedAt = Date()
             productEntity.category = categoryEntity
 
             saveContext()
@@ -70,6 +72,8 @@ class ProductRepository: ObservableObject {
                 if let imageData = productModel.imageData {
                     entity.imageData = imageData
                 }
+                entity.syncStatus = "pending"
+                entity.updatedAt = Date()
 
                 saveContext()
                 // 同步到 Firestore
@@ -90,6 +94,8 @@ class ProductRepository: ObservableObject {
         do {
             if let entity = try context.fetch(request).first {
                 entity.isDisabled = true
+                entity.syncStatus = "pending"
+                entity.updatedAt = Date()
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
@@ -110,6 +116,8 @@ class ProductRepository: ObservableObject {
         do {
             if let entity = try context.fetch(request).first {
                 entity.isDisabled = false
+                entity.syncStatus = "pending"
+                entity.updatedAt = Date()
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
@@ -133,9 +141,11 @@ class ProductRepository: ObservableObject {
             }
 
             // 檢查是否有相關 Transaction
-            if hasRelatedTransactions(productId: productId) {
+            if hasRelatedTransactions(productId: productId, sessionId: productEntity.sessionId) {
                 // 有 Transaction，只能停用
                 productEntity.isDisabled = true
+                productEntity.syncStatus = "pending"
+                productEntity.updatedAt = Date()
                 saveContext()
                 // 同步停用狀態到 Firestore
                 let productModel = productEntity.toModel()
@@ -163,14 +173,17 @@ class ProductRepository: ObservableObject {
 
     // MARK: - Helper Methods
 
-    /// 檢查 Product 是否有相關 Transaction
-    private func hasRelatedTransactions(productId: UUID) -> Bool {
+    /// 檢查 Product 是否有相關 Transaction（僅查詢同場次的交易）
+    private func hasRelatedTransactions(productId: UUID, sessionId: UUID?) -> Bool {
         let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+        if let sessionId = sessionId {
+            transactionRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        }
 
         do {
             let transactions = try context.fetch(transactionRequest)
-            
-            // 檢查所有交易的 items 中是否包含此 productId
+
+            // 檢查交易的 items 中是否包含此 productId
             for transaction in transactions {
                 if let itemsData = transaction.itemsData,
                    let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
@@ -186,19 +199,9 @@ class ProductRepository: ObservableObject {
         }
     }
 
-    /// 根據業務邏輯更新庫存（保留原有的判斷規則）
+    /// 更新庫存
     private func updateStockWithBusinessLogic(entity: CDProductEntity, newStock: Int) {
-        // 這裡可以加入原有的庫存更新業務邏輯
-        // 例如：檢查庫存是否足夠、是否有預留庫存等
-        
-        // 暫時直接更新，實際業務邏輯需要根據原有代碼調整
         entity.stock = Int32(newStock)
-        
-        // TODO: 根據原有的業務邏輯補充庫存更新規則
-        // 例如：
-        // - 檢查是否有進行中的交易
-        // - 檢查庫存變更是否合理
-        // - 記錄庫存變更歷史等
     }
 
     // MARK: - Query Methods
@@ -250,9 +253,12 @@ class ProductRepository: ObservableObject {
         do {
             let products = try context.fetch(request)
             
+            let now = Date()
             for product in products {
                 if let newStock = stockUpdates[product.id] {
                     product.stock = Int32(max(newStock, 0))
+                    product.syncStatus = "pending"
+                    product.updatedAt = now
                 }
             }
             
@@ -290,6 +296,7 @@ class ProductRepository: ObservableObject {
             let entities = try context.fetch(request)
             let entityDict = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0) })
 
+            let now = Date()
             for productModel in productUpdates {
                 if let entity = entityDict[productModel.id] {
                     entity.name = productModel.name
@@ -301,6 +308,8 @@ class ProductRepository: ObservableObject {
                     if let imageData = productModel.imageData {
                         entity.imageData = imageData
                     }
+                    entity.syncStatus = "pending"
+                    entity.updatedAt = now
                 }
             }
 

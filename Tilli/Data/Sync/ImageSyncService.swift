@@ -394,31 +394,3 @@ class ImageSyncService {
     }
 }
 
-// MARK: - Convenience Methods for Product/QRCode Upload
-
-extension ImageSyncService {
-
-    /// 上傳產品圖片（如果有的話）並返回 URL
-    /// - Parameters:
-    ///   - product: 產品資料
-    /// - Returns: 圖片 URL，如果沒有圖片則返回 nil
-    func uploadProductImageIfNeeded(_ product: ProductModel) async throws -> String? {
-        guard let image = product.image else {
-            return product.imageURL // 保留原有 URL
-        }
-
-        return try await uploadProductImage(image, productId: product.id)
-    }
-
-    /// 上傳 QR Code 圖片（如果有的話）並返回 URL
-    /// - Parameters:
-    ///   - qrCode: QR Code 資料
-    /// - Returns: 圖片 URL，如果沒有圖片則返回 nil
-    func uploadQRCodeImageIfNeeded(_ qrCode: QRCodeModel) async throws -> String? {
-        guard let image = qrCode.image else {
-            return qrCode.imageURL // 保留原有 URL
-        }
-
-        return try await uploadQRCodeImage(image, qrCodeId: qrCode.id)
-    }
-}

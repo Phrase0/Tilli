@@ -108,18 +108,24 @@ class SessionRepository: ObservableObject {
         entity.update(from: model, context: context)
         let currentUserId = Auth.auth().currentUser?.uid
         entity.userId = currentUserId
+        entity.syncStatus = "pending"
+        entity.updatedAt = Date()
 
         // 創建 Categories 和 Products
         for categoryModel in model.categories {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
             categoryEntity.userId = currentUserId
+            categoryEntity.syncStatus = "pending"
+            categoryEntity.updatedAt = Date()
             categoryEntity.session = entity
 
             for productModel in categoryModel.products {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
                 productEntity.userId = currentUserId
+                productEntity.syncStatus = "pending"
+                productEntity.updatedAt = Date()
                 productEntity.category = categoryEntity
             }
         }
@@ -152,9 +158,8 @@ class SessionRepository: ObservableObject {
                 return
             }
 
-            // 檢查哪些欄位有變更
+            // 檢查標題是否有變更
             let titleChanged = entity.title != model.title
-            let dateChanged = !Calendar.current.isDate(entity.startDate, inSameDayAs: model.startDate)
 
             // 更新 Session 基本屬性
             entity.title = model.title
@@ -163,13 +168,14 @@ class SessionRepository: ObservableObject {
             entity.dateType = model.dateType.rawValue
             entity.currency = model.currency
             entity.discountsData = try? JSONEncoder().encode(model.discounts)
+            entity.syncStatus = "pending"
+            entity.updatedAt = Date()
 
-            // 同步更新所有相關交易記錄
-            if titleChanged || dateChanged {
+            // 同步更新所有相關交易記錄的 sessionTitle
+            if titleChanged {
                 updateRelatedTransactions(
                     sessionId: model.id,
-                    newTitle: titleChanged ? model.title : nil,
-                    newDate: dateChanged ? model.startDate : nil
+                    newTitle: model.title
                 )
             }
 
@@ -282,6 +288,8 @@ class SessionRepository: ObservableObject {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
             categoryEntity.userId = currentUserId
+            categoryEntity.syncStatus = "pending"
+            categoryEntity.updatedAt = Date()
             categoryEntity.session = entity
             entity.addToCategories(categoryEntity)
 
@@ -290,6 +298,8 @@ class SessionRepository: ObservableObject {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
                 productEntity.userId = currentUserId
+                productEntity.syncStatus = "pending"
+                productEntity.updatedAt = Date()
                 productEntity.category = categoryEntity
                 categoryEntity.addToProducts(productEntity)
             }
@@ -381,6 +391,7 @@ class SessionRepository: ObservableObject {
             let entity = CDTransactionEntity(context: context)
             entity.update(from: model, context: context)
             entity.userId = Auth.auth().currentUser?.uid
+            entity.syncStatus = "pending"
             sessionEntity.addToTransactions(entity)
 
             if saveContext() {
@@ -392,28 +403,6 @@ class SessionRepository: ObservableObject {
             }
         } catch {
             print("加入 transaction 失敗:", error)
-        }
-    }
-
-    /// 更新交易記錄（僅允許修改業務欄位）
-    func updateTransaction(_ model: TransactionModel) {
-        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
-
-        do {
-            if let entity = try context.fetch(request).first {
-                entity.update(from: model, context: context)
-                if saveContext() {
-                    fetchSessions()
-                    TransactionRepository.shared.notifyTransactionsChanged()
-                    // 同步到 Firestore
-                    Task { @MainActor in
-                        SyncManager.shared.syncTransaction(model)
-                    }
-                }
-            }
-        } catch {
-            print("Update transaction failed:", error)
         }
     }
 
@@ -447,6 +436,8 @@ class SessionRepository: ObservableObject {
             newSessionEntity.currency = originalEntity.currency
             newSessionEntity.discountsData = originalEntity.discountsData
             newSessionEntity.userId = copyUserId
+            newSessionEntity.syncStatus = "pending"
+            newSessionEntity.updatedAt = Date()
 
             // 複製所有 Categories 和 Products（按 sortOrder 排序以保持順序）
             var inventoryChangeEntities: [CDInventoryChangeEntity] = []
@@ -461,6 +452,8 @@ class SessionRepository: ObservableObject {
                     newCategoryEntity.isDisabled = originalCategory.isDisabled
                     newCategoryEntity.sortOrder = originalCategory.sortOrder
                     newCategoryEntity.userId = copyUserId
+                    newCategoryEntity.syncStatus = "pending"
+                    newCategoryEntity.updatedAt = Date()
                     newCategoryEntity.session = newSessionEntity
 
                     // 複製該 Category 下的所有 Products
@@ -478,6 +471,8 @@ class SessionRepository: ObservableObject {
                             newProductEntity.imageData = originalProduct.imageData
                             newProductEntity.isDisabled = originalProduct.isDisabled
                             newProductEntity.userId = copyUserId
+                            newProductEntity.syncStatus = "pending"
+                            newProductEntity.updatedAt = Date()
                             newProductEntity.category = newCategoryEntity
 
                             // 若有庫存，建立「進貨入庫」記錄
@@ -492,6 +487,7 @@ class SessionRepository: ObservableObject {
                                 changeEntity.transactionId = nil
                                 changeEntity.timestamp = Date()
                                 changeEntity.userId = copyUserId
+                                changeEntity.syncStatus = "pending"
                                 inventoryChangeEntities.append(changeEntity)
                             }
                         }
@@ -578,7 +574,7 @@ class SessionRepository: ObservableObject {
     // MARK: - Helper Methods
 
     /// 批量更新相關交易記錄的 Session 資訊
-    private func updateRelatedTransactions(sessionId: UUID, newTitle: String?, newDate: Date?) {
+    private func updateRelatedTransactions(sessionId: UUID, newTitle: String?) {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
 
@@ -612,8 +608,11 @@ class SessionRepository: ObservableObject {
                 return false // 沒有 Product，當然沒有 Transaction
             }
 
-            // 檢查所有交易的 items 中是否包含這些 productIds
+            // 檢查同場次交易的 items 中是否包含這些 productIds
             let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+            if let sessionId = products.first?.category.session.id {
+                transactionRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+            }
             let transactions = try context.fetch(transactionRequest)
             
             for transaction in transactions {

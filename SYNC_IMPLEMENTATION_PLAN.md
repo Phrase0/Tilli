@@ -2006,33 +2006,33 @@ func saveProduct(_ product: ProductModel) async {
 
 ### Phase 5：Hybrid Listener 即時監聽（預估 2-3 天）
 
-- [ ] **5.1 syncState 基礎建設**
-  - [ ] 新增 `users/{userId}/private/syncState` 文件結構
-  - [ ] 更新 Firestore Security Rules（允許存取 private subcollection）
-  - [ ] `initializeSyncState()` - 首次登入時初始化 syncState
-  - [ ] 在 FirestoreUploader 中整合 syncState 更新
+- [x] **5.1 syncState 基礎建設**
+  - [x] 新增 `users/{userId}/private/syncState` 文件結構
+  - [x] 更新 Firestore Security Rules（允許存取 private subcollection）
+  - [x] `initializeSyncState()` - 首次登入時初始化 syncState
+  - [x] 在 FirestoreUploader 中整合 syncState 更新
 
-- [ ] **5.2 HybridSyncListener 實作**
-  - [ ] `HybridSyncListener` - 只監聽 syncState 文件
-  - [ ] `startListening()` - 開始監聽
-  - [ ] `stopListening()` - 停止監聯
-  - [ ] `processChanges()` - 根據 pendingChanges 下載資料
-  - [ ] `clearProcessedChanges()` - 清除已處理的變更
+- [x] **5.2 HybridSyncListener 實作**
+  - [x] `HybridSyncListener` - 只監聽 syncState 文件
+  - [x] `startListening()` - 開始監聽
+  - [x] `stopListening()` - 停止監聽
+  - [x] `processChanges()` - 根據 pendingChanges 下載資料
+  - [x] `clearProcessedChanges()` - 清除已處理的變更
 
-- [ ] **5.3 pendingChanges 管理**
-  - [ ] 寫入時加入 pendingChanges（arrayUnion）
-  - [ ] `trimPendingChangesIfNeeded()` - 超過 50 個時清空
-  - [ ] 版本號遞增邏輯
+- [x] **5.3 pendingChanges 管理**
+  - [x] 寫入時加入 pendingChanges（arrayUnion）
+  - [x] `trimPendingChangesIfNeeded()` - 超過 50 個時清空
+  - [x] 版本號遞增邏輯
 
-- [ ] **5.4 變更處理**
-  - [ ] 精確下載：根據 pendingChanges 的 ID 下載
-  - [ ] 全量下載：pendingChanges 為空但版本號變了
-  - [ ] 本地版本號快取（UserDefaults）
+- [x] **5.4 變更處理**
+  - [x] 精確下載：根據 pendingChanges 的 ID 下載
+  - [x] 全量下載：pendingChanges 為空但版本號變了
+  - [x] 本地版本號快取（UserDefaults）
 
-- [ ] **5.5 整合到 App 生命週期**
-  - [ ] 登入時開始監聽 + 初始化 syncState
-  - [ ] 登出時停止監聽
-  - [ ] App 進入前台時檢查版本號
+- [x] **5.5 整合到 App 生命週期**
+  - [x] 登入時開始監聽 + 初始化 syncState
+  - [x] 登出時停止監聽
+  - [x] App 進入前台時檢查版本號
 
 ### Phase 6：測試與優化（預估 2-3 天）
 
