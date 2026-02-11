@@ -7,6 +7,7 @@
 
 import CoreData
 import SwiftUI
+import FirebaseAuth
 
 class InventoryChangeRepository: ObservableObject {
     private let container: NSPersistentContainer
@@ -27,6 +28,7 @@ class InventoryChangeRepository: ObservableObject {
         }
         let entity = CDInventoryChangeEntity(context: context)
         entity.update(from: change, context: context)
+        entity.userId = Auth.auth().currentUser?.uid
         entity.session = sessionEntity
         saveContext()
         // 同步到 Firestore
@@ -41,9 +43,11 @@ class InventoryChangeRepository: ObservableObject {
             print("Session not found for id: \(sessionId)")
             return
         }
+        let currentUserId = Auth.auth().currentUser?.uid
         for change in changes {
             let entity = CDInventoryChangeEntity(context: context)
             entity.update(from: change, context: context)
+            entity.userId = currentUserId
             entity.session = sessionEntity
         }
         saveContext()

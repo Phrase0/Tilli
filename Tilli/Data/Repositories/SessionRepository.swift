@@ -7,6 +7,7 @@
 
 import CoreData
 import SwiftUI
+import FirebaseAuth
 
 /// 場次驗證結果
 enum SessionValidationResult {
@@ -105,16 +106,20 @@ class SessionRepository: ObservableObject {
 
         let entity = CDSessionEntity(context: context)
         entity.update(from: model, context: context)
+        let currentUserId = Auth.auth().currentUser?.uid
+        entity.userId = currentUserId
 
         // 創建 Categories 和 Products
         for categoryModel in model.categories {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
+            categoryEntity.userId = currentUserId
             categoryEntity.session = entity
 
             for productModel in categoryModel.products {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
+                productEntity.userId = currentUserId
                 productEntity.category = categoryEntity
             }
         }
@@ -272,9 +277,11 @@ class SessionRepository: ObservableObject {
         }
 
         // 新增新的 categories
+        let currentUserId = Auth.auth().currentUser?.uid
         for categoryModel in categoriesToAdd {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
+            categoryEntity.userId = currentUserId
             categoryEntity.session = entity
             entity.addToCategories(categoryEntity)
 
@@ -282,6 +289,7 @@ class SessionRepository: ObservableObject {
             for productModel in categoryModel.products {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
+                productEntity.userId = currentUserId
                 productEntity.category = categoryEntity
                 categoryEntity.addToProducts(productEntity)
             }
@@ -372,6 +380,7 @@ class SessionRepository: ObservableObject {
 
             let entity = CDTransactionEntity(context: context)
             entity.update(from: model, context: context)
+            entity.userId = Auth.auth().currentUser?.uid
             sessionEntity.addToTransactions(entity)
 
             if saveContext() {
@@ -427,6 +436,7 @@ class SessionRepository: ObservableObject {
             }
 
             // 創建新的 Session 實體
+            let copyUserId = Auth.auth().currentUser?.uid
             let newSessionEntity = CDSessionEntity(context: context)
             newSessionEntity.id = UUID()
             newSessionEntity.title = newTitle
@@ -436,6 +446,7 @@ class SessionRepository: ObservableObject {
             newSessionEntity.createdAt = Date()
             newSessionEntity.currency = originalEntity.currency
             newSessionEntity.discountsData = originalEntity.discountsData
+            newSessionEntity.userId = copyUserId
 
             // 複製所有 Categories 和 Products（按 sortOrder 排序以保持順序）
             var inventoryChangeEntities: [CDInventoryChangeEntity] = []
@@ -449,6 +460,7 @@ class SessionRepository: ObservableObject {
                     newCategoryEntity.createdAt = Date()
                     newCategoryEntity.isDisabled = originalCategory.isDisabled
                     newCategoryEntity.sortOrder = originalCategory.sortOrder
+                    newCategoryEntity.userId = copyUserId
                     newCategoryEntity.session = newSessionEntity
 
                     // 複製該 Category 下的所有 Products
@@ -465,6 +477,7 @@ class SessionRepository: ObservableObject {
                             newProductEntity.note = originalProduct.note
                             newProductEntity.imageData = originalProduct.imageData
                             newProductEntity.isDisabled = originalProduct.isDisabled
+                            newProductEntity.userId = copyUserId
                             newProductEntity.category = newCategoryEntity
 
                             // 若有庫存，建立「進貨入庫」記錄
@@ -478,6 +491,7 @@ class SessionRepository: ObservableObject {
                                 changeEntity.customReason = nil
                                 changeEntity.transactionId = nil
                                 changeEntity.timestamp = Date()
+                                changeEntity.userId = copyUserId
                                 inventoryChangeEntities.append(changeEntity)
                             }
                         }

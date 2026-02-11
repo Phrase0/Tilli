@@ -477,7 +477,22 @@ class FirestoreDownloader {
         case .qrCode: collectionName = Collection.qrCodes
         }
 
-        let doc = try await db.collection(collectionName).document(id.uuidString).getDocument()
+        let doc: DocumentSnapshot
+        do {
+            doc = try await db.collection(collectionName).document(id.uuidString).getDocument()
+        } catch {
+            // Permission denied (Code 7) 可能是文件已刪除導致 resource.data 為 null
+            // Firestore Security Rules 在文件不存在時 resource == null，若規則未處理會回傳 permission denied
+            let nsError = error as NSError
+            if nsError.domain == "FIRFirestoreErrorDomain" && nsError.code == 7 {
+                print("⚠️ syncFromServer: \(collectionName)/\(id) permission denied，視為已刪除")
+                await MainActor.run {
+                    deleteLocalEntity(type: type, id: id)
+                }
+                return false
+            }
+            throw error
+        }
 
         guard doc.exists else {
             // 文件已從 Firestore 刪除 → 刪除本地對應實體

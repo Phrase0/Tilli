@@ -7,6 +7,7 @@
 
 import CoreData
 import SwiftUI
+import FirebaseAuth
 
 class ProductRepository: ObservableObject {
     private let container: NSPersistentContainer
@@ -34,6 +35,7 @@ class ProductRepository: ObservableObject {
 
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: productModel, context: context)
+            productEntity.userId = Auth.auth().currentUser?.uid
             productEntity.category = categoryEntity
 
             saveContext()

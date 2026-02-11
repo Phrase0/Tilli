@@ -464,7 +464,9 @@ struct SalesAnalyticsView: View {
                     ))
                     .frame(
                         width: 8,
-                        height: CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount)) * 150
+                        height: maxAmount > 0
+                            ? CGFloat(MoneyHelper.toUIDouble(data.amount)) / CGFloat(MoneyHelper.toUIDouble(maxAmount)) * 150
+                            : 0
                     )
                     .onTapGesture {
                         selectedHourData = data

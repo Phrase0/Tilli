@@ -172,7 +172,7 @@ struct ProductRankingCard: View {
                                 .foregroundColor(.gray)
                         }
                         
-                        ProgressView(value: Double(contributionRate), total: 100)
+                        ProgressView(value: max(0, min(Double(contributionRate), 100)), total: 100)
                             .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                             .scaleEffect(x: 1, y: 2, anchor: .center)
                     }
