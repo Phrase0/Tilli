@@ -32,6 +32,9 @@ class SyncManager: ObservableObject {
     @Published var lastSyncDate: Date?
     @Published var syncError: SyncError?
 
+    // MARK: - Private State
+    private var isProcessingQueue = false
+
     // MARK: - Init
     private init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.context = context
@@ -82,6 +85,21 @@ class SyncManager: ObservableObject {
 
         // 初始化後立即開始監聽
         startListening()
+
+        // 啟動網路監控（網路恢復時自動處理離線佇列）
+        startNetworkMonitoring()
+    }
+
+    // MARK: - Network Monitoring
+
+    private func startNetworkMonitoring() {
+        NetworkMonitor.shared.startMonitoring { isConnected in
+            if isConnected {
+                Task { @MainActor in
+                    await SyncManager.shared.processPendingQueue()
+                }
+            }
+        }
     }
 
     // MARK: - Listener Management
@@ -466,8 +484,12 @@ class SyncManager: ObservableObject {
 
     /// 處理所有待同步的操作（網路恢復時呼叫）
     func processPendingQueue() async {
+        guard !isProcessingQueue else { return }
         guard isUserLoggedIn else { return }
         guard NetworkMonitor.shared.isConnected else { return }
+
+        isProcessingQueue = true
+        defer { isProcessingQueue = false }
 
         let request: NSFetchRequest<CDPendingSyncOperation> = CDPendingSyncOperation.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
