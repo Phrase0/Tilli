@@ -621,18 +621,19 @@ class SyncManager: ObservableObject {
     }
 
     /// 從 Firestore 刪除實體（透過 uploader 的正確方法）
+    /// Session / Category / Product 使用 WithChildren 版本，確保 cascade delete
     private func deleteEntity(_ op: CDPendingSyncOperation) async throws {
         let entityId = op.entityId
 
         switch op.entityType {
         case SyncEntityType.session.rawValue:
-            try await uploader.deleteSession(entityId)
+            try await uploader.deleteSessionWithChildren(entityId)
 
         case SyncEntityType.category.rawValue:
-            try await uploader.deleteCategory(entityId)
+            try await uploader.deleteCategoryWithProducts(entityId)
 
         case SyncEntityType.product.rawValue:
-            try await uploader.deleteProduct(entityId)
+            try await uploader.deleteProductWithInventoryChanges(entityId)
 
         case SyncEntityType.inventoryChange.rawValue:
             try await uploader.deleteInventoryChange(entityId)
