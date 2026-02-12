@@ -717,6 +717,192 @@ class SyncManager: ObservableObject {
         }
     }
 
+    // MARK: - Utility Methods
+
+    /// 檢查本地是否有當前用戶的資料（用於登入情境判斷）
+    func hasLocalData() -> Bool {
+        guard let userId = currentUserId else { return false }
+        let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "userId == %@", userId)
+        return (try? context.count(for: request)) ?? 0 > 0
+    }
+
+    /// 檢查 Firestore 是否有該用戶的資料（用於登入情境判斷）
+    func hasCloudData(userId: String) async -> Bool {
+        do {
+            let snapshot = try await db.collection("sessions")
+                .whereField("userId", isEqualTo: userId)
+                .limit(to: 1)
+                .getDocuments()
+            return !snapshot.documents.isEmpty
+        } catch {
+            print("❌ hasCloudData 查詢失敗: \(error)")
+            return false
+        }
+    }
+
+    /// 批次更新所有實體的 userId（匿名 → 正式帳號升級時使用）
+    func updateAllUserIds(from oldUID: String, to newUID: String) {
+        let entityNames = [
+            "CDSessionEntity",
+            "CDCategoryEntity",
+            "CDProductEntity",
+            "CDTransactionEntity",
+            "CDInventoryChangeEntity",
+            "CDQRCodeEntity"
+        ]
+
+        for entityName in entityNames {
+            let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+            request.predicate = NSPredicate(format: "userId == %@", oldUID)
+
+            do {
+                let entities = try context.fetch(request)
+                for entity in entities {
+                    entity.setValue(newUID, forKey: "userId")
+                    entity.setValue("pending", forKey: "syncStatus")
+                }
+            } catch {
+                print("❌ updateAllUserIds failed for \(entityName): \(error)")
+            }
+        }
+
+        do {
+            try context.save()
+            print("✅ updateAllUserIds: \(oldUID) → \(newUID)")
+        } catch {
+            print("❌ updateAllUserIds save failed: \(error)")
+            context.rollback()
+        }
+    }
+
+    /// 全量上傳所有本地資料到 Firestore（情境 C：匿名資料升級後上傳）
+    func fullUploadAllData() async {
+        guard let userId = currentUserId else { return }
+        guard isNetworkAvailable else {
+            print("❌ fullUploadAllData: 無網路")
+            return
+        }
+
+        isSyncing = true
+        defer { isSyncing = false }
+
+        do {
+            // 1. 上傳 Sessions（含 Categories + Products）
+            let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+            sessionRequest.predicate = NSPredicate(format: "userId == %@", userId)
+            let sessions = try context.fetch(sessionRequest)
+
+            for session in sessions {
+                do {
+                    try await uploader.uploadSessionWithChildren(session.toModel())
+                } catch {
+                    print("❌ fullUpload Session 失敗: \(session.id) - \(error)")
+                }
+            }
+
+            // 2. 上傳 Transactions
+            let txRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+            txRequest.predicate = NSPredicate(format: "userId == %@", userId)
+            let transactions = try context.fetch(txRequest)
+
+            for tx in transactions {
+                do {
+                    try await uploader.uploadTransaction(tx.toModel())
+                } catch {
+                    print("❌ fullUpload Transaction 失敗: \(tx.id) - \(error)")
+                }
+            }
+
+            // 3. 上傳 InventoryChanges
+            let changeRequest: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
+            changeRequest.predicate = NSPredicate(format: "userId == %@", userId)
+            let changes = try context.fetch(changeRequest)
+
+            for change in changes {
+                do {
+                    let model = change.toModel()
+                    if let sessionId = change.sessionId {
+                        try await uploader.uploadInventoryChange(model, sessionId: sessionId)
+                    }
+                } catch {
+                    print("❌ fullUpload InventoryChange 失敗: \(change.id) - \(error)")
+                }
+            }
+
+            // 4. 上傳 QRCodes
+            let qrRequest: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
+            qrRequest.predicate = NSPredicate(format: "userId == %@", userId)
+            let qrCodes = try context.fetch(qrRequest)
+
+            for qr in qrCodes {
+                do {
+                    try await uploader.uploadQRCode(qr.toModel())
+                } catch {
+                    print("❌ fullUpload QRCode 失敗: \(qr.id) - \(error)")
+                }
+            }
+
+            // 5. 批次更新 syncStatus = "synced"
+            let allEntities: [NSManagedObject] = sessions + transactions + changes + qrCodes
+            for entity in allEntities {
+                entity.setValue("synced", forKey: "syncStatus")
+            }
+            // Sessions 內的 Categories 和 Products 也要更新
+            for session in sessions {
+                if let categories = session.categories as? Set<CDCategoryEntity> {
+                    for category in categories {
+                        category.syncStatus = "synced"
+                        if let products = category.products as? Set<CDProductEntity> {
+                            for product in products {
+                                product.syncStatus = "synced"
+                            }
+                        }
+                    }
+                }
+            }
+
+            try context.save()
+            print("✅ fullUploadAllData 完成")
+        } catch {
+            print("❌ fullUploadAllData 失敗: \(error)")
+            context.rollback()
+        }
+    }
+
+    /// 清除所有本地資料（登出時呼叫）
+    func clearAllLocalData() {
+        // 子→父順序刪除，避免 FK 問題
+        let entityNames = [
+            "CDPendingSyncOperation",
+            "CDInventoryChangeEntity",
+            "CDTransactionEntity",
+            "CDProductEntity",
+            "CDCategoryEntity",
+            "CDSessionEntity",
+            "CDQRCodeEntity"
+        ]
+
+        for entityName in entityNames {
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+
+            do {
+                try context.execute(deleteRequest)
+            } catch {
+                print("❌ clearAllLocalData 刪除 \(entityName) 失敗: \(error)")
+            }
+        }
+
+        // 清除記憶體中的 managed objects
+        context.reset()
+
+        // 通知 UI 刷新
+        NotificationCenter.default.post(name: .syncDidComplete, object: nil)
+
+        print("✅ clearAllLocalData 完成")
+    }
+
     // MARK: - Download Sync
 
     /// 全量下載（從 Firestore 下載所有資料到本地）

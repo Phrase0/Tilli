@@ -11,12 +11,11 @@ import FirebaseAuth
 import FirebaseFirestore
 import GoogleSignIn
 import FirebaseCore
-// TODO: Apple Sign In - 開發者會員審核通過後取消註解
-// import AuthenticationServices
-// import CryptoKit
+import AuthenticationServices
+import CryptoKit
 
 @MainActor
-class AuthenticationManager: ObservableObject {
+class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Auth State
     enum AuthState: Equatable {
@@ -38,8 +37,7 @@ class AuthenticationManager: ObservableObject {
     private let userRepository = UserRepository()
     private var authStateListener: AuthStateDidChangeListenerHandle?
 
-    // TODO: Apple Sign In - 開發者會員審核通過後取消註解
-    // private var currentNonce: String?
+    private var currentNonce: String?
 
     // MARK: - Device ID
     var currentDeviceId: String {
@@ -56,7 +54,8 @@ class AuthenticationManager: ObservableObject {
     }
 
     // MARK: - Init
-    init() {
+    override init() {
+        super.init()
         setupAuthStateListener()
     }
 
@@ -229,8 +228,6 @@ class AuthenticationManager: ObservableObject {
         }
     }
 
-    /* TODO: Apple Sign In - 開發者會員審核通過後取消註解
-
     // MARK: - Apple 登入
     func signInWithApple() {
         isLoading = true
@@ -275,7 +272,7 @@ class AuthenticationManager: ObservableObject {
             guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
                 // 如果不是匿名用戶，直接登入
                 let result = try await Auth.auth().signIn(with: firebaseCredential)
-                await handleAppleSignInSuccess(user: result.user)
+                await handleSignInSuccess(user: result.user, provider: .apple)
                 isLoading = false
                 return
             }
@@ -283,15 +280,24 @@ class AuthenticationManager: ObservableObject {
             // 嘗試 Link 匿名帳號到 Apple（Link 成功一定是新帳號）
             do {
                 let result = try await currentAuthUser.link(with: firebaseCredential)
-                await handleAppleLinkSuccess(user: result.user)
+                await handleLinkSuccess(user: result.user, provider: .apple)
                 isLoading = false
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
-                    // Credential 已被使用，刪除匿名帳號後登入
+                    // Credential 已被使用，刪除匿名帳號後登入（對齊 Google 流程）
+                    let anonymousUid = Auth.auth().currentUser?.uid
+
+                    // 刪除 Firebase Auth 的匿名帳號
                     try await Auth.auth().currentUser?.delete()
+
+                    // 刪除 Firestore 中的 Guest UserProfile（避免孤兒資料）
+                    if let uid = anonymousUid {
+                        try? await userRepository.deleteUser(uid: uid)
+                    }
+
                     let result = try await Auth.auth().signIn(with: firebaseCredential)
-                    await handleAppleSignInSuccess(user: result.user)
+                    await handleSignInSuccess(user: result.user, provider: .apple)
                     isLoading = false
                 } else {
                     throw error
@@ -301,64 +307,6 @@ class AuthenticationManager: ObservableObject {
             isLoading = false
             errorMessage = getErrorMessage(from: error)
             print("Apple sign in error: \(error)")
-        }
-    }
-
-    // MARK: - 處理 Apple Link 成功（新帳號，不取得第三方姓名和頭貼）
-    private func handleAppleLinkSuccess(user: FirebaseAuth.User) async {
-        do {
-            let email = user.email ?? ""
-
-            // 升級現有的 UserProfile（姓名留空，讓用戶自己填寫）
-            try await userRepository.upgradeToMember(
-                uid: user.uid,
-                email: email,
-                name: "",
-                provider: .apple
-            )
-
-            // 更新本地 currentUser
-            if var profile = currentUser {
-                profile.upgradeToMember(email: email, name: "", provider: .apple)
-                self.currentUser = profile
-            }
-
-            // 更新 deviceId
-            try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
-        } catch {
-            print("Error upgrading user with Apple: \(error)")
-        }
-    }
-
-    // MARK: - 處理 Apple 登入成功
-    private func handleAppleSignInSuccess(user: FirebaseAuth.User) async {
-        do {
-            if let profile = try await userRepository.getUser(uid: user.uid) {
-                // 既有帳號
-                self.currentUser = profile
-                // 更新 deviceId
-                try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
-            } else {
-                // 新帳號：只存 email，姓名留空讓用戶自己填寫
-                let email = user.email ?? ""
-
-                let newProfile = UserProfile(
-                    uid: user.uid,
-                    email: email,
-                    name: "",
-                    photoURL: nil,
-                    provider: .apple,
-                    accountStatus: .member,
-                    membership: .free,
-                    expiryDate: nil,
-                    createdAt: Date(),
-                    currentDeviceId: currentDeviceId
-                )
-                try await userRepository.createUser(newProfile)
-                self.currentUser = newProfile
-            }
-        } catch {
-            print("Error handling Apple sign in success: \(error)")
         }
     }
 
@@ -387,8 +335,6 @@ class AuthenticationManager: ObservableObject {
         }.joined()
         return hashString
     }
-
-    */ // END: Apple Sign In
 
     // MARK: - 取得 Google Credential
     private func getGoogleCredential() async throws -> AuthCredential? {
@@ -494,6 +440,8 @@ class AuthenticationManager: ObservableObject {
         do {
             // 停止監聽並重置同步狀態
             SyncManager.shared.resetSync()
+            // 清除所有本地資料
+            SyncManager.shared.clearAllLocalData()
 
             try Auth.auth().signOut()
             GIDSignIn.sharedInstance.signOut()
@@ -588,8 +536,6 @@ class AuthenticationManager: ObservableObject {
     }
 }
 
-/* TODO: Apple Sign In - 開發者會員審核通過後取消註解
-
 // MARK: - ASAuthorizationControllerDelegate
 extension AuthenticationManager: ASAuthorizationControllerDelegate {
 
@@ -634,5 +580,3 @@ extension AuthenticationManager: ASAuthorizationControllerPresentationContextPro
         return window
     }
 }
-
-*/ // END: Apple Sign In Extensions

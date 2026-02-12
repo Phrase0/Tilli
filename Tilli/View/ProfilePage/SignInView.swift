@@ -57,8 +57,6 @@ struct SignInView: View {
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
-                    .disabled(true)
-                    .opacity(0.5)
 
                     // Google 登入按鈕
                     Button {
