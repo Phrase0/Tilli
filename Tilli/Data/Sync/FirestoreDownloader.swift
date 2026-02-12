@@ -351,8 +351,8 @@ class FirestoreDownloader {
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
-        var categoryIds: [UUID] = []
-        await MainActor.run {
+        let categoryIds: [UUID] = await MainActor.run {
+            var ids: [UUID] = []
             for doc in categoriesSnapshot.documents {
                 let data = doc.data()
                 guard let model = CategoryModel(from: data),
@@ -360,8 +360,9 @@ class FirestoreDownloader {
                 else { continue }
 
                 saveCategory(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
-                categoryIds.append(model.id)
+                ids.append(model.id)
             }
+            return ids
         }
 
         // 3. 下載 Products（by sessionId）
