@@ -40,10 +40,9 @@ struct SignInView: View {
 
                 // 登入按鈕區
                 VStack(spacing: 16) {
-                    // Apple 登入按鈕（待實作）
+                    // Apple 登入按鈕
                     Button {
-                        // TODO: 實作 Apple Sign In
-                        // authManager.signInWithApple()
+                        authManager.signInWithApple()
                     } label: {
                         HStack {
                             Image(systemName: "apple.logo")
@@ -104,6 +103,12 @@ struct SignInView: View {
         .navigationTitle("登入 / 註冊")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(authManager.isLoading)
+        .onChange(of: authManager.authState) { newState in
+            // Apple Sign In 透過 delegate 回傳，需要監聽 authState 變化來 dismiss
+            if newState == .needsSetup || newState == .ready {
+                dismiss()
+            }
+        }
         .overlay {
             if authManager.isLoading {
                 ZStack {
