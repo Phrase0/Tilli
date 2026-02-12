@@ -269,6 +269,8 @@ class SessionRepository: ObservableObject {
             if hasRelatedTransactionsForCategory(categoryId: categoryEntity.id) {
                 // 有交易記錄，只能停用
                 categoryEntity.isDisabled = true
+                categoryEntity.syncStatus = "pending"
+                categoryEntity.updatedAt = Date()
                 // 記錄停用變更（需要轉成 model，停用後的狀態）
                 var disabledModel = categoryEntity.toModel()
                 disabledModel.isDisabled = true
@@ -324,13 +326,18 @@ class SessionRepository: ObservableObject {
                 // Products 的 CRUD 由 ProductRepository 負責
                 if nameChanged {
                     if let products = categoryEntity.products as? Set<CDProductEntity> {
+                        let now = Date()
                         for product in products {
                             product.categoryName = categoryModel.name
+                            product.syncStatus = "pending"
+                            product.updatedAt = now
                         }
                     }
                 }
 
                 if nameChanged || disabledChanged || sortOrderChanged {
+                    categoryEntity.syncStatus = "pending"
+                    categoryEntity.updatedAt = Date()
                     changes.updated.append(categoryModel)
                 }
             }

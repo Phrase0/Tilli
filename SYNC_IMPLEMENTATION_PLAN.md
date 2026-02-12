@@ -3,20 +3,21 @@
 ## 目錄
 1. [設計決策](#設計決策)
 2. [架構總覽](#架構總覽)
-3. [Firestore Schema 設計](#firestore-schema-設計)
-4. [Firestore 索引設定](#firestore-索引設定)
-5. [Model 共用策略](#model-共用策略)
-6. [CoreData Schema 更新](#coredata-schema-更新)
-7. [CDPendingSyncOperation 詳解](#cdpendingsyncoperation-詳解)
-8. [圖片處理策略](#圖片處理策略)
-9. [同步機制設計](#同步機制設計)
-10. [**Hybrid Listener 費用優化**](#hybrid-listener-費用優化)
-11. [衝突處理與刪除策略](#衝突處理與刪除策略)
-12. [登入流程與資料處理](#登入流程與資料處理)
-13. [網路監控](#網路監控)
-14. [實作排序與任務清單](#實作排序與任務清單)
-15. [錯誤處理](#錯誤處理)
-16. [測試計畫](#測試計畫)
+3. [循序圖與流程圖](#循序圖與流程圖)
+4. [Firestore Schema 設計](#firestore-schema-設計)
+5. [Firestore 索引設定](#firestore-索引設定)
+6. [Model 共用策略](#model-共用策略)
+7. [CoreData Schema 更新](#coredata-schema-更新)
+8. [CDPendingSyncOperation 詳解](#cdpendingsyncoperation-詳解)
+9. [圖片處理策略](#圖片處理策略)
+10. [同步機制設計](#同步機制設計)
+11. [**Hybrid Listener 費用優化**](#hybrid-listener-費用優化)
+12. [衝突處理與刪除策略](#衝突處理與刪除策略)
+13. [登入流程與資料處理](#登入流程與資料處理)
+14. [網路監控](#網路監控)
+15. [實作排序與任務清單](#實作排序與任務清單)
+16. [錯誤處理](#錯誤處理)
+17. [測試計畫](#測試計畫)
 
 ---
 
@@ -51,39 +52,276 @@
 ## 架構總覽
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         App Layer                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │ SessionRepo  │  │ ProductRepo  │  │TransactionRepo│  ...     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘           │
-│         │                 │                 │                    │
-│         └────────────────┼─────────────────┘                    │
-│                          ▼                                       │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │                     SyncManager                              ││
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  ││
-│  │  │UploadQueue  │  │DownloadMgr │  │ ConflictResolver    │  ││
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘  ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                          │                                       │
-│         ┌────────────────┼────────────────┐                     │
-│         ▼                ▼                ▼                     │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
-│  │   CoreData   │ │  Firestore   │ │Firebase      │             │
-│  │   (Local)    │ │  (Remote)    │ │Storage       │             │
-│  └──────────────┘ └──────────────┘ └──────────────┘             │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              App Layer (Views)                                │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────────────────────┐   │
+│  │SessionView │ │ProductView │ │  QRView    │ │   SyncableImageView     │   │
+│  └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └────────────┬─────────────┘   │
+│        │              │              │                      │                 │
+├────────┼──────────────┼──────────────┼──────────────────────┼─────────────────┤
+│        ▼              ▼              ▼                      │                 │
+│  ┌─────────────┐┌─────────────┐┌─────────────┐             │                 │
+│  │SessionRepo  ││ProductRepo  ││ QRCodeRepo  │             │                 │
+│  │             ││             ││             │             │                 │
+│  │InventoryChg ││             ││             │             │                 │
+│  │ Repo        ││             ││             │             │                 │
+│  └──────┬──────┘└──────┬──────┘└──────┬──────┘             │                 │
+│         │              │              │                     │                 │
+│    ┌────▼──────────────▼──────────────▼─────┐              │                 │
+│    │           CoreData (Local)              │              │                 │
+│    │  CDSession / CDCategory / CDProduct     │              │                 │
+│    │  CDTransaction / CDInventoryChange      │              │                 │
+│    │  CDQRCode / CDPendingSyncOperation      │              │                 │
+│    └────────────────────┬───────────────────┘              │                 │
+│                         │                                   │                 │
+├─────────────────────────┼───────────────────────────────────┼─────────────────┤
+│                    Sync Layer                                │                 │
+│    ┌────────────────────▼───────────────────────────────────┼────────┐        │
+│    │                 SyncManager (@MainActor)                │        │        │
+│    │  ┌──────────────┐ ┌──────────────┐ ┌────────────────┐ │        │        │
+│    │  │PendingQueue  │ │HybridSync    │ │  SyncStatus    │ │        │        │
+│    │  │(offline ops) │ │Listener      │ │  Management    │ │        │        │
+│    │  └──────┬───────┘ └──────┬───────┘ └────────────────┘ │        │        │
+│    │         │                │                              │        │        │
+│    │  ┌──────▼───────┐ ┌──────▼───────┐                     │        │        │
+│    │  │Firestore     │ │Firestore     │                     │        │        │
+│    │  │Uploader      │ │Downloader    │     ┌───────────────▼──┐     │        │
+│    │  │  upload()    │ │  syncFrom()  │     │ImageSyncService  │     │        │
+│    │  │  update()    │ │  fullSync()  │     │  upload/download │     │        │
+│    │  │  delete()    │ │  LWW resolve │     └────────┬─────────┘     │        │
+│    │  └──────┬───────┘ └──────┬───────┘              │               │        │
+│    └─────────┼────────────────┼──────────────────────┼───────────────┘        │
+│              │                │                      │                        │
+├──────────────┼────────────────┼──────────────────────┼────────────────────────┤
+│              ▼                ▼                      ▼                        │
+│    ┌──────────────────────────────────┐  ┌──────────────────────┐             │
+│    │      Firebase Firestore          │  │  Firebase Storage     │             │
+│    │  sessions / categories / products│  │  users/{uid}/products │             │
+│    │  transactions / inventoryChanges │  │  users/{uid}/qrcodes  │             │
+│    │  qrCodes / syncState             │  │  profile_photos/      │             │
+│    └──────────────────────────────────┘  └──────────────────────┘             │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 核心元件
 
 | 元件 | 職責 |
 |------|------|
-| **SyncManager** | 統一管理同步邏輯，協調上傳/下載/衝突處理 |
-| **UploadQueue** | 管理待上傳的操作，支援離線排隊 |
-| **DownloadManager** | 處理從 Firestore 下載資料 |
-| **ConflictResolver** | 處理登入時的資料衝突 |
-| **ImageSyncService** | 處理圖片的壓縮、上傳、下載 |
+| **SyncManager** | 統一管理同步邏輯，協調上傳/下載/離線排隊，@MainActor singleton |
+| **FirestoreUploader** | 上傳/更新/刪除資料到 Firestore，管理 syncState 版本號 |
+| **FirestoreDownloader** | 從 Firestore 下載資料，LWW 衝突解決，寫入 CoreData |
+| **HybridSyncListener** | 輕量監聽 syncState 文件，觸發增量/全量下載 |
+| **ImageSyncService** | 圖片壓縮（QR: 512px PNG / Product: 200px JPEG）、上傳、下載 |
+| **SyncableImageView** | SwiftUI 元件，本地優先顯示 + Kingfisher 雲端下載 + 回寫 CoreData |
+| **CDPendingSyncOperation** | CoreData Entity，儲存離線操作佇列（最多重試 3 次） |
+
+---
+
+## 循序圖與流程圖
+
+### 1. 本地操作 + 線上同步（以新增 Product 為例）
+
+```
+┌──────┐     ┌──────────────┐     ┌────────────┐     ┌───────────────┐     ┌──────────┐
+│ View │     │ProductRepo   │     │  CoreData   │     │ SyncManager   │     │Firestore │
+└──┬───┘     └──────┬───────┘     └─────┬──────┘     └──────┬────────┘     └────┬─────┘
+   │  addProduct()  │                    │                    │                   │
+   │───────────────>│                    │                    │                   │
+   │                │  save(entity)      │                    │                   │
+   │                │  syncStatus=pending│                    │                   │
+   │                │  updatedAt=Date()  │                    │                   │
+   │                │───────────────────>│                    │                   │
+   │                │                    │  saved             │                   │
+   │                │<───────────────────│                    │                   │
+   │                │                    │                    │                   │
+   │                │  syncProduct(.create)                   │                   │
+   │                │────────────────────────────────────────>│                   │
+   │                │                    │                    │                   │
+   │                │                    │                    │ [isOnline?]       │
+   │                │                    │                    │───┐               │
+   │                │                    │                    │   │ Yes           │
+   │                │                    │                    │<──┘               │
+   │                │                    │                    │                   │
+   │                │                    │                    │ uploader.upload() │
+   │                │                    │                    │──────────────────>│
+   │                │                    │                    │                   │
+   │                │                    │                    │ + updateSyncState │
+   │                │                    │                    │  (version+1,      │
+   │                │                    │                    │   pendingChanges)  │
+   │                │                    │                    │──────────────────>│
+   │                │                    │                    │                   │
+   │                │                    │                    │  success          │
+   │                │                    │                    │<──────────────────│
+   │                │                    │                    │                   │
+   │                │                    │  syncStatus=synced │                   │
+   │                │                    │<───────────────────│                   │
+   │                │                    │                    │                   │
+```
+
+### 2. 本地操作 + 離線排隊
+
+```
+┌──────┐     ┌──────────────┐     ┌────────────┐     ┌───────────────┐     ┌──────────────┐
+│ View │     │  Repository  │     │  CoreData   │     │ SyncManager   │     │PendingQueue  │
+└──┬───┘     └──────┬───────┘     └─────┬──────┘     └──────┬────────┘     └──────┬───────┘
+   │  操作(CRUD)     │                    │                    │                    │
+   │───────────────>│                    │                    │                    │
+   │                │  save(entity)      │                    │                    │
+   │                │  syncStatus=pending│                    │                    │
+   │                │───────────────────>│                    │                    │
+   │                │                    │                    │                    │
+   │                │  sync(model, op)   │                    │                    │
+   │                │────────────────────────────────────────>│                    │
+   │                │                    │                    │                    │
+   │                │                    │                    │ [isOnline?]        │
+   │                │                    │                    │───┐                │
+   │                │                    │                    │   │ No             │
+   │                │                    │                    │<──┘                │
+   │                │                    │                    │                    │
+   │                │                    │                    │ enqueue(operation) │
+   │                │                    │                    │───────────────────>│
+   │                │                    │                    │                    │
+   │                │                    │                    │  saved to CoreData │
+   │                │                    │                    │<───────────────────│
+   │                │                    │                    │                    │
+   │                │                    │      ... 網路恢復 ...                    │
+   │                │                    │                    │                    │
+   │                │                    │                    │ processPendingQueue│
+   │                │                    │                    │───────────────────>│
+   │                │                    │                    │                    │
+   │                │                    │                    │  forEach operation │
+   │                │                    │                    │  → upload/update/  │
+   │                │                    │                    │    delete Firestore│
+   │                │                    │                    │                    │
+   │                │                    │  syncStatus=synced │                    │
+   │                │                    │<───────────────────│                    │
+```
+
+### 3. 遠端變更 → 本地同步（HybridSyncListener）
+
+```
+┌──────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌────────────┐
+│Firestore │     │HybridSyncListener│     │FirestoreDownloader│     │  CoreData   │
+└────┬─────┘     └────────┬─────────┘     └────────┬─────────┘     └─────┬──────┘
+     │                     │                         │                     │
+     │ syncState changed   │                         │                     │
+     │ (version+1)         │                         │                     │
+     │────────────────────>│                         │                     │
+     │                     │                         │                     │
+     │                     │ [cloudVersion >          │                     │
+     │                     │  localVersion?]          │                     │
+     │                     │───┐                     │                     │
+     │                     │   │ Yes                  │                     │
+     │                     │<──┘                     │                     │
+     │                     │                         │                     │
+     │                     │ [pendingChanges          │                     │
+     │                     │  has IDs?]               │                     │
+     │                     │───┐                     │                     │
+     │                     │   │ Yes → 增量下載       │                     │
+     │                     │<──┘                     │                     │
+     │                     │                         │                     │
+     │                     │ syncIncrementalChanges() │                     │
+     │                     │────────────────────────>│                     │
+     │                     │                         │                     │
+     │                     │                         │ fetch by ID         │
+     │                     │                         │────────────────────>│
+     │                     │                         │ (Firestore)         │
+     │                     │                         │                     │
+     │                     │                         │ LWW 比較 updatedAt   │
+     │                     │                         │ → 更新 CoreData      │
+     │                     │                         │────────────────────>│
+     │                     │                         │                     │
+     │                     │ [pendingChanges 為空     │                     │
+     │                     │  但 version 變了?]      │                     │
+     │                     │───┐                     │                     │
+     │                     │   │ Yes → 全量下載       │                     │
+     │                     │<──┘                     │                     │
+     │                     │                         │                     │
+     │                     │ fullSync()              │                     │
+     │                     │────────────────────────>│                     │
+     │                     │                         │                     │
+     │                     │ 更新 localVersion        │                     │
+     │                     │ (UserDefaults)           │                     │
+```
+
+### 4. 圖片同步（SyncableImageView）
+
+```
+┌───────────────────┐     ┌──────────────────┐     ┌────────────┐     ┌──────────────┐
+│SyncableImageView  │     │   Kingfisher     │     │  CoreData   │     │Firebase      │
+│(SwiftUI)          │     │                  │     │             │     │Storage       │
+└────────┬──────────┘     └────────┬─────────┘     └─────┬──────┘     └──────┬───────┘
+         │                         │                      │                   │
+         │ [有本地 imageData?]      │                      │                   │
+         │───┐                     │                      │                   │
+         │   │ Yes                 │                      │                   │
+         │<──┘                     │                      │                   │
+         │ 直接顯示本地圖片          │                      │                   │
+         │ (零流量)                 │                      │                   │
+         │                         │                      │                   │
+         │ [無本地, 有 imageURL?]   │                      │                   │
+         │───┐                     │                      │                   │
+         │   │ Yes                 │                      │                   │
+         │<──┘                     │                      │                   │
+         │                         │                      │                   │
+         │  KFImage(url)           │                      │                   │
+         │────────────────────────>│                      │                   │
+         │                         │  download image      │                   │
+         │                         │─────────────────────────────────────────>│
+         │                         │                      │                   │
+         │                         │  image data          │                   │
+         │                         │<─────────────────────────────────────────│
+         │  顯示圖片               │                      │                   │
+         │<────────────────────────│                      │                   │
+         │                         │                      │                   │
+         │  onSuccess: 回寫 CoreData                      │                   │
+         │  (imageData = downloaded)                      │                   │
+         │───────────────────────────────────────────────>│                   │
+         │  (不改 syncStatus,                             │                   │
+         │   這只是本地快取)                               │                   │
+         │                         │                      │                   │
+         │ [無本地, 無 imageURL]    │                      │                   │
+         │───┐                     │                      │                   │
+         │   │                     │                      │                   │
+         │<──┘                     │                      │                   │
+         │ 顯示 placeholder        │                      │                   │
+```
+
+### 5. 整體架構流程圖
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          App 啟動                                │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              AuthenticationManager.signInAnonymously()           │
+│              → 取得 userId (anonymous UID)                       │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              SyncManager.initializeSync()                        │
+│              → initializeSyncState (Firestore)                   │
+│              → startListening (HybridSyncListener)               │
+│              → startNetworkMonitoring                             │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+    ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐
+    │ 用戶本地操作  │  │ 遠端變更通知  │  │ 網路狀態變更     │
+    │ (Repository) │  │(Listener)   │  │(NetworkMonitor) │
+    └──────┬──────┘  └──────┬──────┘  └────────┬────────┘
+           │                │                   │
+           ▼                ▼                   ▼
+    ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐
+    │ 寫入CoreData │  │ Downloader  │  │ 恢復連線:        │
+    │ + 觸發Sync   │  │ + LWW解衝突 │  │ processPending  │
+    │ (上傳/離線Q) │  │ → CoreData  │  │ Queue           │
+    └─────────────┘  └─────────────┘  └─────────────────┘
+```
 
 ---
 
@@ -162,6 +400,8 @@ firestore/
 │   ├── occurredAt: timestamp?        ✅ 現有（補記帳的實際發生時間）
 │   └── timestamp: timestamp          ✅ 現有（記錄建立時間）
 │   # 📝 items 在 CoreData 是 [SummaryItemModel]，存為 itemsData Binary
+│   # 📝 業務規則：Transaction 為 create-only（不可更新、不可刪除）
+│   # 📝 Firestore Rules 允許 delete 是因為 Cascade Delete（刪 Session 時連帶刪除）
 │
 ├── inventoryChanges/{changeId}       # 庫存異動
 │   ├── id: string (UUID)             ✅ 現有
@@ -174,6 +414,7 @@ firestore/
 │   ├── transactionId: string?        ✅ 現有
 │   └── timestamp: timestamp          ✅ 現有
 │   # 📝 不需要 createdAt（timestamp 即為建立時間）
+│   # 📝 業務規則：InventoryChange 為 create + delete（已建立的記錄不可更新）
 │
 └── qrCodes/{qrCodeId}                # QR Code
     ├── id: string (UUID)             ✅ 現有
@@ -228,80 +469,103 @@ let localPrice = centsToDecimal(firestoreData["price"]) // 10050 → 100.50
 
 ### Firestore 安全規則
 
+使用 Helper Functions 簡化規則，所有 Entity Collection 使用統一的權限模式：
+
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 用戶資料：只能讀寫自己的
-    match /users/{userId} {
+    // ===== Helper Functions =====
+    // 驗證是否為已登入的資料擁有者
+    function isOwner() {
+      return request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    // 驗證寫入的資料是否屬於當前用戶
+    function isOwnerWrite() {
+      return request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+    // get 規則：文件可能已被刪除（resource == null），需允許讀取以偵測刪除
+    function isOwnerOrDeleted() {
+      return request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // ===== User Private Data (syncState) =====
+    match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 場次：只能讀寫自己的
-    match /sessions/{sessionId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
+    // ===== Entity Collections =====
+    // 共用邏輯：只能存取自己的資料（userId 欄位 == auth uid）
+    // get 使用 isOwnerOrDeleted() 以支援 HybridSyncListener 偵測已刪除的文件
+
+    match /sessions/{docId} {
+      allow get: if isOwnerOrDeleted();
+      allow list: if isOwner();
+      allow create: if isOwnerWrite();
+      allow update, delete: if isOwner();
     }
 
-    // 類別：只能讀寫自己的
-    match /categories/{categoryId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
+    match /categories/{docId} {
+      allow get: if isOwnerOrDeleted();
+      allow list: if isOwner();
+      allow create: if isOwnerWrite();
+      allow update, delete: if isOwner();
     }
 
-    // 產品：只能讀寫自己的
-    match /products/{productId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
+    match /products/{docId} {
+      allow get: if isOwnerOrDeleted();
+      allow list: if isOwner();
+      allow create: if isOwnerWrite();
+      allow update, delete: if isOwner();
     }
 
-    // 交易記錄：只能讀取和創建自己的（不允許更新和刪除）
-    match /transactions/{transactionId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-      // 交易記錄不允許更新和刪除
+    // 交易記錄：業務邏輯為 create-only，但 Firestore 層允許完整 CRUD
+    // （Cascade Delete 需要 delete 權限）
+    match /transactions/{docId} {
+      allow get: if isOwnerOrDeleted();
+      allow list: if isOwner();
+      allow create: if isOwnerWrite();
+      allow update, delete: if isOwner();
     }
 
-    // 庫存異動：只能讀取和創建自己的
-    match /inventoryChanges/{changeId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
+    // 庫存異動：業務邏輯為 create + delete，但 Firestore 層允許完整 CRUD
+    match /inventoryChanges/{docId} {
+      allow get: if isOwnerOrDeleted();
+      allow list: if isOwner();
+      allow create: if isOwnerWrite();
+      allow update, delete: if isOwner();
     }
 
-    // QR Code：只能讀寫自己的
-    match /qrCodes/{qrCodeId} {
-      allow read, write: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
+    match /qrCodes/{docId} {
+      allow get: if isOwnerOrDeleted();
+      allow list: if isOwner();
+      allow create: if isOwnerWrite();
+      allow update, delete: if isOwner();
     }
   }
 }
 ```
 
+> **設計重點**：
+> - `isOwnerOrDeleted()` 允許 get 已刪除的文件（`resource == null`），讓 HybridSyncListener 可以偵測到文件已被其他裝置刪除
+> - 所有 Entity Collection 都允許 delete，因為 Cascade Delete（刪 Session 連帶刪 Transaction/InventoryChange）需要此權限
+> - 業務層面的 create-only / create+delete 限制由 App 端控制，不在 Firestore Rules 層面限制
+
 ### Firebase Storage 結構
 
 ```
 storage/
+├── profile_photos/
+│   └── {uid}.jpg                     # 用戶頭貼（200x200 JPEG）
 ├── users/{userId}/
-│   ├── profile/
-│   │   └── avatar.jpg                # 用戶頭像（已存在）
 │   ├── products/
-│   │   └── {productId}.jpg           # 產品圖片
+│   │   └── {productId}.jpg           # 產品圖片（200x200 JPEG）
 │   └── qrcodes/
-│       └── {qrCodeId}.jpg            # QR Code 圖片
+│       └── {qrCodeId}.png            # QR Code 圖片（512x512 PNG 無損）
 ```
+
+> **注意**：QR Code 使用 `.png` 格式（無損），產品圖片和頭貼使用 `.jpg` 格式（壓縮）。頭貼路徑為 `profile_photos/{uid}.jpg`，不在 `users/` 下。
 
 ---
 
@@ -531,18 +795,20 @@ extension QRCodeModel {
 }
 ```
 
-### 需要新增 Firestore 轉換的 Model 清單
+### Firestore 轉換 Model 清單
 
-| Model | 檔案位置 | 狀態 |
-|-------|---------|------|
-| SessionModel | Model/Domain/SessionModel.swift | 需新增 Firestore Extension |
-| CategoryModel | Model/Domain/CategoryModel.swift | 需新增 Firestore Extension |
-| ProductModel | Model/Domain/ProductModel.swift | 需新增 Firestore Extension |
-| TransactionModel | Model/Domain/TransactionModel.swift | 需新增 Firestore Extension |
-| InventoryChangeModel | Model/Domain/InventoryChangeModel.swift | 需新增 Firestore Extension |
-| DiscountModel | Model/Domain/DiscountModel.swift | 需新增 Firestore Extension |
-| SummaryItemModel | Model/Domain/SummaryItemModel.swift | 需新增 Firestore Extension |
-| **QRCodeModel** | Model/Domain/QRCodeModel.swift | **需新建檔案** |
+所有 Firestore Extension 統一放在 `Data/Sync/ModelFirestoreExtensions.swift`：
+
+| Model | Extension 方法 | 狀態 |
+|-------|---------------|------|
+| SessionModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| CategoryModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| ProductModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| TransactionModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| InventoryChangeModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| DiscountModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| SummaryItemModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| QRCodeModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
 
 ---
 
@@ -872,53 +1138,29 @@ func getProductImage(product: ProductModel) -> UIImage? {
 }
 ```
 
-### View 層實作（含下載後回寫）
+### View 層實作：SyncableImageView（實際元件）
+
+位於 `View/Components/SyncableImageView.swift`，是一個通用的 SwiftUI 元件：
 
 ```swift
-struct ProductImageView: View {
-    let product: ProductModel
-    @Environment(\.managedObjectContext) private var context
+struct SyncableImageView: View {
+    let imageData: Data?        // 本地 CoreData 圖片資料
+    let imageURL: String?       // Firebase Storage URL
+    let entityId: UUID          // Entity ID（Product / QRCode）
+    let entityType: String      // "product" / "qrcode"
+    let placeholder: Image      // 無圖片時的 placeholder
 
-    var body: some View {
-        if let localImage = product.image {
-            // 有本地圖片，直接顯示（零流量）
-            Image(uiImage: localImage)
-                .resizable()
-        } else if let urlString = product.imageURL,
-                  let url = URL(string: urlString) {
-            // 從 URL 載入（Kingfisher 自動快取）
-            KFImage(url)
-                .onSuccess { result in
-                    // 下載成功後回寫到 CoreData
-                    saveImageToLocal(productId: product.id, image: result.image)
-                }
-                .placeholder { ProgressView() }
-                .resizable()
-        } else {
-            // 無圖片
-            Image(systemName: "photo")
-                .foregroundColor(.gray)
-        }
-    }
-
-    private func saveImageToLocal(productId: UUID, image: KFCrossPlatformImage) {
-        // 檢查是否已有本地圖片，避免重複寫入
-        let request = CDProductEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
-
-        guard let entity = try? context.fetch(request).first,
-              entity.imageData == nil else {  // 已有就跳過
-            return
-        }
-
-        // 壓縮並存入（不改變 syncStatus，這只是本地快取）
-        if let data = image.jpegData(compressionQuality: 0.8) {
-            entity.imageData = data
-            try? context.save()
-        }
-    }
+    // 顯示邏輯：
+    // 1. 有本地 imageData → 直接顯示（零流量）
+    // 2. 無本地 + 有 imageURL → KFImage 載入 + onSuccess 回寫 CoreData
+    // 3. 無本地 + 無 URL → 顯示 placeholder
 }
 ```
+
+> **核心特點**：
+> - 本地優先策略，有 imageData 就不請求網路
+> - Kingfisher 下載成功後自動回寫到 CoreData（`imageData`），下次就不需要再下載
+> - 回寫時不改變 `syncStatus`（這只是本地快取行為）
 
 ### 節省 Firebase 費用的策略
 
@@ -932,54 +1174,43 @@ struct ProductImageView: View {
 | **6. WiFi Only 同步** | 圖片同步只在 WiFi 環境進行（可選） | 100% 行動數據 |
 | **7. 差異同步** | 追蹤 updatedAt，只下載有變更的圖片 | 大幅減少 |
 
-### 上傳時的壓縮處理
+### 上傳時的壓縮處理（實際實作）
+
+`ImageSyncService` 使用 `ImageType` enum 決定處理規格：
 
 ```swift
-class ImageSyncService {
-    /// 壓縮並上傳圖片
-    func uploadImage(_ image: UIImage, path: String) async throws -> String {
-        // 1. 調整尺寸（最大 1024px）
-        let resized = resizeImage(image, maxDimension: 1024)
+enum ImageType {
+    case qrCode     // 512x512px PNG 無損
+    case thumbnail  // 200x200px JPEG 0.8 壓縮
+}
 
-        // 2. 壓縮圖片（目標 < 500KB）
-        let compressed = compressImage(resized, maxSizeKB: 500)
+class ImageSyncService {
+    /// 核心上傳方法：調整尺寸為正方形 → 轉換格式 → 上傳 Storage → 取得 URL
+    private func uploadImage(_ image: UIImage, path: String, type: ImageType) async throws -> String {
+        // 1. 裁切為正方形 + 縮放到目標尺寸
+        let resized = resizeImageToSquare(image, targetSize: type.targetSize)
+
+        // 2. 轉換為指定格式
+        let imageData: Data
+        if type.usePNG {
+            guard let data = resized.pngData() else { throw SyncError.imageUploadFailed }
+            imageData = data
+        } else {
+            guard let data = resized.jpegData(compressionQuality: type.compressionQuality) else {
+                throw SyncError.imageUploadFailed
+            }
+            imageData = data
+        }
 
         // 3. 上傳到 Firebase Storage
-        let ref = Storage.storage().reference().child(path)
-        _ = try await ref.putDataAsync(compressed)
+        let ref = storage.reference().child(path)
+        let metadata = StorageMetadata()
+        metadata.contentType = type.contentType
+        _ = try await ref.putDataAsync(imageData, metadata: metadata)
 
         // 4. 取得下載 URL
         let url = try await ref.downloadURL()
         return url.absoluteString
-    }
-
-    private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
-        let size = image.size
-        guard size.width > maxDimension || size.height > maxDimension else {
-            return image
-        }
-
-        let ratio = min(maxDimension / size.width, maxDimension / size.height)
-        let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
-
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        let resized = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        return resized ?? image
-    }
-
-    private func compressImage(_ image: UIImage, maxSizeKB: Int) -> Data {
-        var compression: CGFloat = 0.8
-        var data = image.jpegData(compressionQuality: compression)!
-
-        while data.count > maxSizeKB * 1024 && compression > 0.1 {
-            compression -= 0.1
-            data = image.jpegData(compressionQuality: compression)!
-        }
-
-        return data
     }
 }
 ```
@@ -1044,81 +1275,85 @@ enum SyncStatus: String {
 
 ### 離線排隊機制
 
-```swift
-class SyncQueue {
-    /// 新增待同步操作
-    func enqueue(operation: SyncOperation)
-
-    /// 網路恢復時，處理所有排隊的操作
-    func processQueue() async
-
-    /// 重試失敗的操作（最多 3 次）
-    func retryFailed() async
-}
-```
-
-### Firestore 監聽（接收其他裝置的變更）
+離線排隊整合在 `SyncManager` 中，使用 `CDPendingSyncOperation` CoreData Entity 持久化：
 
 ```swift
-class FirestoreListener {
-    private var listeners: [ListenerRegistration] = []
+// SyncManager 中的離線排隊（實際實作）
+@MainActor
+class SyncManager {
+    /// 離線時 enqueue 操作到 CoreData
+    private func enqueueOperation(entityType: String, entityId: UUID, operation: SyncOperation, payload: Data?) {
+        let pending = CDPendingSyncOperation(context: context)
+        pending.id = UUID()
+        pending.entityType = entityType
+        pending.entityId = entityId
+        pending.operationType = operation.rawValue
+        pending.payload = payload
+        pending.createdAt = Date()
+        pending.retryCount = 0
+        try? context.save()
+    }
 
-    /// 開始監聽用戶的所有資料
-    func startListening(userId: String) {
-        // 監聽 Sessions
-        let sessionListener = db.collection("sessions")
-            .whereField("userId", isEqualTo: userId)
-            .addSnapshotListener { snapshot, error in
-                // 處理變更
+    /// 網路恢復時處理所有排隊操作
+    func processPendingQueue() async {
+        let request = CDPendingSyncOperation.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+        guard let pendingOps = try? context.fetch(request) else { return }
+
+        for op in pendingOps {
+            do {
+                try await processOperation(op)
+                context.delete(op)  // 成功後刪除
+            } catch {
+                op.retryCount += 1
+                op.lastError = error.localizedDescription
+                if op.retryCount >= 3 {
+                    // 超過重試次數，標記原實體為 error
+                    updateEntitySyncStatus(entityType: op.entityType!, entityId: op.entityId, status: "error")
+                }
             }
-        listeners.append(sessionListener)
-
-        // 監聽 Categories, Products, Transactions...
-    }
-
-    /// 停止監聽（登出時呼叫）
-    func stopListening() {
-        listeners.forEach { $0.remove() }
-        listeners.removeAll()
+        }
+        try? context.save()
     }
 }
 ```
+
+### 監聽機制（HybridSyncListener）
+
+> **不使用傳統的 Collection Listener**（每次變更讀取完整文件 1-2KB），改用 Hybrid Listener 只監聽 syncState 文件（200-500 bytes），節省約 73% 費用。詳見 [Hybrid Listener 費用優化](#hybrid-listener-費用優化) 章節。
 
 ### 圖片同步服務
 
+`ImageSyncService` 負責圖片的壓縮、上傳到 Firebase Storage、及下載：
+
 ```swift
 class ImageSyncService {
-    /// 壓縮並上傳圖片
-    func uploadImage(_ image: UIImage, path: String) async throws -> String {
-        // 1. 壓縮圖片（目標 < 500KB）
-        let compressed = compressImage(image, maxSizeKB: 500)
+    static let shared = ImageSyncService()
 
-        // 2. 上傳到 Firebase Storage
-        let ref = Storage.storage().reference().child(path)
-        _ = try await ref.putDataAsync(compressed)
+    /// 上傳產品圖片（200x200 JPEG 壓縮）
+    func uploadProductImage(_ image: UIImage, productId: UUID) async throws -> String
 
-        // 3. 取得下載 URL
-        let url = try await ref.downloadURL()
-        return url.absoluteString
-    }
+    /// 上傳 QR Code 圖片（512x512 PNG 無損）
+    func uploadQRCodeImage(_ image: UIImage, qrCodeId: UUID) async throws -> String
 
-    /// 下載圖片
-    func downloadImage(url: String) async throws -> UIImage? {
-        // 使用 Kingfisher 下載並快取
-    }
+    /// 上傳頭貼圖片（200x200 JPEG，URL 加時間戳避免快取）
+    func uploadProfileImage(_ image: UIImage, uid: String) async throws -> String
 
-    /// 壓縮圖片
-    private func compressImage(_ image: UIImage, maxSizeKB: Int) -> Data {
-        var compression: CGFloat = 0.8
-        var data = image.jpegData(compressionQuality: compression)!
+    /// 處理圖片供本地儲存（調整尺寸 + 轉換格式）
+    func processImageForLocal(_ image: UIImage, type: ImageType) -> Data?
 
-        while data.count > maxSizeKB * 1024 && compression > 0.1 {
-            compression -= 0.1
-            data = image.jpegData(compressionQuality: compression)!
-        }
+    /// 刪除圖片（單一 / 批次 / 根據 URL）
+    func deleteProductImage(productId: UUID) async throws
+    func deleteQRCodeImage(qrCodeId: UUID) async throws
+    func deleteImages(urls: [String]) async
 
-        return data
-    }
+    /// 圖片處理：裁切為正方形 → 縮放到目標尺寸
+    private func resizeImageToSquare(_ image: UIImage, targetSize: CGFloat) -> UIImage
+}
+
+enum ImageType {
+    case qrCode    // 512x512px PNG 無損
+    case thumbnail // 200x200px JPEG 0.8 壓縮
 }
 ```
 
@@ -1334,11 +1569,13 @@ func initializeSyncState(userId: String) async throws {
 }
 ```
 
-### Firestore Security Rules 更新
+### Firestore Security Rules
+
+syncState 的存取權限已包含在 [Firestore 安全規則](#firestore-安全規則) 中：
 
 ```javascript
-// 在 firestore.rules 中新增
-match /users/{userId}/private/{document=**} {
+// users/{userId} 底下所有子集合（包含 private/syncState）
+match /users/{userId}/{document=**} {
     allow read, write: if request.auth != null && request.auth.uid == userId;
 }
 ```
@@ -1381,7 +1618,7 @@ func handleRemoteChange<T: NSManagedObject>(
 
 ### Cascade Delete 策略
 
-刪除 Session 時的連鎖處理：
+#### Session 刪除時的連鎖處理
 
 | Entity | 處理方式 | 原因 |
 |--------|---------|------|
@@ -1389,55 +1626,68 @@ func handleRemoteChange<T: NSManagedObject>(
 | Products | 刪除 | 產品屬於場次 |
 | InventoryChanges | 刪除 | 庫存異動屬於場次 |
 | Transactions | **保留** | 交易記錄是歷史資料，需保留供分析 |
-| Storage 圖片 | 刪除 | 避免孤立檔案 |
+| Storage 圖片 | 刪除 | 避免孤立檔案（尚未實作） |
+
+#### Product 刪除時的連鎖處理
+
+| Entity | 處理方式 | 原因 |
+|--------|---------|------|
+| InventoryChanges | 刪除 | 庫存異動屬於該產品（透過 productId 關聯）|
+| Storage 圖片 | 刪除 | 避免孤立檔案（尚未實作） |
+
+> **注意**：Product 與 InventoryChange 之間沒有 CoreData relationship，僅透過 `productId` UUID 欄位關聯。因此需要在 `ProductRepository.deleteProduct()` 中手動刪除。
+
+#### Category 刪除時的連鎖處理
+
+| Entity | 處理方式 | 原因 |
+|--------|---------|------|
+| Products | 刪除 | 產品屬於該類別 |
+| InventoryChanges | 刪除 | 被刪除產品的庫存異動也一併刪除 |
+
+#### 智能刪除邏輯（Product）
+
+產品刪除會檢查是否有相關 Transaction：
+- **有 Transaction** → 只停用（`isDisabled = true`），不硬刪除
+- **無 Transaction** → 硬刪除產品 + 連帶刪除 InventoryChanges
 
 ### Session 刪除實作
 
+由 `FirestoreUploader.deleteSessionWithChildren()` 處理 Firestore 端的 cascade delete：
+
 ```swift
-func deleteSession(_ session: CDSessionEntity) async throws {
-    let sessionId = session.id.uuidString
-    let batch = db.batch()
+// FirestoreUploader（實際實作摘要）
+func deleteSessionWithChildren(_ sessionId: UUID) async throws {
+    let sessionIdStr = sessionId.uuidString
+    guard let userId = currentUserId else { throw SyncError.authenticationRequired }
 
-    // 1. 刪除 Categories
+    // 1. 查詢所有子文件
     let categories = try await db.collection("categories")
-        .whereField("sessionId", isEqualTo: sessionId)
+        .whereField("userId", isEqualTo: userId)
+        .whereField("sessionId", isEqualTo: sessionIdStr)
         .getDocuments()
-    for doc in categories.documents {
-        batch.deleteDocument(doc.reference)
-    }
 
-    // 2. 刪除 Products（同時刪除 Storage 圖片）
     let products = try await db.collection("products")
-        .whereField("sessionId", isEqualTo: sessionId)
+        .whereField("userId", isEqualTo: userId)
+        .whereField("sessionId", isEqualTo: sessionIdStr)
         .getDocuments()
-    for doc in products.documents {
-        if let imageURL = doc.get("imageURL") as? String, !imageURL.isEmpty {
-            try? await Storage.storage().reference(forURL: imageURL).delete()
-        }
-        batch.deleteDocument(doc.reference)
-    }
 
-    // 3. 刪除 InventoryChanges
-    let changes = try await db.collection("inventoryChanges")
-        .whereField("sessionId", isEqualTo: sessionId)
+    let inventoryChanges = try await db.collection("inventoryChanges")
+        .whereField("userId", isEqualTo: userId)
+        .whereField("sessionId", isEqualTo: sessionIdStr)
         .getDocuments()
-    for doc in changes.documents {
-        batch.deleteDocument(doc.reference)
-    }
 
     // ⚠️ Transactions 不刪除，保留歷史記錄
 
-    // 4. 刪除 Session 本身
-    batch.deleteDocument(db.collection("sessions").document(sessionId))
+    // 2. 收集所有被刪除的 ID
+    var allDeletedIds: [String] = [sessionIdStr]
+    // ... 收集 category, product, inventoryChange IDs
 
-    // 5. 執行批次刪除（Firestore 限制每批最多 500 筆）
-    try await batch.commit()
-
-    // 6. 刪除本地 CoreData（CoreData Cascade 會處理 relationships）
-    context.delete(session)
-    try context.save()
+    // 3. 批次刪除（自動分批處理 Firestore 500 筆限制）
+    // 4. 更新 syncState（version+1, pendingChanges 加入所有 ID）
 }
 ```
+
+> **本地端**：CoreData 的 cascade relationship 會自動處理 Session → Category → Product 的連鎖刪除。InventoryChange 因為透過 relationship 連結到 Session，也會被 cascade 刪除。
 
 ### 大量資料的分批刪除
 
@@ -1528,76 +1778,47 @@ func syncNewSession(_ session: SessionModel) async throws {
 
 #### userId 來源
 
+使用 Firebase Auth 直接取得，不另外封裝 AuthManager：
+
 ```swift
-class AuthManager {
-    static let shared = AuthManager()
-
-    /// 當前用戶 ID（匿名或正式登入都有）
-    var currentUserId: String {
-        return Auth.auth().currentUser?.uid ?? ""
-    }
-
-    /// 是否為匿名用戶
-    var isAnonymous: Bool {
-        return Auth.auth().currentUser?.isAnonymous ?? true
-    }
-}
+// 在所有 Repository 中直接使用：
+entity.userId = Auth.auth().currentUser?.uid
 ```
+
+> **重要**：所有 Entity 建立/更新時都必須設定 `userId`，否則 Firestore Security Rules 會拒絕寫入。
 
 #### 建立資料時存入 userId
 
 ```swift
-// 建立新產品
-func createProduct(name: String, price: Decimal, ...) -> CDProductEntity {
-    let product = CDProductEntity(context: context)
-    product.id = UUID()
-    product.name = name
-    product.price = price as NSDecimalNumber
-    product.userId = AuthManager.shared.currentUserId  // ← 必須存入
-    product.syncStatus = "pending"
-    product.createdAt = Date()
-    product.updatedAt = Date()
-    // ...
-    return product
-}
+// 範例：ProductRepository.addProduct()
+let productEntity = CDProductEntity(context: context)
+productEntity.update(from: productModel, context: context)
+productEntity.userId = Auth.auth().currentUser?.uid  // ← 必須存入
+productEntity.syncStatus = "pending"
+productEntity.updatedAt = Date()
+productEntity.category = categoryEntity
 ```
+
+#### 已設定 userId 的所有位置
+
+| Repository | 方法 | 設定 userId 的 Entity |
+|------------|------|----------------------|
+| SessionRepository | addSession() | Session, Category, Product |
+| SessionRepository | addTransaction() | Transaction |
+| SessionRepository | duplicateSession() | Session, Category, Product, InventoryChange |
+| ProductRepository | addProduct() | Product |
+| InventoryChangeRepository | addChange() | InventoryChange |
+| InventoryChangeRepository | addChanges() | InventoryChange (batch) |
 
 #### 登入後更新 userId（情況 C）
 
-```swift
-/// 將匿名資料轉移到新帳號
-func linkAnonymousDataToNewUser(oldUID: String, newUID: String) async throws {
-    let entityNames = [
-        "CDSessionEntity",
-        "CDCategoryEntity",
-        "CDProductEntity",
-        "CDTransactionEntity",
-        "CDInventoryChangeEntity",
-        "CDQRCodeEntity"
-    ]
-
-    for entityName in entityNames {
-        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        request.predicate = NSPredicate(format: "userId == %@", oldUID)
-
-        if let results = try? context.fetch(request) {
-            for entity in results {
-                entity.setValue(newUID, forKey: "userId")
-                entity.setValue("pending", forKey: "syncStatus")  // 需要重新同步
-            }
-        }
-    }
-
-    try context.save()
-
-    // 觸發全量上傳到新帳號
-    try await syncManager.uploadAllPendingData()
-}
-```
+> **尚未實作**，將在 Phase 4 實作。匿名帳號連結（Link）到 Google/Apple 帳號後，需要更新所有本地資料的 userId 並觸發全量上傳。
 
 ---
 
 ## 登入流程與資料處理
+
+> **⚠️ 此章節為 Phase 4 規劃，尚未實作。** 目前 `AuthenticationManager` 只有基礎登入功能，尚未整合同步邏輯。
 
 ### 流程圖
 
@@ -1747,20 +1968,23 @@ enum ConflictChoice {
 }
 ```
 
-### 登出流程
+### 登出流程（Phase 4 規劃）
 
 ```swift
 func signOut() {
     // 1. 停止 Firestore 監聽
-    firestoreListener.stopListening()
+    SyncManager.shared.stopListening()
 
-    // 2. 清除所有本地資料
+    // 2. 重置同步狀態
+    SyncManager.shared.resetSync()
+
+    // 3. 清除所有本地資料
     clearAllLocalData()
 
-    // 3. Firebase Auth 登出
+    // 4. Firebase Auth 登出
     try? Auth.auth().signOut()
 
-    // 4. 重新匿名登入
+    // 5. 重新匿名登入
     await signInAnonymously()
 }
 
@@ -1779,6 +2003,8 @@ private func clearAllLocalData() {
     try? context.save()
 }
 ```
+
+> **目前狀態**：`signOut()` 目前只做 Firebase Auth signOut + 重新匿名登入，尚未整合步驟 1-3。
 
 ---
 
@@ -1911,10 +2137,11 @@ func saveProduct(_ product: ProductModel) async {
   - [x] 部署到 Firebase（firebase deploy）
 
 - [x] **1.4 建立基礎服務類別**
-  - [x] `SyncManager` - 同步管理器
-  - [x] `SyncStatus` enum
-  - [x] `NetworkMonitor` - 網路狀態監控（使用 Alamofire）
+  - [x] `SyncManager` — 同步管理器（@MainActor singleton）
+  - [x] `SyncError` enum — 同步錯誤類型
+  - [x] `NetworkMonitor` — 網路狀態監控（使用 Alamofire）
   - [x] 使用現有 `AuthenticationManager`（不需要新建 AuthManager）
+  - [x] `ModelFirestoreExtensions` — 所有 Model 的 Firestore 轉換
 
 ### Phase 2：上傳同步（預估 3-4 天）✅ **已完成大部分**
 
@@ -1978,31 +2205,72 @@ func saveProduct(_ product: ProductModel) async {
 
 ### Phase 4：登入流程整合（預估 3-4 天）
 
-- [ ] **4.1 登入狀態檢測**
-  - [ ] 檢測本地是否有匿名資料
-  - [ ] 檢測雲端是否有帳號資料
-  - [ ] 判斷屬於哪種情況（A/B/C/D）
+#### 現狀分析
 
-- [ ] **4.2 情況 C 處理（Link 匿名資料）**
-  - [ ] 更新本地資料的 userId
-  - [ ] 上傳所有資料到雲端
+目前 `AuthenticationManager` 已有基礎登入功能：
+- `signInAnonymously()` — App 啟動時自動匿名登入
+- `signInWithGoogle()` — Google 登入（link 或 sign-in）
+- `handleLinkSuccess()` — 匿名帳號成功連結到 Google
+- `handleSignInSuccess()` — 全新 Google 登入成功
+- `signOut()` — 登出
 
-- [ ] **4.3 情況 D 處理（衝突）**
-  - [ ] `DataConflictView` UI
-  - [ ] `DataSummary` 計算
-  - [ ] 選項 1：使用雲端資料
-  - [ ] 選項 2：使用本地資料
-  - [ ] 選項 3：取消登入
+#### 需要修改/新增的項目
 
-- [ ] **4.4 登出處理**
-  - [ ] 停止 Firestore 監聽
-  - [ ] 清除本地資料
-  - [ ] 重新匿名登入
+**問題 1：登入成功後未觸發 fullSync（情況 B）**
+- `handleSignInSuccess()` 登入已有雲端資料的帳號時，未呼叫 `SyncManager.fullSync()` 下載資料
 
-- [ ] **4.5 整合到 AuthenticationManager**
-  - [ ] 修改 `signInWithGoogle()`
-  - [ ] 修改 `signOut()`
-  - [ ] 新增 `handleDataConflict()`
+**問題 2：Link 成功後未更新 userId（情況 C）**
+- `handleLinkSuccess()` 匿名→Google 時，未更新本地資料的 userId，也未觸發全量上傳
+
+**問題 3：衝突處理 UI 未實作（情況 D）**
+- 有本地匿名資料 + 有雲端帳號資料時，未提供衝突處理 UI
+
+**問題 4：登出未清除本地資料**
+- `signOut()` 未呼叫 `clearAllLocalData()`，可能殘留上一個帳號的資料
+
+**問題 5：登出後殘留 userId-less 資料**
+- 匿名期間若有未設 userId 的資料，登出後會殘留
+
+#### 實作步驟
+
+- [ ] **4.1 SyncManager 新增登入流程方法**
+  - [ ] `hasLocalData() -> Bool` — 檢查本地是否有資料（Session count > 0）
+  - [ ] `hasCloudData(userId:) -> Bool` — 檢查 Firestore 是否有該 userId 的資料
+  - [ ] `updateAllUserIds(from:to:)` — 批次更新所有 Entity 的 userId
+  - [ ] `fullUploadAllData()` — 全量上傳所有本地資料到 Firestore
+  - [ ] `clearAllLocalData()` — 清除所有本地 CoreData 資料
+
+- [ ] **4.2 修改 handleLinkSuccess()（情況 C：本地有資料 + 雲端沒資料）**
+  - [ ] 取得舊 anonymousUID 和新 googleUID
+  - [ ] 呼叫 `updateAllUserIds(from: oldUID, to: newUID)` 更新本地資料
+  - [ ] 呼叫 `fullUploadAllData()` 上傳到新帳號的 Firestore
+  - [ ] 重新 initializeSync（新 userId）
+
+- [ ] **4.3 修改 handleSignInSuccess()（情況 B/D）**
+  - [ ] 檢查本地是否有匿名資料（`hasLocalData()`）
+  - [ ] 檢查雲端是否有帳號資料（`hasCloudData(userId:)`）
+  - [ ] 情況 A：兩邊都沒 → 直接完成
+  - [ ] 情況 B：只有雲端 → `fullSync()` 下載
+  - [ ] 情況 D：兩邊都有 → 顯示衝突 UI
+
+- [ ] **4.4 DataConflictView 衝突處理 UI**
+  - [ ] `DataConflictView` — 衝突選擇畫面
+  - [ ] `DataSummary` — 本地/雲端資料摘要（Session 數、Product 數、Transaction 數）
+  - [ ] 選項 1：使用雲端資料 → `clearAllLocalData()` + `fullSync()`
+  - [ ] 選項 2：使用本地資料 → 清除雲端 + `fullUploadAllData()`
+  - [ ] 選項 3：取消登入 → 回到匿名狀態
+
+- [ ] **4.5 修改 signOut()**
+  - [ ] 呼叫 `SyncManager.stopListening()` 停止監聽
+  - [ ] 呼叫 `SyncManager.resetSync()` 清除同步狀態
+  - [ ] 呼叫 `clearAllLocalData()` 清除所有本地資料
+  - [ ] Firebase Auth signOut
+  - [ ] 重新 `signInAnonymously()`
+
+- [ ] **4.6 整合到 App 生命週期**
+  - [ ] 確保 `AuthenticationManager` 正確呼叫 `SyncManager` 的各項方法
+  - [ ] Loading 畫面（fullSync 下載中顯示進度）
+  - [ ] 衝突 UI 的導航流程
 
 ### Phase 5：Hybrid Listener 即時監聽（預估 2-3 天）
 
@@ -2246,49 +2514,52 @@ struct SyncStatusIndicator: View {
 
 ---
 
-## 附錄 A：檔案結構建議
+## 附錄 A：實際檔案結構
 
 ```
 Tilli/
 ├── Model/
 │   └── Domain/
-│       ├── SessionModel.swift         # 現有，新增 Firestore Extension
-│       ├── CategoryModel.swift        # 現有，新增 Firestore Extension
-│       ├── ProductModel.swift         # 現有，新增 Firestore Extension
-│       ├── TransactionModel.swift     # 現有，新增 Firestore Extension
-│       ├── InventoryChangeModel.swift # 現有，新增 Firestore Extension
-│       ├── DiscountModel.swift        # 現有，新增 Firestore Extension
-│       ├── SummaryItemModel.swift     # 現有，新增 Firestore Extension
-│       └── QRCodeModel.swift          # 🆕 新建檔案
+│       ├── SessionModel.swift             # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── CategoryModel.swift            # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── ProductModel.swift             # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── TransactionModel.swift         # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── InventoryChangeModel.swift     # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── DiscountModel.swift            # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── SummaryItemModel.swift         # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       └── QRCodeModel.swift              # ✅ 已建立
 ├── Data/
 │   ├── CoreData/
-│   │   └── Tilli.xcdatamodeld         # 更新 Schema
+│   │   └── Tilli.xcdatamodeld             # ✅ 已更新 Schema
 │   ├── Repositories/
-│   │   ├── SessionRepository.swift    # 整合同步
-│   │   ├── ProductRepository.swift    # 整合同步
-│   │   └── ...
-│   └── Sync/                          # 🆕 新增資料夾
-│       ├── SyncManager.swift          # 同步管理器
-│       ├── SyncStatus.swift           # 同步狀態
-│       ├── SyncQueue.swift            # 離線排隊
-│       ├── FirestoreUploader.swift    # 上傳服務
-│       ├── FirestoreDownloader.swift  # 下載服務
-│       ├── FirestoreListener.swift    # 監聽服務
-│       ├── ImageSyncService.swift     # 圖片同步
-│       ├── ConflictResolver.swift     # 衝突處理
-│       ├── NetworkMonitor.swift       # 網路監控（Alamofire）
-│       └── DecimalHelper.swift        # 🆕 Decimal ↔ Integer（分）轉換
-├── Manager/
-│   └── AuthManager.swift              # 🆕 管理 currentUserId
+│   │   ├── SessionRepository.swift        # ✅ 已整合同步
+│   │   ├── ProductRepository.swift        # ✅ 已整合同步
+│   │   ├── InventoryChangeRepository.swift # ✅ 已整合同步
+│   │   └── AuthenticationManager.swift    # ✅ 現有，Phase 4 將修改
+│   └── Sync/
+│       ├── SyncManager.swift              # ✅ 同步管理器（@MainActor singleton）
+│       ├── FirestoreUploader.swift        # ✅ 上傳/更新/刪除 + syncState 管理
+│       ├── FirestoreDownloader.swift      # ✅ 下載 + LWW 衝突解決
+│       ├── HybridSyncListener.swift       # ✅ 輕量監聽 syncState 文件
+│       ├── ImageSyncService.swift         # ✅ 圖片壓縮/上傳/下載
+│       ├── ModelFirestoreExtensions.swift  # ✅ 所有 Model 的 toFirestoreData() / init(from:)
+│       ├── NetworkMonitor.swift           # ✅ 網路監控（Alamofire）
+│       └── DecimalHelper.swift            # ✅ Decimal ↔ Integer（分）轉換
 ├── View/
-│   └── Sync/                          # 🆕 新增資料夾
-│       ├── DataConflictView.swift     # 衝突處理 UI
-│       ├── SyncProgressView.swift     # 同步進度 UI
-│       ├── SyncErrorBadge.swift       # 錯誤圖示元件
-│       └── DataSummaryCard.swift      # 資料摘要卡片
+│   └── Components/
+│       └── SyncableImageView.swift        # ✅ 本地優先 + Kingfisher 下載 + CoreData 回寫
 ├── Firebase/
-│   └── firestore.indexes.json         # 🆕 Firestore 複合索引設定
+│   ├── firestore.rules                    # ✅ Security Rules
+│   └── firestore.indexes.json             # ✅ 複合索引設定
 ```
+
+> **說明**：
+> - 所有 Firestore 轉換 Extension 統一放在 `ModelFirestoreExtensions.swift`，而非分散在各 Model 檔案中
+> - 不存在獨立的 `SyncStatus.swift`、`SyncQueue.swift`、`ConflictResolver.swift`、`AuthManager.swift`
+>   - SyncStatus 為 String（"synced" / "pending" / "error"），直接使用
+>   - 離線排隊整合在 SyncManager + CDPendingSyncOperation
+>   - 衝突處理在 FirestoreDownloader 中以 LWW 實作
+>   - 使用現有的 `AuthenticationManager`，不另建 AuthManager
 
 ---
 
