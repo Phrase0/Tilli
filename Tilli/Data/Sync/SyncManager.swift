@@ -722,6 +722,11 @@ class SyncManager: ObservableObject {
     /// 檢查本地是否有當前用戶的資料（用於登入情境判斷）
     func hasLocalData() -> Bool {
         guard let userId = currentUserId else { return false }
+        return hasLocalData(for: userId)
+    }
+
+    /// 檢查本地是否有指定用戶的資料（用於登入前捕捉匿名 UID 的情境）
+    func hasLocalData(for userId: String) -> Bool {
         let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "userId == %@", userId)
         return (try? context.count(for: request)) ?? 0 > 0
@@ -868,6 +873,46 @@ class SyncManager: ObservableObject {
             print("❌ fullUploadAllData 失敗: \(error)")
             context.rollback()
         }
+    }
+
+    /// 刪除指定用戶在 Firestore 的所有資料
+    /// 不刪除 qrCodes（由 fullUploadAllData 決定是否覆蓋）
+    func deleteAllCloudData(userId: String) async {
+        let collectionsToDelete = ["sessions", "categories", "products", "transactions", "inventoryChanges"]
+
+        for collectionName in collectionsToDelete {
+            do {
+                let snapshot = try await db.collection(collectionName)
+                    .whereField("userId", isEqualTo: userId)
+                    .getDocuments()
+
+                let documents = snapshot.documents
+
+                // products：先刪除 Storage 圖片
+                if collectionName == "products" {
+                    let imageURLs = documents.compactMap { $0.data()["imageURL"] as? String }.filter { !$0.isEmpty }
+                    await ImageSyncService.shared.deleteImages(urls: imageURLs)
+                }
+
+                // 分批刪除（每批最多 500）
+                var index = 0
+                while index < documents.count {
+                    let end = min(index + 500, documents.count)
+                    let batch = db.batch()
+                    for doc in documents[index..<end] {
+                        batch.deleteDocument(doc.reference)
+                    }
+                    try await batch.commit()
+                    index = end
+                }
+
+                print("✅ deleteAllCloudData: \(collectionName) 刪除完成（\(documents.count) 筆）")
+            } catch {
+                print("❌ deleteAllCloudData \(collectionName) 失敗: \(error)")
+            }
+        }
+
+        print("✅ deleteAllCloudData 完成")
     }
 
     /// 清除所有本地資料（登出時呼叫）

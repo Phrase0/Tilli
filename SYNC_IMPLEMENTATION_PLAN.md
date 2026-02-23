@@ -2233,15 +2233,15 @@ func saveProduct(_ product: ProductModel) async {
 
 #### 實作步驟
 
-- [ ] **4.1 SyncManager 新增登入流程方法**
-  - [ ] `hasLocalData() -> Bool` — 檢查本地是否有資料（Session count > 0）
-  - [ ] `hasCloudData(userId:) -> Bool` — 檢查 Firestore 是否有該 userId 的資料
-  - [ ] `updateAllUserIds(from:to:)` — 批次更新所有 Entity 的 userId
-  - [ ] `fullUploadAllData()` — 全量上傳所有本地資料到 Firestore
-  - [ ] `clearAllLocalData()` — 清除所有本地 CoreData 資料
+- [x] **4.1 SyncManager 新增登入流程方法** ✅（已完成）
+  - [x] `hasLocalData() -> Bool` — 檢查本地是否有資料（Session count > 0）
+  - [x] `hasCloudData(userId:) -> Bool` — 檢查 Firestore 是否有該 userId 的資料
+  - [x] `updateAllUserIds(from:to:)` — 批次更新所有 Entity 的 userId
+  - [x] `fullUploadAllData()` — 全量上傳所有本地資料到 Firestore
+  - [x] `clearAllLocalData()` — 清除所有本地 CoreData 資料
 
 - [ ] **4.2 修改 handleLinkSuccess()（情況 C：本地有資料 + 雲端沒資料）**
-  - [ ] 取得舊 anonymousUID 和新 googleUID
+  - [ ] 取得舊 anonymousUID 和新 googleUID（Link 前先記住 anonymous uid）
   - [ ] 呼叫 `updateAllUserIds(from: oldUID, to: newUID)` 更新本地資料
   - [ ] 呼叫 `fullUploadAllData()` 上傳到新帳號的 Firestore
   - [ ] 重新 initializeSync（新 userId）
@@ -2260,17 +2260,25 @@ func saveProduct(_ product: ProductModel) async {
   - [ ] 選項 2：使用本地資料 → 清除雲端 + `fullUploadAllData()`
   - [ ] 選項 3：取消登入 → 回到匿名狀態
 
-- [ ] **4.5 修改 signOut()**
-  - [ ] 呼叫 `SyncManager.stopListening()` 停止監聽
-  - [ ] 呼叫 `SyncManager.resetSync()` 清除同步狀態
-  - [ ] 呼叫 `clearAllLocalData()` 清除所有本地資料
-  - [ ] Firebase Auth signOut
-  - [ ] 重新 `signInAnonymously()`
+- [x] **4.5 修改 signOut()** ✅（已完成）
+  - [x] 呼叫 `SyncManager.resetSync()` 停止監聽並重置同步狀態
+  - [x] 呼叫 `clearAllLocalData()` 清除所有本地資料
+  - [x] Firebase Auth signOut + GIDSignIn signOut
+  - [x] 重新 `signInAnonymously()`
 
-- [ ] **4.6 整合到 App 生命週期**
-  - [ ] 確保 `AuthenticationManager` 正確呼叫 `SyncManager` 的各項方法
+- [x] **4.6 Apple Sign In 取消註解 + 重構** ✅（已完成，取代原本的 4.6）
+  - [x] 取消註解 `import AuthenticationServices`, `import CryptoKit`
+  - [x] 取消註解 `currentNonce` 屬性
+  - [x] 取消註解並重構 `signInWithApple()` + `handleAppleSignIn()`
+  - [x] `handleAppleSignIn()` 改用共用的 `handleLinkSuccess(user:provider:.apple)` / `handleSignInSuccess(user:provider:.apple)`
+  - [x] credentialAlreadyInUse 路徑加入匿名帳號清理（對齊 Google 流程）
+  - [x] 刪除 Apple 專用 handler（`handleAppleLinkSuccess`, `handleAppleSignInSuccess`）
+  - [x] 取消註解 `randomNonceString()`, `sha256()` helper 方法
+  - [x] 取消註解 `ASAuthorizationControllerDelegate` extension
+
+- [ ] **4.7 App 生命週期整合**
   - [ ] Loading 畫面（fullSync 下載中顯示進度）
-  - [ ] 衝突 UI 的導航流程
+  - [ ] 衝突 UI 的導航流程（DataConflictView 接入 AuthenticationManager）
 
 ### Phase 5：Hybrid Listener 即時監聽（預估 2-3 天）
 

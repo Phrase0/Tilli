@@ -32,6 +32,12 @@ class AuthenticationManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showDeviceConflictAlert = false
+    @Published var showDataConflictAlert = false
+
+    // MARK: - Data Conflict Pending State
+    private var pendingConflictUser: FirebaseAuth.User?
+    private var pendingConflictProvider: UserProfile.AuthProvider?
+    private var pendingConflictAnonymousUID: String?
 
     // MARK: - Dependencies
     private let userRepository = UserRepository()
@@ -186,10 +192,15 @@ class AuthenticationManager: NSObject, ObservableObject {
                 return
             }
 
+            // 登入前先捕捉匿名 UID（登入後 Auth.currentUser 就變成正式帳號）
+            let anonymousUID = Auth.auth().currentUser?.isAnonymous == true
+                ? Auth.auth().currentUser?.uid
+                : nil
+
             guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
                 // 如果不是匿名用戶，直接登入
                 let result = try await Auth.auth().signIn(with: credential)
-                await handleSignInSuccess(user: result.user, provider: .google)
+                await handleSignInSuccess(user: result.user, provider: .google, anonymousUID: nil)
                 isLoading = false
                 return
             }
@@ -197,13 +208,12 @@ class AuthenticationManager: NSObject, ObservableObject {
             // 嘗試 Link 匿名帳號到 Google（Link 成功一定是新帳號）
             do {
                 let result = try await currentAuthUser.link(with: credential)
-                await handleLinkSuccess(user: result.user, provider: .google)
+                await handleLinkSuccess(user: result.user, provider: .google, anonymousUID: anonymousUID)
                 isLoading = false
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
                     // Credential 已被使用，刪除匿名帳號後登入
-                    // 先記錄要刪除的匿名 uid
                     let anonymousUid = Auth.auth().currentUser?.uid
 
                     // 刪除 Firebase Auth 的匿名帳號
@@ -215,7 +225,7 @@ class AuthenticationManager: NSObject, ObservableObject {
                     }
 
                     let result = try await Auth.auth().signIn(with: credential)
-                    await handleSignInSuccess(user: result.user, provider: .google)
+                    await handleSignInSuccess(user: result.user, provider: .google, anonymousUID: anonymousUID)
                     isLoading = false
                 } else {
                     throw error
@@ -269,10 +279,15 @@ class AuthenticationManager: NSObject, ObservableObject {
         )
 
         do {
+            // 登入前先捕捉匿名 UID（登入後 Auth.currentUser 就變成正式帳號）
+            let anonymousUID = Auth.auth().currentUser?.isAnonymous == true
+                ? Auth.auth().currentUser?.uid
+                : nil
+
             guard let currentAuthUser = Auth.auth().currentUser, currentAuthUser.isAnonymous else {
                 // 如果不是匿名用戶，直接登入
                 let result = try await Auth.auth().signIn(with: firebaseCredential)
-                await handleSignInSuccess(user: result.user, provider: .apple)
+                await handleSignInSuccess(user: result.user, provider: .apple, anonymousUID: nil)
                 isLoading = false
                 return
             }
@@ -280,7 +295,7 @@ class AuthenticationManager: NSObject, ObservableObject {
             // 嘗試 Link 匿名帳號到 Apple（Link 成功一定是新帳號）
             do {
                 let result = try await currentAuthUser.link(with: firebaseCredential)
-                await handleLinkSuccess(user: result.user, provider: .apple)
+                await handleLinkSuccess(user: result.user, provider: .apple, anonymousUID: anonymousUID)
                 isLoading = false
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
@@ -297,7 +312,7 @@ class AuthenticationManager: NSObject, ObservableObject {
                     }
 
                     let result = try await Auth.auth().signIn(with: firebaseCredential)
-                    await handleSignInSuccess(user: result.user, provider: .apple)
+                    await handleSignInSuccess(user: result.user, provider: .apple, anonymousUID: anonymousUID)
                     isLoading = false
                 } else {
                     throw error
@@ -365,8 +380,8 @@ class AuthenticationManager: NSObject, ObservableObject {
         return credential
     }
 
-    // MARK: - 處理 Link 成功（新帳號，不取得第三方姓名和頭貼）
-    private func handleLinkSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
+    // MARK: - 處理 Link 成功（情況 C：匿名 → 正式帳號，雲端無資料）
+    private func handleLinkSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider, anonymousUID: String?) async {
         do {
             let email = user.email ?? ""
 
@@ -387,8 +402,16 @@ class AuthenticationManager: NSObject, ObservableObject {
             // 更新 deviceId
             try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
 
-            // 初始化同步環境（新帳號）
+            // 更新本地所有資料的 userId（匿名 → 正式帳號 UID）
+            if let oldUID = anonymousUID, !oldUID.isEmpty {
+                SyncManager.shared.updateAllUserIds(from: oldUID, to: user.uid)
+            }
+
+            // 初始化同步環境（設定新 userId + 啟動 Listener）
             await SyncManager.shared.initializeSync()
+
+            // 全量上傳本地資料到 Firestore（新帳號，雲端尚無資料）
+            await SyncManager.shared.fullUploadAllData()
 
             // 更新 authState（Link 成功 = 新帳號，需要設定 profile）
             authState = .needsSetup
@@ -397,20 +420,26 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - 處理登入成功
-    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
+    // MARK: - 處理登入成功（情況 A/B/C/D 判斷）
+    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider, anonymousUID: String?) async {
         do {
-            if let profile = try await userRepository.getUser(uid: user.uid) {
-                // 既有帳號
-                self.currentUser = profile
-                // 更新 deviceId
-                try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
-                // 初始化同步環境（既有帳號，確保 syncState 存在）
-                await SyncManager.shared.initializeSync()
+            // 1. 在 Auth 切換前用匿名 UID 檢查本地資料
+            let localHasData: Bool
+            if let aUID = anonymousUID {
+                localHasData = SyncManager.shared.hasLocalData(for: aUID)
             } else {
-                // 新帳號：只存 email，姓名和頭貼留空讓用戶自己填寫
-                let email = user.email ?? ""
+                localHasData = false
+            }
 
+            // 2. 檢查雲端是否有資料
+            let cloudHasData = await SyncManager.shared.hasCloudData(userId: user.uid)
+
+            // 3. 建立 / 更新 UserProfile
+            if let profile = try await userRepository.getUser(uid: user.uid) {
+                self.currentUser = profile
+                try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
+            } else {
+                let email = user.email ?? ""
                 let newProfile = UserProfile(
                     uid: user.uid,
                     email: email,
@@ -425,11 +454,41 @@ class AuthenticationManager: NSObject, ObservableObject {
                 )
                 try await userRepository.createUser(newProfile)
                 self.currentUser = newProfile
-                // 初始化同步環境（新帳號）
-                await SyncManager.shared.initializeSync()
             }
-            // 更新 authState
-            updateAuthState()
+
+            // 4. 情境判斷
+            switch (localHasData, cloudHasData) {
+
+            case (false, false):
+                // 情況 A：兩邊都沒資料 → 直接完成
+                await SyncManager.shared.initializeSync()
+                updateAuthState()
+
+            case (false, true):
+                // 情況 B：只有雲端 → 下載雲端資料
+                await SyncManager.shared.initializeSync()
+                await SyncManager.shared.performFullSync()
+                updateAuthState()
+
+            case (true, false):
+                // 情況 C（防禦）：只有本地 → 通常由 handleLinkSuccess 處理
+                // 若仍走到這裡，執行 userId 更新 + 上傳
+                if let oldUID = anonymousUID, !oldUID.isEmpty {
+                    SyncManager.shared.updateAllUserIds(from: oldUID, to: user.uid)
+                }
+                await SyncManager.shared.initializeSync()
+                await SyncManager.shared.fullUploadAllData()
+                updateAuthState()
+
+            case (true, true):
+                // 情況 D：兩邊都有資料 → 暫停，等使用者選擇
+                // authState 不更新（使用者選擇後由 resolve 方法呼叫 updateAuthState）
+                pendingConflictUser = user
+                pendingConflictProvider = provider
+                pendingConflictAnonymousUID = anonymousUID
+                showDataConflictAlert = true
+            }
+
         } catch {
             print("Error handling sign in success: \(error)")
         }
@@ -458,6 +517,77 @@ class AuthenticationManager: NSObject, ObservableObject {
             errorMessage = error.localizedDescription
             print("Sign out error: \(error)")
         }
+    }
+
+    // MARK: - 資料衝突處理（情況 D）
+
+    /// 選擇使用雲端資料：清除本地 + 全量下載
+    func resolveConflictUseCloud() {
+        showDataConflictAlert = false
+        clearPendingConflict()
+        Task {
+            isLoading = true
+            await SyncManager.shared.initializeSync()
+            SyncManager.shared.clearAllLocalData()
+            await SyncManager.shared.performFullSync()
+            isLoading = false
+            updateAuthState()
+        }
+    }
+
+    /// 選擇使用本地資料：更新 userId + 刪除雲端 + 全量上傳
+    func resolveConflictUseLocal() {
+        guard let user = pendingConflictUser,
+              let anonymousUID = pendingConflictAnonymousUID else {
+            showDataConflictAlert = false
+            return
+        }
+        showDataConflictAlert = false
+        clearPendingConflict()
+        Task {
+            isLoading = true
+            // 1. 更新本地所有資料的 userId（匿名 → 真實帳號）
+            SyncManager.shared.updateAllUserIds(from: anonymousUID, to: user.uid)
+            // 2. 初始化 Sync（設定新 userId）
+            await SyncManager.shared.initializeSync()
+            // 3. 刪除雲端舊資料
+            await SyncManager.shared.deleteAllCloudData(userId: user.uid)
+            // 4. 全量上傳本地資料
+            await SyncManager.shared.fullUploadAllData()
+            isLoading = false
+            updateAuthState()
+        }
+    }
+
+    /// 取消登入：登出真實帳號，重新匿名登入，保留本地資料
+    func resolveConflictCancel() {
+        let oldAnonymousUID = pendingConflictAnonymousUID
+        showDataConflictAlert = false
+        clearPendingConflict()
+        Task {
+            // 1. 停止監聽，登出真實帳號（不清除本地資料）
+            SyncManager.shared.resetSync()
+            try? Auth.auth().signOut()
+            GIDSignIn.sharedInstance.signOut()
+            currentUser = nil
+            localProfileImage = nil
+            errorMessage = nil
+            authState = .guest
+            // 2. 重新匿名登入（signInAnonymously 內部會初始化 SyncManager）
+            await signInAnonymously()
+            // 3. 更新本地資料的 userId（舊匿名 UID → 新匿名 UID）
+            if let oldUID = oldAnonymousUID,
+               let newUID = SyncManager.shared.currentUserId,
+               oldUID != newUID {
+                SyncManager.shared.updateAllUserIds(from: oldUID, to: newUID)
+            }
+        }
+    }
+
+    private func clearPendingConflict() {
+        pendingConflictUser = nil
+        pendingConflictProvider = nil
+        pendingConflictAnonymousUID = nil
     }
 
     // MARK: - 檢查 Device ID（防止多處登入）

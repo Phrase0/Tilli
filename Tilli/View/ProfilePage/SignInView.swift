@@ -109,6 +109,19 @@ struct SignInView: View {
                 dismiss()
             }
         }
+        .alert("偵測到資料衝突", isPresented: $authManager.showDataConflictAlert) {
+            Button("使用雲端資料", role: .destructive) {
+                authManager.resolveConflictUseCloud()
+            }
+            Button("使用本地資料") {
+                authManager.resolveConflictUseLocal()
+            }
+            Button("取消登入", role: .cancel) {
+                authManager.resolveConflictCancel()
+            }
+        } message: {
+            Text("本地有未同步的資料，登入帳號也有雲端資料。\n請選擇要保留哪份資料。")
+        }
         .overlay {
             if authManager.isLoading {
                 ZStack {
