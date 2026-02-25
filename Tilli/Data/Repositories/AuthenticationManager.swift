@@ -32,12 +32,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showDeviceConflictAlert = false
-    @Published var showDataConflictAlert = false
-
-    // MARK: - Data Conflict Pending State
-    private var pendingConflictUser: FirebaseAuth.User?
-    private var pendingConflictProvider: UserProfile.AuthProvider?
-    private var pendingConflictAnonymousUID: String?
 
     // MARK: - Dependencies
     private let userRepository = UserRepository()
@@ -109,8 +103,9 @@ class AuthenticationManager: NSObject, ObservableObject {
                 // 更新 authState
                 updateAuthState()
 
-                // App 啟動時，如果是 member 就初始化同步環境
+                // App 啟動時，如果是 member 就設定會員等級 + 初始化同步環境
                 if profile.accountStatus == .member {
+                    SyncManager.shared.setMembership(profile.membership)
                     await SyncManager.shared.initializeSync()
                 }
             } else {
@@ -407,7 +402,10 @@ class AuthenticationManager: NSObject, ObservableObject {
                 SyncManager.shared.updateAllUserIds(from: oldUID, to: user.uid)
             }
 
-            // 初始化同步環境（設定新 userId + 啟動 Listener）
+            // 設定會員等級到 SyncManager（Link 成功 = 新帳號，預設 free）
+            SyncManager.shared.setMembership(.free)
+
+            // 初始化同步環境（設定新 userId + 根據 tier 決定是否啟動 Listener）
             await SyncManager.shared.initializeSync()
 
             // 全量上傳本地資料到 Firestore（新帳號，雲端尚無資料）
@@ -420,7 +418,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - 處理登入成功（情況 A/B/C/D 判斷）
+    // MARK: - 處理登入成功（情況 A/B/C/D 自動合併）
     private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider, anonymousUID: String?) async {
         do {
             // 1. 在 Auth 切換前用匿名 UID 檢查本地資料
@@ -456,39 +454,34 @@ class AuthenticationManager: NSObject, ObservableObject {
                 self.currentUser = newProfile
             }
 
-            // 4. 情境判斷
-            switch (localHasData, cloudHasData) {
-
-            case (false, false):
-                // 情況 A：兩邊都沒資料 → 直接完成
-                await SyncManager.shared.initializeSync()
-                updateAuthState()
-
-            case (false, true):
-                // 情況 B：只有雲端 → 下載雲端資料
-                await SyncManager.shared.initializeSync()
-                await SyncManager.shared.performFullSync()
-                updateAuthState()
-
-            case (true, false):
-                // 情況 C（防禦）：只有本地 → 通常由 handleLinkSuccess 處理
-                // 若仍走到這裡，執行 userId 更新 + 上傳
-                if let oldUID = anonymousUID, !oldUID.isEmpty {
-                    SyncManager.shared.updateAllUserIds(from: oldUID, to: user.uid)
-                }
-                await SyncManager.shared.initializeSync()
-                await SyncManager.shared.fullUploadAllData()
-                updateAuthState()
-
-            case (true, true):
-                // 情況 D：兩邊都有資料 → 暫停，等使用者選擇
-                // authState 不更新（使用者選擇後由 resolve 方法呼叫 updateAuthState）
-                pendingConflictUser = user
-                pendingConflictProvider = provider
-                pendingConflictAnonymousUID = anonymousUID
-                showDataConflictAlert = true
+            // 4. 如果有本地匿名資料，先更新 userId
+            if localHasData, let oldUID = anonymousUID, !oldUID.isEmpty {
+                SyncManager.shared.updateAllUserIds(from: oldUID, to: user.uid)
             }
 
+            // 5. 設定會員等級到 SyncManager
+            if let membership = currentUser?.membership {
+                SyncManager.shared.setMembership(membership)
+            }
+
+            // 6. 初始化同步環境
+            await SyncManager.shared.initializeSync()
+
+            // 7. 情境處理（所有情況自動合併，無需用戶選擇）
+            if localHasData {
+                // 情況 C/D：有本地資料 → 先上傳，再下載（UUID 唯一不衝突）
+                await SyncManager.shared.fullUploadAllData()
+                if cloudHasData {
+                    // 情況 D：兩邊都有 → 上傳後再下載雲端資料完成合併
+                    await SyncManager.shared.performFullSync()
+                }
+            } else if cloudHasData {
+                // 情況 B：只有雲端 → 下載
+                await SyncManager.shared.performFullSync()
+            }
+            // 情況 A：兩邊都沒 → 不需額外操作
+
+            updateAuthState()
         } catch {
             print("Error handling sign in success: \(error)")
         }
@@ -517,77 +510,6 @@ class AuthenticationManager: NSObject, ObservableObject {
             errorMessage = error.localizedDescription
             print("Sign out error: \(error)")
         }
-    }
-
-    // MARK: - 資料衝突處理（情況 D）
-
-    /// 選擇使用雲端資料：清除本地 + 全量下載
-    func resolveConflictUseCloud() {
-        showDataConflictAlert = false
-        clearPendingConflict()
-        Task {
-            isLoading = true
-            await SyncManager.shared.initializeSync()
-            SyncManager.shared.clearAllLocalData()
-            await SyncManager.shared.performFullSync()
-            isLoading = false
-            updateAuthState()
-        }
-    }
-
-    /// 選擇使用本地資料：更新 userId + 刪除雲端 + 全量上傳
-    func resolveConflictUseLocal() {
-        guard let user = pendingConflictUser,
-              let anonymousUID = pendingConflictAnonymousUID else {
-            showDataConflictAlert = false
-            return
-        }
-        showDataConflictAlert = false
-        clearPendingConflict()
-        Task {
-            isLoading = true
-            // 1. 更新本地所有資料的 userId（匿名 → 真實帳號）
-            SyncManager.shared.updateAllUserIds(from: anonymousUID, to: user.uid)
-            // 2. 初始化 Sync（設定新 userId）
-            await SyncManager.shared.initializeSync()
-            // 3. 刪除雲端舊資料
-            await SyncManager.shared.deleteAllCloudData(userId: user.uid)
-            // 4. 全量上傳本地資料
-            await SyncManager.shared.fullUploadAllData()
-            isLoading = false
-            updateAuthState()
-        }
-    }
-
-    /// 取消登入：登出真實帳號，重新匿名登入，保留本地資料
-    func resolveConflictCancel() {
-        let oldAnonymousUID = pendingConflictAnonymousUID
-        showDataConflictAlert = false
-        clearPendingConflict()
-        Task {
-            // 1. 停止監聽，登出真實帳號（不清除本地資料）
-            SyncManager.shared.resetSync()
-            try? Auth.auth().signOut()
-            GIDSignIn.sharedInstance.signOut()
-            currentUser = nil
-            localProfileImage = nil
-            errorMessage = nil
-            authState = .guest
-            // 2. 重新匿名登入（signInAnonymously 內部會初始化 SyncManager）
-            await signInAnonymously()
-            // 3. 更新本地資料的 userId（舊匿名 UID → 新匿名 UID）
-            if let oldUID = oldAnonymousUID,
-               let newUID = SyncManager.shared.currentUserId,
-               oldUID != newUID {
-                SyncManager.shared.updateAllUserIds(from: oldUID, to: newUID)
-            }
-        }
-    }
-
-    private func clearPendingConflict() {
-        pendingConflictUser = nil
-        pendingConflictProvider = nil
-        pendingConflictAnonymousUID = nil
     }
 
     // MARK: - 檢查 Device ID（防止多處登入）

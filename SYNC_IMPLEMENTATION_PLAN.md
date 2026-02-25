@@ -25,7 +25,7 @@
 
 | 項目 | 決策 | 說明 |
 |------|------|------|
-| 合併選項 | 不做 | 保持簡單，用戶選擇「使用雲端」或「使用本地」 |
+| 合併選項 | 自動合併 | UUID 唯一性保證不衝突，所有情境自動合併（無需用戶選擇） |
 | 圖片同步 | 同步 | 上傳至 Firebase Storage，需壓縮圖片 |
 | 刪除策略 | Hard Delete + Cascade | 真刪除，Session 刪除時連帶刪除 Categories/Products/InventoryChanges，但保留 Transactions |
 | 同步頻率 | 即時同步 | 每次操作即時同步 + 離線時排隊 |
@@ -1818,7 +1818,20 @@ productEntity.category = categoryEntity
 
 ## 登入流程與資料處理
 
-> **⚠️ 此章節為 Phase 4 規劃，尚未實作。** 目前 `AuthenticationManager` 只有基礎登入功能，尚未整合同步邏輯。
+> **✅ 已實作（Phase 4）** — 採用「自動合併」架構，無衝突 UI。
+
+### 同步分級架構
+
+| 會員等級 | 即時上傳 | HybridSyncListener | 裝置數量 |
+|---------|---------|-------------------|---------|
+| Free    | ✅ 每次操作即時上傳 | ❌ 不監聽 | 單裝置 |
+| Pro     | ✅ 每次操作即時上傳 | ✅ 即時監聽 | 雙裝置 |
+
+**核心原則**：
+- **上傳**：所有 member（無論 free/pro）都即時上傳，保證雲端備份
+- **監聽**：只有 Pro 會員啟用 HybridSyncListener，實現跨裝置即時同步
+- **合併**：所有登入情境自動合併，因為 UUID 唯一性保證不會發生真正的衝突
+- **刪除**：所有 tier 的刪除操作都即時同步
 
 ### 流程圖
 
@@ -1832,179 +1845,51 @@ productEntity.category = categoryEntity
 │                      Google/Apple 登入                           │
 └─────────────────────────────────────────────────────────────────┘
                                 │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   檢查是否有匿名時的本地資料                       │
-│                   (userId == anonymousUID)                       │
-└─────────────────────────────────────────────────────────────────┘
-                      │                    │
-                 有本地資料              無本地資料
-                      │                    │
-                      ▼                    ▼
-┌──────────────────────────┐    ┌──────────────────────────┐
-│  檢查雲端是否有該帳號資料  │    │  檢查雲端是否有該帳號資料  │
-└──────────────────────────┘    └──────────────────────────┘
-          │           │                  │           │
-      有雲端資料   無雲端資料          有雲端資料   無雲端資料
-          │           │                  │           │
-          ▼           ▼                  ▼           ▼
-    ┌─────────┐  ┌─────────┐      ┌─────────┐  ┌─────────┐
-    │ 情況 D  │  │ 情況 C  │      │ 情況 B  │  │ 情況 A  │
-    │ 衝突!   │  │ 上傳    │      │ 下載    │  │ 完成    │
-    └─────────┘  └─────────┘      └─────────┘  └─────────┘
+                    ┌───────────┴───────────┐
+                Link 成功                 credentialAlreadyInUse
+               （新帳號）                  （舊帳號登入）
+                    │                           │
+                    ▼                           ▼
+            handleLinkSuccess           handleSignInSuccess
+            （更新 userId +              （自動合併 A/B/C/D）
+              全量上傳）
 ```
 
 ### 情況 A：無本地資料 + 無雲端資料（全新帳號）
-
-```swift
-// 直接完成登入，開始使用
-// 後續操作會即時同步到雲端
-```
+→ 直接完成登入，initializeSync
 
 ### 情況 B：無本地資料 + 有雲端資料（舊帳號登入）
+→ initializeSync + performFullSync 下載雲端資料
 
-```swift
-// 1. 顯示 Loading 畫面
-// 2. 從 Firestore 下載所有資料
-// 3. 下載圖片（使用 Kingfisher 快取）
-// 4. 寫入 CoreData
-// 5. 完成，進入主畫面
+### 情況 C：有本地資料 + 無雲端資料（防禦性）
+→ updateAllUserIds + initializeSync + fullUploadAllData
+
+### 情況 D：有本地資料 + 有雲端資料（自動合併）
+→ updateAllUserIds + initializeSync + fullUploadAllData + performFullSync
+→ UUID 唯一性保證不衝突，本地新增的資料和雲端資料自動共存
+
+### 裝置切換流程（Free 限單裝置）
+
+```
+Device A 使用中 → Device B 登入同帳號
+  1. Device B: signIn → updateDeviceId → initializeSync + fullSync
+  2. Device A: App 回到前景 → checkDeviceId() → 發現 deviceId 不匹配
+  3. Device A: 先 flush pendingQueue → 顯示 alert → signOut
 ```
 
-### 情況 C：有本地資料 + 無雲端資料（新帳號，Link 匿名資料）
+> **注意**：Device A 離線時可繼續使用，直到連網後被 checkDeviceId 偵測並登出。
 
-```swift
-// 1. 更新本地資料的 userId（從 anonymousUID 改為新 UID）
-// 2. 上傳所有資料到 Firestore
-// 3. 上傳圖片到 Firebase Storage
-// 4. 刪除匿名帳號的 Firestore 資料（如果有）
-// 5. 完成
-```
-
-### 情況 D：有本地資料 + 有雲端資料（衝突！）
-
-```swift
-// 1. 顯示衝突處理 UI
-// 2. 用戶選擇：
-//    - 選項 1：使用雲端資料 → 清除本地，下載雲端
-//    - 選項 2：使用本地資料 → 清除雲端，上傳本地
-//    - 選項 3：取消登入 → 回到匿名狀態
-```
-
-### 衝突處理 UI 設計
-
-```swift
-struct DataConflictView: View {
-    let localDataSummary: DataSummary   // 本地資料摘要
-    let cloudDataSummary: DataSummary   // 雲端資料摘要
-    let onChoice: (ConflictChoice) -> Void
-
-    var body: some View {
-        VStack(spacing: 24) {
-            // 標題
-            Text("偵測到資料衝突")
-                .font(.title2)
-                .fontWeight(.bold)
-
-            // 說明
-            Text("您的本地裝置和雲端帳號都有資料，請選擇要保留哪一份")
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            // 資料對比
-            HStack(spacing: 16) {
-                // 本地資料卡片
-                DataSummaryCard(
-                    title: "本地資料",
-                    summary: localDataSummary,
-                    icon: "iphone"
-                )
-
-                // 雲端資料卡片
-                DataSummaryCard(
-                    title: "雲端資料",
-                    summary: cloudDataSummary,
-                    icon: "cloud"
-                )
-            }
-
-            // 選項按鈕
-            VStack(spacing: 12) {
-                Button("使用雲端資料") {
-                    onChoice(.useCloud)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("使用本地資料") {
-                    onChoice(.useLocal)
-                }
-                .buttonStyle(.bordered)
-
-                Button("取消登入") {
-                    onChoice(.cancel)
-                }
-                .foregroundColor(.secondary)
-            }
-
-            // 警告
-            Text("注意：未被選擇的資料將會永久刪除")
-                .font(.caption)
-                .foregroundColor(.orange)
-        }
-    }
-}
-
-struct DataSummary {
-    let sessionCount: Int
-    let productCount: Int
-    let transactionCount: Int
-    let lastUpdated: Date?
-}
-
-enum ConflictChoice {
-    case useCloud
-    case useLocal
-    case cancel
-}
-```
-
-### 登出流程（Phase 4 規劃）
+### 登出流程 ✅（已實作）
 
 ```swift
 func signOut() {
-    // 1. 停止 Firestore 監聽
-    SyncManager.shared.stopListening()
-
-    // 2. 重置同步狀態
-    SyncManager.shared.resetSync()
-
-    // 3. 清除所有本地資料
-    clearAllLocalData()
-
-    // 4. Firebase Auth 登出
-    try? Auth.auth().signOut()
-
-    // 5. 重新匿名登入
-    await signInAnonymously()
-}
-
-private func clearAllLocalData() {
-    // 刪除 CoreData 中所有資料
-    let entities = ["CDSessionEntity", "CDCategoryEntity", "CDProductEntity",
-                    "CDTransactionEntity", "CDInventoryChangeEntity",
-                    "CDQRCodeEntity", "CDPendingSyncOperation"]
-
-    for entityName in entities {
-        let request = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: request)
-        try? context.execute(deleteRequest)
-    }
-
-    try? context.save()
+    SyncManager.shared.resetSync()       // 停止監聽 + 重置版本號
+    SyncManager.shared.clearAllLocalData() // 清除所有 CoreData 資料
+    try Auth.auth().signOut()
+    GIDSignIn.sharedInstance.signOut()
+    signInAnonymously()                  // 重新匿名登入
 }
 ```
-
-> **目前狀態**：`signOut()` 目前只做 Firebase Auth signOut + 重新匿名登入，尚未整合步驟 1-3。
 
 ---
 
@@ -2240,25 +2125,24 @@ func saveProduct(_ product: ProductModel) async {
   - [x] `fullUploadAllData()` — 全量上傳所有本地資料到 Firestore
   - [x] `clearAllLocalData()` — 清除所有本地 CoreData 資料
 
-- [ ] **4.2 修改 handleLinkSuccess()（情況 C：本地有資料 + 雲端沒資料）**
-  - [ ] 取得舊 anonymousUID 和新 googleUID（Link 前先記住 anonymous uid）
-  - [ ] 呼叫 `updateAllUserIds(from: oldUID, to: newUID)` 更新本地資料
-  - [ ] 呼叫 `fullUploadAllData()` 上傳到新帳號的 Firestore
-  - [ ] 重新 initializeSync（新 userId）
+- [x] **4.2 修改 handleLinkSuccess()（情況 C：匿名 → 正式帳號）** ✅
+  - [x] Link 前捕捉 anonymousUID
+  - [x] `updateAllUserIds(from: oldUID, to: newUID)` 更新本地資料
+  - [x] `initializeSync()` 初始化同步環境
+  - [x] `fullUploadAllData()` 上傳到新帳號的 Firestore
 
-- [ ] **4.3 修改 handleSignInSuccess()（情況 B/D）**
-  - [ ] 檢查本地是否有匿名資料（`hasLocalData()`）
-  - [ ] 檢查雲端是否有帳號資料（`hasCloudData(userId:)`）
-  - [ ] 情況 A：兩邊都沒 → 直接完成
-  - [ ] 情況 B：只有雲端 → `fullSync()` 下載
-  - [ ] 情況 D：兩邊都有 → 顯示衝突 UI
+- [x] **4.3 修改 handleSignInSuccess()（自動合併 A/B/C/D）** ✅
+  - [x] 檢查本地是否有匿名資料（`hasLocalData(for: anonymousUID)`）
+  - [x] 檢查雲端是否有帳號資料（`hasCloudData(userId:)`）
+  - [x] 情況 A：兩邊都沒 → initializeSync
+  - [x] 情況 B：只有雲端 → initializeSync + performFullSync
+  - [x] 情況 C（防禦）：只有本地 → updateAllUserIds + initializeSync + fullUploadAllData
+  - [x] 情況 D：兩邊都有 → **自動合併**（updateAllUserIds + initializeSync + fullUploadAllData + performFullSync）
 
-- [ ] **4.4 DataConflictView 衝突處理 UI**
-  - [ ] `DataConflictView` — 衝突選擇畫面
-  - [ ] `DataSummary` — 本地/雲端資料摘要（Session 數、Product 數、Transaction 數）
-  - [ ] 選項 1：使用雲端資料 → `clearAllLocalData()` + `fullSync()`
-  - [ ] 選項 2：使用本地資料 → 清除雲端 + `fullUploadAllData()`
-  - [ ] 選項 3：取消登入 → 回到匿名狀態
+- [x] **4.4 衝突處理架構決策** ✅（不需要衝突 UI）
+  - [x] 採用自動合併策略，UUID 唯一性保證不衝突
+  - [x] 移除 DataConflictView / showDataConflictAlert / resolveConflict 方法
+  - [x] 移除 deleteAllCloudData()（不再需要）
 
 - [x] **4.5 修改 signOut()** ✅（已完成）
   - [x] 呼叫 `SyncManager.resetSync()` 停止監聽並重置同步狀態
@@ -2276,9 +2160,13 @@ func saveProduct(_ product: ProductModel) async {
   - [x] 取消註解 `randomNonceString()`, `sha256()` helper 方法
   - [x] 取消註解 `ASAuthorizationControllerDelegate` extension
 
-- [ ] **4.7 App 生命週期整合**
-  - [ ] Loading 畫面（fullSync 下載中顯示進度）
-  - [ ] 衝突 UI 的導航流程（DataConflictView 接入 AuthenticationManager）
+- [x] **4.7 會員分級同步控制** ✅
+  - [x] `SyncManager.shouldUpload` — member 即可上傳（free + pro）
+  - [x] `SyncManager.shouldListen` — 僅 Pro 會員啟用 Listener
+  - [x] `SyncManager.setMembership()` — AuthManager 呼叫以設定會員等級
+  - [x] `initializeSync()` / `startListening()` 加入 tier 判斷
+  - [x] TilliProSheetView 加入 Pro/Free 切換開關（測試用）
+  - [x] TilliApp.swift scenePhase 的 startListening() 加入 tier 判斷
 
 ### Phase 5：Hybrid Listener 即時監聽（預估 2-3 天）
 

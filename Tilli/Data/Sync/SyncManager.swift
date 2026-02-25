@@ -32,6 +32,9 @@ class SyncManager: ObservableObject {
     @Published var lastSyncDate: Date?
     @Published var syncError: SyncError?
 
+    // MARK: - Membership State
+    private var currentMembership: UserProfile.Membership = .free
+
     // MARK: - Private State
     private var isProcessingQueue = false
 
@@ -49,17 +52,17 @@ class SyncManager: ObservableObject {
         return currentUserId != nil
     }
 
-    // MARK: - Should Sync Check
+    // MARK: - Membership Control
 
-    /// 檢查是否應該同步
-    /// 目前：member + ready
-    /// 之後可改成：付費會員才同步
-    var shouldSync: Bool {
-        guard isUserLoggedIn else { return false }
-        // TODO: 之後改成檢查付費會員
-        // guard let user = authManager.currentUser else { return false }
-        // return user.membership == .pro && !user.isProExpired
-        return true
+    /// 設定會員等級（由 AuthenticationManager 呼叫）
+    func setMembership(_ membership: UserProfile.Membership) {
+        currentMembership = membership
+        print("✅ SyncManager: 會員等級設定為 \(membership.rawValue)")
+    }
+
+    /// 是否應該啟用 Listener（僅 Pro 會員）
+    var shouldListen: Bool {
+        return isUserLoggedIn && currentMembership == .pro
     }
 
     /// 檢查網路是否可用
@@ -74,7 +77,7 @@ class SyncManager: ObservableObject {
 
     /// 初始化同步環境（登入成功後呼叫）
     func initializeSync() async {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         do {
             try await uploader.initializeSyncState()
@@ -83,8 +86,10 @@ class SyncManager: ObservableObject {
             print("❌ SyncManager: syncState 初始化失敗 - \(error)")
         }
 
-        // 初始化後立即開始監聽
-        startListening()
+        // 僅 Pro 會員啟動 Listener
+        if shouldListen {
+            startListening()
+        }
 
         // 啟動網路監控（網路恢復時自動處理離線佇列）
         startNetworkMonitoring()
@@ -104,10 +109,10 @@ class SyncManager: ObservableObject {
 
     // MARK: - Listener Management
 
-    /// 開始監聽 syncState（登入後呼叫）
+    /// 開始監聽 syncState（僅 Pro 會員，登入後呼叫）
     func startListening() {
         guard let userId = currentUserId else { return }
-        guard shouldSync else { return }
+        guard shouldListen else { return }
 
         hybridListener.startListening(userId: userId)
     }
@@ -127,7 +132,7 @@ class SyncManager: ObservableObject {
 
     /// 同步 Session（新增或更新）
     func syncSession(_ session: SessionModel, operation: SyncOperationType) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -153,7 +158,7 @@ class SyncManager: ObservableObject {
 
     /// 同步刪除 Session
     func syncDeleteSession(_ sessionId: UUID, withChildren: Bool = true) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -177,7 +182,7 @@ class SyncManager: ObservableObject {
 
     /// 同步完整 Session（包含 Categories 和 Products）
     func syncSessionWithChildren(_ session: SessionModel) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -199,7 +204,7 @@ class SyncManager: ObservableObject {
 
     /// 同步 Category
     func syncCategory(_ category: CategoryModel, sessionId: UUID, operation: SyncOperationType) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -225,7 +230,7 @@ class SyncManager: ObservableObject {
 
     /// 同步刪除 Category
     func syncDeleteCategory(_ categoryId: UUID, withProducts: Bool = true) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -250,7 +255,7 @@ class SyncManager: ObservableObject {
 
     /// 同步 Product
     func syncProduct(_ product: ProductModel, operation: SyncOperationType, imageURL: String? = nil) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -276,7 +281,7 @@ class SyncManager: ObservableObject {
 
     /// 同步刪除 Product
     func syncDeleteProduct(_ productId: UUID) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -295,7 +300,7 @@ class SyncManager: ObservableObject {
 
     /// 同步刪除 Product 及其所有 InventoryChanges（Cascade Delete）
     func syncDeleteProductWithInventoryChanges(_ productId: UUID, inventoryChangeIds: [UUID] = []) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -324,7 +329,7 @@ class SyncManager: ObservableObject {
 
     /// 同步 Transaction（只有新增，不可修改刪除）
     func syncTransaction(_ transaction: TransactionModel) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -345,7 +350,7 @@ class SyncManager: ObservableObject {
 
     /// 同步 InventoryChange
     func syncInventoryChange(_ change: InventoryChangeModel, sessionId: UUID) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -366,7 +371,7 @@ class SyncManager: ObservableObject {
 
     /// 同步 QRCode
     func syncQRCode(_ qrCode: QRCodeModel, operation: SyncOperationType, imageURL: String? = nil) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -392,7 +397,7 @@ class SyncManager: ObservableObject {
 
     /// 同步刪除 QRCode
     func syncDeleteQRCode(_ qrCodeId: UUID) {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
@@ -875,46 +880,6 @@ class SyncManager: ObservableObject {
         }
     }
 
-    /// 刪除指定用戶在 Firestore 的所有資料
-    /// 不刪除 qrCodes（由 fullUploadAllData 決定是否覆蓋）
-    func deleteAllCloudData(userId: String) async {
-        let collectionsToDelete = ["sessions", "categories", "products", "transactions", "inventoryChanges"]
-
-        for collectionName in collectionsToDelete {
-            do {
-                let snapshot = try await db.collection(collectionName)
-                    .whereField("userId", isEqualTo: userId)
-                    .getDocuments()
-
-                let documents = snapshot.documents
-
-                // products：先刪除 Storage 圖片
-                if collectionName == "products" {
-                    let imageURLs = documents.compactMap { $0.data()["imageURL"] as? String }.filter { !$0.isEmpty }
-                    await ImageSyncService.shared.deleteImages(urls: imageURLs)
-                }
-
-                // 分批刪除（每批最多 500）
-                var index = 0
-                while index < documents.count {
-                    let end = min(index + 500, documents.count)
-                    let batch = db.batch()
-                    for doc in documents[index..<end] {
-                        batch.deleteDocument(doc.reference)
-                    }
-                    try await batch.commit()
-                    index = end
-                }
-
-                print("✅ deleteAllCloudData: \(collectionName) 刪除完成（\(documents.count) 筆）")
-            } catch {
-                print("❌ deleteAllCloudData \(collectionName) 失敗: \(error)")
-            }
-        }
-
-        print("✅ deleteAllCloudData 完成")
-    }
-
     /// 清除所有本地資料（登出時呼叫）
     func clearAllLocalData() {
         // 子→父順序刪除，避免 FK 問題
@@ -952,7 +917,7 @@ class SyncManager: ObservableObject {
 
     /// 全量下載（從 Firestore 下載所有資料到本地）
     func performFullSync() async {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
         guard isNetworkAvailable else {
             syncError = .networkUnavailable
             return
@@ -989,7 +954,7 @@ class SyncManager: ObservableObject {
 
     /// 下載特定 Session 及其子項目
     func performSessionDownload(sessionId: UUID) async {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
         guard isNetworkAvailable else {
             syncError = .networkUnavailable
             return
@@ -1017,7 +982,7 @@ class SyncManager: ObservableObject {
         inventoryChangeIds: [UUID] = [],
         qrCodeIds: [UUID] = []
     ) async {
-        guard shouldSync else { return }
+        guard isUserLoggedIn else { return }
         guard isNetworkAvailable else { return }
 
         do {
