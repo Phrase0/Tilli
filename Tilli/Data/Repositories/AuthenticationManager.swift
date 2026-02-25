@@ -219,7 +219,11 @@ class AuthenticationManager: NSObject, ObservableObject {
                         try? await userRepository.deleteUser(uid: uid)
                     }
 
-                    let result = try await Auth.auth().signIn(with: credential)
+                    // 優先使用 error 提供的 updatedCredential，避免 token 已消耗問題
+                    let credentialToUse = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential
+                        ?? credential
+
+                    let result = try await Auth.auth().signIn(with: credentialToUse)
                     await handleSignInSuccess(user: result.user, provider: .google, anonymousUID: anonymousUID)
                     isLoading = false
                 } else {
@@ -295,7 +299,7 @@ class AuthenticationManager: NSObject, ObservableObject {
             } catch let error as NSError {
                 if error.code == AuthErrorCode.credentialAlreadyInUse.rawValue ||
                    error.code == AuthErrorCode.providerAlreadyLinked.rawValue {
-                    // Credential 已被使用，刪除匿名帳號後登入（對齊 Google 流程）
+                    // Credential 已被使用，刪除匿名帳號後登入
                     let anonymousUid = Auth.auth().currentUser?.uid
 
                     // 刪除 Firebase Auth 的匿名帳號
@@ -306,7 +310,12 @@ class AuthenticationManager: NSObject, ObservableObject {
                         try? await userRepository.deleteUser(uid: uid)
                     }
 
-                    let result = try await Auth.auth().signIn(with: firebaseCredential)
+                    // Apple token 是一次性的，link() 失敗後原始 credential 已被消耗
+                    // 從 error 取出 updatedCredential（Firebase 在 credentialAlreadyInUse 時提供）
+                    let credentialToUse = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential
+                        ?? firebaseCredential
+
+                    let result = try await Auth.auth().signIn(with: credentialToUse)
                     await handleSignInSuccess(user: result.user, provider: .apple, anonymousUID: anonymousUID)
                     isLoading = false
                 } else {

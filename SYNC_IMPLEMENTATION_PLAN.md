@@ -2099,22 +2099,6 @@ func saveProduct(_ product: ProductModel) async {
 - `handleSignInSuccess()` — 全新 Google 登入成功
 - `signOut()` — 登出
 
-#### 需要修改/新增的項目
-
-**問題 1：登入成功後未觸發 fullSync（情況 B）**
-- `handleSignInSuccess()` 登入已有雲端資料的帳號時，未呼叫 `SyncManager.fullSync()` 下載資料
-
-**問題 2：Link 成功後未更新 userId（情況 C）**
-- `handleLinkSuccess()` 匿名→Google 時，未更新本地資料的 userId，也未觸發全量上傳
-
-**問題 3：衝突處理 UI 未實作（情況 D）**
-- 有本地匿名資料 + 有雲端帳號資料時，未提供衝突處理 UI
-
-**問題 4：登出未清除本地資料**
-- `signOut()` 未呼叫 `clearAllLocalData()`，可能殘留上一個帳號的資料
-
-**問題 5：登出後殘留 userId-less 資料**
-- 匿名期間若有未設 userId 的資料，登出後會殘留
 
 #### 實作步驟
 
