@@ -211,10 +211,12 @@ class AuthenticationManager: NSObject, ObservableObject {
                     // Credential 已被使用，刪除匿名帳號後登入
                     let anonymousUid = Auth.auth().currentUser?.uid
 
-                    // 刪除 Firebase Auth 的匿名帳號
-                    try await Auth.auth().currentUser?.delete()
-
-                    // 刪除 Firestore 中的 Guest UserProfile（避免孤兒資料）
+                    // 獨立 try-catch：匿名帳號清理失敗不影響後續登入流程
+                    do {
+                        try await Auth.auth().currentUser?.delete()
+                    } catch {
+                        print("⚠️ 匿名帳號刪除失敗（非致命）: \(error)")
+                    }
                     if let uid = anonymousUid {
                         try? await userRepository.deleteUser(uid: uid)
                     }
@@ -302,10 +304,12 @@ class AuthenticationManager: NSObject, ObservableObject {
                     // Credential 已被使用，刪除匿名帳號後登入
                     let anonymousUid = Auth.auth().currentUser?.uid
 
-                    // 刪除 Firebase Auth 的匿名帳號
-                    try await Auth.auth().currentUser?.delete()
-
-                    // 刪除 Firestore 中的 Guest UserProfile（避免孤兒資料）
+                    // 獨立 try-catch：匿名帳號清理失敗不影響後續登入流程
+                    do {
+                        try await Auth.auth().currentUser?.delete()
+                    } catch {
+                        print("⚠️ 匿名帳號刪除失敗（非致命）: \(error)")
+                    }
                     if let uid = anonymousUid {
                         try? await userRepository.deleteUser(uid: uid)
                     }

@@ -881,31 +881,35 @@ class SyncManager: ObservableObject {
     }
 
     /// 清除所有本地資料（登出時呼叫）
+    /// CDSessionEntity 設有 cascade delete rule，刪除 session 會自動連動刪除
+    /// CDCategoryEntity、CDProductEntity、CDInventoryChangeEntity
     func clearAllLocalData() {
-        // 子→父順序刪除，避免 FK 問題
-        let entityNames = [
-            "CDPendingSyncOperation",
-            "CDInventoryChangeEntity",
-            "CDTransactionEntity",
-            "CDProductEntity",
-            "CDCategoryEntity",
-            "CDSessionEntity",
-            "CDQRCodeEntity"
-        ]
+        do {
+            // 1. 刪除 CDPendingSyncOperation（無 cascade parent，需明確刪除）
+            let pendingRequest: NSFetchRequest<CDPendingSyncOperation> = CDPendingSyncOperation.fetchRequest()
+            let pendingOps = try context.fetch(pendingRequest)
+            pendingOps.forEach { context.delete($0) }
 
-        for entityName in entityNames {
-            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
-            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            // 2. 刪除 CDSessionEntity → cascade 自動刪 Category / Product / InventoryChange
+            let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+            let sessions = try context.fetch(sessionRequest)
+            sessions.forEach { context.delete($0) }
 
-            do {
-                try context.execute(deleteRequest)
-            } catch {
-                print("❌ clearAllLocalData 刪除 \(entityName) 失敗: \(error)")
-            }
+            // 3. 刪除 CDTransactionEntity（與 Session 無 cascade 關係）
+            let txRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+            let transactions = try context.fetch(txRequest)
+            transactions.forEach { context.delete($0) }
+
+            // 4. 刪除 CDQRCodeEntity（獨立 entity）
+            let qrRequest: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
+            let qrCodes = try context.fetch(qrRequest)
+            qrCodes.forEach { context.delete($0) }
+
+            try context.save()
+        } catch {
+            print("❌ clearAllLocalData 失敗: \(error)")
+            context.rollback()
         }
-
-        // 清除記憶體中的 managed objects
-        context.reset()
 
         // 通知 UI 刷新
         NotificationCenter.default.post(name: .syncDidComplete, object: nil)
