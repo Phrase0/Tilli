@@ -22,6 +22,22 @@ struct ContentView: View {
     }
 
     var body: some View {
+        if authManager.authState == .loading {
+            loadingView
+        } else {
+            mainView
+        }
+    }
+
+    private var loadingView: some View {
+        ZStack {
+            Color(.systemBackground).ignoresSafeArea()
+            ProgressView()
+                .scaleEffect(1.5)
+        }
+    }
+
+    private var mainView: some View {
         TabView(selection: $selectedTab) {
             SessionsView()
                 .tabItem { Label("場次", systemImage: "list.bullet") }
@@ -56,15 +72,16 @@ struct ContentView: View {
             .interactiveDismissDisabled()
         }
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
-//        .onAppear {
-//            TestDataGenerator.generateTestData(
-//                sessionDataManager: sessionDataManager,
-//                inventoryChangeRepository: inventoryChangeRepository
-//            )
-//            TestDataGenerator.generate30DaysMultiCafeSession(
-//                sessionDataManager: sessionDataManager,
-//                inventoryChangeRepository: inventoryChangeRepository
-//            )
-//        }
+        .onAppear {
+            TestDataGenerator.generateTestData(
+                sessionDataManager: sessionDataManager,
+                inventoryChangeRepository: inventoryChangeRepository
+            )
+            TestDataGenerator.generate30DaysMultiCafeSession(
+                sessionDataManager: sessionDataManager,
+                inventoryChangeRepository: inventoryChangeRepository
+            )
+        }
     }
 }
+

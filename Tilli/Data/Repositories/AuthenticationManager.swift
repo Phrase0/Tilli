@@ -39,6 +39,9 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     private var currentNonce: String?
 
+    // 標記正在執行登入流程，防止 authStateListener 提前干擾
+    private var isSigningIn = false
+
     // MARK: - Device ID
     var currentDeviceId: String {
         UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
@@ -84,6 +87,8 @@ class AuthenticationManager: NSObject, ObservableObject {
     private func handleAuthStateChanged(user: FirebaseAuth.User) async {
         // 如果正在設定 profile（needsSetup），不要干擾
         guard authState != .needsSetup else { return }
+        // 登入流程進行中，由 handleSignInSuccess 統一負責，避免 Race Condition
+        guard !isSigningIn else { return }
 
         // 如果記憶體中已經有這個用戶的資料，不需要重新從 Firestore 讀取
         // 這可以防止 Token 刷新時，Firestore 的舊資料覆蓋剛更新的本地資料
@@ -135,20 +140,24 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Google 登入
     func signInWithGoogle() async {
+        isSigningIn = true
         isLoading = true
         errorMessage = nil
 
         do {
             guard let credential = try await getGoogleCredential() else {
                 isLoading = false
+                isSigningIn = false
                 return
             }
 
             let result = try await Auth.auth().signIn(with: credential)
             await handleSignInSuccess(user: result.user, provider: .google)
             isLoading = false
+            isSigningIn = false
         } catch {
             isLoading = false
+            isSigningIn = false
             errorMessage = getErrorMessage(from: error)
             print("Google sign in error: \(error)")
         }
@@ -156,6 +165,7 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Apple 登入
     func signInWithApple() {
+        isSigningIn = true
         isLoading = true
         errorMessage = nil
 
@@ -198,8 +208,10 @@ class AuthenticationManager: NSObject, ObservableObject {
             let result = try await Auth.auth().signIn(with: firebaseCredential)
             await handleSignInSuccess(user: result.user, provider: .apple)
             isLoading = false
+            isSigningIn = false
         } catch {
             isLoading = false
+            isSigningIn = false
             errorMessage = getErrorMessage(from: error)
             print("Apple sign in error: \(error)")
         }
@@ -438,6 +450,7 @@ extension AuthenticationManager: ASAuthorizationControllerDelegate {
     ) {
         Task { @MainActor in
             isLoading = false
+            isSigningIn = false
 
             if let authError = error as? ASAuthorizationError,
                authError.code == .canceled {
