@@ -31,6 +31,7 @@ class InventoryChangeRepository: ObservableObject {
         entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         entity.syncStatus = "pending"
         entity.session = sessionEntity
+        entity.sessionId = sessionId
         saveContext()
         // 同步到 Firestore
         Task { @MainActor in
@@ -51,6 +52,7 @@ class InventoryChangeRepository: ObservableObject {
             entity.userId = currentUserId
             entity.syncStatus = "pending"
             entity.session = sessionEntity
+            entity.sessionId = sessionId
         }
         saveContext()
         // 批次同步到 Firestore

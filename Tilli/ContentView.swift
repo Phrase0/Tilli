@@ -72,16 +72,16 @@ struct ContentView: View {
             .interactiveDismissDisabled()
         }
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
-        .onAppear {
-            TestDataGenerator.generateTestData(
-                sessionDataManager: sessionDataManager,
-                inventoryChangeRepository: inventoryChangeRepository
-            )
-            TestDataGenerator.generate30DaysMultiCafeSession(
-                sessionDataManager: sessionDataManager,
-                inventoryChangeRepository: inventoryChangeRepository
-            )
-        }
+//        .onAppear {
+//            TestDataGenerator.generateTestData(
+//                sessionDataManager: sessionDataManager,
+//                inventoryChangeRepository: inventoryChangeRepository
+//            )
+//            TestDataGenerator.generate30DaysMultiCafeSession(
+//                sessionDataManager: sessionDataManager,
+//                inventoryChangeRepository: inventoryChangeRepository
+//            )
+//        }
     }
 }
 

@@ -832,7 +832,7 @@ class SyncManager: ObservableObject {
             for change in changes {
                 do {
                     let model = change.toModel()
-                    if let sessionId = change.sessionId {
+                    if let sessionId = model.sessionId {
                         try await uploader.uploadInventoryChange(model, sessionId: sessionId)
                     }
                 } catch {
