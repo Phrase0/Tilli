@@ -43,6 +43,7 @@ struct ContentView: View {
                 .tabItem { Label("個人", systemImage: "person.crop.circle") }
                 .tag(4)
         }
+        .id(authManager.authState)
         // 新用戶強制完成個人資料設定（統一由 authState 控制）
         .fullScreenCover(isPresented: Binding(
             get: { needsProfileSetup },
