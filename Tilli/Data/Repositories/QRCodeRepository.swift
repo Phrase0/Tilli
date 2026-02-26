@@ -59,7 +59,7 @@ class QRCodeRepository: ObservableObject {
         // 新增 QR Code Entity
         let entity = CDQRCodeEntity(context: context)
         entity.update(from: model, context: context)
-        entity.userId = Auth.auth().currentUser?.uid
+        entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         entity.updatedAt = Date()
         entity.syncStatus = "pending"
 

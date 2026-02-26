@@ -32,7 +32,7 @@ struct UserProfile: Identifiable, Codable, Equatable {
 
     // MARK: - 帳號狀態
     enum AccountStatus: String, Codable {
-        case guest      // 匿名使用者
+        case guest      // 本機使用者（未登入）
         case member     // 已註冊會員
     }
 
@@ -42,10 +42,13 @@ struct UserProfile: Identifiable, Codable, Equatable {
         case pro
     }
 
-    // MARK: - 建立 Guest 使用者
-    static func createGuest(uid: String, deviceId: String?) -> UserProfile {
+    // MARK: - 本機 Guest 識別碼
+    static let guestUserId = "LocalUser"
+
+    // MARK: - 建立本機 Guest 使用者
+    static func createLocal() -> UserProfile {
         return UserProfile(
-            uid: uid,
+            uid: guestUserId,
             email: "",
             name: "",
             photoURL: nil,
@@ -54,15 +57,8 @@ struct UserProfile: Identifiable, Codable, Equatable {
             membership: .free,
             expiryDate: nil,
             createdAt: Date(),
-            currentDeviceId: deviceId
+            currentDeviceId: nil
         )
-    }
-
-    // MARK: - 從 Guest 升級為 Member
-    mutating func upgradeToMember(email: String, name: String, provider: AuthProvider) {
-        self.email = email
-        self.name = name.isEmpty ? emailPrefix(from: email) : name
-        self.accountStatus = .member
     }
 
     // MARK: - 取得 email @ 前面的文字作為預設名稱

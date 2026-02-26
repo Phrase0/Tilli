@@ -28,7 +28,7 @@ class InventoryChangeRepository: ObservableObject {
         }
         let entity = CDInventoryChangeEntity(context: context)
         entity.update(from: change, context: context)
-        entity.userId = Auth.auth().currentUser?.uid
+        entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         entity.syncStatus = "pending"
         entity.session = sessionEntity
         saveContext()
@@ -44,7 +44,7 @@ class InventoryChangeRepository: ObservableObject {
             print("Session not found for id: \(sessionId)")
             return
         }
-        let currentUserId = Auth.auth().currentUser?.uid
+        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         for change in changes {
             let entity = CDInventoryChangeEntity(context: context)
             entity.update(from: change, context: context)

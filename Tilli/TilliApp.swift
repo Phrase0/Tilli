@@ -34,10 +34,6 @@ struct TilliApp: App {
                 .environmentObject(productRepository)
                 .environmentObject(inventoryChangeRepository)
                 .environmentObject(qRCodeDataManager)
-                .task {
-                    // App 啟動時自動匿名登入
-                    await authenticationManager.signInAnonymously()
-                }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         // App 回到前景時檢查 deviceId

@@ -106,7 +106,7 @@ class SessionRepository: ObservableObject {
 
         let entity = CDSessionEntity(context: context)
         entity.update(from: model, context: context)
-        let currentUserId = Auth.auth().currentUser?.uid
+        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         entity.userId = currentUserId
         entity.syncStatus = "pending"
         entity.updatedAt = Date()
@@ -285,7 +285,7 @@ class SessionRepository: ObservableObject {
         }
 
         // 新增新的 categories
-        let currentUserId = Auth.auth().currentUser?.uid
+        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         for categoryModel in categoriesToAdd {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
@@ -397,7 +397,7 @@ class SessionRepository: ObservableObject {
 
             let entity = CDTransactionEntity(context: context)
             entity.update(from: model, context: context)
-            entity.userId = Auth.auth().currentUser?.uid
+            entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
             entity.syncStatus = "pending"
             sessionEntity.addToTransactions(entity)
 
@@ -432,7 +432,7 @@ class SessionRepository: ObservableObject {
             }
 
             // 創建新的 Session 實體
-            let copyUserId = Auth.auth().currentUser?.uid
+            let copyUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
             let newSessionEntity = CDSessionEntity(context: context)
             newSessionEntity.id = UUID()
             newSessionEntity.title = newTitle

@@ -35,7 +35,7 @@ class ProductRepository: ObservableObject {
 
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: productModel, context: context)
-            productEntity.userId = Auth.auth().currentUser?.uid
+            productEntity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
             productEntity.syncStatus = "pending"
             productEntity.updatedAt = Date()
             productEntity.category = categoryEntity

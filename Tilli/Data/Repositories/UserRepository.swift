@@ -48,26 +48,6 @@ class UserRepository {
         try await updateUserFields(uid: uid, fields: ["currentDeviceId": deviceId])
     }
 
-    // MARK: - 檢查使用者是否存在
-    func userExists(uid: String) async throws -> Bool {
-        let document = try await db.collection(collectionName)
-            .document(uid)
-            .getDocument()
-
-        return document.exists
-    }
-
-    // MARK: - 升級會員狀態（guest -> member）
-    func upgradeToMember(uid: String, email: String, name: String, provider: UserProfile.AuthProvider) async throws {
-        let fields: [String: Any] = [
-            "email": email,
-            "name": name,
-            "provider": provider.rawValue,
-            "accountStatus": UserProfile.AccountStatus.member.rawValue
-        ]
-        try await updateUserFields(uid: uid, fields: fields)
-    }
-
     // MARK: - 更新會員等級
     func updateMembership(uid: String, membership: UserProfile.Membership, expiryDate: Date?) async throws {
         var fields: [String: Any] = [
