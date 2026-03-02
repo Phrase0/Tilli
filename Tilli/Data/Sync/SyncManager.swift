@@ -369,44 +369,34 @@ class SyncManager: ObservableObject {
 
     // MARK: - QRCode Sync
 
-    /// 同步 QRCode
-    func syncQRCode(_ qrCode: QRCodeModel, operation: SyncOperationType, imageURL: String? = nil) {
+    /// 同步 QRCode（統一用 setData upsert，不區分 create/update）
+    func syncQRCode(_ qrCode: QRCodeModel, imageURL: String? = nil) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
-                    switch operation {
-                    case .create:
-                        try await uploader.uploadQRCode(qrCode, imageURL: imageURL)
-                    case .update:
-                        try await uploader.updateQRCode(qrCode, imageURL: imageURL)
-                    case .delete:
-                        break
-                    }
+                    try await uploader.uploadQRCode(qrCode, imageURL: imageURL)
                     updateEntitySyncStatus(entityType: SyncEntityType.qrCode.rawValue, entityId: qrCode.id, status: .synced)
                     print("✅ QRCode 同步成功: \(qrCode.id)")
                 } catch {
-                    handleSyncError(error, entityType: .qrCode, entityId: qrCode.id, operation: operation, model: qrCode)
+                    handleSyncError(error, entityType: .qrCode, entityId: qrCode.id, operation: .create, model: qrCode)
                 }
             } else {
-                enqueueQRCodeOperation(qrCode, operation: operation)
+                enqueueQRCodeOperation(qrCode, operation: .create)
             }
         }
     }
 
-    /// 同步刪除 QRCode（同時刪除 Storage 圖片）
-    func syncDeleteQRCode(_ qrCodeId: UUID, imageURL: String? = nil) {
+    /// 同步刪除 QRCode（同時刪除 Storage 固定路徑圖片）
+    func syncDeleteQRCode(_ qrCodeId: UUID) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteQRCode(qrCodeId)
-                    // 刪除 Storage 圖片（若有）
-                    if let url = imageURL {
-                        await ImageSyncService.shared.deleteImages(urls: [url])
-                    }
+                    try? await ImageSyncService.shared.deleteQRCodeImage()
                     print("✅ QRCode 刪除同步成功: \(qrCodeId)")
                 } catch {
                     print("❌ QRCode 刪除同步失敗: \(error)")
@@ -622,7 +612,7 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.qrCode.rawValue:
             let model = try decoder.decode(QRCodeModel.self, from: payload)
-            try await uploader.updateQRCode(model)
+            try await uploader.uploadQRCode(model)
 
         default:
             break
@@ -736,9 +726,14 @@ class SyncManager: ObservableObject {
 
     /// 檢查本地是否有指定用戶的資料（用於登入前捕捉匿名 UID 的情境）
     func hasLocalData(for userId: String) -> Bool {
-        let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "userId == %@", userId)
-        return (try? context.count(for: request)) ?? 0 > 0
+        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+        sessionRequest.predicate = NSPredicate(format: "userId == %@", userId)
+        if (try? context.count(for: sessionRequest)) ?? 0 > 0 { return true }
+
+        // Guest 可能只有 QRCode（無 sessions），也需觸發升級流程
+        let qrRequest: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
+        qrRequest.predicate = NSPredicate(format: "userId == %@", userId)
+        return (try? context.count(for: qrRequest)) ?? 0 > 0
     }
 
     /// 檢查 Firestore 是否有該用戶的資料（用於登入情境判斷）
@@ -844,16 +839,35 @@ class SyncManager: ObservableObject {
                 }
             }
 
-            // 4. 上傳 QRCodes
+            // 4. 上傳 QRCode（每人唯一，LWW：與遠端比較 updatedAt）
             let qrRequest: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
             qrRequest.predicate = NSPredicate(format: "userId == %@", userId)
             let qrCodes = try context.fetch(qrRequest)
 
-            for qr in qrCodes {
-                do {
-                    try await uploader.uploadQRCode(qr.toModel())
-                } catch {
-                    print("❌ fullUpload QRCode 失敗: \(qr.id) - \(error)")
+            if let localQR = qrCodes.first {
+                let localUpdatedAt = localQR.updatedAt ?? Date.distantPast
+
+                // 查遠端是否已有 QRCode
+                let remoteSnapshot = try? await db.collection("qrCodes")
+                    .whereField("userId", isEqualTo: userId)
+                    .limit(to: 1)
+                    .getDocuments()
+                let remoteUpdatedAt = remoteSnapshot?.documents.first
+                    .flatMap { ($0.data()["updatedAt"] as? Timestamp)?.dateValue() }
+
+                if let remoteTime = remoteUpdatedAt, remoteTime > localUpdatedAt {
+                    // 遠端較新 → 跳過，performFullSync 會下載遠端版本
+                    print("⏭️ fullUpload QRCode 跳過（遠端較新）")
+                } else {
+                    // 本地較新或遠端不存在 → 上傳本地（含圖片）
+                    var model = localQR.toModel()
+                    if model.imageURL == nil, let image = model.image {
+                        let url = try await ImageSyncService.shared.uploadQRCodeImage(image)
+                        model.imageURL = url
+                        localQR.imageURL = url
+                    }
+                    try await uploader.uploadQRCode(model)
+                    print("✅ fullUpload QRCode 成功: \(model.id)")
                 }
             }
 

@@ -766,35 +766,38 @@ class FirestoreDownloader {
         }
     }
 
-    /// 儲存 QRCode（LWW 策略）— 保留 imageData
+    /// 儲存 QRCode（LWW 策略）— 每人唯一，以 userId 查找做比較
     @MainActor
     private func saveQRCode(_ model: QRCodeModel, remoteUpdatedAt: Date, userId: String) {
+        // QRCode 每人唯一，以 userId 查找（避免 id 不同導致重複建立）
         let request: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+        request.predicate = NSPredicate(format: "userId == %@", userId)
 
         do {
             let results = try context.fetch(request)
             let entity: CDQRCodeEntity
-
-            // 暫存現有 imageData
-            var existingImageData: Data?
+            var preserveImageData: Data?
 
             if let existing = results.first {
                 // LWW：本地較新就跳過
                 if let localUpdatedAt = existing.updatedAt, localUpdatedAt >= remoteUpdatedAt {
                     return
                 }
-                existingImageData = existing.imageData
-                entity = existing
+                // 同 ID 才保留 imageData（相同 QRCode 的本地圖片）
+                if existing.id == model.id {
+                    preserveImageData = existing.imageData
+                }
+                // 刪除舊的，重建（確保 id 與遠端一致）
+                context.delete(existing)
+                entity = CDQRCodeEntity(context: context)
             } else {
                 entity = CDQRCodeEntity(context: context)
             }
 
             entity.update(from: model, context: context)
 
-            // QRCode 的 update(from:) 會寫 model.imageData ?? Data()
-            // 因此必須明確還原 existing imageData
-            if let preserved = existingImageData, !preserved.isEmpty {
+            // 保留本地 imageData（同 id 時，避免被空值覆蓋）
+            if let preserved = preserveImageData, !preserved.isEmpty {
                 entity.imageData = preserved
             }
 

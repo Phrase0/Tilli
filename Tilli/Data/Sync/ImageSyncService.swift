@@ -84,15 +84,15 @@ class ImageSyncService {
         return "users/\(userId)/products/\(productId.uuidString).\(ImageType.thumbnail.fileExtension)"
     }
 
-    /// QR Code 圖片路徑
-    private func qrCodeImagePath(qrCodeId: UUID) -> String {
+    /// QR Code 圖片路徑（固定檔名，上傳即覆蓋舊的）
+    private func qrCodeImagePath() -> String {
         guard let userId = currentUserId else { return "" }
-        return "users/\(userId)/qrcodes/\(qrCodeId.uuidString).\(ImageType.qrCode.fileExtension)"
+        return "users/\(userId)/qrcode.\(ImageType.qrCode.fileExtension)"
     }
 
-    /// 頭貼圖片路徑
+    /// 頭貼圖片路徑（固定檔名，上傳即覆蓋舊的）
     private func profileImagePath(uid: String) -> String {
-        return "users/\(uid)/profile/\(uid).\(ImageType.thumbnail.fileExtension)"
+        return "users/\(uid)/profile.\(ImageType.thumbnail.fileExtension)"
     }
 
     // MARK: - 本地圖片處理（供 Model 使用）
@@ -139,17 +139,15 @@ class ImageSyncService {
         return try await uploadImage(image, path: path, type: .thumbnail)
     }
 
-    /// 上傳 QR Code 圖片
-    /// - Parameters:
-    ///   - image: 要上傳的圖片
-    ///   - qrCodeId: QR Code ID
+    /// 上傳 QR Code 圖片（固定路徑，上傳即覆蓋舊的）
+    /// - Parameter image: 要上傳的圖片
     /// - Returns: 上傳後的下載 URL
-    func uploadQRCodeImage(_ image: UIImage, qrCodeId: UUID) async throws -> String {
+    func uploadQRCodeImage(_ image: UIImage) async throws -> String {
         guard currentUserId != nil else {
             throw SyncError.authenticationRequired
         }
 
-        let path = qrCodeImagePath(qrCodeId: qrCodeId)
+        let path = qrCodeImagePath()
         return try await uploadImage(image, path: path, type: .qrCode)
     }
 
@@ -230,13 +228,13 @@ class ImageSyncService {
         }
     }
 
-    /// 刪除 QR Code 圖片
-    func deleteQRCodeImage(qrCodeId: UUID) async throws {
+    /// 刪除 QR Code 圖片（固定路徑）
+    func deleteQRCodeImage() async throws {
         guard currentUserId != nil else {
             throw SyncError.authenticationRequired
         }
 
-        let path = qrCodeImagePath(qrCodeId: qrCodeId)
+        let path = qrCodeImagePath()
         let ref = storage.reference().child(path)
 
         do {
@@ -378,11 +376,11 @@ class ImageSyncService {
         }
     }
 
-    /// 檢查 QR Code 圖片是否存在於 Storage
-    func qrCodeImageExists(qrCodeId: UUID) async -> Bool {
+    /// 檢查 QR Code 圖片是否存在於 Storage（固定路徑）
+    func qrCodeImageExists() async -> Bool {
         guard currentUserId != nil else { return false }
 
-        let path = qrCodeImagePath(qrCodeId: qrCodeId)
+        let path = qrCodeImagePath()
         let ref = storage.reference().child(path)
 
         do {

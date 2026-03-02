@@ -61,17 +61,10 @@ class QRCodeRepository: ObservableObject {
         }
     }
 
-    /// 儲存 QR Code
+    /// 儲存 QR Code（upsert：id 不變，內容覆蓋）
     func saveQRCode(_ model: QRCodeModel) {
-        // 檢查是否已有 QR Code（決定是 create 還是 update）
-        let isUpdate = qrCode != nil
-        let oldQRCodeId = qrCode?.id
-        let oldImageURL = qrCode?.imageURL
-
-        // 先刪除所有現有的 QR Code，然後新增
         deleteAllQRCodes()
 
-        // 新增 QR Code Entity
         let entity = CDQRCodeEntity(context: context)
         entity.update(from: model, context: context)
         entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
@@ -80,29 +73,13 @@ class QRCodeRepository: ObservableObject {
 
         saveContext()
 
-        // 更新 Published 屬性
         DispatchQueue.main.async {
             self.qrCode = model
         }
 
-        // 同步到 Firestore
-        // 注意：圖片上傳需要在 View 層處理，取得 imageURL 後再同步
         Task { @MainActor in
-            if isUpdate {
-                // 如果有舊的，先刪除舊的
-                if let oldId = oldQRCodeId, oldId != model.id {
-                    SyncManager.shared.syncDeleteQRCode(oldId, imageURL: oldImageURL)
-                }
-                SyncManager.shared.syncQRCode(model, operation: .update)
-            } else {
-                SyncManager.shared.syncQRCode(model, operation: .create)
-            }
+            SyncManager.shared.syncQRCode(model)
         }
-    }
-
-    /// 更新 QR Code
-    func updateQRCode(_ model: QRCodeModel) {
-        saveQRCode(model)
     }
 
     /// 圖片上傳 Storage 成功後，更新 imageURL
@@ -125,7 +102,7 @@ class QRCodeRepository: ObservableObject {
                 }
 
                 Task { @MainActor in
-                    SyncManager.shared.syncQRCode(model, operation: .update, imageURL: imageURL)
+                    SyncManager.shared.syncQRCode(model, imageURL: imageURL)
                 }
             }
         } catch {
@@ -136,20 +113,17 @@ class QRCodeRepository: ObservableObject {
     /// 刪除 QR Code
     func deleteQRCode() {
         let deletedId = qrCode?.id
-        let deletedImageURL = qrCode?.imageURL
 
         deleteAllQRCodes()
         saveContext()
 
-        // 更新 Published 屬性
         DispatchQueue.main.async {
             self.qrCode = nil
         }
 
-        // 同步刪除到 Firestore + Storage
         if let id = deletedId {
             Task { @MainActor in
-                SyncManager.shared.syncDeleteQRCode(id, imageURL: deletedImageURL)
+                SyncManager.shared.syncDeleteQRCode(id)
             }
         }
     }

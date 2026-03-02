@@ -398,38 +398,6 @@ class FirestoreUploader {
         }
     }
 
-    /// 更新 QRCode
-    func updateQRCode(_ qrCode: QRCodeModel, imageURL: String? = nil) async throws {
-        guard let userId = currentUserId else {
-            throw SyncError.authenticationRequired
-        }
-
-        var qrCodeToUpdate = qrCode
-        if let url = imageURL {
-            qrCodeToUpdate.imageURL = url
-        }
-
-        let batch = db.batch()
-
-        // 1. 更新資料
-        let qrCodeRef = db.collection(Collection.qrCodes).document(qrCode.id.uuidString)
-        let data = qrCodeToUpdate.toFirestoreData(userId: userId)
-        batch.updateData(data, forDocument: qrCodeRef)
-
-        // 2. 更新 syncState
-        let syncRef = syncStateRef(userId: userId)
-        batch.updateData([
-            "version": FieldValue.increment(Int64(1)),
-            "lastUpdate": FieldValue.serverTimestamp(),
-            "pendingChanges.\(SyncStateKey.qrCodes.rawValue)": FieldValue.arrayUnion([qrCode.id.uuidString])
-        ], forDocument: syncRef)
-
-        try await batch.commit()
-
-        Task {
-            await trimPendingChangesIfNeeded(userId: userId, entityType: .qrCodes)
-        }
-    }
 
     // MARK: - Delete Entity
 

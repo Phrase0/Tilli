@@ -101,29 +101,29 @@ struct MerchantQRCodeView: View {
         }
         .onChange(of: tempSelectedImage) {
             if let image = tempSelectedImage {
-                // QRCodeModel 的 image setter 會自動處理：512x512 PNG 無損
+                // 沿用現有 id 和 createdAt（UUID 不變，只更新圖片內容）
                 var model = QRCodeModel(
-                    id: UUID(),
+                    id: qrCodeDataManager.qrCode?.id ?? UUID(),
                     imageData: nil,
                     imageURL: nil,
-                    createdAt: Date()
+                    createdAt: qrCodeDataManager.qrCode?.createdAt ?? Date()
                 )
-                model.image = image  // 觸發 ImageSyncService 處理，存入 imageData
-                qrCodeDataManager.saveQRCode(model)  // 先存本地 + sync metadata
+                model.image = image  // 512x512 PNG 無損處理，存入 imageData
+                qrCodeDataManager.saveQRCode(model)
                 tempSelectedImage = nil
 
-                // 有帳號才嘗試上傳 Storage，Guest 直接存本地即可
+                // 有帳號才上傳 Storage，Guest 直接存本地
                 if authManager.isLoggedIn {
-                    let qrCodeId = model.id
                     Task {
                         do {
-                            let imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image, qrCodeId: qrCodeId)
+                            let imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image)
+                            // 確認上傳完成時使用者仍在登入狀態
+                            guard authManager.isLoggedIn else { return }
                             await MainActor.run {
                                 qrCodeDataManager.updateQRCodeImageURL(imageURL)
                             }
                         } catch {
                             // imageData 仍在本地，不影響當前裝置顯示
-                            // 下次完整同步時會重試
                             print("❌ QRCode 圖片上傳失敗: \(error)")
                         }
                     }
