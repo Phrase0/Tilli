@@ -395,14 +395,18 @@ class SyncManager: ObservableObject {
         }
     }
 
-    /// 同步刪除 QRCode
-    func syncDeleteQRCode(_ qrCodeId: UUID) {
+    /// 同步刪除 QRCode（同時刪除 Storage 圖片）
+    func syncDeleteQRCode(_ qrCodeId: UUID, imageURL: String? = nil) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteQRCode(qrCodeId)
+                    // 刪除 Storage 圖片（若有）
+                    if let url = imageURL {
+                        await ImageSyncService.shared.deleteImages(urls: [url])
+                    }
                     print("✅ QRCode 刪除同步成功: \(qrCodeId)")
                 } catch {
                     print("❌ QRCode 刪除同步失敗: \(error)")

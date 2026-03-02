@@ -92,7 +92,7 @@ class ImageSyncService {
 
     /// 頭貼圖片路徑
     private func profileImagePath(uid: String) -> String {
-        return "profile_photos/\(uid).\(ImageType.thumbnail.fileExtension)"
+        return "users/\(uid)/profile/\(uid).\(ImageType.thumbnail.fileExtension)"
     }
 
     // MARK: - 本地圖片處理（供 Model 使用）

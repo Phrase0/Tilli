@@ -13,6 +13,7 @@ class QRCodeRepository: ObservableObject {
 
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
+    private var syncObserver: Any?
 
     @Published var qrCode: QRCodeModel?
 
@@ -25,6 +26,19 @@ class QRCodeRepository: ObservableObject {
         self.container = container
         self.context = container.viewContext
         loadQRCode()
+
+        // 監聽 sync 完成通知（登出清資料 / 全量下載），重新讀取 CoreData
+        syncObserver = NotificationCenter.default.addObserver(
+            forName: .syncDidComplete, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.loadQRCode()
+        }
+    }
+
+    deinit {
+        if let observer = syncObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - QR Code Operations
@@ -52,6 +66,7 @@ class QRCodeRepository: ObservableObject {
         // 檢查是否已有 QR Code（決定是 create 還是 update）
         let isUpdate = qrCode != nil
         let oldQRCodeId = qrCode?.id
+        let oldImageURL = qrCode?.imageURL
 
         // 先刪除所有現有的 QR Code，然後新增
         deleteAllQRCodes()
@@ -76,7 +91,7 @@ class QRCodeRepository: ObservableObject {
             if isUpdate {
                 // 如果有舊的，先刪除舊的
                 if let oldId = oldQRCodeId, oldId != model.id {
-                    SyncManager.shared.syncDeleteQRCode(oldId)
+                    SyncManager.shared.syncDeleteQRCode(oldId, imageURL: oldImageURL)
                 }
                 SyncManager.shared.syncQRCode(model, operation: .update)
             } else {
@@ -90,9 +105,38 @@ class QRCodeRepository: ObservableObject {
         saveQRCode(model)
     }
 
+    /// 圖片上傳 Storage 成功後，更新 imageURL
+    func updateQRCodeImageURL(_ imageURL: String) {
+        guard var model = qrCode else { return }
+
+        let request: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
+
+        do {
+            let results = try context.fetch(request)
+            if let entity = results.first {
+                entity.imageURL = imageURL
+                entity.updatedAt = Date()
+                saveContext()
+
+                model.imageURL = imageURL
+                DispatchQueue.main.async {
+                    self.qrCode = model
+                }
+
+                Task { @MainActor in
+                    SyncManager.shared.syncQRCode(model, operation: .update, imageURL: imageURL)
+                }
+            }
+        } catch {
+            print("Update QR Code imageURL failed:", error)
+        }
+    }
+
     /// 刪除 QR Code
     func deleteQRCode() {
         let deletedId = qrCode?.id
+        let deletedImageURL = qrCode?.imageURL
 
         deleteAllQRCodes()
         saveContext()
@@ -102,10 +146,10 @@ class QRCodeRepository: ObservableObject {
             self.qrCode = nil
         }
 
-        // 同步刪除到 Firestore
+        // 同步刪除到 Firestore + Storage
         if let id = deletedId {
             Task { @MainActor in
-                SyncManager.shared.syncDeleteQRCode(id)
+                SyncManager.shared.syncDeleteQRCode(id, imageURL: deletedImageURL)
             }
         }
     }

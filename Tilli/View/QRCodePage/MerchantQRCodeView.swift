@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct MerchantQRCodeView: View {
-    
+
     @EnvironmentObject var qrCodeDataManager: QRCodeRepository
+    @EnvironmentObject var authManager: AuthenticationManager
     @State private var showingImagePicker = false
     @State private var tempSelectedImage: UIImage?
     @State private var showDeleteAlert = false
@@ -107,9 +108,26 @@ struct MerchantQRCodeView: View {
                     imageURL: nil,
                     createdAt: Date()
                 )
-                model.image = image  // 觸發 ImageSyncService 處理
-                qrCodeDataManager.saveQRCode(model)
+                model.image = image  // 觸發 ImageSyncService 處理，存入 imageData
+                qrCodeDataManager.saveQRCode(model)  // 先存本地 + sync metadata
                 tempSelectedImage = nil
+
+                // 有帳號才嘗試上傳 Storage，Guest 直接存本地即可
+                if authManager.isLoggedIn {
+                    let qrCodeId = model.id
+                    Task {
+                        do {
+                            let imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image, qrCodeId: qrCodeId)
+                            await MainActor.run {
+                                qrCodeDataManager.updateQRCodeImageURL(imageURL)
+                            }
+                        } catch {
+                            // imageData 仍在本地，不影響當前裝置顯示
+                            // 下次完整同步時會重試
+                            print("❌ QRCode 圖片上傳失敗: \(error)")
+                        }
+                    }
+                }
             }
         }
         .alert("確定要刪除此收款碼嗎？", isPresented: $showDeleteAlert) {
