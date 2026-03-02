@@ -60,6 +60,13 @@ class FirestoreUploader {
             .collection("private").document("syncState")
     }
 
+    // MARK: - User Collection Helper
+
+    /// 取得使用者子集合的 reference（users/{userId}/{name}）
+    private func userCollection(_ name: String, userId: String) -> CollectionReference {
+        return db.collection("users").document(userId).collection(name)
+    }
+
     // MARK: - Initialize SyncState
 
     /// 初始化 syncState（首次登入或 syncState 不存在時呼叫）
@@ -131,7 +138,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let sessionRef = db.collection(Collection.sessions).document(session.id.uuidString)
+        let sessionRef = userCollection(Collection.sessions, userId: userId).document(session.id.uuidString)
         let data = session.toFirestoreData(userId: userId)
         batch.setData(data, forDocument: sessionRef)
 
@@ -160,7 +167,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let categoryRef = db.collection(Collection.categories).document(category.id.uuidString)
+        let categoryRef = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
         let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
         batch.setData(data, forDocument: categoryRef)
 
@@ -196,7 +203,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let productRef = db.collection(Collection.products).document(product.id.uuidString)
+        let productRef = userCollection(Collection.products, userId: userId).document(product.id.uuidString)
         let data = productToUpload.toFirestoreData(userId: userId)
         batch.setData(data, forDocument: productRef)
 
@@ -224,7 +231,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let transactionRef = db.collection(Collection.transactions).document(transaction.id.uuidString)
+        let transactionRef = userCollection(Collection.transactions, userId: userId).document(transaction.id.uuidString)
         let data = transaction.toFirestoreData(userId: userId)
         batch.setData(data, forDocument: transactionRef)
 
@@ -252,7 +259,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let changeRef = db.collection(Collection.inventoryChanges).document(change.id.uuidString)
+        let changeRef = userCollection(Collection.inventoryChanges, userId: userId).document(change.id.uuidString)
         let data = change.toFirestoreData(userId: userId, sessionId: sessionId)
         batch.setData(data, forDocument: changeRef)
 
@@ -288,7 +295,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let qrCodeRef = db.collection(Collection.qrCodes).document(qrCode.id.uuidString)
+        let qrCodeRef = userCollection(Collection.qrCodes, userId: userId).document(qrCode.id.uuidString)
         let data = qrCodeToUpload.toFirestoreData(userId: userId)
         batch.setData(data, forDocument: qrCodeRef)
 
@@ -318,7 +325,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 更新資料
-        let sessionRef = db.collection(Collection.sessions).document(session.id.uuidString)
+        let sessionRef = userCollection(Collection.sessions, userId: userId).document(session.id.uuidString)
         let data = session.toFirestoreData(userId: userId)
         batch.updateData(data, forDocument: sessionRef)
 
@@ -346,7 +353,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 更新資料
-        let categoryRef = db.collection(Collection.categories).document(category.id.uuidString)
+        let categoryRef = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
         let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
         batch.updateData(data, forDocument: categoryRef)
 
@@ -379,7 +386,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 更新資料
-        let productRef = db.collection(Collection.products).document(product.id.uuidString)
+        let productRef = userCollection(Collection.products, userId: userId).document(product.id.uuidString)
         let data = productToUpdate.toFirestoreData(userId: userId)
         batch.updateData(data, forDocument: productRef)
 
@@ -410,7 +417,7 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 刪除資料
-        let sessionRef = db.collection(Collection.sessions).document(sessionId.uuidString)
+        let sessionRef = userCollection(Collection.sessions, userId: userId).document(sessionId.uuidString)
         batch.deleteDocument(sessionRef)
 
         // 2. 更新 syncState（version +1，加入 pendingChanges 供 Listener 增量偵測刪除）
@@ -432,7 +439,7 @@ class FirestoreUploader {
 
         let batch = db.batch()
 
-        let categoryRef = db.collection(Collection.categories).document(categoryId.uuidString)
+        let categoryRef = userCollection(Collection.categories, userId: userId).document(categoryId.uuidString)
         batch.deleteDocument(categoryRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -453,7 +460,7 @@ class FirestoreUploader {
 
         let batch = db.batch()
 
-        let productRef = db.collection(Collection.products).document(productId.uuidString)
+        let productRef = userCollection(Collection.products, userId: userId).document(productId.uuidString)
         batch.deleteDocument(productRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -474,9 +481,8 @@ class FirestoreUploader {
 
         let productIdString = productId.uuidString
 
-        // 1. 查詢該產品的所有 InventoryChanges
-        let changesSnapshot = try await db.collection(Collection.inventoryChanges)
-            .whereField("userId", isEqualTo: userId)
+        // 1. 查詢該產品的所有 InventoryChanges（路徑已限定 userId，不需 whereField）
+        let changesSnapshot = try await userCollection(Collection.inventoryChanges, userId: userId)
             .whereField("productId", isEqualTo: productIdString)
             .getDocuments()
 
@@ -495,7 +501,7 @@ class FirestoreUploader {
 
         // 3. 刪除 Product 本身 + 統一更新 syncState
         let finalBatch = db.batch()
-        let productRef = db.collection(Collection.products).document(productIdString)
+        let productRef = userCollection(Collection.products, userId: userId).document(productIdString)
         finalBatch.deleteDocument(productRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -523,7 +529,7 @@ class FirestoreUploader {
 
         let batch = db.batch()
 
-        let changeRef = db.collection(Collection.inventoryChanges).document(changeId.uuidString)
+        let changeRef = userCollection(Collection.inventoryChanges, userId: userId).document(changeId.uuidString)
         batch.deleteDocument(changeRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -544,7 +550,7 @@ class FirestoreUploader {
 
         let batch = db.batch()
 
-        let qrCodeRef = db.collection(Collection.qrCodes).document(qrCodeId.uuidString)
+        let qrCodeRef = userCollection(Collection.qrCodes, userId: userId).document(qrCodeId.uuidString)
         batch.deleteDocument(qrCodeRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -574,20 +580,20 @@ class FirestoreUploader {
         var productIds: [String] = []
 
         // 1. Parent: Session
-        let sessionRef = db.collection(Collection.sessions).document(session.id.uuidString)
+        let sessionRef = userCollection(Collection.sessions, userId: userId).document(session.id.uuidString)
         let sessionData = session.toFirestoreData(userId: userId)
         batch.setData(sessionData, forDocument: sessionRef)
 
         // 2. Children: Categories
         for category in session.categories {
-            let categoryRef = db.collection(Collection.categories).document(category.id.uuidString)
+            let categoryRef = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
             let categoryData = category.toFirestoreData(userId: userId, sessionId: session.id)
             batch.setData(categoryData, forDocument: categoryRef)
             categoryIds.append(category.id.uuidString)
 
             // 3. Grandchildren: Products
             for product in category.products {
-                let productRef = db.collection(Collection.products).document(product.id.uuidString)
+                let productRef = userCollection(Collection.products, userId: userId).document(product.id.uuidString)
                 let productData = product.toFirestoreData(userId: userId)
                 batch.setData(productData, forDocument: productRef)
                 productIds.append(product.id.uuidString)
@@ -639,7 +645,7 @@ class FirestoreUploader {
             var categoryIds: [String] = []
 
             for category in chunk {
-                let ref = db.collection(Collection.categories).document(category.id.uuidString)
+                let ref = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
                 let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
                 batch.setData(data, forDocument: ref)
                 categoryIds.append(category.id.uuidString)
@@ -678,7 +684,7 @@ class FirestoreUploader {
             var productIds: [String] = []
 
             for product in chunk {
-                let ref = db.collection(Collection.products).document(product.id.uuidString)
+                let ref = userCollection(Collection.products, userId: userId).document(product.id.uuidString)
                 let data = product.toFirestoreData(userId: userId)
                 batch.setData(data, forDocument: ref)
                 productIds.append(product.id.uuidString)
@@ -716,7 +722,7 @@ class FirestoreUploader {
             var transactionIds: [String] = []
 
             for transaction in chunk {
-                let ref = db.collection(Collection.transactions).document(transaction.id.uuidString)
+                let ref = userCollection(Collection.transactions, userId: userId).document(transaction.id.uuidString)
                 let data = transaction.toFirestoreData(userId: userId)
                 batch.setData(data, forDocument: ref)
                 transactionIds.append(transaction.id.uuidString)
@@ -754,7 +760,7 @@ class FirestoreUploader {
             var changeIds: [String] = []
 
             for change in chunk {
-                let ref = db.collection(Collection.inventoryChanges).document(change.id.uuidString)
+                let ref = userCollection(Collection.inventoryChanges, userId: userId).document(change.id.uuidString)
                 let data = change.toFirestoreData(userId: userId, sessionId: sessionId)
                 batch.setData(data, forDocument: ref)
                 changeIds.append(change.id.uuidString)
@@ -790,19 +796,16 @@ class FirestoreUploader {
 
         let sessionIdString = sessionId.uuidString
 
-        // 1. 查詢所有子項目（加入 userId filter 以通過 Firestore Security Rules）
-        let categoriesSnapshot = try await db.collection(Collection.categories)
-            .whereField("userId", isEqualTo: userId)
+        // 1. 查詢所有子項目（路徑已限定 userId，不需 whereField）
+        let categoriesSnapshot = try await userCollection(Collection.categories, userId: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
-        let productsSnapshot = try await db.collection(Collection.products)
-            .whereField("userId", isEqualTo: userId)
+        let productsSnapshot = try await userCollection(Collection.products, userId: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
-        let changesSnapshot = try await db.collection(Collection.inventoryChanges)
-            .whereField("userId", isEqualTo: userId)
+        let changesSnapshot = try await userCollection(Collection.inventoryChanges, userId: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
@@ -830,7 +833,7 @@ class FirestoreUploader {
 
         // 4. 刪除 Session 本身 + 統一更新 syncState（含所有被刪的 ID）
         let finalBatch = db.batch()
-        let sessionRef = db.collection(Collection.sessions).document(sessionIdString)
+        let sessionRef = userCollection(Collection.sessions, userId: userId).document(sessionIdString)
         finalBatch.deleteDocument(sessionRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -873,9 +876,8 @@ class FirestoreUploader {
 
         let categoryIdString = categoryId.uuidString
 
-        // 1. 查詢 Products（加入 userId filter 以通過 Firestore Security Rules）
-        let productsSnapshot = try await db.collection(Collection.products)
-            .whereField("userId", isEqualTo: userId)
+        // 1. 查詢 Products（路徑已限定 userId，不需 whereField）
+        let productsSnapshot = try await userCollection(Collection.products, userId: userId)
             .whereField("categoryId", isEqualTo: categoryIdString)
             .getDocuments()
 
@@ -886,8 +888,7 @@ class FirestoreUploader {
         var allChangeDocs: [QueryDocumentSnapshot] = []
 
         for productDocId in deletedProductIds {
-            let changesSnapshot = try await db.collection(Collection.inventoryChanges)
-                .whereField("userId", isEqualTo: userId)
+            let changesSnapshot = try await userCollection(Collection.inventoryChanges, userId: userId)
                 .whereField("productId", isEqualTo: productDocId)
                 .getDocuments()
             deletedChangeIds.append(contentsOf: changesSnapshot.documents.map { $0.documentID })
@@ -911,7 +912,7 @@ class FirestoreUploader {
 
         // 4. 刪除 Category 本身 + 統一更新 syncState
         let finalBatch = db.batch()
-        let categoryRef = db.collection(Collection.categories).document(categoryIdString)
+        let categoryRef = userCollection(Collection.categories, userId: userId).document(categoryIdString)
         finalBatch.deleteDocument(categoryRef)
 
         let syncRef = syncStateRef(userId: userId)
@@ -945,8 +946,7 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
-        let productsSnapshot = try await db.collection(Collection.products)
-            .whereField("userId", isEqualTo: userId)
+        let productsSnapshot = try await userCollection(Collection.products, userId: userId)
             .whereField("sessionId", isEqualTo: sessionId.uuidString)
             .getDocuments()
 
@@ -961,8 +961,7 @@ class FirestoreUploader {
             throw SyncError.authenticationRequired
         }
 
-        let productsSnapshot = try await db.collection(Collection.products)
-            .whereField("userId", isEqualTo: userId)
+        let productsSnapshot = try await userCollection(Collection.products, userId: userId)
             .whereField("categoryId", isEqualTo: categoryId.uuidString)
             .getDocuments()
 

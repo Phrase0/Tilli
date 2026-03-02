@@ -43,6 +43,13 @@ class FirestoreDownloader {
         static let qrCodes = "qrCodes"
     }
 
+    // MARK: - User Collection Helper
+
+    /// 取得使用者子集合的 reference（users/{userId}/{name}）
+    private func userCollection(_ name: String, userId: String) -> CollectionReference {
+        return db.collection("users").document(userId).collection(name)
+    }
+
     // MARK: - Sync Progress
 
     struct SyncProgress {
@@ -66,9 +73,8 @@ class FirestoreDownloader {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await db.collection(Collection.sessions).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.sessions, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              data["userId"] as? String == userId,
               let model = SessionModel(from: data),
               let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return }
@@ -84,9 +90,8 @@ class FirestoreDownloader {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await db.collection(Collection.categories).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.categories, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              data["userId"] as? String == userId,
               let model = CategoryModel(from: data),
               let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return }
@@ -102,9 +107,8 @@ class FirestoreDownloader {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await db.collection(Collection.products).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.products, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              data["userId"] as? String == userId,
               let model = ProductModel(from: data),
               let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return }
@@ -120,9 +124,8 @@ class FirestoreDownloader {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await db.collection(Collection.transactions).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.transactions, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              data["userId"] as? String == userId,
               let model = TransactionModel(from: data)
         else { return }
 
@@ -137,9 +140,8 @@ class FirestoreDownloader {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await db.collection(Collection.inventoryChanges).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.inventoryChanges, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              data["userId"] as? String == userId,
               let model = InventoryChangeModel(from: data)
         else { return }
 
@@ -154,9 +156,8 @@ class FirestoreDownloader {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await db.collection(Collection.qrCodes).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.qrCodes, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              data["userId"] as? String == userId,
               let model = QRCodeModel(from: data),
               let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return }
@@ -176,9 +177,7 @@ class FirestoreDownloader {
 
         reportProgress(step: "正在下載場次...", entity: "sessions", progress: 0.0)
 
-        let snapshot = try await db.collection(Collection.sessions)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(Collection.sessions, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
@@ -202,9 +201,7 @@ class FirestoreDownloader {
 
         reportProgress(step: "正在下載分類...", entity: "categories", progress: 1.0 / 7.0)
 
-        let snapshot = try await db.collection(Collection.categories)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(Collection.categories, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
@@ -228,9 +225,7 @@ class FirestoreDownloader {
 
         reportProgress(step: "正在下載產品...", entity: "products", progress: 2.0 / 7.0)
 
-        let snapshot = try await db.collection(Collection.products)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(Collection.products, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
@@ -257,9 +252,7 @@ class FirestoreDownloader {
         // 批次查詢已存在的 ID，避免 N+1
         let existingIds = await MainActor.run { fetchExistingTransactionIds() }
 
-        let snapshot = try await db.collection(Collection.transactions)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(Collection.transactions, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
@@ -287,9 +280,7 @@ class FirestoreDownloader {
         // 批次查詢已存在的 ID，避免 N+1
         let existingIds = await MainActor.run { fetchExistingInventoryChangeIds() }
 
-        let snapshot = try await db.collection(Collection.inventoryChanges)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(Collection.inventoryChanges, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
@@ -314,9 +305,7 @@ class FirestoreDownloader {
 
         reportProgress(step: "正在下載 QR Code...", entity: "qrCodes", progress: 5.0 / 7.0)
 
-        let snapshot = try await db.collection(Collection.qrCodes)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(Collection.qrCodes, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
@@ -345,9 +334,8 @@ class FirestoreDownloader {
         // 1. 下載 Session
         try await downloadSession(id: id)
 
-        // 2. 下載 Categories（by sessionId）
-        let categoriesSnapshot = try await db.collection(Collection.categories)
-            .whereField("userId", isEqualTo: userId)
+        // 2. 下載 Categories（by sessionId，路徑已限定 userId）
+        let categoriesSnapshot = try await userCollection(Collection.categories, userId: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
@@ -366,8 +354,7 @@ class FirestoreDownloader {
         }
 
         // 3. 下載 Products（by sessionId）
-        let productsSnapshot = try await db.collection(Collection.products)
-            .whereField("userId", isEqualTo: userId)
+        let productsSnapshot = try await userCollection(Collection.products, userId: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
@@ -385,8 +372,7 @@ class FirestoreDownloader {
         // 4. 下載 InventoryChanges（by sessionId）
         let existingChangeIds = await MainActor.run { fetchExistingInventoryChangeIds() }
 
-        let changesSnapshot = try await db.collection(Collection.inventoryChanges)
-            .whereField("userId", isEqualTo: userId)
+        let changesSnapshot = try await userCollection(Collection.inventoryChanges, userId: userId)
             .whereField("sessionId", isEqualTo: sessionIdString)
             .getDocuments()
 
@@ -480,10 +466,9 @@ class FirestoreDownloader {
 
         let doc: DocumentSnapshot
         do {
-            doc = try await db.collection(collectionName).document(id.uuidString).getDocument()
+            doc = try await userCollection(collectionName, userId: userId).document(id.uuidString).getDocument()
         } catch {
             // Permission denied (Code 7) 可能是文件已刪除導致 resource.data 為 null
-            // Firestore Security Rules 在文件不存在時 resource == null，若規則未處理會回傳 permission denied
             let nsError = error as NSError
             if nsError.domain == "FIRFirestoreErrorDomain" && nsError.code == 7 {
                 print("⚠️ syncFromServer: \(collectionName)/\(id) permission denied，視為已刪除")
@@ -503,8 +488,8 @@ class FirestoreDownloader {
             return false
         }
 
-        guard let data = doc.data(), data["userId"] as? String == userId else {
-            return true // 文件存在但不屬於當前用戶，跳過
+        guard let data = doc.data() else {
+            return true
         }
 
         // 文件存在，根據類型執行對應的 save/create 邏輯
@@ -589,7 +574,7 @@ class FirestoreDownloader {
     /// 清理本地有但雲端沒有的資料
     /// 只清理 syncStatus == "synced" 的資料（保留 "pending" 尚未上傳的）
     private func cleanUpDeletedEntities(userId: String) async throws {
-        // 從 Firestore 取得所有遠端 ID
+        // 從 Firestore 取得所有遠端 ID（路徑已限定 userId）
         let remoteSessions = try await fetchRemoteIds(collection: Collection.sessions, userId: userId)
         let remoteCategories = try await fetchRemoteIds(collection: Collection.categories, userId: userId)
         let remoteProducts = try await fetchRemoteIds(collection: Collection.products, userId: userId)
@@ -901,11 +886,9 @@ class FirestoreDownloader {
 
     // MARK: Remote ID Fetching
 
-    /// 從 Firestore 取得某 collection 中屬於該 user 的所有 ID
+    /// 從 Firestore 取得某 collection 中屬於該 user 的所有 ID（路徑已限定 userId）
     private func fetchRemoteIds(collection: String, userId: String) async throws -> Set<UUID> {
-        let snapshot = try await db.collection(collection)
-            .whereField("userId", isEqualTo: userId)
-            .getDocuments()
+        let snapshot = try await userCollection(collection, userId: userId).getDocuments()
 
         var ids = Set<UUID>()
         for doc in snapshot.documents {

@@ -739,8 +739,8 @@ class SyncManager: ObservableObject {
     /// 檢查 Firestore 是否有該用戶的資料（用於登入情境判斷）
     func hasCloudData(userId: String) async -> Bool {
         do {
-            let snapshot = try await db.collection("sessions")
-                .whereField("userId", isEqualTo: userId)
+            let snapshot = try await db.collection("users").document(userId)
+                .collection("sessions")
                 .limit(to: 1)
                 .getDocuments()
             return !snapshot.documents.isEmpty
@@ -848,8 +848,8 @@ class SyncManager: ObservableObject {
                 let localUpdatedAt = localQR.updatedAt ?? Date.distantPast
 
                 // 查遠端是否已有 QRCode
-                let remoteSnapshot = try? await db.collection("qrCodes")
-                    .whereField("userId", isEqualTo: userId)
+                let remoteSnapshot = try? await db.collection("users").document(userId)
+                    .collection("qrCodes")
                     .limit(to: 1)
                     .getDocuments()
                 let remoteUpdatedAt = remoteSnapshot?.documents.first
