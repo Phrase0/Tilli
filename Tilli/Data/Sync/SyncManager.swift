@@ -254,12 +254,19 @@ class SyncManager: ObservableObject {
     // MARK: - Product Sync
 
     /// 同步 Product
-    func syncProduct(_ product: ProductModel, operation: SyncOperationType, imageURL: String? = nil) {
+    func syncProduct(_ product: ProductModel, operation: SyncOperationType, imageChanged: Bool = false) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
+                    // 若圖片有變更，先上傳到 Storage 取得新 URL
+                    var imageURL: String? = product.imageURL
+                    if imageChanged, let image = product.image {
+                        imageURL = try await ImageSyncService.shared.uploadProductImage(image, productId: product.id)
+                        updateProductImageURL(productId: product.id, imageURL: imageURL)
+                    }
+
                     switch operation {
                     case .create:
                         try await uploader.uploadProduct(product, imageURL: imageURL)
@@ -276,6 +283,20 @@ class SyncManager: ObservableObject {
             } else {
                 enqueueProductOperation(product, operation: operation)
             }
+        }
+    }
+
+    /// 更新 CoreData 中 Product 的 imageURL
+    private func updateProductImageURL(productId: UUID, imageURL: String?) {
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
+        do {
+            if let entity = try context.fetch(request).first {
+                entity.imageURL = imageURL
+                try context.save()
+            }
+        } catch {
+            print("❌ updateProductImageURL 失敗: \(error)")
         }
     }
 
@@ -568,7 +589,12 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.product.rawValue:
             let model = try decoder.decode(ProductModel.self, from: payload)
-            try await uploader.uploadProduct(model)
+            var imageURL: String? = model.imageURL
+            if let image = model.image {
+                imageURL = try await ImageSyncService.shared.uploadProductImage(image, productId: model.id)
+                updateProductImageURL(productId: model.id, imageURL: imageURL)
+            }
+            try await uploader.uploadProduct(model, imageURL: imageURL)
 
         case SyncEntityType.transaction.rawValue:
             let model = try decoder.decode(TransactionModel.self, from: payload)
@@ -608,7 +634,12 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.product.rawValue:
             let model = try decoder.decode(ProductModel.self, from: payload)
-            try await uploader.updateProduct(model)
+            var imageURL: String? = model.imageURL
+            if let image = model.image {
+                imageURL = try await ImageSyncService.shared.uploadProductImage(image, productId: model.id)
+                updateProductImageURL(productId: model.id, imageURL: imageURL)
+            }
+            try await uploader.updateProduct(model, imageURL: imageURL)
 
         case SyncEntityType.qrCode.rawValue:
             let model = try decoder.decode(QRCodeModel.self, from: payload)

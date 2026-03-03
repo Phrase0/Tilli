@@ -31,8 +31,14 @@ class AddNewProductViewModel: ObservableObject {
     @Published var description: String = ""
     
     // MARK: - 圖片選擇
-    @Published var image: UIImage?
+    @Published var image: UIImage? {
+        didSet {
+            if isInitialized { imageChanged = true }
+        }
+    }
     @Published var showImagePicker = false
+    var imageChanged = false
+    private var isInitialized = false
     
     // MARK: - UI 驗證狀態
     @Published var showValidationError = false
@@ -285,6 +291,7 @@ class AddNewProductViewModel: ObservableObject {
             // 記錄原始庫存（用於計算變化量）
             self.originalStock = product.stock
         }
+        isInitialized = true
     }
 
     // MARK: - 更新 DataManager 引用
@@ -427,7 +434,7 @@ class AddNewProductViewModel: ObservableObject {
 
         if editingProduct != nil {
             // 編輯模式 → 更新產品
-            productRepository.updateProduct(product.id, productModel: product)
+            productRepository.updateProduct(product.id, productModel: product, imageChanged: imageChanged)
 
             // 如果庫存有變化，記錄異動
             if stockDelta != 0 {
@@ -442,7 +449,7 @@ class AddNewProductViewModel: ObservableObject {
             }
         } else {
             // 新增模式 → 新增產品
-            productRepository.addProduct(to: product.categoryId, productModel: product)
+            productRepository.addProduct(to: product.categoryId, productModel: product, imageChanged: imageChanged)
 
             // 新增產品時，記錄初始庫存為「進貨入庫」
             let initialStock = Int(quantity) ?? 0
@@ -477,5 +484,6 @@ class AddNewProductViewModel: ObservableObject {
             // 新增模式：清除圖片
             image = nil
         }
+        imageChanged = false
     }
 }

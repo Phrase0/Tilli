@@ -23,7 +23,7 @@ class ProductRepository: ObservableObject {
     // MARK: - Product CRUD Operations
 
     /// 新增 Product 到指定 Category
-    func addProduct(to categoryId: UUID, productModel: ProductModel) {
+    func addProduct(to categoryId: UUID, productModel: ProductModel, imageChanged: Bool = false) {
         let categoryRequest: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
         categoryRequest.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
 
@@ -43,7 +43,7 @@ class ProductRepository: ObservableObject {
             saveContext()
             // 同步到 Firestore
             Task { @MainActor in
-                SyncManager.shared.syncProduct(productModel, operation: .create)
+                SyncManager.shared.syncProduct(productModel, operation: .create, imageChanged: imageChanged)
             }
         } catch {
             print("加入 product 失敗:", error)
@@ -51,7 +51,7 @@ class ProductRepository: ObservableObject {
     }
 
     /// 更新 Product（允許修改名稱、價格、庫存等屬性，遵循原有業務邏輯）
-    func updateProduct(_ productId: UUID, productModel: ProductModel) {
+    func updateProduct(_ productId: UUID, productModel: ProductModel, imageChanged: Bool = false) {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
 
@@ -72,13 +72,16 @@ class ProductRepository: ObservableObject {
                 if let imageData = productModel.imageData {
                     entity.imageData = imageData
                 }
+                if imageChanged {
+                    entity.imageURL = nil  // 清空舊 URL，Storage 上傳後由 SyncManager 回寫
+                }
                 entity.syncStatus = "pending"
                 entity.updatedAt = Date()
 
                 saveContext()
                 // 同步到 Firestore
                 Task { @MainActor in
-                    SyncManager.shared.syncProduct(productModel, operation: .update)
+                    SyncManager.shared.syncProduct(productModel, operation: .update, imageChanged: imageChanged)
                 }
             }
         } catch {
