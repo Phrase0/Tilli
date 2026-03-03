@@ -308,6 +308,7 @@ class SyncManager: ObservableObject {
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteProduct(productId)
+                    try? await ImageSyncService.shared.deleteProductImage(productId: productId)
                     print("✅ Product 刪除同步成功: \(productId)")
                 } catch {
                     print("❌ Product 刪除同步失敗: \(error)")
@@ -327,6 +328,7 @@ class SyncManager: ObservableObject {
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteProductWithInventoryChanges(productId)
+                    try? await ImageSyncService.shared.deleteProductImage(productId: productId)
                     print("✅ Product（含庫存異動）刪除同步成功: \(productId)")
                 } catch {
                     print("❌ Product（含庫存異動）刪除同步失敗: \(error)")
@@ -664,6 +666,7 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.product.rawValue:
             try await uploader.deleteProductWithInventoryChanges(entityId)
+            try? await ImageSyncService.shared.deleteProductImage(productId: entityId)
 
         case SyncEntityType.inventoryChange.rawValue:
             try await uploader.deleteInventoryChange(entityId)
