@@ -22,10 +22,21 @@ struct ContentView: View {
     }
 
     var body: some View {
-        if authManager.authState == .loading {
-            loadingView
-        } else {
-            mainView
+        ZStack {
+            if authManager.authState == .loading {
+                loadingView
+            } else {
+                mainView
+            }
+
+            if authManager.isLoading {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(true)
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+            }
         }
     }
 
