@@ -109,17 +109,5 @@ struct SignInView: View {
                 dismiss()
             }
         }
-        .overlay {
-            if authManager.isLoading {
-                ZStack {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(.white)
-                }
-            }
-        }
     }
 }
