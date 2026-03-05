@@ -343,6 +343,10 @@ class AddNewProductViewModel: ObservableObject {
             return nil
         }
         
+        let processedImageData = image.flatMap {
+            ImageSyncService.shared.processImageForLocal($0, type: .thumbnail)
+        }
+
         if let editing = editingProduct {
             // 編輯模式：檢查是否有交易記錄
             if hasTransaction(for: editing.id) {
@@ -356,7 +360,7 @@ class AddNewProductViewModel: ObservableObject {
                     categoryId: editing.categoryId,    // 保持原類別 ID
                     categoryName: editing.categoryName, // 保持原類別名稱
                     note: description,                 // 允許更新描述
-                    imageData: image?.jpegData(compressionQuality: 0.8),// 允許更新圖片
+                    imageData: processedImageData,     // 允許更新圖片
                     isDisabled: editing.isDisabled
 
                 )
@@ -371,7 +375,7 @@ class AddNewProductViewModel: ObservableObject {
                     categoryId: category.id,           // 允許更新類別 ID
                     categoryName: category.name,       // 允許更新類別名稱
                     note: description,                 // 允許更新描述
-                    imageData: image?.jpegData(compressionQuality: 0.8), // 允許更新圖片
+                    imageData: processedImageData,     // 允許更新圖片
                     isDisabled: editing.isDisabled
                 )
             }
@@ -385,7 +389,7 @@ class AddNewProductViewModel: ObservableObject {
                 categoryId: category.id,
                 categoryName: category.name,
                 note: description,
-                imageData: image?.jpegData(compressionQuality: 0.8),
+                imageData: processedImageData,
                 isDisabled: false
             )
         }
