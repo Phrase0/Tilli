@@ -969,6 +969,7 @@ class FirestoreUploader {
             doc.get("imageURL") as? String
         }.filter { !$0.isEmpty }
     }
+
 }
 
 // MARK: - Array Extension for Chunking

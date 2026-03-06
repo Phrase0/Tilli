@@ -11,6 +11,7 @@ import FirebaseAuth
 import FirebaseFirestore
 import GoogleSignIn
 import FirebaseCore
+import FirebaseFunctions
 import AuthenticationServices
 import CryptoKit
 
@@ -206,6 +207,13 @@ class AuthenticationManager: NSObject, ObservableObject {
 
         do {
             let result = try await Auth.auth().signIn(with: firebaseCredential)
+
+            // Exchange authorization code for refresh token (stored server-side for revocation)
+            if let authorizationCode = credential.authorizationCode,
+               let authCodeString = String(data: authorizationCode, encoding: .utf8) {
+                await exchangeAppleToken(authorizationCode: authCodeString)
+            }
+
             await handleSignInSuccess(user: result.user, provider: .apple)
             isLoading = false
             isSigningIn = false
@@ -214,6 +222,17 @@ class AuthenticationManager: NSObject, ObservableObject {
             isSigningIn = false
             errorMessage = getErrorMessage(from: error)
             print("Apple sign in error: \(error)")
+        }
+    }
+
+    // MARK: - 交換 Apple Token（存入後端供日後 Revoke）
+    private func exchangeAppleToken(authorizationCode: String) async {
+        do {
+            let functions = Functions.functions()
+            _ = try await functions.httpsCallable("exchangeAppleToken").call(["authorizationCode": authorizationCode])
+        } catch {
+            // Non-fatal：token 交換失敗不中斷登入流程
+            print("exchangeAppleToken error: \(error)")
         }
     }
 
@@ -334,6 +353,30 @@ class AuthenticationManager: NSObject, ObservableObject {
         } catch {
             print("Error handling sign in success: \(error)")
         }
+    }
+
+    // MARK: - 刪除帳號
+    func deleteAccount() async {
+        guard Auth.auth().currentUser != nil else { return }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // Cloud Function 負責：Apple token revoke、Firestore 清除、Storage 清除、Auth 刪除
+            let functions = Functions.functions()
+            _ = try await functions.httpsCallable("deleteAccount").call()
+
+            // 停止同步 + 清除本地資料
+            SyncManager.shared.resetSync()
+            SyncManager.shared.clearAllLocalData()
+            localProfileImage = nil
+            // Auth state listener 會自動觸發 setupLocalGuest()
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Delete account error: \(error)")
+        }
+
+        isLoading = false
     }
 
     // MARK: - 登出

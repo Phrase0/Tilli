@@ -1,77 +1,43 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ===== Helper Functions =====
-    // 驗證是否為已登入的資料擁有者
-    function isOwner() {
-      return request.auth != null && resource.data.userId == request.auth.uid;
-    }
-    // 驗證寫入的資料是否屬於當前用戶
-    function isOwnerWrite() {
-      return request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    // get 規則：文件可能已被刪除（resource == null），需允許讀取以偵測刪除
-    function isOwnerOrDeleted() {
-      return request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+    function isUser(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // ===== User Private Data (syncState) =====
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /users/{userId} {
+      allow read, write: if isUser(userId);
     }
 
-    // ===== Entity Collections =====
-    // 共用邏輯：只能存取自己的資料（userId 欄位 == auth uid）
-    // get 使用 isOwnerOrDeleted() 以支援 HybridSyncListener 偵測已刪除的文件
-
-    match /sessions/{docId} {
-      allow get: if isOwnerOrDeleted();
-      allow list: if isOwner();
-      allow create: if isOwnerWrite();
-      allow update: if isOwner();
-      allow delete: if isOwner();
+    match /users/{userId}/sessions/{docId} {
+      allow read, write: if isUser(userId);
     }
 
-    match /categories/{docId} {
-      allow get: if isOwnerOrDeleted();
-      allow list: if isOwner();
-      allow create: if isOwnerWrite();
-      allow update: if isOwner();
-      allow delete: if isOwner();
+    match /users/{userId}/categories/{docId} {
+      allow read, write: if isUser(userId);
     }
 
-    match /products/{docId} {
-      allow get: if isOwnerOrDeleted();
-      allow list: if isOwner();
-      allow create: if isOwnerWrite();
-      allow update: if isOwner();
-      allow delete: if isOwner();
+    match /users/{userId}/products/{docId} {
+      allow read, write: if isUser(userId);
     }
 
-    match /transactions/{docId} {
-      allow get: if isOwnerOrDeleted();
-      allow list: if isOwner();
-      allow create: if isOwnerWrite();
-      allow update: if isOwner();
-      allow delete: if isOwner();
+    match /users/{userId}/inventoryChanges/{docId} {
+      allow read, write: if isUser(userId);
     }
 
-    match /inventoryChanges/{docId} {
-      allow get: if isOwnerOrDeleted();
-      allow list: if isOwner();
-      allow create: if isOwnerWrite();
-      allow update: if isOwner();
-      allow delete: if isOwner();
+    match /users/{userId}/transactions/{docId} {
+      allow read, write: if isUser(userId);
     }
 
-    match /qrCodes/{docId} {
-      allow get: if isOwnerOrDeleted();
-      allow list: if isOwner();
-      allow create: if isOwnerWrite();
-      allow update: if isOwner();
-      allow delete: if isOwner();
+    match /users/{userId}/qrCodes/{docId} {
+      allow read, write: if isUser(userId);
+    }
+
+    // private 子集合只開放 syncState
+    // appleToken 無 rule = 客戶端自動拒絕，只有 Admin SDK 可存取
+    match /users/{userId}/private/syncState {
+      allow read, write: if isUser(userId);
     }
   }
 }

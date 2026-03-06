@@ -2,22 +2,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // 用戶頭像：只能讀寫自己的
-    match /users/{userId}/profile/{fileName} {
+    // 所有用戶資料：只能讀寫自己的
+    // 涵蓋：profile.jpg、qrcode.png、products/{id}.jpg
+    match /users/{userId}/{allPaths=**} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 產品圖片：只能讀寫自己的
-    match /users/{userId}/products/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // QR Code 圖片：只能讀寫自己的
-    match /users/{userId}/qrcodes/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
   }
 }

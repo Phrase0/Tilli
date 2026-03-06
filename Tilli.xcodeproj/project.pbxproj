@@ -15,6 +15,7 @@
 		211060F72F1F84FE00BB0E0F /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */; };
 		21237C922F2C9C9400D2826E /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 21237C912F2C9C9400D2826E /* Alamofire */; };
 		214091952F236766000AAB46 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 214091942F236766000AAB46 /* Kingfisher */; };
+		216936842F5ACFC800FE45CD /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 216936832F5ACFC800FE45CD /* FirebaseFunctions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -63,6 +64,7 @@
 				211060F52F1F84FE00BB0E0F /* GoogleSignIn in Frameworks */,
 				21237C922F2C9C9400D2826E /* Alamofire in Frameworks */,
 				211060212F1F2D1E00BB0E0F /* FirebaseAuth in Frameworks */,
+				216936842F5ACFC800FE45CD /* FirebaseFunctions in Frameworks */,
 				214091952F236766000AAB46 /* Kingfisher in Frameworks */,
 				211060232F1F2D1E00BB0E0F /* FirebaseFirestore in Frameworks */,
 				211060F72F1F84FE00BB0E0F /* GoogleSignInSwift in Frameworks */,
@@ -127,6 +129,7 @@
 				211060F62F1F84FE00BB0E0F /* GoogleSignInSwift */,
 				214091942F236766000AAB46 /* Kingfisher */,
 				21237C912F2C9C9400D2826E /* Alamofire */,
+				216936832F5ACFC800FE45CD /* FirebaseFunctions */,
 			);
 			productName = Tilli;
 			productReference = F84D81F62DB85002006730C2 /* Tilli.app */;
@@ -484,6 +487,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 214091932F236766000AAB46 /* XCRemoteSwiftPackageReference "Kingfisher" */;
 			productName = Kingfisher;
+		};
+		216936832F5ACFC800FE45CD /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2110601F2F1F2D1E00BB0E0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

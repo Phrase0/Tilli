@@ -1,7 +1,0 @@
-{
-  "projects": {
-    "firebase deploy --only firestore:rules,firestore:indexes,storage": "tilli-31b3f"
-  },
-  "targets": {},
-  "etags": {}
-}

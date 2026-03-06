@@ -20,6 +20,7 @@ struct ProfileView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
 
     @State private var showTilliProSheet = false
+    @State private var showDeleteAccountAlert = false
 
     // MARK: - App Version
     private var appVersion: String {
@@ -337,20 +338,39 @@ struct ProfileView: View {
     private var logOutButton: some View {
         Group {
             if authManager.isLoggedIn {
-                // 登出按鈕
-                Button(action: {
-                    authManager.signOut()
-                }) {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("登出")
+                VStack(spacing: 12) {
+                    // 登出按鈕
+                    Button(action: {
+                        authManager.signOut()
+                    }) {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("登出")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.red)
+                        .cornerRadius(12)
                     }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.red)
-                    .cornerRadius(12)
+
+                    // 刪除帳號
+                    Button(action: {
+                        showDeleteAccountAlert = true
+                    }) {
+                        Text("刪除帳號")
+                            .font(.footnote)
+                            .foregroundColor(.red.opacity(0.7))
+                    }
+                }
+                .alert("確認刪除帳號", isPresented: $showDeleteAccountAlert) {
+                    Button("取消", role: .cancel) { }
+                    Button("刪除", role: .destructive) {
+                        Task { await authManager.deleteAccount() }
+                    }
+                } message: {
+                    Text("帳號刪除後所有資料將永久消失，且無法復原。")
                 }
             } else {
                 // 登入按鈕
