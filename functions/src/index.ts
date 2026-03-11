@@ -25,9 +25,21 @@ const APPLE_BUNDLE_ID = defineSecret("APPLE_BUNDLE_ID");
  * @return {string} Signed JWT client secret.
  */
 function buildAppleClientSecret(): string {
-  const privateKey = APPLE_PRIVATE_KEY.value().replace(/\\n/g, "\n");
+  // 不論 Secret Manager 存的是「真正換行」或「\n 逸脫字元」，統一重組成標準 PEM 格式
+  let keyStr = APPLE_PRIVATE_KEY.value().replace(/\\n/g, "\n").trim();
 
-  return jwt.sign({}, privateKey, {
+  const pemPattern =
+    /-----BEGIN ([A-Z ]+)-----\s*([\s\S]+?)\s*-----END \1-----/;
+  const match = keyStr.match(pemPattern);
+  if (match) {
+    const keyType = match[1];
+    const base64 = match[2].replace(/\s+/g, "");
+    const lines = base64.match(/.{1,64}/g) ?? [];
+    const body = lines.join("\n");
+    keyStr = `-----BEGIN ${keyType}-----\n${body}\n-----END ${keyType}-----`;
+  }
+
+  return jwt.sign({}, keyStr, {
     algorithm: "ES256",
     expiresIn: "5m",
     issuer: APPLE_TEAM_ID.value(),
@@ -169,6 +181,7 @@ export const exchangeAppleToken = onCall(
     };
 
     if (!tokenData.refresh_token) {
+      console.error("Apple token exchange failed:", JSON.stringify(tokenData));
       throw new HttpsError(
         "internal",
         `Apple token exchange failed: ${tokenData.error ?? "unknown"}`

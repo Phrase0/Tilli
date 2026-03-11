@@ -230,6 +230,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         do {
             let functions = Functions.functions()
             _ = try await functions.httpsCallable("exchangeAppleToken").call(["authorizationCode": authorizationCode])
+            print("get AppleToken")
         } catch {
             // Non-fatal：token 交換失敗不中斷登入流程
             print("exchangeAppleToken error: \(error)")
@@ -370,7 +371,12 @@ class AuthenticationManager: NSObject, ObservableObject {
             SyncManager.shared.resetSync()
             SyncManager.shared.clearAllLocalData()
             localProfileImage = nil
-            // Auth state listener 會自動觸發 setupLocalGuest()
+            errorMessage = nil
+
+            // 主動登出 + 重設狀態（Server 已刪除 Auth 帳號，client 需主動清除）
+            try? Auth.auth().signOut()
+            GIDSignIn.sharedInstance.signOut()
+            setupLocalGuest()
         } catch {
             errorMessage = error.localizedDescription
             print("Delete account error: \(error)")
