@@ -304,7 +304,10 @@ class AuthenticationManager: NSObject, ObservableObject {
             // 3. 建立 / 更新 UserProfile
             if let profile = try await userRepository.getUser(uid: user.uid) {
                 self.currentUser = profile
-                try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
+                // Pro 會員允許多裝置同時登入，不覆蓋 deviceId
+                if profile.membership == .free {
+                    try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
+                }
             } else {
                 let email = user.email ?? ""
                 let newProfile = UserProfile(
@@ -406,9 +409,11 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - 檢查 Device ID（防止多處登入）
+    // MARK: - 檢查 Device ID（防止多處登入，僅限 Free 會員）
     func checkDeviceId() async {
         guard let user = currentUser, user.accountStatus == .member else { return }
+        // Pro 會員允許多裝置同時登入，跳過衝突檢查
+        guard user.membership == .free else { return }
 
         do {
             if let cloudProfile = try await userRepository.getUser(uid: user.uid) {
