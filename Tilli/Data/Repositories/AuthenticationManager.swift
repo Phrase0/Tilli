@@ -395,12 +395,11 @@ class AuthenticationManager: NSObject, ObservableObject {
             SyncManager.shared.resetSync()
             // 清除所有本地資料
             SyncManager.shared.clearAllLocalData()
-
-            try Auth.auth().signOut()
-            GIDSignIn.sharedInstance.signOut()
             localProfileImage = nil
             errorMessage = nil
-
+            
+            try Auth.auth().signOut()
+            GIDSignIn.sharedInstance.signOut()
             // 重設為本機 Guest 狀態
             setupLocalGuest()
         } catch {
