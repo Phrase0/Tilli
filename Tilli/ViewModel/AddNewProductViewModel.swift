@@ -16,9 +16,9 @@ class AddNewProductViewModel: ObservableObject {
     /// 庫存數量最大位數
     static let stockMaxDigits = 9
     /// 價格提示顯示門檻（整數位數）
-    static let priceWarningThreshold = 8
+    static let priceWarningThreshold = 10
     /// 庫存提示顯示門檻（位數）
-    static let stockWarningThreshold = 7
+    static let stockWarningThreshold = 9
 
     // MARK: - 輸入 Session
     let session: SessionModel
