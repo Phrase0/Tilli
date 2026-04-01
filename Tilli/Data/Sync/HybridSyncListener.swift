@@ -53,7 +53,7 @@ class HybridSyncListener {
         let syncStateRef = db.collection("users").document(userId)
             .collection("private").document("syncState")
 
-        print("👂 HybridSyncListener: 開始監聽 syncState")
+        print("👂 [HybridSyncListener] startListening — userId: \(userId), localVersion: \(localVersion)")
 
         listener = syncStateRef.addSnapshotListener { [weak self] snapshot, error in
             guard let self = self else { return }
@@ -66,12 +66,16 @@ class HybridSyncListener {
 
     /// 停止監聽
     func stopListening() {
+        if listener != nil {
+            print("🛑 [HybridSyncListener] stopListening — localVersion: \(localVersion)")
+        }
         listener?.remove()
         listener = nil
     }
 
     /// 重置本地版本號（登出或重新登入時呼叫）
     func resetLocalVersion() {
+        print("🔁 [HybridSyncListener] resetLocalVersion: \(localVersion) → 0")
         localVersion = 0
     }
 
@@ -80,20 +84,33 @@ class HybridSyncListener {
     /// 處理 syncState snapshot 更新
     private func handleSnapshotUpdate(snapshot: DocumentSnapshot?, error: Error?) {
         if let error = error {
-            print("❌ HybridSyncListener: 監聽錯誤 - \(error)")
+            print("❌ [HybridSyncListener] 監聽錯誤 - \(error)")
             return
         }
 
-        guard let data = snapshot?.data() else { return }
+        guard let snapshot = snapshot else {
+            print("⚠️ [HybridSyncListener] snapshot 為 nil（文件不存在或連線中斷）")
+            return
+        }
+
+        guard let data = snapshot.data() else {
+            print("⚠️ [HybridSyncListener] snapshot.data() 為 nil — docExists: \(snapshot.exists), docID: \(snapshot.documentID)")
+            return
+        }
 
         let cloudVersion = data["version"] as? Int ?? 0
+        let pendingChanges = data["pendingChanges"] as? [String: [String]] ?? [:]
+        let pendingCount = pendingChanges.values.map(\.count).reduce(0, +)
+
+        print("📡 [HybridSyncListener] snapshot 收到 — cloudVersion: \(cloudVersion), localVersion: \(localVersion), pendingIDs 總數: \(pendingCount), isProcessing: \(isProcessing)")
 
         // 版本號沒變，不處理
-        guard cloudVersion > localVersion else { return }
+        guard cloudVersion > localVersion else {
+            print("⏭️ [HybridSyncListener] 版本未變更，跳過 (local: \(localVersion), cloud: \(cloudVersion))")
+            return
+        }
 
-        print("🔄 HybridSyncListener: 版本變更 (local: \(localVersion) → cloud: \(cloudVersion))")
-
-        let pendingChanges = data["pendingChanges"] as? [String: [String]] ?? [:]
+        print("🔄 [HybridSyncListener] 版本變更 (local: \(localVersion) → cloud: \(cloudVersion))，pendingChanges: \(pendingChanges)")
 
         Task {
             await self.processChanges(pendingChanges: pendingChanges, cloudVersion: cloudVersion)
@@ -106,7 +123,7 @@ class HybridSyncListener {
     private func processChanges(pendingChanges: [String: [String]], cloudVersion: Int) async {
         // 防止重入
         guard !isProcessing else {
-            print("⏳ HybridSyncListener: 處理中，跳過")
+            print("⚠️ [HybridSyncListener] 處理中，跳過 cloudVersion: \(cloudVersion)（目前處理中，此更新被丟棄）")
             return
         }
 
@@ -120,19 +137,21 @@ class HybridSyncListener {
         }
 
         if hasAnyIds {
-            // 有具體 ID → 增量同步（download or delete）
-            print("📥 HybridSyncListener: 增量同步")
+            print("📥 [HybridSyncListener] 增量同步開始 — cloudVersion: \(cloudVersion), IDs: \(pendingChanges)")
             await performIncrementalSync(pendingChanges: pendingChanges)
         } else {
             // 所有 pendingChanges 都空但 version 變了
             // 可能是 pendingChanges overflow 被 trim，觸發全量同步
-            print("📥 HybridSyncListener: 全量同步")
+            print("📥 [HybridSyncListener] pendingChanges 為空，觸發全量同步 — cloudVersion: \(cloudVersion)")
             await SyncManager.shared.performFullSync()
         }
 
         // 更新本地版本號
         localVersion = cloudVersion
-        print("✅ HybridSyncListener: 完成 (version = \(cloudVersion))")
+
+        // 通知 Repository 層重新從 CoreData 讀取，刷新 UI
+        NotificationCenter.default.post(name: .syncDidComplete, object: nil)
+        print("✅ [HybridSyncListener] 完成 — localVersion 更新為 \(cloudVersion)")
     }
 
     // MARK: - Incremental Sync
