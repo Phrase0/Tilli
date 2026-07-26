@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-26T00:00:00Z",
+  "title": "Design System: Tilli (Market POS)",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "primary", "displayName": "Ink", "canonical": "#000000", "tonalRamp": ["#000000", "#1C1C1E", "#3A3A3C", "#48484A", "#636366", "#8E8E93", "#C7C7CC", "#F2F2F7"] },
+      "market-green": { "role": "secondary", "displayName": "Market Green", "canonical": "#34C759", "tonalRamp": ["#0F4A21", "#1C6B32", "#279143", "#34C759", "#5DD37B", "#8AE0A2", "#B9EDC8", "#D8F5DE"] },
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#F2F2F7", "tonalRamp": ["#1C1C1E", "#3A3A3C", "#636366", "#AEAEB2", "#D1D1D6", "#E5E5EA", "#F2F2F7", "#FBFBFD"] },
+      "card-surface": { "role": "neutral", "displayName": "Card Surface", "canonical": "#FFFFFF", "tonalRamp": ["#E5E5EA", "#EFEFF4", "#F2F2F7", "#F7F7F9", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] },
+      "muted": { "role": "neutral", "displayName": "Muted Gray", "canonical": "#8E8E93", "tonalRamp": ["#3A3A3C", "#48484A", "#636366", "#8E8E93", "#AEAEB2", "#C7C7CC", "#D1D1D6", "#E5E5EA"] },
+      "alert-red": { "role": "neutral", "displayName": "Alert Red", "canonical": "#FF3B30", "tonalRamp": ["#7A0E08", "#A31710", "#CC241A", "#FF3B30", "#FF6B62", "#FF9891", "#FFC4C0", "#FFE5E3"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero monetary figures only — today's revenue, checkout success amount. Never used for headings." },
+      "title1": { "displayName": "Title 1", "purpose": "Page titles (Events, POS, Inventory, Analytics, My)." },
+      "title2": { "displayName": "Title 2", "purpose": "Section headers within a page." },
+      "body": { "displayName": "Body", "purpose": "Product names, list rows, form values, button labels." },
+      "caption": { "displayName": "Caption", "purpose": "Timestamps, helper text, status-pill labels, stock counters." }
+    },
+    "shadows": [
+      { "name": "card-ambient", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "The only shadow in the system. Applied to every standalone card, session tile, and list-row container to signal 'this is a discrete surface' — never used for hover/press feedback." }
+    ],
+    "motion": [],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The app's single loudest gesture — full-width black CTA (建立場次, 結帳, 確認收款, 立即同步).",
+      "html": "<button class=\"ds-btn-primary\">確認收款</button>",
+      "css": ".ds-btn-primary { background: #000000; color: #FFFFFF; font-size: 16px; font-weight: 600; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; width: 100%; padding: 16px 24px; border: none; border-radius: 24px; transition: opacity 0.15s ease; } .ds-btn-primary:hover { opacity: 0.85; } .ds-btn-primary:focus-visible { outline: 2px solid #000000; outline-offset: 2px; } .ds-btn-primary:active { opacity: 0.7; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Paired secondary action next to a primary CTA (取消).",
+      "html": "<button class=\"ds-btn-secondary\">取消</button>",
+      "css": ".ds-btn-secondary { background: #E5E5EA; color: #000000; font-size: 16px; font-weight: 500; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; width: 100%; padding: 16px 24px; border: none; border-radius: 24px; transition: background 0.15s ease; } .ds-btn-secondary:hover { background: #D1D1D6; } .ds-btn-secondary:focus-visible { outline: 2px solid #000000; outline-offset: 2px; } .ds-btn-secondary:active { background: #C7C7CC; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Delete/remove actions (刪除場次). Never a solid red fill — the red lives only in the label.",
+      "html": "<button class=\"ds-btn-destructive\">刪除場次</button>",
+      "css": ".ds-btn-destructive { background: #E5E5EA; color: #FF3B30; font-size: 16px; font-weight: 500; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; width: 100%; padding: 16px 24px; border: none; border-radius: 24px; transition: background 0.15s ease; } .ds-btn-destructive:hover { background: #D1D1D6; } .ds-btn-destructive:focus-visible { outline: 2px solid #FF3B30; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Pill — Running",
+      "kind": "chip",
+      "refersTo": "status-pill-running",
+      "description": "Signature component. The system's one semantic color signal: session is live right now.",
+      "html": "<span class=\"ds-pill-running\">進行中</span>",
+      "css": ".ds-pill-running { display: inline-block; background: #D8F5DE; color: #34C759; font-size: 12px; font-weight: 400; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; padding: 4px 8px; border-radius: 999px; }"
+    },
+    {
+      "name": "Status Pill — Neutral",
+      "kind": "chip",
+      "refersTo": "status-pill-neutral",
+      "description": "Completed/upcoming session state — muted gray, no semantic urgency.",
+      "html": "<span class=\"ds-pill-neutral\">已完成</span>",
+      "css": ".ds-pill-neutral { display: inline-block; background: #E5E5EA; color: #8E8E93; font-size: 12px; font-weight: 400; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; padding: 4px 8px; border-radius: 999px; }"
+    },
+    {
+      "name": "Session Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard card container — white surface on gray page background, whisper shadow, 24px radius.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">華山文創園區</div><div class=\"ds-card-subtitle\">今日 · 09:00 - 18:00</div><span class=\"ds-pill-running\">進行中</span></div>",
+      "css": ".ds-card { background: #FFFFFF; border-radius: 24px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: -apple-system, 'SF Pro', system-ui, sans-serif; } .ds-card-title { font-size: 16px; font-weight: 600; color: #000000; margin-bottom: 12px; } .ds-card-subtitle { font-size: 14px; font-weight: 400; color: #8E8E93; margin-bottom: 12px; } .ds-pill-running { display: inline-block; background: #D8F5DE; color: #34C759; font-size: 12px; padding: 4px 8px; border-radius: 999px; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "nav",
+      "refersTo": "button-primary",
+      "description": "List/Calendar toggle — capsule track, ink-filled selected segment.",
+      "html": "<div class=\"ds-segment\"><button class=\"ds-segment-item ds-segment-item--active\">List</button><button class=\"ds-segment-item\">Calendar</button></div>",
+      "css": ".ds-segment { display: inline-flex; background: #E5E5EA; border-radius: 999px; padding: 2px; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; } .ds-segment-item { border: none; background: transparent; color: #8E8E93; font-size: 14px; font-weight: 500; padding: 8px 20px; border-radius: 999px; cursor: pointer; } .ds-segment-item--active { background: #000000; color: #FFFFFF; } .ds-segment-item:focus-visible { outline: 2px solid #000000; outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "card",
+      "description": "Sheet form field — label above, Quiet Fill background, 12px radius.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">場次名稱</span><input class=\"ds-field-input\" type=\"text\" value=\"華山文創園區\" /></label>",
+      "css": ".ds-field { display: block; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; } .ds-field-label { display: block; font-size: 12px; color: #8E8E93; margin-bottom: 8px; } .ds-field-input { display: block; width: 100%; background: #E5E5EA; border: none; border-radius: 12px; padding: 12px 16px; font-size: 16px; color: #000000; box-sizing: border-box; } .ds-field-input:focus-visible { outline: 2px solid #000000; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Stallholder's Notebook",
+    "overview": "Tilli is what a market vendor opens between customers, not a storefront they invite people to admire. The system reads like a plain paper ledger a stallholder keeps under the cash box: fast to scan, impossible to misread under bad tent lighting, and completely unconcerned with impressing anyone. Every surface is white or grouped-gray, every action is spoken in black ink, and the one splash of color in the whole app is reserved for the single fact a vendor actually needs to see at a glance — is this session live right now. This is a redesign target: it establishes the visual language shown in the reference mockups as the system going forward, superseding legacy screens and their blue/orange/purple accents rather than blending with them.",
+    "keyCharacteristics": [
+      "Monochrome by default: black, white, and two grays do almost all the work.",
+      "One semantic accent: green, used only to mean \"running / positive,\" never decoratively.",
+      "Flat cards with barely-there shadows — depth is implied by fill, not lifted.",
+      "A tight, closed type scale (28 / 22 / 16 / 12) and an equally closed spacing scale (8 / 12 / 16 / 24).",
+      "Full-bleed black CTAs with generous 24pt rounding — the app's only \"loud\" gesture, and it's still just black."
+    ],
+    "rules": [
+      { "name": "The One Green Rule", "body": "Green means \"running,\" full stop. It never appears as a generic accent, link color, icon tint, or decorative highlight.", "section": "colors" },
+      { "name": "The No-Blue Rule", "body": "Interactive and selected states are communicated with a solid ink fill, not a colored accent. Blue does not appear anywhere in the chrome.", "section": "colors" },
+      { "name": "The Four-Size Rule", "body": "Every screen is composed from exactly four type sizes plus one Display cut. A fifth size means the layout needs restructuring, not a new token.", "section": "typography" },
+      { "name": "The Whisper Shadow Rule", "body": "Shadow opacity never exceeds 0.05. If a shadow is visible enough to describe, it's too strong.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use solid ink (#000000) fill for every primary CTA and every \"selected\" state.",
+      "Do keep every corner at exactly 24px or 12px, every spacing gap at exactly 8/12/16/24px, and every type size at exactly 28/22/16/12px (plus the one 34px Display cut for money).",
+      "Do reserve green strictly for the \"Running\" status signal.",
+      "Do use SF Symbols in outline style everywhere; switch to .fill only to indicate a selected/active icon state.",
+      "Do separate sections with spacing and fill contrast, not Divider() lines."
+    ],
+    "donts": [
+      "Don't use blue (or any color besides ink) as a button background or selected-state fill.",
+      "Don't let shadow opacity exceed 0.05, and never use a shadow to imply hover.",
+      "Don't introduce a second colored status pill or a second \"meaning\" for green.",
+      "Don't carry forward legacy blue/orange/purple accents, non-standard radii, or ad hoc font sizes from pre-redesign screens.",
+      "Don't use colored icons outside the Data Visualization exception."
+    ]
+  }
+}
