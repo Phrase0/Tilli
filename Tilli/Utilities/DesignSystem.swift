@@ -27,9 +27,19 @@ enum DesignSystem {
         static let cardSurface = Color(.systemBackground)
         static let muted = Color.secondary
         static let quietFill = Color(.systemGray6)
-        static let marketGreen = Color(red: 0x34 / 255.0, green: 0xC7 / 255.0, blue: 0x59 / 255.0)
-        static let marketGreenLight = Color(red: 0xD8 / 255.0, green: 0xF5 / 255.0, blue: 0xDE / 255.0)
         static let alertRed = Color(.systemRed)
+
+        // MARK: - 需手動適配深色模式的顏色
+        static let marketGreen = Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0x30/255, green: 0xD1/255, blue: 0x58/255, alpha: 1)
+                : UIColor(red: 0x34/255, green: 0xC7/255, blue: 0x59/255, alpha: 1)
+        })
+        static let marketGreenLight = Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0x13/255, green: 0x32/255, blue: 0x1C/255, alpha: 1)
+                : UIColor(red: 0xD8/255, green: 0xF5/255, blue: 0xDE/255, alpha: 1)
+        })
     }
 
     enum Typography {
@@ -41,7 +51,11 @@ enum DesignSystem {
     }
 
     enum Shadow {
-        static let cardColor = Color.black.opacity(0.05)
+        static let cardColor = Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.06)
+                : UIColor.black.withAlphaComponent(0.05)
+        })
         static let cardRadius: CGFloat = 2
         static let cardX: CGFloat = 0
         static let cardY: CGFloat = 1

@@ -7,7 +7,16 @@ colors:
   card-surface: "#FFFFFF"
   muted: "#8E8E93"
   market-green: "#34C759"
+  market-green-light: "#D8F5DE"
   alert-red: "#FF3B30"
+colors-dark:
+  ink: "#FFFFFF"
+  paper: "#1C1C1E"
+  card-surface: "#2C2C2E"
+  muted: "#8E8E93"
+  market-green: "#30D158"
+  market-green-light: "#13321C"
+  alert-red: "#FF453A"
 typography:
   display:
     fontFamily: "SF Pro, -apple-system, system-ui"
@@ -111,6 +120,23 @@ Tilli 是攤商在客人交易空檔隨手打開的小工具，不是拿來給�
 - **靜音灰 Muted Gray**（`#8E8E93`，`.secondary`）：次要文字，例如日期、副標題、輔助說明、未選中的分頁標籤。
 - **靜謐填色 Quiet Fill**（`#E5E5EA`，`systemGray6`）：次要按鈕背景、中性／已完成狀態標籤、未選中的分段軌道。
 - **警示紅 Alert Red**（`#FF3B30`，`systemRed`）：只用在破壞性文字上（刪除場次、刪除商品、移除項目），不能當按鈕的底色。
+
+### 深色模式配色
+深色模式下，整體原則不變（單色為主、綠色只代表進行中、禁藍），色值會自動適配：
+
+| Token | 淺色模式 | 深色模式 | 來源 |
+|-------|---------|---------|------|
+| Ink | `#000000` | `#FFFFFF` | `Color.primary`（系統自動） |
+| Paper | `#F2F2F7` | `#1C1C1E` | `systemGroupedBackground`（系統自動） |
+| Card Surface | `#FFFFFF` | `#2C2C2E` | `systemBackground`（系統自動） |
+| Muted | `#8E8E93` | `#8E8E93` | `Color.secondary`（系統自動） |
+| Quiet Fill | `#E5E5EA` | `#1C1C1E` | `systemGray6`（系統自動） |
+| Market Green | `#34C759` | `#30D158` | 手動適配，深色稍微提亮 |
+| Market Green Light | `#D8F5DE` | `#13321C` | 手動適配，深色改用低飽和暗綠 |
+| Alert Red | `#FF3B30` | `#FF453A` | `systemRed`（系統自動） |
+| 卡片陰影 | `black 5%` | `white 6%` | 手動適配 |
+
+**深色模式規則：** 卡片靠背景色差分層（深灰卡片疊在更深的底色上），陰影改用微弱白光（6%），視覺邏輯和淺色模式完全相同。
 
 ### 命名規則
 **唯一綠色原則。** 綠色只代表一件事：進行中。它不能當一般強調色、連結色、圖示色，也不能拿來裝飾——只要不是在標示進行中的場次或已完成的付款，就不該用綠色。

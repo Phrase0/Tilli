@@ -324,11 +324,11 @@ func testRootTabViewHasTwoTabs() {
 - [x] 修改 `RootTabView`：Tab 1 用 `MyView()`
 
 **測試（手動）：**
-- [ ] Tab My 顯示用戶資訊卡片
-- [ ] 未登入時可點擊進入登入頁
-- [ ] QRCode 設定列可點擊，進入 QRCode 頁面
-- [ ] Tilli Pro、語言、計算機、深色模式、通知 toggle 都正常
-- [ ] 登出按鈕正常
+- [x] Tab My 顯示用戶資訊卡片
+- [x] 未登入時可點擊進入登入頁
+- [x] QRCode 設定列可點擊，進入 QRCode 頁面
+- [x] Tilli Pro、語言、計算機、深色模式、通知 toggle 都正常
+- [x] 登出按鈕正常
 
 **測試（自動）：** 無（純 UI 重組，邏輯不變）
 
