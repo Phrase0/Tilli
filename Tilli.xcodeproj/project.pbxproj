@@ -18,6 +18,16 @@
 		216936842F5ACFC800FE45CD /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 216936832F5ACFC800FE45CD /* FirebaseFunctions */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		75155D5502FC4014B21D6F98 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F84D81EE2DB85002006730C2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F84D81F52DB85002006730C2;
+			remoteInfo = Tilli;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		219CF3402F2CA33200274409 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -32,6 +42,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		07ECE23602E14FEFB3FB6F2B /* TilliTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TilliTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F84D81F62DB85002006730C2 /* Tilli.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tilli.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -46,6 +57,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		EBA83A4249FE4DE79BD90435 /* TilliTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TilliTests;
+			sourceTree = "<group>";
+		};
 		F84D81F82DB85002006730C2 /* Tilli */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -57,6 +73,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		6256F258D21E4F59B1630667 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F84D81F32DB85002006730C2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -87,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				F84D81F82DB85002006730C2 /* Tilli */,
+				EBA83A4249FE4DE79BD90435 /* TilliTests */,
 				211060E72F1F329E00BB0E0F /* Frameworks */,
 				F84D81F72DB85002006730C2 /* Products */,
 			);
@@ -96,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				F84D81F62DB85002006730C2 /* Tilli.app */,
+				07ECE23602E14FEFB3FB6F2B /* TilliTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -103,6 +128,27 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AB3330709BB54D6FA735187B /* TilliTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9176F3BAB2C94DBF9A3534D4 /* Build configuration list for PBXNativeTarget "TilliTests" */;
+			buildPhases = (
+				B2E2D197401242C5B6657765 /* Sources */,
+				6256F258D21E4F59B1630667 /* Frameworks */,
+				2D8728BFEBFD416C8E522AAB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5B899AEAAC264ED29DBE21CE /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EBA83A4249FE4DE79BD90435 /* TilliTests */,
+			);
+			name = TilliTests;
+			productName = TilliTests;
+			productReference = 07ECE23602E14FEFB3FB6F2B /* TilliTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		F84D81F52DB85002006730C2 /* Tilli */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F84D82092DB85004006730C2 /* Build configuration list for PBXNativeTarget "Tilli" */;
@@ -145,6 +191,10 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					AB3330709BB54D6FA735187B = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = F84D81F52DB85002006730C2;
+					};
 					F84D81F52DB85002006730C2 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -171,11 +221,19 @@
 			projectRoot = "";
 			targets = (
 				F84D81F52DB85002006730C2 /* Tilli */,
+				AB3330709BB54D6FA735187B /* TilliTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2D8728BFEBFD416C8E522AAB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F84D81F42DB85002006730C2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -186,6 +244,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B2E2D197401242C5B6657765 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F84D81F22DB85002006730C2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -195,7 +260,59 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		5B899AEAAC264ED29DBE21CE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F84D81F52DB85002006730C2 /* Tilli */;
+			targetProxy = 75155D5502FC4014B21D6F98 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		CF5D8CC6B068438BA3CDD6EC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 594AXKN55X;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.little.neroli.studio.TilliTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tilli.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tilli";
+			};
+			name = Debug;
+		};
+		D500EA2329354AD7AB08BAAB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 594AXKN55X;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.little.neroli.studio.TilliTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tilli.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tilli";
+			};
+			name = Release;
+		};
 		F84D82072DB85004006730C2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -392,6 +509,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9176F3BAB2C94DBF9A3534D4 /* Build configuration list for PBXNativeTarget "TilliTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CF5D8CC6B068438BA3CDD6EC /* Debug */,
+				D500EA2329354AD7AB08BAAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F84D81F12DB85002006730C2 /* Build configuration list for PBXProject "Tilli" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
