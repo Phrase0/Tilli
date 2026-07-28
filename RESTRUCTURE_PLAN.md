@@ -231,13 +231,13 @@ extension SessionModel {
 
 ---
 
-### 斷點 0：建立測試基礎設施
+### ✅ 斷點 0：建立測試基礎設施
 **目標：** 能跑第一個空測試
 
 **步驟：**
-1. Xcode 建立 `TilliTests` target
-2. 建立 `TestHelpers.swift`，加入 `SessionModel.mock()` 和 `ProductModel.mock()` 工廠方法
-3. 寫一個 smoke test 確認 target 能跑
+- [x] Xcode 建立 `TilliTests` target
+- [x] 建立 `TestHelpers.swift`，加入 `SessionModel.mock()` 和 `ProductModel.mock()` 工廠方法
+- [x] 寫一個 smoke test 確認 target 能跑（`TilliSmokeTests.swift`）
 
 **測試：**
 ```swift
@@ -251,18 +251,18 @@ func testSmokeTest() {
 
 ---
 
-### 斷點 1：建立 RootTabView（2 tabs 骨架）+ Design System + i18n 基礎
+### ✅ 斷點 1：建立 RootTabView（2 tabs 骨架）+ Design System + i18n 基礎
 **目標：** App 啟動後顯示 2 個 tab（Events / My），各顯示 placeholder 文字；建立 Design System 常數與多語言基礎設施，讓斷點 2 之後的新頁面直接用 token 和 localized key，不寫 magic number 也不寫硬編碼中文
 
 **步驟：**
-1. 新建 `RootTabView.swift`
-2. Tab 0：暫時放 `Text("Events")`
-3. Tab 1：暫時放 `Text("My")`
-4. 保留 `ContentView.swift` 的 auth loading 邏輯，搬到 `RootTabView`
-5. 修改 `TilliApp.swift`：`ContentView()` → `RootTabView()`
-6. **不刪除** `ContentView.swift`（保留備用）
-7. **建立多語言字串目錄**：Xcode > File > New > String Catalog → `Localizable.xcstrings`，加入 `zh-Hant`（基底語言）和 `en` 兩個 locale。斷點 2 之後所有新建頁面的使用者看得到的文字一律用 localized key，不直接寫中文字串。舊頁面暫不動。多語言命名規範見 [`CONVENTIONS.md`](./CONVENTIONS.md) 的「多語言規範」章節。
-7. **新建 `Tilli/Utilities/DesignSystem.swift`**，把 [`DESIGN.md`](./DESIGN.md) 的 token 轉成 Swift 常數，供斷點 2 之後所有新建頁面直接引用（不再各自寫 `24`、`#8E8E93` 這種 magic number）：
+- [x] 新建 `RootTabView.swift`
+- [x] Tab 0：暫時放 `Text("Events")`
+- [x] Tab 1：暫時放 `Text("My")`
+- [x] 保留 `ContentView.swift` 的 auth loading 邏輯，搬到 `RootTabView`
+- [x] 修改 `TilliApp.swift`：`ContentView()` → `RootTabView()`
+- [x] **不刪除** `ContentView.swift`（保留備用）
+- [x] **建立多語言字串目錄**：`Localizable.xcstrings`，加入 `zh-Hant`（基底語言）和 `en` 兩個 locale。斷點 2 之後所有新建頁面的使用者看得到的文字一律用 localized key，不直接寫中文字串。舊頁面暫不動。多語言命名規範見 [`CONVENTIONS.md`](./CONVENTIONS.md) 的「多語言規範」章節。
+- [x] **新建 `Tilli/Utilities/DesignSystem.swift`**，把 [`DESIGN.md`](./DESIGN.md) 的 token 轉成 Swift 常數，供斷點 2 之後所有新建頁面直接引用（不再各自寫 `24`、`#8E8E93` 這種 magic number）：
    ```swift
    enum DesignSystem {
        enum Spacing {
@@ -601,3 +601,22 @@ RootTabView
 - AboutView → 暫不需要
 - 場次名稱改為「Events」/「場次」→ 只改 tab 名稱，內部 Model 名稱不動
 - 舊頁面的極簡風格改造（`AddNewProductView`、`CheckoutFlowView` 等）→ 架構穩定後獨立進行
+
+---
+
+## 待刪除頁面（斷點 9 清理用）
+
+重構完成後需移除的舊檔案，先移出 target 確認編譯通過，再刪除檔案：
+
+| 舊檔案 | 被取代為 | 可刪除時機 |
+|--------|---------|-----------|
+| `ContentView.swift` | `RootTabView.swift` | 斷點 9 |
+| `SessionsView.swift` | `EventsView.swift`（List 模式） | 斷點 3 完成後 |
+| `CalendarView.swift` | `EventsView.swift`（Calendar 模式） | 斷點 4 完成後 |
+| `SessionDetailView.swift` | `WorkspaceView.swift` | 斷點 5 完成後 |
+| `SessionDetailViewModel.swift` | 不再需要 | 斷點 5 完成後 |
+| `SessionDetailFromCalendarView.swift` | `ReportsView.swift` | 斷點 8 完成後 |
+| `SessionDetailFromCalendarViewModel.swift` | `ReportsViewModel.swift` | 斷點 8 完成後 |
+| `InventoryTabView.swift` | `InventoryView.swift` | 斷點 7 完成後 |
+| `InventoryTabViewModel.swift` | 不再需要 | 斷點 7 完成後 |
+| `ProductDetailView.swift` | `POSView.swift` + `InventoryView.swift` | 斷點 7 完成後 |

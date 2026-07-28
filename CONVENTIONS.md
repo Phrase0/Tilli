@@ -223,6 +223,24 @@ Text(viewModel.totalAmountText)
 
 ---
 
+## 檔案標頭規範
+
+所有 `.swift` 檔案開頭都必須保留標準標頭註解，包含 Claude 建立的檔案：
+
+```swift
+//
+//  EventsViewModel.swift
+//  Tilli
+//
+//  Created by Peiyun on 2025/9/16.
+//
+```
+
+- `Created by` 一律寫 `Peiyun`，日期用建立當天的 `yyyy/M/d` 格式。
+- 不加 `import` 以外的其他前綴內容。
+
+---
+
 ## 檔案組織規範
 
 新建檔案放在以下目錄：

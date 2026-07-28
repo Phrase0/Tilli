@@ -26,7 +26,7 @@ struct TilliApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(authenticationManager)
                 .environmentObject(sessionDataManager)

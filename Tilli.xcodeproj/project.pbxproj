@@ -201,10 +201,11 @@
 				};
 			};
 			buildConfigurationList = F84D81F12DB85002006730C2 /* Build configuration list for PBXProject "Tilli" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hant";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hant",
 				Base,
 			);
 			mainGroup = F84D81ED2DB85002006730C2;
