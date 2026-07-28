@@ -54,7 +54,7 @@ struct RootTabView: View {
                 .tag(0)
 
             // 我的
-            Text("myTabPlaceholder")
+            MyView()
                 .tabItem {
                     Image(systemName: "person.crop.circle")
                     // 我的

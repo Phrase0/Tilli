@@ -99,6 +99,7 @@
       }
     },
     "myTabPlaceholder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

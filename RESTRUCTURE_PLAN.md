@@ -298,11 +298,11 @@ func testSmokeTest() {
    **禁藍原則落地**：`ColorToken` 裡刻意沒有 accent/blue 這個 case——互動與選中狀態一律用 `ColorToken.ink`，避免之後有人手滑加回 `.blue`（呼應 DESIGN.md 的 No-Blue Rule）。
 
 **測試（手動）：**
-- [ ] App 啟動，看到 2 個 tab：Events / My
-- [ ] tab 切換正常
+- [x] App 啟動，看到 2 個 tab：Events / My
+- [x] tab 切換正常
 - [ ] auth loading spinner 仍然正常顯示
-- [ ] `DesignSystem` 編譯通過，可在任一 View 引用（例如暫時在 placeholder Text 上套用 `.font(DesignSystem.Typography.title1)` 驗證）
-- [ ] 切換裝置語言為英文，Tab 文字正確顯示 English 版本
+- [x] `DesignSystem` 編譯通過，可在任一 View 引用（例如暫時在 placeholder Text 上套用 `.font(DesignSystem.Typography.title1)` 驗證）
+- [x] 切換裝置語言為英文，Tab 文字正確顯示 English 版本
 
 **測試（自動）：**
 ```swift
@@ -314,14 +314,14 @@ func testRootTabViewHasTwoTabs() {
 
 ---
 
-### 斷點 2：MyView 取代 Tab 1 placeholder
+### ✅ 斷點 2：MyView 取代 Tab 1 placeholder
 **目標：** Tab 1 (My) 顯示原 ProfileView 的所有功能 + QRCode 入口
 
 **步驟：**
-1. 新建 `MyView.swift`
-2. 從 `ProfileView.swift` 複製所有內容到 `MyView`
-3. 在 `topSettingsCard` 區塊加入 QRCode 設定列（NavigationLink → `MerchantQRCodeView`）
-4. 修改 `RootTabView`：Tab 1 用 `MyView()`
+- [x] 新建 `MyView.swift`（`Tilli/View/MyPage/MyView.swift`）
+- [x] 從 `ProfileView.swift` 複製所有內容到 `MyView`
+- [x] 在 `topSettingsCard` 區塊加入 QRCode 設定列（NavigationLink → `MerchantQRCodeView`）
+- [x] 修改 `RootTabView`：Tab 1 用 `MyView()`
 
 **測試（手動）：**
 - [ ] Tab My 顯示用戶資訊卡片
