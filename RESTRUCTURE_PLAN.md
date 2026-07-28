@@ -47,7 +47,11 @@ class EventsViewModel: ObservableObject {
     @Published var displayMode: DisplayMode = .list  // .list / .calendar
     @Published var sessionViewModel = SessionViewModel()
     @Published var calendarViewModel = CalendarViewModel()
-    // 轉發子 ViewModel 變化（同 SessionDetailViewModel 的做法）
+    // 不轉發子 ViewModel 的 objectWillChange：SwiftUI 對 @Published 持有的
+    // ObservableObject 屬性，子物件變化本來就會觸發父物件的畫面更新，
+    // 同 SessionDetailFromCalendarViewModel 的組合方式。
+    // 不要用 SessionDetailViewModel 的 Combine sink 轉發（見 CONVENTIONS.md
+    // 「要移除的舊 pattern」），那是要淘汰的做法，不該複製進新 ViewModel。
 }
 ```
 
@@ -247,8 +251,8 @@ func testSmokeTest() {
 
 ---
 
-### 斷點 1：建立 RootTabView（2 tabs 骨架）
-**目標：** App 啟動後顯示 2 個 tab（Events / My），各顯示 placeholder 文字
+### 斷點 1：建立 RootTabView（2 tabs 骨架）+ Design System + i18n 基礎
+**目標：** App 啟動後顯示 2 個 tab（Events / My），各顯示 placeholder 文字；建立 Design System 常數與多語言基礎設施，讓斷點 2 之後的新頁面直接用 token 和 localized key，不寫 magic number 也不寫硬編碼中文
 
 **步驟：**
 1. 新建 `RootTabView.swift`
@@ -257,11 +261,48 @@ func testSmokeTest() {
 4. 保留 `ContentView.swift` 的 auth loading 邏輯，搬到 `RootTabView`
 5. 修改 `TilliApp.swift`：`ContentView()` → `RootTabView()`
 6. **不刪除** `ContentView.swift`（保留備用）
+7. **建立多語言字串目錄**：Xcode > File > New > String Catalog → `Localizable.xcstrings`，加入 `zh-Hant`（基底語言）和 `en` 兩個 locale。斷點 2 之後所有新建頁面的使用者看得到的文字一律用 localized key，不直接寫中文字串。舊頁面暫不動。多語言命名規範見 [`CONVENTIONS.md`](./CONVENTIONS.md) 的「多語言規範」章節。
+7. **新建 `Tilli/Utilities/DesignSystem.swift`**，把 [`DESIGN.md`](./DESIGN.md) 的 token 轉成 Swift 常數，供斷點 2 之後所有新建頁面直接引用（不再各自寫 `24`、`#8E8E93` 這種 magic number）：
+   ```swift
+   enum DesignSystem {
+       enum Spacing {
+           static let xs: CGFloat = 8
+           static let sm: CGFloat = 12
+           static let md: CGFloat = 16
+           static let lg: CGFloat = 24
+       }
+       enum Radius {
+           static let sm: CGFloat = 12   // 小按鈕、標籤、輸入框
+           static let md: CGFloat = 24   // 卡片、主要/次要按鈕、彈出視窗
+           static let pill: CGFloat = 999
+       }
+       enum ColorToken {
+           static let ink = Color.primary            // #000000
+           static let paper = Color(.systemGroupedBackground)
+           static let cardSurface = Color(.systemBackground)
+           static let muted = Color.secondary        // #8E8E93
+           static let quietFill = Color(.systemGray6) // #E5E5EA
+           static let marketGreen = Color(red: 0x34/255, green: 0xC7/255, blue: 0x59/255)
+           static let alertRed = Color(.systemRed)
+       }
+       enum Typography {
+           static let display = Font.system(size: 34, weight: .bold)
+           static let title1 = Font.system(size: 28, weight: .bold)
+           static let title2 = Font.system(size: 22, weight: .semibold)
+           static let body = Font.system(size: 16, weight: .regular)
+           static let caption = Font.system(size: 12, weight: .regular)
+       }
+       static let cardShadow = (color: Color.black.opacity(0.05), radius: CGFloat(2), x: CGFloat(0), y: CGFloat(1))
+   }
+   ```
+   **禁藍原則落地**：`ColorToken` 裡刻意沒有 accent/blue 這個 case——互動與選中狀態一律用 `ColorToken.ink`，避免之後有人手滑加回 `.blue`（呼應 DESIGN.md 的 No-Blue Rule）。
 
 **測試（手動）：**
 - [ ] App 啟動，看到 2 個 tab：Events / My
 - [ ] tab 切換正常
 - [ ] auth loading spinner 仍然正常顯示
+- [ ] `DesignSystem` 編譯通過，可在任一 View 引用（例如暫時在 placeholder Text 上套用 `.font(DesignSystem.Typography.title1)` 驗證）
+- [ ] 切換裝置語言為英文，Tab 文字正確顯示 English 版本
 
 **測試（自動）：**
 ```swift
@@ -548,7 +589,7 @@ RootTabView
 
 **策略：新建的頁面直接套用極簡風，不回頭改沒動到的舊頁面。**
 
-詳細規範見 → [`CONVENTIONS.md`](./CONVENTIONS.md) 的「UI 極簡風格規範」章節。
+詳細規範見 → [`DESIGN.md`](./DESIGN.md)（唯一依據），token 的 Swift 實作見斷點 1 新建的 `DesignSystem.swift`。
 
 每個斷點新建的 View 直接套用，不額外增加斷點。未動到的舊頁面（如 `AddNewProductView`、`CheckoutFlowView`）留到之後獨立處理。
 

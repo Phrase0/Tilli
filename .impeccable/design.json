@@ -1,25 +1,25 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-26T00:00:00Z",
-  "title": "Design System: Tilli (Market POS)",
+  "generatedAt": "2026-07-28T00:00:00Z",
+  "title": "設計系統：Tilli（市集收銀 POS）",
   "extensions": {
     "colorMeta": {
-      "ink": { "role": "primary", "displayName": "Ink", "canonical": "#000000", "tonalRamp": ["#000000", "#1C1C1E", "#3A3A3C", "#48484A", "#636366", "#8E8E93", "#C7C7CC", "#F2F2F7"] },
-      "market-green": { "role": "secondary", "displayName": "Market Green", "canonical": "#34C759", "tonalRamp": ["#0F4A21", "#1C6B32", "#279143", "#34C759", "#5DD37B", "#8AE0A2", "#B9EDC8", "#D8F5DE"] },
-      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#F2F2F7", "tonalRamp": ["#1C1C1E", "#3A3A3C", "#636366", "#AEAEB2", "#D1D1D6", "#E5E5EA", "#F2F2F7", "#FBFBFD"] },
-      "card-surface": { "role": "neutral", "displayName": "Card Surface", "canonical": "#FFFFFF", "tonalRamp": ["#E5E5EA", "#EFEFF4", "#F2F2F7", "#F7F7F9", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] },
-      "muted": { "role": "neutral", "displayName": "Muted Gray", "canonical": "#8E8E93", "tonalRamp": ["#3A3A3C", "#48484A", "#636366", "#8E8E93", "#AEAEB2", "#C7C7CC", "#D1D1D6", "#E5E5EA"] },
-      "alert-red": { "role": "neutral", "displayName": "Alert Red", "canonical": "#FF3B30", "tonalRamp": ["#7A0E08", "#A31710", "#CC241A", "#FF3B30", "#FF6B62", "#FF9891", "#FFC4C0", "#FFE5E3"] }
+      "ink": { "role": "primary", "displayName": "墨黑 Ink", "canonical": "#000000", "tonalRamp": ["#000000", "#1C1C1E", "#3A3A3C", "#48484A", "#636366", "#8E8E93", "#C7C7CC", "#F2F2F7"] },
+      "market-green": { "role": "secondary", "displayName": "市集綠 Market Green", "canonical": "#34C759", "tonalRamp": ["#0F4A21", "#1C6B32", "#279143", "#34C759", "#5DD37B", "#8AE0A2", "#B9EDC8", "#D8F5DE"] },
+      "paper": { "role": "neutral", "displayName": "紙灰 Paper", "canonical": "#F2F2F7", "tonalRamp": ["#1C1C1E", "#3A3A3C", "#636366", "#AEAEB2", "#D1D1D6", "#E5E5EA", "#F2F2F7", "#FBFBFD"] },
+      "card-surface": { "role": "neutral", "displayName": "卡片面 Card Surface", "canonical": "#FFFFFF", "tonalRamp": ["#E5E5EA", "#EFEFF4", "#F2F2F7", "#F7F7F9", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"] },
+      "muted": { "role": "neutral", "displayName": "靜音灰 Muted Gray", "canonical": "#8E8E93", "tonalRamp": ["#3A3A3C", "#48484A", "#636366", "#8E8E93", "#AEAEB2", "#C7C7CC", "#D1D1D6", "#E5E5EA"] },
+      "alert-red": { "role": "neutral", "displayName": "警示紅 Alert Red", "canonical": "#FF3B30", "tonalRamp": ["#7A0E08", "#A31710", "#CC241A", "#FF3B30", "#FF6B62", "#FF9891", "#FFC4C0", "#FFE5E3"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Hero monetary figures only — today's revenue, checkout success amount. Never used for headings." },
-      "title1": { "displayName": "Title 1", "purpose": "Page titles (Events, POS, Inventory, Analytics, My)." },
-      "title2": { "displayName": "Title 2", "purpose": "Section headers within a page." },
-      "body": { "displayName": "Body", "purpose": "Product names, list rows, form values, button labels." },
-      "caption": { "displayName": "Caption", "purpose": "Timestamps, helper text, status-pill labels, stock counters." }
+      "display": { "displayName": "Display", "purpose": "只給重點金額用——今日營收、結帳成功金額，不能拿來當標題。" },
+      "title1": { "displayName": "Title 1", "purpose": "頁面標題（場次、收銀、庫存、分析、我的）。" },
+      "title2": { "displayName": "Title 2", "purpose": "頁面內的區塊標題。" },
+      "body": { "displayName": "Body", "purpose": "商品名稱、列表列、表單欄位值、按鈕文字。" },
+      "caption": { "displayName": "Caption", "purpose": "時間戳記、輔助說明、狀態標籤文字、庫存計數。" }
     },
     "shadows": [
-      { "name": "card-ambient", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "The only shadow in the system. Applied to every standalone card, session tile, and list-row container to signal 'this is a discrete surface' — never used for hover/press feedback." }
+      { "name": "card-ambient", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "系統裡唯一的陰影，套用在每張獨立卡片、場次方塊、列表列容器上，只用來表示「這是一張卡片」，不做浮起或 hover 效果。" }
     ],
     "motion": [],
     "breakpoints": []
@@ -29,7 +29,7 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The app's single loudest gesture — full-width black CTA (建立場次, 結帳, 確認收款, 立即同步).",
+      "description": "App 唯一最搶眼的手勢——滿版黑色 CTA（建立場次、結帳、確認收款、立即同步）。",
       "html": "<button class=\"ds-btn-primary\">確認收款</button>",
       "css": ".ds-btn-primary { background: #000000; color: #FFFFFF; font-size: 16px; font-weight: 600; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; width: 100%; padding: 16px 24px; border: none; border-radius: 24px; transition: opacity 0.15s ease; } .ds-btn-primary:hover { opacity: 0.85; } .ds-btn-primary:focus-visible { outline: 2px solid #000000; outline-offset: 2px; } .ds-btn-primary:active { opacity: 0.7; }"
     },
@@ -37,7 +37,7 @@
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Paired secondary action next to a primary CTA (取消).",
+      "description": "搭配主要按鈕的次要動作（取消）。",
       "html": "<button class=\"ds-btn-secondary\">取消</button>",
       "css": ".ds-btn-secondary { background: #E5E5EA; color: #000000; font-size: 16px; font-weight: 500; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; width: 100%; padding: 16px 24px; border: none; border-radius: 24px; transition: background 0.15s ease; } .ds-btn-secondary:hover { background: #D1D1D6; } .ds-btn-secondary:focus-visible { outline: 2px solid #000000; outline-offset: 2px; } .ds-btn-secondary:active { background: #C7C7CC; }"
     },
@@ -45,7 +45,7 @@
       "name": "Destructive Button",
       "kind": "button",
       "refersTo": "button-destructive",
-      "description": "Delete/remove actions (刪除場次). Never a solid red fill — the red lives only in the label.",
+      "description": "刪除／移除類動作（刪除場次）。絕不用實心紅色底，紅色只出現在文字上。",
       "html": "<button class=\"ds-btn-destructive\">刪除場次</button>",
       "css": ".ds-btn-destructive { background: #E5E5EA; color: #FF3B30; font-size: 16px; font-weight: 500; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; width: 100%; padding: 16px 24px; border: none; border-radius: 24px; transition: background 0.15s ease; } .ds-btn-destructive:hover { background: #D1D1D6; } .ds-btn-destructive:focus-visible { outline: 2px solid #FF3B30; outline-offset: 2px; }"
     },
@@ -53,7 +53,7 @@
       "name": "Status Pill — Running",
       "kind": "chip",
       "refersTo": "status-pill-running",
-      "description": "Signature component. The system's one semantic color signal: session is live right now.",
+      "description": "招牌元件。系統裡唯一的語意色訊號：場次正在進行中。",
       "html": "<span class=\"ds-pill-running\">進行中</span>",
       "css": ".ds-pill-running { display: inline-block; background: #D8F5DE; color: #34C759; font-size: 12px; font-weight: 400; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; padding: 4px 8px; border-radius: 999px; }"
     },
@@ -61,7 +61,7 @@
       "name": "Status Pill — Neutral",
       "kind": "chip",
       "refersTo": "status-pill-neutral",
-      "description": "Completed/upcoming session state — muted gray, no semantic urgency.",
+      "description": "已完成／即將到來的場次狀態——靜音灰，沒有語意急迫性。",
       "html": "<span class=\"ds-pill-neutral\">已完成</span>",
       "css": ".ds-pill-neutral { display: inline-block; background: #E5E5EA; color: #8E8E93; font-size: 12px; font-weight: 400; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; padding: 4px 8px; border-radius: 999px; }"
     },
@@ -69,7 +69,7 @@
       "name": "Session Card",
       "kind": "card",
       "refersTo": "card",
-      "description": "Standard card container — white surface on gray page background, whisper shadow, 24px radius.",
+      "description": "標準卡片容器——白色卡片疊在灰色頁面底色上，耳語陰影，24px 圓角。",
       "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">華山文創園區</div><div class=\"ds-card-subtitle\">今日 · 09:00 - 18:00</div><span class=\"ds-pill-running\">進行中</span></div>",
       "css": ".ds-card { background: #FFFFFF; border-radius: 24px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: -apple-system, 'SF Pro', system-ui, sans-serif; } .ds-card-title { font-size: 16px; font-weight: 600; color: #000000; margin-bottom: 12px; } .ds-card-subtitle { font-size: 14px; font-weight: 400; color: #8E8E93; margin-bottom: 12px; } .ds-pill-running { display: inline-block; background: #D8F5DE; color: #34C759; font-size: 12px; padding: 4px 8px; border-radius: 999px; }"
     },
@@ -77,7 +77,7 @@
       "name": "Segmented Control",
       "kind": "nav",
       "refersTo": "button-primary",
-      "description": "List/Calendar toggle — capsule track, ink-filled selected segment.",
+      "description": "List/Calendar 切換——膠囊軌道，選中的分段實心墨黑填色。",
       "html": "<div class=\"ds-segment\"><button class=\"ds-segment-item ds-segment-item--active\">List</button><button class=\"ds-segment-item\">Calendar</button></div>",
       "css": ".ds-segment { display: inline-flex; background: #E5E5EA; border-radius: 999px; padding: 2px; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; } .ds-segment-item { border: none; background: transparent; color: #8E8E93; font-size: 14px; font-weight: 500; padding: 8px 20px; border-radius: 999px; cursor: pointer; } .ds-segment-item--active { background: #000000; color: #FFFFFF; } .ds-segment-item:focus-visible { outline: 2px solid #000000; outline-offset: 2px; }"
     },
@@ -85,40 +85,40 @@
       "name": "Input Field",
       "kind": "input",
       "refersTo": "card",
-      "description": "Sheet form field — label above, Quiet Fill background, 12px radius.",
+      "description": "彈出視窗表單欄位——標籤在上方，靜謐填色背景，12px 圓角。",
       "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">場次名稱</span><input class=\"ds-field-input\" type=\"text\" value=\"華山文創園區\" /></label>",
       "css": ".ds-field { display: block; font-family: -apple-system, 'SF Pro', system-ui, sans-serif; } .ds-field-label { display: block; font-size: 12px; color: #8E8E93; margin-bottom: 8px; } .ds-field-input { display: block; width: 100%; background: #E5E5EA; border: none; border-radius: 12px; padding: 12px 16px; font-size: 16px; color: #000000; box-sizing: border-box; } .ds-field-input:focus-visible { outline: 2px solid #000000; outline-offset: 2px; }"
     }
   ],
   "narrative": {
-    "northStar": "The Stallholder's Notebook",
-    "overview": "Tilli is what a market vendor opens between customers, not a storefront they invite people to admire. The system reads like a plain paper ledger a stallholder keeps under the cash box: fast to scan, impossible to misread under bad tent lighting, and completely unconcerned with impressing anyone. Every surface is white or grouped-gray, every action is spoken in black ink, and the one splash of color in the whole app is reserved for the single fact a vendor actually needs to see at a glance — is this session live right now. This is a redesign target: it establishes the visual language shown in the reference mockups as the system going forward, superseding legacy screens and their blue/orange/purple accents rather than blending with them.",
+    "northStar": "攤商的隨手帳",
+    "overview": "Tilli 整套視覺語言就像攤商壓在收銀盒下的那本紙本帳簿：一眼就能看懂、帳篷裡光線再差也不會看錯字。畫面不是純白就是淺灰，所有操作都用黑色文字表達；整個 App 唯一用到的顏色，只留給攤商真正在意的那件事——這場次現在是不是正在進行中。這份文件寫的是重構後的目標樣貌，取代舊畫面上殘留的藍／橘／紫等配色，而不是與其混搭。",
     "keyCharacteristics": [
-      "Monochrome by default: black, white, and two grays do almost all the work.",
-      "One semantic accent: green, used only to mean \"running / positive,\" never decoratively.",
-      "Flat cards with barely-there shadows — depth is implied by fill, not lifted.",
-      "A tight, closed type scale (28 / 22 / 16 / 12) and an equally closed spacing scale (8 / 12 / 16 / 24).",
-      "Full-bleed black CTAs with generous 24pt rounding — the app's only \"loud\" gesture, and it's still just black."
+      "預設全單色：黑、白、兩階灰幾乎撐起整個畫面。",
+      "只留一個語意色：綠色，專門代表「進行中／正向」，不作裝飾用。",
+      "卡片扁平、陰影淡到幾乎看不見——深度靠色塊對比表現，不靠「浮起」的效果。",
+      "字級只留四級（28 / 22 / 16 / 12），間距也只留四級（8 / 12 / 16 / 24），沒有例外值。",
+      "滿版黑色主要按鈕搭配 24pt 大圓角，是整個 App 唯一「搶眼」的元素——即使搶眼，也還是黑色。"
     ],
     "rules": [
-      { "name": "The One Green Rule", "body": "Green means \"running,\" full stop. It never appears as a generic accent, link color, icon tint, or decorative highlight.", "section": "colors" },
-      { "name": "The No-Blue Rule", "body": "Interactive and selected states are communicated with a solid ink fill, not a colored accent. Blue does not appear anywhere in the chrome.", "section": "colors" },
-      { "name": "The Four-Size Rule", "body": "Every screen is composed from exactly four type sizes plus one Display cut. A fifth size means the layout needs restructuring, not a new token.", "section": "typography" },
-      { "name": "The Whisper Shadow Rule", "body": "Shadow opacity never exceeds 0.05. If a shadow is visible enough to describe, it's too strong.", "section": "elevation" }
+      { "name": "唯一綠色原則", "body": "綠色只代表一件事：進行中。它不能當一般強調色、連結色、圖示色，也不能拿來裝飾——只要不是在標示進行中的場次或已完成的付款，就不該用綠色。", "section": "colors" },
+      { "name": "禁藍原則", "body": "互動與選中狀態一律用實心墨黑表達，不用有色的強調色。整個介面完全不出現藍色；一個控制項要顯示「已啟用」，靠的是變黑，不是變藍。", "section": "colors" },
+      { "name": "四級字體原則", "body": "每個畫面都只能用這四個尺寸，加上唯一的 Display 級距。出現第五種尺寸，代表版面該重新設計，不是該多加一個 token。", "section": "typography" },
+      { "name": "耳語陰影原則", "body": "陰影不透明度不能超過 0.05。陰影只要明顯到能被具體描述出來，就是太重了——深度只該讓人感覺到「這是一張卡片」，僅此而已。", "section": "elevation" }
     ],
     "dos": [
-      "Do use solid ink (#000000) fill for every primary CTA and every \"selected\" state.",
-      "Do keep every corner at exactly 24px or 12px, every spacing gap at exactly 8/12/16/24px, and every type size at exactly 28/22/16/12px (plus the one 34px Display cut for money).",
-      "Do reserve green strictly for the \"Running\" status signal.",
-      "Do use SF Symbols in outline style everywhere; switch to .fill only to indicate a selected/active icon state.",
-      "Do separate sections with spacing and fill contrast, not Divider() lines."
+      "每個主要 CTA、每個「選中」狀態（選中的分頁、分段、日曆日期、單選鈕）都用實心墨黑（#000000）。",
+      "圓角只用 24px 或 12px、間距只用 8/12/16/24px、字級只用 28/22/16/12px（加上金額專用的 34px Display）。",
+      "把綠色留給「進行中」狀態，不做其他用途。",
+      "全面使用外框樣式的 SF Symbols，只有表示選中／啟用狀態時才切成 .fill，不做裝飾用。",
+      "用間距和色塊對比分區塊，不用 Divider()。"
     ],
     "donts": [
-      "Don't use blue (or any color besides ink) as a button background or selected-state fill.",
-      "Don't let shadow opacity exceed 0.05, and never use a shadow to imply hover.",
-      "Don't introduce a second colored status pill or a second \"meaning\" for green.",
-      "Don't carry forward legacy blue/orange/purple accents, non-standard radii, or ad hoc font sizes from pre-redesign screens.",
-      "Don't use colored icons outside the Data Visualization exception."
+      "用藍色（或墨黑以外的任何顏色）當按鈕底色或選中狀態的填色。",
+      "讓陰影不透明度超過 0.05，也不用陰影模擬 hover——這是純觸控工具。",
+      "加第二個彩色狀態標籤，或讓綠色多一種意思。",
+      "延用舊有的藍／橘／紫強調色、非標準圓角（4/8/10/25/30px），或舊畫面上還留著的隨意字級——那些是這套系統要淘汰的技術債，不是可以參考的先例。",
+      "在資料視覺化例外之外用彩色圖示。"
     ]
   }
 }

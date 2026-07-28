@@ -120,93 +120,93 @@ struct POSView: View {
 
 ## UI 極簡風格規範
 
-### 設計 Token
+UI 視覺規範已統一以 [`DESIGN.md`](./DESIGN.md) 為唯一依據（single source of truth），本文件不再重複維護 token 表、元件樣式或禁止事項，避免兩份文件對同一規則寫出不同版本而互相衝突。
 
-| Token | 值 | 說明 |
-|-------|---|------|
-| 圓角 | 24px | 卡片、按鈕、圖片 |
-| 小圓角 | 12px | 標籤、小按鈕 |
-| 間距 | 8 / 12 / 16 / 24 | 固定四級間距，不使用其他值 |
-| 字型 Title 1 | `.system(size: 28, weight: .bold)` | 頁面標題 |
-| 字型 Title 2 | `.system(size: 22, weight: .semibold)` | 區塊標題 |
-| 字型 Body | `.system(size: 16, weight: .regular)` | 正文 |
-| 字型 Caption | `.system(size: 12, weight: .regular)` | 輔助說明 |
-| 圖標 | SF Symbols (Outline style) | 不用 `.fill` 變體，除非表示選中狀態 |
-| 主色 | `.primary` / `.secondary` | 黑白灰為主 |
-| 強調色 | `.blue` | 可互動元素、選中狀態 |
-| 背景 | `Color(.systemGroupedBackground)` | 頁面底色 |
-| 卡片背景 | `Color(.systemBackground)` | 白色卡片 |
+新建頁面／重構頁面一律對照 `DESIGN.md` 實作；舊頁面（`AddNewProductView`、`CheckoutFlowView`、`InventoryChangeView` 等）暫不改動，處理原則見 `DESIGN.md` 開頭「總覽」段落與 `RESTRUCTURE_PLAN.md`。
 
-### 卡片樣式
+---
 
-```swift
-// 標準卡片
-.padding(16)
-.background(Color(.systemBackground))
-.cornerRadius(24)
-.shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+## MVVM 規則
+
+### 核心原則
+
+**View 只做「顯示」與「使用者輸入轉發」，所有跟商業邏輯相關的程式碼一律拆進 ViewModel。**
+
+判斷標準很簡單：這段程式碼如果拿掉 SwiftUI，還有沒有意義？如果答案是「有」（例如金額計算、庫存是否足夠、折扣規則），就不該寫在 View 裡。
+
+### 歸屬判斷表
+
+| 情境 | 歸屬 | 範例 |
+|------|------|------|
+| 純版面／樣式 | View | `.padding(16)`、`.cornerRadius(24)`、`VStack`/`HStack` 排版 |
+| 顯示已算好的狀態 | View 讀，邏輯在 VM 算 | `Text(viewModel.totalAmountText)` |
+| 資料計算、加總、篩選、排序 | ViewModel | `totalAmount()`、篩選庫存 > 0 的商品 |
+| 驗證規則（必填、數值上限） | ViewModel | 商品名稱不可為空、數量不可超過庫存 |
+| 呼叫 Repository / API | ViewModel | `productRepository.save(...)` |
+| 狀態轉換邏輯（if/switch 決定下一步行為） | ViewModel | 折扣計算、結帳流程狀態機 |
+| 純 UI 狀態（跟資料/商業規則無關） | View 的 `@State` | sheet 開關、選中的 tab index |
+| 純顯示格式（不含商業規則） | 可留在 View | SwiftUI 原生 `Text(date, style: .date)` |
+
+### 規則
+
+1. **View 裡不寫 if/switch 判斷商業規則**：像「這個折扣是否可疊加」「庫存是否足夠」這類判斷，一律是 ViewModel 的方法，View 只呼叫並顯示結果。
+2. **View 不直接持有或呼叫 Repository**：Repository 一律經由 ViewModel 的 `updateDataManagers()` 注入（見「資料同步規範」規則 3），View 不可跳過 ViewModel 直接操作資料層。
+3. **`@State` 只放純 UI 狀態**：sheet 開關、選中的 tab index、動畫觸發旗標這類跟商業邏輯無關的狀態，可以留在 View 的 `@State`；一旦這個狀態會影響資料或觸發商業判斷，就該搬進 ViewModel 的 `@Published`。
+4. **格式化字串盡量由 ViewModel 提供成品字串**：例如金額格式化、庫存不足文案，讓 ViewModel 暴露 `totalAmountText: String` 這類已經算好的欄位，View 直接顯示，避免商業規則（貨幣符號、四捨五入方式）散落在多個 View 裡。
+
+### 例外
+
+- 子元件（`@ObservedObject` 接收父層 VM，見「資料同步規範」規則 1 的例外）同樣遵守以上標準：子元件內不寫商業邏輯，只轉發父層 VM 已經算好的狀態。
+
+---
+
+## 多語言規範
+
+### 核心原則
+
+**使用者看得到的文字一律走 `Localizable.xcstrings`，不直接寫中文字串。**
+
+### Key 命名格式
+
+lowerCamelCase，以「畫面 + 元件 + 語境」組成：
+
+```
+eventsTabTitle            → 場次
+workspacePosButton        → 開始收銀
+posCheckoutButton         → 結帳
+inventoryEmptyMessage     → 尚未新增任何商品
 ```
 
-### 按鈕樣式
+### 中文備註規則
+
+每個 localized key 上方必須加一行註解，標明對應的中文原文：
 
 ```swift
-// 主要按鈕（CTA）
-Text("結帳")
-    .font(.system(size: 16, weight: .semibold))
-    .foregroundColor(.white)
-    .frame(maxWidth: .infinity)
-    .padding(.vertical, 16)
-    .background(Color.primary)  // 黑色
-    .cornerRadius(24)
+// 場次
+Text("eventsTabTitle")
 
-// 次要按鈕
-Text("取消")
-    .font(.system(size: 16, weight: .medium))
-    .foregroundColor(.primary)
-    .frame(maxWidth: .infinity)
-    .padding(.vertical, 16)
-    .background(Color(.systemGray6))
-    .cornerRadius(24)
+// 開始收銀
+Text("workspacePosButton")
+
+// 結帳
+Text("posCheckoutButton")
 ```
 
-### WorkspaceView 大按鈕樣式
+### ViewModel 中的本地化
+
+ViewModel 用 `String(localized:)` 回傳已本地化的成品字串，View 直接顯示：
 
 ```swift
-// 參考圖 2 的 dashboard 按鈕風格
-VStack(spacing: 8) {
-    Image(systemName: "cart")
-        .font(.system(size: 28))
-        .foregroundColor(.primary)
-    Text("開始收銀")
-        .font(.system(size: 14, weight: .medium))
-        .foregroundColor(.primary)
-    Text("(POS)")
-        .font(.system(size: 12))
-        .foregroundColor(.secondary)
+// ViewModel
+var totalAmountText: String {
+    String(localized: "posCheckoutTotal \(formattedAmount)")
 }
-.frame(maxWidth: .infinity)
-.padding(.vertical, 24)
-.background(Color(.systemBackground))
-.cornerRadius(24)
-.shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+
+// View
+Text(viewModel.totalAmountText)
 ```
 
-### 禁止事項
-
-| 禁止 | 替代 |
-|------|------|
-| 使用 `.blue` 作為按鈕背景 | 用 `Color.primary`（黑色）或 `Color(.systemGray6)`（灰色） |
-| 彩色圖標（除狀態指示外） | SF Symbols Outline，顏色用 `.primary` 或 `.secondary` |
-| 分隔線 `Divider()` 大量使用 | 用間距和背景色區分區塊 |
-| 陰影 > `opacity(0.1)` | 保持 `opacity(0.05)`，極淡 |
-| 自定義字型大小（不在 token 表中） | 只用 28 / 22 / 16 / 12 四種 |
-| 圓角不在 24 / 12 兩種之內 | 只用這兩種 |
-
-### 適用範圍
-
-- **本次重構新建的頁面**：`RootTabView`、`EventsView`、`WorkspaceView`、`POSView`、`InventoryView`、`ReportsView`、`MyView` → 直接套用
-- **沿用的舊頁面**：`AddNewProductView`、`CheckoutFlowView`、`InventoryChangeView` 等 → 暫不改動，之後獨立處理
-- **新建頁面中嵌入的舊元件**：如 `TransactionHistoryView` 嵌入 `ReportsView` → 暫時保持舊樣式，不影響功能
+純開發用文字（log、assert）不需要本地化，直接寫英文。
 
 ---
 
