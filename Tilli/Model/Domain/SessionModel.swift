@@ -102,25 +102,25 @@ enum SessionStatus: String, Codable {
 
     var color: Color {
         switch self {
-        case .ongoing: return Color.white
-        case .completed: return Color.gray.opacity(0.2)
-        case .upcoming: return Color.blue.opacity(0.2)
+        case .ongoing: return DesignSystem.ColorToken.marketGreenLight
+        case .completed: return DesignSystem.ColorToken.quietFill
+        case .upcoming: return DesignSystem.ColorToken.quietFill
         }
     }
 
     var textColor: Color {
         switch self {
-        case .ongoing: return .blue
-        case .completed: return .gray
-        case .upcoming: return .blue
+        case .ongoing: return DesignSystem.ColorToken.marketGreen
+        case .completed: return DesignSystem.ColorToken.muted
+        case .upcoming: return DesignSystem.ColorToken.muted
         }
     }
 
     var localizedDescription: String {
         switch self {
-        case .ongoing: return "進行中"
-        case .completed: return "已完成"
-        case .upcoming: return "即將到來"
+        case .ongoing: return String(localized: "sessionStatusOngoing")
+        case .completed: return String(localized: "sessionStatusCompleted")
+        case .upcoming: return String(localized: "sessionStatusUpcoming")
         }
     }
 }

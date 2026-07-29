@@ -45,7 +45,7 @@ struct RootTabView: View {
     private var mainView: some View {
         TabView(selection: $selectedTab) {
             // 場次
-            Text("eventsTabPlaceholder")
+            EventsView()
                 .tabItem {
                     Image(systemName: "list.bullet")
                     // 場次

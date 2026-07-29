@@ -7,58 +7,58 @@
 
 import SwiftUI
 
-/// 場次卡片樣式
 enum SessionCardStyle {
-    case standard       // 標準樣式（SessionsView 使用，有 menu）
-    case simple         // 簡化樣式（InventoryTabView 使用，無 menu）
+    case standard
+    case simple
 }
 
-/// 共用的場次卡片元件
 struct SessionCardView: View {
     let session: SessionModel
     let style: SessionCardStyle
 
-    // 標準樣式的 menu actions
     var onDuplicate: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(session.title)
-                        .font(.headline)
-                        .lineLimit(1)
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Row 1: Title + menu
+            HStack(alignment: .firstTextBaseline) {
+                Text(session.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(DesignSystem.ColorToken.ink)
+                    .lineLimit(1)
 
-                    Text(session.displayDateRange)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
+                Spacer(minLength: DesignSystem.Spacing.xs)
 
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 12) {
-                    // 標準樣式顯示 menu
-                    if style == .standard {
-                        menuButton
-                    }
-
-                    statusBadge
+                if style == .standard {
+                    menuButton
                 }
             }
+
+            // Row 2: Status pill + date range
+            HStack(spacing: DesignSystem.Spacing.xs) {
+                statusBadge
+
+                Text(session.displayDateRange)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .lineLimit(1)
+            }
         }
-        .padding()
+        .padding(DesignSystem.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(session.status == .ongoing ? Color.blue.opacity(0.1) : Color.white)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+        .shadow(
+            color: DesignSystem.Shadow.cardColor,
+            radius: DesignSystem.Shadow.cardRadius,
+            x: DesignSystem.Shadow.cardX,
+            y: DesignSystem.Shadow.cardY
         )
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 
-    // MARK: - Menu Button（標準樣式）
+    // MARK: - Menu Button
 
     @ViewBuilder
     private var menuButton: some View {
@@ -67,39 +67,44 @@ struct SessionCardView: View {
            let onDelete = onDelete {
             Menu {
                 Button {
-                    onDuplicate()
+                    onEdit()
                 } label: {
-                    Label("複製場次", systemImage: "doc.on.doc")
+                    // 編輯場次
+                    Label("addSessionEditTitle", systemImage: "pencil")
                 }
 
                 Button {
-                    onEdit()
+                    onDuplicate()
                 } label: {
-                    Label("編輯", systemImage: "pencil")
+                    // 複製場次
+                    Label("eventsDuplicateTitle", systemImage: "doc.on.doc")
                 }
 
                 Button(role: .destructive) {
                     onDelete()
                 } label: {
-                    Label("刪除", systemImage: "trash")
+                    // 刪除場次
+                    Label("commonDelete", systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis")
                     .rotationEffect(.degrees(90))
-                    .foregroundColor(.gray)
-                    .padding(8)
+                    .font(DesignSystem.Typography.body)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .frame(width: 32, height: 24)
+                    .contentShape(Rectangle())
             }
         }
     }
 
-    // MARK: - 狀態標籤
+    // MARK: - Status Badge
 
     private var statusBadge: some View {
         Text(session.status.localizedDescription)
-            .font(.caption)
+            .font(DesignSystem.Typography.caption)
             .foregroundColor(session.status.textColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, DesignSystem.Spacing.xs)
+            .padding(.vertical, 3)
             .background(session.status.color)
             .clipShape(Capsule())
     }
