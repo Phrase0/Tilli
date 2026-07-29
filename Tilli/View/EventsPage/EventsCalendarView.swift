@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventsCalendarView: View {
 
-    @ObservedObject var eventsVM: EventsViewModel
+    @ObservedObject var calendarVM: EventsCalendarViewModel
     @EnvironmentObject var sessionDataManager: SessionRepository
     var onSelectSession: (SessionModel) -> Void
 
@@ -24,7 +24,7 @@ struct EventsCalendarView: View {
             Spacer()
         }
         .onAppear {
-            eventsVM.selectedDate = Date()
+            calendarVM.selectedDate = Date()
         }
     }
 
@@ -33,7 +33,7 @@ struct EventsCalendarView: View {
     private var monthHeader: some View {
         HStack(spacing: 0) {
             Button {
-                eventsVM.changeMonth(-1)
+                calendarVM.changeMonth(-1)
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .medium))
@@ -44,23 +44,23 @@ struct EventsCalendarView: View {
             Spacer()
 
             Button {
-                eventsVM.showingMonthYearPicker = true
+                calendarVM.showingMonthYearPicker = true
             } label: {
-                Text(eventsVM.monthYearString())
+                Text(calendarVM.monthYearString())
                     .font(DesignSystem.Typography.title2)
                     .foregroundColor(DesignSystem.ColorToken.ink)
             }
-            .sheet(isPresented: $eventsVM.showingMonthYearPicker) {
+            .sheet(isPresented: $calendarVM.showingMonthYearPicker) {
                 CalendarMonthYearPicker(
-                    currentDate: $eventsVM.currentDate,
-                    isPresented: $eventsVM.showingMonthYearPicker
+                    currentDate: $calendarVM.currentDate,
+                    isPresented: $calendarVM.showingMonthYearPicker
                 )
             }
 
             Spacer()
 
             Button {
-                eventsVM.changeMonth(1)
+                calendarVM.changeMonth(1)
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .medium))
@@ -76,7 +76,7 @@ struct EventsCalendarView: View {
 
     private var weekHeader: some View {
         HStack {
-            ForEach(eventsVM.weekdays, id: \.self) { day in
+            ForEach(calendarVM.weekdays, id: \.self) { day in
                 Text(day)
                     .font(DesignSystem.Typography.caption)
                     .foregroundColor(DesignSystem.ColorToken.muted)
@@ -91,18 +91,18 @@ struct EventsCalendarView: View {
 
     private var calendarGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
-            ForEach(eventsVM.daysInMonth(), id: \.self) { date in
-                let sessionsForDate = eventsVM.sessionsForDate(date, from: sessionDataManager.sessions)
-                let hasTransactions = eventsVM.hasTransactions(on: date)
+            ForEach(calendarVM.daysInMonth(), id: \.self) { date in
+                let sessionsForDate = calendarVM.sessionsForDate(date, from: sessionDataManager.sessions)
+                let hasTransactions = calendarVM.hasTransactions(on: date)
 
                 CalendarDayCell(
                     date: date,
-                    isSelected: calendar.isDate(date, inSameDayAs: eventsVM.selectedDate),
+                    isSelected: calendar.isDate(date, inSameDayAs: calendarVM.selectedDate),
                     isToday: calendar.isDateInToday(date),
                     sessions: sessionsForDate,
                     hasOrphanTransactions: hasTransactions && sessionsForDate.isEmpty,
-                    currentMonth: eventsVM.currentDate,
-                    onTap: { eventsVM.selectedDate = date }
+                    currentMonth: calendarVM.currentDate,
+                    onTap: { calendarVM.selectedDate = date }
                 )
             }
         }
@@ -111,9 +111,9 @@ struct EventsCalendarView: View {
             DragGesture()
                 .onEnded { value in
                     if value.translation.width > 50 {
-                        eventsVM.changeMonth(-1)
+                        calendarVM.changeMonth(-1)
                     } else if value.translation.width < -50 {
-                        eventsVM.changeMonth(1)
+                        calendarVM.changeMonth(1)
                     }
                 }
         )
@@ -122,8 +122,8 @@ struct EventsCalendarView: View {
     // MARK: - Session List
 
     private var calendarSessionList: some View {
-        let (realSessions, virtualSessions) = eventsVM.getAllSessionsForDate(from: sessionDataManager.sessions)
-        let permanentSessions = eventsVM.getPermanentSessions(from: sessionDataManager.sessions)
+        let (realSessions, virtualSessions) = calendarVM.getAllSessionsForDate(from: sessionDataManager.sessions)
+        let permanentSessions = calendarVM.getPermanentSessions(from: sessionDataManager.sessions)
 
         return Group {
             if !realSessions.isEmpty || !virtualSessions.isEmpty || !permanentSessions.isEmpty {
@@ -135,8 +135,8 @@ struct EventsCalendarView: View {
                                     session: session,
                                     isVirtual: false,
                                     isPermanent: true,
-                                    progressInfo: eventsVM.sessionProgressInfo(for: session),
-                                    summary: eventsVM.calculateTransactionSummary(for: session)
+                                    progressInfo: calendarVM.sessionProgressInfo(for: session),
+                                    summary: calendarVM.calculateTransactionSummary(for: session)
                                 )
                                 .onTapGesture { onSelectSession(session) }
                             }
@@ -147,8 +147,8 @@ struct EventsCalendarView: View {
                                 session: session,
                                 isVirtual: false,
                                 isPermanent: false,
-                                progressInfo: eventsVM.sessionProgressInfo(for: session),
-                                summary: eventsVM.calculateTransactionSummary(for: session)
+                                progressInfo: calendarVM.sessionProgressInfo(for: session),
+                                summary: calendarVM.calculateTransactionSummary(for: session)
                             )
                             .onTapGesture { onSelectSession(session) }
                         }
@@ -159,7 +159,7 @@ struct EventsCalendarView: View {
                                 isVirtual: true,
                                 isPermanent: false,
                                 progressInfo: nil,
-                                summary: eventsVM.calculateTransactionSummary(for: session)
+                                summary: calendarVM.calculateTransactionSummary(for: session)
                             )
                             .opacity(0.7)
                             .onTapGesture { onSelectSession(session) }

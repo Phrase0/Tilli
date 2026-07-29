@@ -18,6 +18,7 @@ struct EventsView: View {
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @StateObject private var eventsVM = EventsViewModel()
     @StateObject private var sessionVM = SessionViewModel()
+    @StateObject private var calendarVM = EventsCalendarViewModel()
 
     @State private var searchText = ""
     @State private var showAddSessionSheet = false
@@ -53,7 +54,7 @@ struct EventsView: View {
                     listContent
                 case .calendar:
                     EventsCalendarView(
-                        eventsVM: eventsVM,
+                        calendarVM: calendarVM,
                         onSelectSession: { session in
                             selectedSession = session
                         }
@@ -106,7 +107,7 @@ struct EventsView: View {
             .animation(.easeInOut(duration: 0.3), value: sessionVM.isSelectionMode)
         }
         .onAppear {
-            eventsVM.updateCalendarDataManagers(
+            calendarVM.updateDataManagers(
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager
             )
