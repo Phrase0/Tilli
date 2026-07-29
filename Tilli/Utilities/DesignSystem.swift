@@ -17,8 +17,17 @@ enum DesignSystem {
 
     enum Radius {
         static let sm: CGFloat = 12
-        static let md: CGFloat = 24
+        static let md: CGFloat = 16
         static let pill: CGFloat = 999
+    }
+
+    enum Border {
+        static let cardColor = Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.08)
+                : UIColor.black.withAlphaComponent(0.06)
+        })
+        static let cardWidth: CGFloat = 0.5
     }
 
     enum ColorToken {

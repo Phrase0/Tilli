@@ -55,10 +55,6 @@ class EventsCalendarViewModel: ObservableObject {
         calendarVM.getPermanentSessions(from: sessions, selectedDate: selectedDate)
     }
 
-    func calculateTransactionSummary(for session: SessionModel) -> (count: Int, totalAmount: Decimal) {
-        calendarVM.calculateTransactionSummary(for: session)
-    }
-
     var weekdays: [String] {
         calendar.veryShortWeekdaySymbols
     }
@@ -69,30 +65,14 @@ class EventsCalendarViewModel: ObservableObject {
         return formatter.string(from: currentDate)
     }
 
-    func sessionProgressInfo(for session: SessionModel) -> String? {
-        let referenceDate = calendar.startOfDay(for: selectedDate)
+    func selectedDateString() -> String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("MMMdEEE")
+        return formatter.string(from: selectedDate)
+    }
 
-        switch session.dateType {
-        case .single:
-            return nil
-
-        case .multi:
-            guard let endDate = session.endDate else { return nil }
-            let start = calendar.startOfDay(for: session.startDate)
-            let end = calendar.startOfDay(for: endDate)
-            let totalDays = calendar.dateComponents([.day], from: start, to: end).day! + 1
-
-            if referenceDate >= start && referenceDate <= end {
-                let currentDay = calendar.dateComponents([.day], from: start, to: referenceDate).day! + 1
-                return String(localized: "calendarDayProgress \(currentDay) \(totalDays)")
-            } else {
-                return String(localized: "calendarTotalDays \(totalDays)")
-            }
-
-        case .permanent:
-            let start = calendar.startOfDay(for: session.startDate)
-            let daysSinceStart = calendar.dateComponents([.day], from: start, to: referenceDate).day! + 1
-            return String(localized: "calendarDaysSinceStart \(daysSinceStart)")
-        }
+    func transactionSummary(for session: SessionModel) -> (count: Int, total: Decimal) {
+        let result = calendarVM.calculateTransactionSummary(for: session)
+        return (result.count, result.totalAmount)
     }
 }

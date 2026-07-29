@@ -54,9 +54,6 @@
     "～" : {
 
     },
-    "∞" : {
-
-    },
     "0" : {
 
     },
@@ -371,6 +368,7 @@
 
     },
     "calendarDayProgress %lld %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -387,6 +385,7 @@
       }
     },
     "calendarDaysSinceStart %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -467,6 +466,7 @@
       }
     },
     "calendarTotalDays %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -483,6 +483,7 @@
       }
     },
     "calendarTransactionCount %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1064,6 +1065,7 @@
       }
     },
     "eventsSelect" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1124,6 +1126,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "場次"
+          }
+        }
+      }
+    },
+    "eventsTransactionCount %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Orders"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 筆交易"
           }
         }
       }

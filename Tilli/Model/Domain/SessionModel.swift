@@ -23,6 +23,22 @@ struct SessionModel: Identifiable, Codable, Hashable {
         return startDate
     }
 
+    var displayTimeInfo: String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("MdE")
+        switch dateType {
+        case .single:
+            return formatter.string(from: startDate)
+        case .multi:
+            guard let endDate = endDate else { return formatter.string(from: startDate) }
+            let endStr = DateFormatter()
+            endStr.setLocalizedDateFormatFromTemplate("Md")
+            return "\(formatter.string(from: startDate)) - \(endStr.string(from: endDate))"
+        case .permanent:
+            return "\(formatter.string(from: startDate)) ~"
+        }
+    }
+
     // 計算屬性：日期範圍字串
     var displayDateRange: String {
         switch dateType {

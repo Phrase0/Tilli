@@ -15,6 +15,8 @@ enum SessionCardStyle {
 struct SessionCardView: View {
     let session: SessionModel
     let style: SessionCardStyle
+    var transactionCount: Int = 0
+    var transactionTotal: Decimal = 0
 
     var onDuplicate: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
@@ -22,7 +24,6 @@ struct SessionCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            // Row 1: Title + menu
             HStack(alignment: .firstTextBaseline) {
                 Text(session.title)
                     .font(.system(size: 16, weight: .semibold))
@@ -36,20 +37,35 @@ struct SessionCardView: View {
                 }
             }
 
-            // Row 2: Status pill + date range
-            HStack(spacing: DesignSystem.Spacing.xs) {
-                statusBadge
+            Text(session.displayTimeInfo)
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.ColorToken.muted)
+                .lineLimit(1)
 
-                Text(session.displayDateRange)
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-                    .lineLimit(1)
+            if transactionCount > 0 {
+                Divider()
+
+                HStack {
+                    Text("eventsTransactionCount \(transactionCount)")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+
+                    Spacer()
+
+                    Text(transactionTotal.money(currency: session.currency))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(DesignSystem.ColorToken.ink)
+                }
             }
         }
         .padding(DesignSystem.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DesignSystem.ColorToken.cardSurface)
         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.Radius.md)
+                .stroke(DesignSystem.Border.cardColor, lineWidth: DesignSystem.Border.cardWidth)
+        )
         .shadow(
             color: DesignSystem.Shadow.cardColor,
             radius: DesignSystem.Shadow.cardRadius,
@@ -69,21 +85,18 @@ struct SessionCardView: View {
                 Button {
                     onEdit()
                 } label: {
-                    // 編輯場次
                     Label("addSessionEditTitle", systemImage: "pencil")
                 }
 
                 Button {
                     onDuplicate()
                 } label: {
-                    // 複製場次
                     Label("eventsDuplicateTitle", systemImage: "doc.on.doc")
                 }
 
                 Button(role: .destructive) {
                     onDelete()
                 } label: {
-                    // 刪除場次
                     Label("commonDelete", systemImage: "trash")
                 }
             } label: {
@@ -95,17 +108,5 @@ struct SessionCardView: View {
                     .contentShape(Rectangle())
             }
         }
-    }
-
-    // MARK: - Status Badge
-
-    private var statusBadge: some View {
-        Text(session.status.localizedDescription)
-            .font(DesignSystem.Typography.caption)
-            .foregroundColor(session.status.textColor)
-            .padding(.horizontal, DesignSystem.Spacing.xs)
-            .padding(.vertical, 3)
-            .background(session.status.color)
-            .clipShape(Capsule())
     }
 }

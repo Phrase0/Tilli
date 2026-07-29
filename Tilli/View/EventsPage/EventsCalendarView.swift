@@ -20,6 +20,7 @@ struct EventsCalendarView: View {
             monthHeader
             weekHeader
             calendarGrid
+            selectedDateHeader
             calendarSessionList
             Spacer()
         }
@@ -119,6 +120,20 @@ struct EventsCalendarView: View {
         )
     }
 
+    // MARK: - Selected Date Header
+
+    private var selectedDateHeader: some View {
+        HStack {
+            Text(calendarVM.selectedDateString())
+                .font(DesignSystem.Typography.title2)
+                .foregroundColor(DesignSystem.ColorToken.ink)
+            Spacer()
+        }
+        .padding(.horizontal, DesignSystem.Spacing.lg)
+        .padding(.top, DesignSystem.Spacing.md)
+        .padding(.bottom, DesignSystem.Spacing.xs)
+    }
+
     // MARK: - Session List
 
     private var calendarSessionList: some View {
@@ -131,38 +146,20 @@ struct EventsCalendarView: View {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         if !permanentSessions.isEmpty {
                             ForEach(permanentSessions) { session in
-                                CalendarSessionRow(
-                                    session: session,
-                                    isVirtual: false,
-                                    isPermanent: true,
-                                    progressInfo: calendarVM.sessionProgressInfo(for: session),
-                                    summary: calendarVM.calculateTransactionSummary(for: session)
-                                )
-                                .onTapGesture { onSelectSession(session) }
+                                calendarSessionCard(session)
+                                    .onTapGesture { onSelectSession(session) }
                             }
                         }
 
                         ForEach(realSessions) { session in
-                            CalendarSessionRow(
-                                session: session,
-                                isVirtual: false,
-                                isPermanent: false,
-                                progressInfo: calendarVM.sessionProgressInfo(for: session),
-                                summary: calendarVM.calculateTransactionSummary(for: session)
-                            )
-                            .onTapGesture { onSelectSession(session) }
+                            calendarSessionCard(session)
+                                .onTapGesture { onSelectSession(session) }
                         }
 
                         ForEach(virtualSessions) { session in
-                            CalendarSessionRow(
-                                session: session,
-                                isVirtual: true,
-                                isPermanent: false,
-                                progressInfo: nil,
-                                summary: calendarVM.calculateTransactionSummary(for: session)
-                            )
-                            .opacity(0.7)
-                            .onTapGesture { onSelectSession(session) }
+                            calendarSessionCard(session)
+                                .opacity(0.7)
+                                .onTapGesture { onSelectSession(session) }
                         }
                     }
                     .padding(.horizontal, DesignSystem.Spacing.md)
@@ -170,6 +167,16 @@ struct EventsCalendarView: View {
                 }
             }
         }
+    }
+
+    private func calendarSessionCard(_ session: SessionModel) -> some View {
+        let summary = calendarVM.transactionSummary(for: session)
+        return SessionCardView(
+            session: session,
+            style: .simple,
+            transactionCount: summary.count,
+            transactionTotal: summary.total
+        )
     }
 }
 
@@ -247,64 +254,6 @@ struct CalendarDayCell: View {
         } else {
             return DesignSystem.ColorToken.ink
         }
-    }
-}
-
-// MARK: - Calendar Session Row
-
-struct CalendarSessionRow: View {
-    let session: SessionModel
-    let isVirtual: Bool
-    let isPermanent: Bool
-    let progressInfo: String?
-    let summary: (count: Int, totalAmount: Decimal)
-
-    var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: DesignSystem.Spacing.xs) {
-                    Text(session.title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                        .lineLimit(1)
-
-                    if isPermanent {
-                        Text("∞")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                    }
-                }
-
-                if let info = progressInfo {
-                    Text(info)
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(summary.totalAmount.money(currency: session.currency))
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DesignSystem.ColorToken.ink)
-
-                // N 筆交易
-                Text("calendarTransactionCount \(summary.count)")
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-            }
-        }
-        .padding(DesignSystem.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isVirtual ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
-        .shadow(
-            color: DesignSystem.Shadow.cardColor,
-            radius: DesignSystem.Shadow.cardRadius,
-            x: DesignSystem.Shadow.cardX,
-            y: DesignSystem.Shadow.cardY
-        )
     }
 }
 

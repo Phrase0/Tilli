@@ -21,6 +21,7 @@ struct EventsView: View {
     @StateObject private var calendarVM = EventsCalendarViewModel()
 
     @State private var searchText = ""
+    @State private var isSearching = false
     @State private var showAddSessionSheet = false
     @State private var editingSession: SessionModel? = nil
     @State private var sessionToDelete: SessionModel? = nil
@@ -47,6 +48,10 @@ struct EventsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if isSearching {
+                    searchBar
+                }
+
                 segmentedControl
 
                 switch eventsVM.displayMode {
@@ -62,34 +67,29 @@ struct EventsView: View {
                 }
             }
             .background(DesignSystem.ColorToken.paper)
-            // 場次
             .navigationTitle("eventsPageTitle")
-            .searchable(
-                text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .automatic),
-                // 搜尋場次
-                prompt: Text("eventsSearchPrompt")
-            )
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if eventsVM.displayMode == .list {
-                        if sessionVM.isSelectionMode {
-                            // 取消
-                            Button("commonCancel") {
-                                sessionVM.exitSelectionMode()
-                            }
-                        } else {
-                            // 選取
-                            Button("eventsSelect") {
-                                sessionVM.enterSelectionMode()
-                            }
-                            .disabled(sessionDataManager.sessions.isEmpty)
+                    if sessionVM.isSelectionMode {
+                        Button("commonCancel") {
+                            sessionVM.exitSelectionMode()
                         }
                     }
                 }
 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if !sessionVM.isSelectionMode {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if sessionVM.isSelectionMode {
+                        EmptyView()
+                    } else {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isSearching.toggle()
+                            }
+                            if !isSearching { searchText = "" }
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+
                         Button {
                             showAddSessionSheet = true
                         } label: {
@@ -107,6 +107,7 @@ struct EventsView: View {
             .animation(.easeInOut(duration: 0.3), value: sessionVM.isSelectionMode)
         }
         .onAppear {
+            eventsVM.updateDataManagers(transactionDataManager: transactionDataManager)
             calendarVM.updateDataManagers(
                 transactionDataManager: transactionDataManager,
                 sessionDataManager: sessionDataManager
@@ -132,27 +133,20 @@ struct EventsView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        // 確定要刪除這個場次嗎？
         .alert("eventsDeleteConfirmTitle", isPresented: $showDeleteConfirmation, presenting: sessionToDelete) { session in
-            // 刪除
             Button("commonDelete", role: .destructive) {
                 sessionVM.deleteSession(session, using: sessionDataManager)
             }
-            // 取消
             Button("commonCancel", role: .cancel) { }
         } message: { _ in
-            // 刪除後將同時移除底下的所有類別、商品，且無法復原，是否確定？
             Text("eventsDeleteConfirmMessage")
         }
         .alert("eventsDeleteBatchTitle \(sessionVM.selectedCount)", isPresented: $showBatchDeleteConfirmation) {
-            // 刪除
             Button("commonDelete", role: .destructive) {
                 sessionVM.deleteSelectedSessions(using: sessionDataManager)
             }
-            // 取消
             Button("commonCancel", role: .cancel) { }
         } message: {
-            // 刪除後將同時移除所有類別、商品，且無法復原，是否確定？
             Text("eventsDeleteBatchMessage")
         }
         .sheet(isPresented: $sessionVM.showDuplicateSessionDialog) {
@@ -160,13 +154,38 @@ struct EventsView: View {
         }
     }
 
+    // MARK: - Search Bar
+
+    private var searchBar: some View {
+        HStack(spacing: DesignSystem.Spacing.xs) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(DesignSystem.ColorToken.muted)
+
+            TextField(String(localized: "eventsSearchPrompt"), text: $searchText)
+                .font(DesignSystem.Typography.body)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                }
+            }
+        }
+        .padding(.horizontal, DesignSystem.Spacing.sm)
+        .padding(.vertical, DesignSystem.Spacing.xs)
+        .background(DesignSystem.ColorToken.quietFill)
+        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
+        .padding(.horizontal, DesignSystem.Spacing.md)
+        .padding(.top, DesignSystem.Spacing.xs)
+    }
+
     // MARK: - Segmented Control
 
     private var segmentedControl: some View {
         Picker("", selection: $eventsVM.displayMode) {
-            // 列表
             Text("eventsDisplayList").tag(EventsDisplayMode.list)
-            // 日曆
             Text("eventsDisplayCalendar").tag(EventsDisplayMode.calendar)
         }
         .pickerStyle(.segmented)
@@ -201,14 +220,12 @@ struct EventsView: View {
     @ViewBuilder
     private var emptyStateContent: some View {
         if searchText.isEmpty {
-            // 尚無場次 / 點擊右上角「+」按鈕新增第一個場次
             EmptyStateView(
                 systemImage: "calendar.badge.plus",
                 title: String(localized: "eventsEmptyTitle"),
                 message: String(localized: "eventsEmptyMessage")
             )
         } else {
-            // 查無結果 / 找不到符合「...」的場次
             EmptyStateView(
                 systemImage: "magnifyingglass",
                 title: String(localized: "eventsSearchEmptyTitle"),
@@ -250,13 +267,19 @@ struct EventsView: View {
                                              ? DesignSystem.ColorToken.ink : DesignSystem.ColorToken.muted)
                     }
 
-                    sessionCard(session, showMenu: !sessionVM.isSelectionMode)
+                    sessionCard(session, style: sessionVM.isSelectionMode ? .simple : .standard)
                 }
                 .onTapGesture {
                     if sessionVM.isSelectionMode {
                         sessionVM.toggleSelection(sessionId: session.id)
                     } else {
                         selectedSession = session
+                    }
+                }
+                .onLongPressGesture {
+                    if !sessionVM.isSelectionMode {
+                        sessionVM.enterSelectionMode()
+                        sessionVM.toggleSelection(sessionId: session.id)
                     }
                 }
             }
@@ -287,7 +310,6 @@ struct EventsView: View {
             Button {
                 showBatchDeleteConfirmation = true
             } label: {
-                // 刪除 (N)
                 Text("eventsDeleteCount \(sessionVM.selectedCount)")
                     .foregroundColor(sessionVM.isDeleteButtonDisabled
                                      ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.alertRed)
@@ -307,11 +329,15 @@ struct EventsView: View {
     // MARK: - Session Card
 
     @ViewBuilder
-    private func sessionCard(_ session: SessionModel, showMenu: Bool = true) -> some View {
-        if showMenu {
+    private func sessionCard(_ session: SessionModel, style: SessionCardStyle) -> some View {
+        let summary = eventsVM.transactionSummary(for: session)
+        switch style {
+        case .standard:
             SessionCardView(
                 session: session,
                 style: .standard,
+                transactionCount: summary.count,
+                transactionTotal: summary.total,
                 onDuplicate: { sessionVM.startDuplicateSession(session) },
                 onEdit: { editingSession = session },
                 onDelete: {
@@ -319,8 +345,13 @@ struct EventsView: View {
                     showDeleteConfirmation = true
                 }
             )
-        } else {
-            SessionCardView(session: session, style: .simple)
+        case .simple:
+            SessionCardView(
+                session: session,
+                style: .simple,
+                transactionCount: summary.count,
+                transactionTotal: summary.total
+            )
         }
     }
 
@@ -330,20 +361,15 @@ struct EventsView: View {
     private var duplicateSessionView: some View {
         NavigationView {
             Form {
-                // 場次名稱
                 TextField("eventsDuplicateNameLabel", text: $sessionVM.duplicateSessionName)
                     .onChange(of: sessionVM.duplicateSessionName) {
                         sessionVM.onSessionNameChanged()
                     }
 
                 Section {
-                    // 場次類型
                     Picker("eventsDuplicateTypeLabel", selection: $sessionVM.duplicateSessionDateType) {
-                        // 單日
                         Text("eventsDateTypeSingle").tag(SessionDateType.single)
-                        // 多日
                         Text("eventsDateTypeMulti").tag(SessionDateType.multi)
-                        // 無限期
                         Text("eventsDateTypePermanent").tag(SessionDateType.permanent)
                     }
                     .pickerStyle(.segmented)
@@ -361,11 +387,9 @@ struct EventsView: View {
                 Section {
                     switch sessionVM.duplicateSessionDateType {
                     case .single:
-                        // 日期
                         DatePicker("eventsDuplicateDate", selection: $sessionVM.duplicateSessionDate, displayedComponents: .date)
 
                     case .multi:
-                        // 開始日期
                         DatePicker("eventsDuplicateStartDate", selection: $sessionVM.duplicateSessionDate, displayedComponents: .date)
                             .onChange(of: sessionVM.duplicateSessionDate) { _, newStartDate in
                                 if sessionVM.duplicateSessionEndDate <= newStartDate {
@@ -375,7 +399,6 @@ struct EventsView: View {
                                 }
                             }
 
-                        // 結束日期
                         DatePicker(
                             "eventsDuplicateEndDate",
                             selection: $sessionVM.duplicateSessionEndDate,
@@ -387,20 +410,17 @@ struct EventsView: View {
                             Image(systemName: "info.circle")
                                 .foregroundColor(DesignSystem.ColorToken.muted)
                                 .font(DesignSystem.Typography.caption)
-                            // 多日場次最多 31 天
                             Text("eventsDuplicateMultiDayLimit")
                                 .font(DesignSystem.Typography.caption)
                                 .foregroundColor(DesignSystem.ColorToken.muted)
                         }
 
                     case .permanent:
-                        // 開始日期
                         DatePicker("eventsDuplicateStartDate", selection: $sessionVM.duplicateSessionDate, displayedComponents: .date)
 
                         HStack {
                             Image(systemName: "infinity")
                                 .foregroundColor(DesignSystem.ColorToken.muted)
-                            // 此場次無結束日期
                             Text("eventsDuplicatePermanentHint")
                                 .font(DesignSystem.Typography.caption)
                                 .foregroundColor(DesignSystem.ColorToken.muted)
@@ -408,19 +428,16 @@ struct EventsView: View {
                     }
                 }
             }
-            // 複製場次
             .navigationTitle("eventsDuplicateTitle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    // 取消
                     Button("commonCancel") {
                         sessionVM.cancelDuplicateSession()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    // 確定
                     Button("commonConfirm") {
                         sessionVM.confirmDuplicateSession(using: sessionDataManager)
                     }

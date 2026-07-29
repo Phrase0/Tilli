@@ -346,13 +346,13 @@ func testRootTabViewHasTwoTabs() {
 6. 修改 `RootTabView`：Tab 0 用 `EventsView()`
 
 **測試（手動）：**
-- [ ] Tab Events 顯示場次列表
-- [ ] 搜尋功能正常
-- [ ] 新增場次按鈕（+）正常
-- [ ] 點擊場次進入 SessionDetailView（舊頁面，暫時保留）
-- [ ] 滑動操作（編輯/複製/刪除）正常
-- [ ] 選取模式正常
-- [ ] Segmented Control 可切換，Calendar 顯示 placeholder
+- [x] Tab Events 顯示場次列表
+- [x] 搜尋功能正常
+- [x] 新增場次按鈕（+）正常
+- [x] 點擊場次進入 SessionDetailView（舊頁面，暫時保留）
+- [x] 滑動操作（編輯/複製/刪除）正常
+- [x] 選取模式正常
+- [x] Segmented Control 可切換，Calendar 顯示 placeholder
 
 ---
 
@@ -369,13 +369,13 @@ func testRootTabViewHasTwoTabs() {
 - [x] 移除舊 CalendarView 的 `refreshID` hack（改用 onAppear 同步）
 
 **測試（手動）：**
-- [ ] 切換到 Calendar 模式，顯示日曆格子
-- [ ] 月份切換正常（左右箭頭 + 點擊月份標題選擇器）
-- [ ] 日期有場次圓點指示器
-- [ ] 點擊日期顯示當日場次列表
-- [ ] 點擊場次進入 SessionDetailView
-- [ ] 切回 List 模式，列表狀態保持
-- [ ] 左右滑動切換月份正常
+- [x] 切換到 Calendar 模式，顯示日曆格子
+- [x] 月份切換正常（左右箭頭 + 點擊月份標題選擇器）
+- [x] 日期有場次圓點指示器
+- [x] 點擊日期顯示當日場次列表
+- [x] 點擊場次進入 SessionDetailView
+- [x] 切回 List 模式，列表狀態保持
+- [x] 左右滑動切換月份正常
 
 **測試（自動）：**
 ```swift
