@@ -4,15 +4,15 @@ description: A minimalist point-of-sale companion for market and pop-up vendors.
 colors:
   ink: "#000000"
   paper: "#F2F2F7"
-  card-surface: "#FFFFFF"
+  card-surface: "#FFFFFF"  # secondarySystemGroupedBackground
   muted: "#8E8E93"
   market-green: "#34C759"
   market-green-light: "#D8F5DE"
   alert-red: "#FF3B30"
 colors-dark:
   ink: "#FFFFFF"
-  paper: "#1C1C1E"
-  card-surface: "#2C2C2E"
+  paper: "#000000"
+  card-surface: "#1C1C1E"
   muted: "#8E8E93"
   market-green: "#30D158"
   market-green-light: "#13321C"
@@ -116,7 +116,7 @@ Tilli 是攤商在客人交易空檔隨手打開的小工具，不是拿來給�
 
 ### 中性色
 - **紙灰 Paper**（`#F2F2F7`，`systemGroupedBackground`）：卡片背後的頁面底色。
-- **卡片面 Card Surface**（`#FFFFFF`，`systemBackground`）：卡片、彈出視窗、列表列的填色。
+- **卡片面 Card Surface**（`#FFFFFF`，`secondarySystemGroupedBackground`）：卡片、彈出視窗、列表列的填色。
 - **靜音灰 Muted Gray**（`#8E8E93`，`.secondary`）：次要文字，例如日期、副標題、輔助說明、未選中的分頁標籤。
 - **靜謐填色 Quiet Fill**（`#E5E5EA`，`systemGray6`）：次要按鈕背景、中性／已完成狀態標籤、未選中的分段軌道。
 - **警示紅 Alert Red**（`#FF3B30`，`systemRed`）：只用在破壞性文字上（刪除場次、刪除商品、移除項目），不能當按鈕的底色。
@@ -128,9 +128,9 @@ Tilli 是攤商在客人交易空檔隨手打開的小工具，不是拿來給�
 |-------|---------|---------|------|
 | Ink | `#000000` | `#FFFFFF` | `Color.primary`（系統自動） |
 | Paper | `#F2F2F7` | `#1C1C1E` | `systemGroupedBackground`（系統自動） |
-| Card Surface | `#FFFFFF` | `#2C2C2E` | `systemBackground`（系統自動） |
+| Card Surface | `#FFFFFF` | `#1C1C1E` | `secondarySystemGroupedBackground`（系統自動） |
 | Muted | `#8E8E93` | `#8E8E93` | `Color.secondary`（系統自動） |
-| Quiet Fill | `#E5E5EA` | `#1C1C1E` | `systemGray6`（系統自動） |
+| Quiet Fill | `#E5E5EA` | `#2C2C2E` | `systemGray5`（系統自動） |
 | Market Green | `#34C759` | `#30D158` | 手動適配，深色稍微提亮 |
 | Market Green Light | `#D8F5DE` | `#13321C` | 手動適配，深色改用低飽和暗綠 |
 | Alert Red | `#FF3B30` | `#FF453A` | `systemRed`（系統自動） |

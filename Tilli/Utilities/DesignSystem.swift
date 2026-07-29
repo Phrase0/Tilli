@@ -24,9 +24,9 @@ enum DesignSystem {
     enum ColorToken {
         static let ink = Color.primary
         static let paper = Color(.systemGroupedBackground)
-        static let cardSurface = Color(.systemBackground)
+        static let cardSurface = Color(.secondarySystemGroupedBackground)
         static let muted = Color.secondary
-        static let quietFill = Color(.systemGray6)
+        static let quietFill = Color(.systemGray5)
         static let alertRed = Color(.systemRed)
 
         // MARK: - 需手動適配深色模式的顏色

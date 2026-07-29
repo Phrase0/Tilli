@@ -18,6 +18,7 @@ struct TilliApp: App {
     @StateObject private var qRCodeDataManager = QRCodeRepository()
     let persistenceController = PersistenceController.shared
 
+    @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -27,6 +28,7 @@ struct TilliApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .environment(\.locale, Locale(identifier: selectedLanguage))
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(authenticationManager)
                 .environmentObject(sessionDataManager)

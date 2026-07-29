@@ -600,7 +600,8 @@ RootTabView
 - SyncStatusView → 等 SyncManager 開發完成
 - AboutView → 暫不需要
 - 場次名稱改為「Events」/「場次」→ 只改 tab 名稱，內部 Model 名稱不動
-- 舊頁面的極簡風格改造（`AddNewProductView`、`CheckoutFlowView` 等）→ 架構穩定後獨立進行
+- 舊頁面的極簡風格改造（`AddNewProductView`、`CheckoutFlowView` 登入頁SignInView等）→ 架構穩定後獨立進行
+
 
 ---
 
