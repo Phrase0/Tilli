@@ -10,10 +10,8 @@ import Kingfisher
 
 struct MyView: View {
 
-    // MARK: - 認證管理
     @EnvironmentObject var authManager: AuthenticationManager
 
-    // MARK: - 設定狀態
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
     @AppStorage("calculatorEnabled") private var calculatorEnabled = true
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
@@ -22,7 +20,6 @@ struct MyView: View {
     @State private var showTilliProSheet = false
     @State private var showDeleteAccountAlert = false
 
-    // MARK: - App Version
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
@@ -31,22 +28,26 @@ struct MyView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: DesignSystem.Spacing.lg) {
                         userInfoCard
-                        topSettingsCard
-                        bottomSettingsCard
+                        menuCard
+                        settingsCard
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
+                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    .padding(.top, DesignSystem.Spacing.md)
+                    .padding(.bottom, DesignSystem.Spacing.lg)
                 }
 
-                logOutButton
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                    .background(Color(.systemGroupedBackground))
+                if authManager.isLoggedIn {
+                    signOutSection
+                        .padding(.horizontal, DesignSystem.Spacing.md)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(DesignSystem.ColorToken.paper)
+                }
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("個人資料")
+            .background(DesignSystem.ColorToken.paper)
+            // 我的
+            .navigationTitle("myPageTitle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -56,7 +57,7 @@ struct MyView: View {
                                 .environmentObject(authManager)
                         } label: {
                             Image(systemName: "pencil")
-                                .font(.body)
+                                .foregroundColor(DesignSystem.ColorToken.ink)
                         }
                     }
                 }
@@ -69,73 +70,83 @@ struct MyView: View {
     }
 
     // MARK: - 用戶資訊卡片
+
     private var userInfoCard: some View {
-        Group {
+        VStack(spacing: DesignSystem.Spacing.md) {
             if authManager.isLoggedIn {
-                HStack(spacing: 16) {
-                    profileImageView
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let user = authManager.currentUser {
-                            Text(user.name.isEmpty ? "未設定名稱" : user.name)
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-
-                            Text(user.email)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    Spacer()
-                }
-                .padding(16)
-                .background(Color(.systemBackground))
-                .cornerRadius(12)
+                loggedInUserInfo
             } else {
-                NavigationLink {
-                    SignInView()
-                        .environmentObject(authManager)
-                } label: {
-                    HStack(spacing: 16) {
-                        Circle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 70, height: 70)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .font(.title)
-                                    .foregroundColor(.gray)
-                            )
+                notLoggedInUserInfo
+            }
+        }
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
+        .shadow(color: DesignSystem.Shadow.cardColor, radius: DesignSystem.Shadow.cardRadius,
+                x: DesignSystem.Shadow.cardX, y: DesignSystem.Shadow.cardY)
+    }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("尚未登入")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+    private var loggedInUserInfo: some View {
+        HStack(spacing: DesignSystem.Spacing.md) {
+            profileImageView
 
-                            Text("登入以同步資料並使用進階功能")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                        }
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs / 2) {
+                if let user = authManager.currentUser {
+                    Text(user.name.isEmpty ? String(localized: "myNoName") : user.name)
+                        .font(DesignSystem.Typography.title2)
+                        .foregroundColor(DesignSystem.ColorToken.ink)
 
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(16)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
+                    Text(user.email)
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
                 }
-                .buttonStyle(PlainButtonStyle())
+            }
+
+            Spacer()
+        }
+    }
+
+    private var notLoggedInUserInfo: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            Circle()
+                .fill(DesignSystem.ColorToken.quietFill)
+                .frame(width: 60, height: 60)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.title2)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                )
+
+            // 尚未登入
+            Text("myNotLoggedIn")
+                .font(DesignSystem.Typography.title2)
+                .foregroundColor(DesignSystem.ColorToken.ink)
+
+            // 登入以同步資料並使用進階功能
+            Text("myLoginHint")
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.ColorToken.muted)
+                .multilineTextAlignment(.center)
+
+            NavigationLink {
+                SignInView()
+                    .environmentObject(authManager)
+            } label: {
+                // 登入 / 註冊
+                Text("mySignIn")
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(DesignSystem.ColorToken.cardSurface)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignSystem.Spacing.md)
+                    .background(DesignSystem.ColorToken.ink)
+                    .cornerRadius(DesignSystem.Radius.md)
             }
         }
     }
 
-    // MARK: - 頭像顯示
+    // MARK: - 頭像
+
     @ViewBuilder
     private var profileImageView: some View {
         if let user = authManager.currentUser {
@@ -143,20 +154,20 @@ struct MyView: View {
                 Image(uiImage: localImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 70, height: 70)
+                    .frame(width: 60, height: 60)
                     .clipShape(Circle())
             } else if let photoURL = user.photoURL, !photoURL.isEmpty, let url = URL(string: photoURL) {
                 KFImage(url)
                     .placeholder {
                         ProgressView()
-                            .frame(width: 70, height: 70)
-                            .background(Color.gray.opacity(0.1))
+                            .frame(width: 60, height: 60)
+                            .background(DesignSystem.ColorToken.quietFill)
                             .clipShape(Circle())
                     }
                     .onFailure { _ in }
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 70, height: 70)
+                    .frame(width: 60, height: 60)
                     .clipShape(Circle())
             } else {
                 nameInitialsView(name: user.name)
@@ -164,241 +175,187 @@ struct MyView: View {
         }
     }
 
-    // MARK: - 姓名縮寫圓形
     private func nameInitialsView(name: String) -> some View {
         ZStack {
             Circle()
-                .fill(Color.blue.opacity(0.2))
-                .frame(width: 70, height: 70)
+                .fill(DesignSystem.ColorToken.quietFill)
+                .frame(width: 60, height: 60)
 
             Text(name.isEmpty ? "?" : String(name.prefix(2)))
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.blue)
+                .font(DesignSystem.Typography.title2)
+                .foregroundColor(DesignSystem.ColorToken.ink)
         }
     }
 
-    // MARK: - 上方設定卡片
-    private var topSettingsCard: some View {
+    // MARK: - 功能選單卡片
+
+    private var menuCard: some View {
         VStack(spacing: 0) {
-            // Tilli Pro
-            Button(action: {
-                showTilliProSheet = true
-            }) {
-                HStack {
-                    Image(systemName: "crown.fill")
-                        .foregroundColor(.orange)
-                        .frame(width: 24)
-
-                    Text("Tilli Pro")
-                        .foregroundColor(.primary)
-
-                    Spacer()
-
+            // 會員方案
+            Button(action: { showTilliProSheet = true }) {
+                menuRow(icon: "crown.fill", iconColor: .orange, titleKey: "myMembership") {
                     if let user = authManager.currentUser {
-                        Text(user.membership == .pro ? "Pro 會員" : "免費版")
-                            .font(.footnote)
-                            .foregroundColor(user.membership == .pro ? .orange : .secondary)
+                        if user.membership == .pro {
+                            // Pro 會員
+                            Text("myProLabel")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundColor(.orange)
+                        } else {
+                            // 免費版
+                            Text("myFreeLabel")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundColor(DesignSystem.ColorToken.muted)
+                        }
                     }
-
-                    Image(systemName: "chevron.right")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                    chevron
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
             }
 
-            Divider()
-                .padding(.leading, 56)
+            rowDivider
 
             // 我的收款碼
             NavigationLink {
                 MerchantQRCodeView()
             } label: {
-                HStack {
-                    Image(systemName: "qrcode")
-                        .foregroundColor(.secondary)
-                        .frame(width: 24)
-
-                    Text("我的收款碼")
-                        .foregroundColor(.primary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                menuRow(icon: "qrcode", titleKey: "myQrCode") {
+                    chevron
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
             }
 
-            Divider()
-                .padding(.leading, 56)
+            rowDivider
 
             // App Version
-            HStack {
-                Image(systemName: "info.circle")
-                    .foregroundColor(.secondary)
-                    .frame(width: 24)
-
-                Text("App Version")
-                    .foregroundColor(.primary)
-
-                Spacer()
-
-                Text(appVersion)
-                    .foregroundColor(.secondary)
+            menuRow(icon: "info.circle", titleKey: "myAppVersion") {
+                Text(verbatim: appVersion)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
+        .shadow(color: DesignSystem.Shadow.cardColor, radius: DesignSystem.Shadow.cardRadius,
+                x: DesignSystem.Shadow.cardX, y: DesignSystem.Shadow.cardY)
     }
 
-    // MARK: - 下方設定卡片
-    private var bottomSettingsCard: some View {
+    // MARK: - 設定卡片
+
+    private var settingsCard: some View {
         VStack(spacing: 0) {
             // 語言
-            HStack {
-                Image(systemName: "globe")
-                    .foregroundColor(.secondary)
-                    .frame(width: 24)
-
-                Text("語言")
-                    .foregroundColor(.primary)
-
-                Spacer()
-
+            menuRow(icon: "globe", titleKey: "myLanguage") {
                 Picker("", selection: $selectedLanguage) {
-                    Text("中文").tag("zh-Hant")
-                    Text("English").tag("en")
+                    Text(verbatim: "中文").tag("zh-Hant")
+                    Text(verbatim: "English").tag("en")
                 }
                 .labelsHidden()
-                .tint(.secondary)
+                .tint(DesignSystem.ColorToken.muted)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
 
-            Divider()
-                .padding(.leading, 56)
+            rowDivider
 
             // 計算機功能
-            HStack {
-                Image(systemName: "questionmark.circle")
-                    .foregroundColor(.secondary)
-                    .frame(width: 24)
-
-                Text("計算機功能")
-                    .foregroundColor(.primary)
-
-                Spacer()
-
+            menuRow(icon: "questionmark.circle", titleKey: "myCalculator") {
                 Toggle("", isOn: $calculatorEnabled)
                     .labelsHidden()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
 
-            Divider()
-                .padding(.leading, 56)
+            rowDivider
 
             // 深色模式
-            HStack {
-                Image(systemName: "moon")
-                    .foregroundColor(.secondary)
-                    .frame(width: 24)
-
-                Text("深色模式")
-                    .foregroundColor(.primary)
-
-                Spacer()
-
+            menuRow(icon: "moon", titleKey: "myDarkMode") {
                 Toggle("", isOn: $darkModeEnabled)
                     .labelsHidden()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
 
-            Divider()
-                .padding(.leading, 56)
+            rowDivider
 
             // 通知
-            HStack {
-                Image(systemName: "bell")
-                    .foregroundColor(.secondary)
-                    .frame(width: 24)
-
-                Text("通知")
-                    .foregroundColor(.primary)
-
-                Spacer()
-
+            menuRow(icon: "bell", titleKey: "myNotifications") {
                 Toggle("", isOn: $notificationsEnabled)
                     .labelsHidden()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
+        .shadow(color: DesignSystem.Shadow.cardColor, radius: DesignSystem.Shadow.cardRadius,
+                x: DesignSystem.Shadow.cardX, y: DesignSystem.Shadow.cardY)
     }
 
-    // MARK: - 底部按鈕（登入/登出）
-    private var logOutButton: some View {
-        Group {
-            if authManager.isLoggedIn {
-                VStack(spacing: 12) {
-                    Button(action: {
-                        authManager.signOut()
-                    }) {
-                        HStack {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                            Text("登出")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.red)
-                        .cornerRadius(12)
-                    }
+    // MARK: - 登出區域
 
-                    Button(action: {
-                        showDeleteAccountAlert = true
-                    }) {
-                        Text("刪除帳號")
-                            .font(.footnote)
-                            .foregroundColor(.red.opacity(0.7))
-                    }
+    private var signOutSection: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            // 登出
+            Button(action: { authManager.signOut() }) {
+                HStack(spacing: DesignSystem.Spacing.xs) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    // 登出
+                    Text("mySignOut")
                 }
-                .alert("確認刪除帳號", isPresented: $showDeleteAccountAlert) {
-                    Button("取消", role: .cancel) { }
-                    Button("刪除", role: .destructive) {
-                        Task { await authManager.deleteAccount() }
-                    }
-                } message: {
-                    Text("帳號刪除後所有資料將永久消失，且無法復原。")
-                }
-            } else {
-                NavigationLink {
-                    SignInView()
-                        .environmentObject(authManager)
-                } label: {
-                    HStack {
-                        Image(systemName: "person.badge.plus")
-                        Text("註冊 / 登入")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.blue)
-                    .cornerRadius(12)
-                }
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.semibold)
+                .foregroundColor(DesignSystem.ColorToken.alertRed)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DesignSystem.Spacing.md)
+                .background(DesignSystem.ColorToken.quietFill)
+                .cornerRadius(DesignSystem.Radius.md)
+            }
+
+            // 刪除帳號
+            Button(action: { showDeleteAccountAlert = true }) {
+                // 刪除帳號
+                Text("myDeleteAccount")
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.alertRed.opacity(0.7))
             }
         }
+        // 確認刪除帳號
+        .alert("myDeleteAccountTitle", isPresented: $showDeleteAccountAlert) {
+            // 取消
+            Button("commonCancel", role: .cancel) { }
+            // 刪除
+            Button("commonDelete", role: .destructive) {
+                Task { await authManager.deleteAccount() }
+            }
+        } message: {
+            // 帳號刪除後所有資料將永久消失，且無法復原。
+            Text("myDeleteAccountMessage")
+        }
+    }
+
+    // MARK: - 共用元件
+
+    private func menuRow<Trailing: View>(
+        icon: String,
+        iconColor: Color = DesignSystem.ColorToken.muted,
+        titleKey: LocalizedStringKey,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .frame(width: 24)
+
+            Text(titleKey)
+                .font(DesignSystem.Typography.body)
+                .foregroundColor(DesignSystem.ColorToken.ink)
+
+            Spacer()
+
+            trailing()
+        }
+        .padding(.horizontal, DesignSystem.Spacing.md)
+        .padding(.vertical, DesignSystem.Spacing.sm)
+    }
+
+    private var chevron: some View {
+        Image(systemName: "chevron.right")
+            .font(DesignSystem.Typography.caption)
+            .foregroundColor(DesignSystem.ColorToken.muted)
+    }
+
+    private var rowDivider: some View {
+        Divider()
+            .padding(.leading, DesignSystem.Spacing.md + 24 + DesignSystem.Spacing.sm)
     }
 }
