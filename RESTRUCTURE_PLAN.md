@@ -334,7 +334,7 @@ func testRootTabViewHasTwoTabs() {
 
 ---
 
-### 斷點 3：EventsView 骨架（List 模式）
+### ✅ 斷點 3：EventsView 骨架（List 模式）
 **目標：** Tab 0 (Events) 顯示場次列表，功能等同原 SessionsView
 
 **步驟：**
@@ -356,13 +356,17 @@ func testRootTabViewHasTwoTabs() {
 
 ---
 
-### 斷點 4：EventsView 加入 Calendar 模式
+### ✅ 斷點 4：EventsView 加入 Calendar 模式
 **目標：** Calendar 模式正常顯示日曆和場次列表
 
 **步驟：**
-1. 在 `EventsView` 的 Calendar 模式嵌入原 `CalendarView` 的邏輯
-2. Calendar 模式點擊場次，暫時還是導航到 `SessionDetailView`
-3. 建立 `EventsViewModel`，組合 `SessionViewModel` + `CalendarViewModel`
+- [x] 在 `EventsView` 的 Calendar 模式嵌入原 `CalendarView` 的邏輯
+- [x] Calendar 模式點擊場次，暫時還是導航到 `SessionDetailView`
+- [x] 建立 `EventsViewModel`，組合 `SessionViewModel` + `CalendarViewModel`
+- [x] 套用 Design System（移除所有藍/紫色，改用 ink/muted/marketGreen）
+- [x] 所有使用者看得到的文字走 i18n（9 個新 localization keys）
+- [x] 移動 `AddSessionView.swift` 到 `EventsPage/` 資料夾
+- [x] 移除舊 CalendarView 的 `refreshID` hack（改用 onAppear 同步）
 
 **測試（手動）：**
 - [ ] 切換到 Calendar 模式，顯示日曆格子

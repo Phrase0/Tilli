@@ -15,9 +15,10 @@ enum EventsDisplayMode: String, CaseIterable {
 struct EventsView: View {
 
     @EnvironmentObject var sessionDataManager: SessionRepository
-    @StateObject private var viewModel = SessionViewModel()
+    @EnvironmentObject var transactionDataManager: TransactionRepository
+    @StateObject private var eventsVM = EventsViewModel()
+    @StateObject private var sessionVM = SessionViewModel()
 
-    @State private var displayMode: EventsDisplayMode = .list
     @State private var searchText = ""
     @State private var showAddSessionSheet = false
     @State private var editingSession: SessionModel? = nil
@@ -27,7 +28,7 @@ struct EventsView: View {
     @State private var selectedSession: SessionModel? = nil
 
     private var displayedSessions: [SessionModel] {
-        viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)
+        sessionVM.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)
     }
 
     private var ongoingSessions: [SessionModel] {
@@ -47,11 +48,16 @@ struct EventsView: View {
             VStack(spacing: 0) {
                 segmentedControl
 
-                switch displayMode {
+                switch eventsVM.displayMode {
                 case .list:
                     listContent
                 case .calendar:
-                    calendarPlaceholder
+                    EventsCalendarView(
+                        eventsVM: eventsVM,
+                        onSelectSession: { session in
+                            selectedSession = session
+                        }
+                    )
                 }
             }
             .background(DesignSystem.ColorToken.paper)
@@ -65,16 +71,16 @@ struct EventsView: View {
             )
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if displayMode == .list {
-                        if viewModel.isSelectionMode {
+                    if eventsVM.displayMode == .list {
+                        if sessionVM.isSelectionMode {
                             // 取消
                             Button("commonCancel") {
-                                viewModel.exitSelectionMode()
+                                sessionVM.exitSelectionMode()
                             }
                         } else {
                             // 選取
                             Button("eventsSelect") {
-                                viewModel.enterSelectionMode()
+                                sessionVM.enterSelectionMode()
                             }
                             .disabled(sessionDataManager.sessions.isEmpty)
                         }
@@ -82,7 +88,7 @@ struct EventsView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if !viewModel.isSelectionMode {
+                    if !sessionVM.isSelectionMode {
                         Button {
                             showAddSessionSheet = true
                         } label: {
@@ -96,13 +102,19 @@ struct EventsView: View {
                     SessionDetailView(session: $sessionDataManager.sessions[index])
                 }
             }
-            .toolbar(viewModel.isSelectionMode ? .hidden : .visible, for: .tabBar)
-            .animation(.easeInOut(duration: 0.3), value: viewModel.isSelectionMode)
+            .toolbar(sessionVM.isSelectionMode ? .hidden : .visible, for: .tabBar)
+            .animation(.easeInOut(duration: 0.3), value: sessionVM.isSelectionMode)
+        }
+        .onAppear {
+            eventsVM.updateCalendarDataManagers(
+                transactionDataManager: transactionDataManager,
+                sessionDataManager: sessionDataManager
+            )
         }
         .sheet(isPresented: $showAddSessionSheet) {
             NavigationStack {
                 AddSessionView(onSave: { newSession in
-                    viewModel.addSession(newSession, using: sessionDataManager)
+                    sessionVM.addSession(newSession, using: sessionDataManager)
                     showAddSessionSheet = false
                 })
             }
@@ -112,7 +124,7 @@ struct EventsView: View {
         .sheet(item: $editingSession) { session in
             NavigationStack {
                 AddSessionView(sessionToEdit: session, onSave: { updatedSession in
-                    viewModel.updateSession(updatedSession, using: sessionDataManager)
+                    sessionVM.updateSession(updatedSession, using: sessionDataManager)
                     editingSession = nil
                 })
             }
@@ -123,7 +135,7 @@ struct EventsView: View {
         .alert("eventsDeleteConfirmTitle", isPresented: $showDeleteConfirmation, presenting: sessionToDelete) { session in
             // 刪除
             Button("commonDelete", role: .destructive) {
-                viewModel.deleteSession(session, using: sessionDataManager)
+                sessionVM.deleteSession(session, using: sessionDataManager)
             }
             // 取消
             Button("commonCancel", role: .cancel) { }
@@ -131,10 +143,10 @@ struct EventsView: View {
             // 刪除後將同時移除底下的所有類別、商品，且無法復原，是否確定？
             Text("eventsDeleteConfirmMessage")
         }
-        .alert("eventsDeleteBatchTitle \(viewModel.selectedCount)", isPresented: $showBatchDeleteConfirmation) {
+        .alert("eventsDeleteBatchTitle \(sessionVM.selectedCount)", isPresented: $showBatchDeleteConfirmation) {
             // 刪除
             Button("commonDelete", role: .destructive) {
-                viewModel.deleteSelectedSessions(using: sessionDataManager)
+                sessionVM.deleteSelectedSessions(using: sessionDataManager)
             }
             // 取消
             Button("commonCancel", role: .cancel) { }
@@ -142,7 +154,7 @@ struct EventsView: View {
             // 刪除後將同時移除所有類別、商品，且無法復原，是否確定？
             Text("eventsDeleteBatchMessage")
         }
-        .sheet(isPresented: $viewModel.showDuplicateSessionDialog) {
+        .sheet(isPresented: $sessionVM.showDuplicateSessionDialog) {
             duplicateSessionView
         }
     }
@@ -150,7 +162,7 @@ struct EventsView: View {
     // MARK: - Segmented Control
 
     private var segmentedControl: some View {
-        Picker("", selection: $displayMode) {
+        Picker("", selection: $eventsVM.displayMode) {
             // 列表
             Text("eventsDisplayList").tag(EventsDisplayMode.list)
             // 日曆
@@ -174,10 +186,10 @@ struct EventsView: View {
                     }
                 }
                 .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.bottom, viewModel.isSelectionMode ? 70 : DesignSystem.Spacing.md)
+                .padding(.bottom, sessionVM.isSelectionMode ? 70 : DesignSystem.Spacing.md)
             }
 
-            if viewModel.isSelectionMode {
+            if sessionVM.isSelectionMode {
                 selectionActionBar
             }
         }
@@ -229,19 +241,19 @@ struct EventsView: View {
 
             ForEach(sessions) { session in
                 HStack(spacing: DesignSystem.Spacing.sm) {
-                    if viewModel.isSelectionMode {
-                        Image(systemName: viewModel.selectedSessionIds.contains(session.id)
+                    if sessionVM.isSelectionMode {
+                        Image(systemName: sessionVM.selectedSessionIds.contains(session.id)
                               ? "checkmark.circle.fill" : "circle")
                             .font(.title2)
-                            .foregroundColor(viewModel.selectedSessionIds.contains(session.id)
+                            .foregroundColor(sessionVM.selectedSessionIds.contains(session.id)
                                              ? DesignSystem.ColorToken.ink : DesignSystem.ColorToken.muted)
                     }
 
-                    sessionCard(session, showMenu: !viewModel.isSelectionMode)
+                    sessionCard(session, showMenu: !sessionVM.isSelectionMode)
                 }
                 .onTapGesture {
-                    if viewModel.isSelectionMode {
-                        viewModel.toggleSelection(sessionId: session.id)
+                    if sessionVM.isSelectionMode {
+                        sessionVM.toggleSelection(sessionId: session.id)
                     } else {
                         selectedSession = session
                     }
@@ -250,36 +262,18 @@ struct EventsView: View {
         }
     }
 
-    // MARK: - Calendar Placeholder
-
-    private var calendarPlaceholder: some View {
-        VStack {
-            Spacer()
-            Image(systemName: "calendar")
-                .font(.system(size: 48))
-                .foregroundColor(DesignSystem.ColorToken.muted)
-            // 日曆模式（下個斷點實作）
-            Text("eventsCalendarPlaceholder")
-                .font(DesignSystem.Typography.body)
-                .foregroundColor(DesignSystem.ColorToken.muted)
-                .padding(.top, DesignSystem.Spacing.sm)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     // MARK: - Selection Action Bar
 
     private var selectionActionBar: some View {
         HStack {
             Button {
-                if viewModel.isAllSelected(sessions: displayedSessions) {
-                    viewModel.deselectAll()
+                if sessionVM.isAllSelected(sessions: displayedSessions) {
+                    sessionVM.deselectAll()
                 } else {
-                    viewModel.selectAll(sessions: displayedSessions)
+                    sessionVM.selectAll(sessions: displayedSessions)
                 }
             } label: {
-                Text(viewModel.isAllSelected(sessions: displayedSessions)
+                Text(sessionVM.isAllSelected(sessions: displayedSessions)
                      ? String(localized: "eventsDeselectAll") : String(localized: "eventsSelectAll"))
                     .padding(.vertical, DesignSystem.Spacing.xs)
                     .padding(.horizontal, DesignSystem.Spacing.sm)
@@ -293,14 +287,14 @@ struct EventsView: View {
                 showBatchDeleteConfirmation = true
             } label: {
                 // 刪除 (N)
-                Text("eventsDeleteCount \(viewModel.selectedCount)")
-                    .foregroundColor(viewModel.isDeleteButtonDisabled
+                Text("eventsDeleteCount \(sessionVM.selectedCount)")
+                    .foregroundColor(sessionVM.isDeleteButtonDisabled
                                      ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.alertRed)
                     .padding(.vertical, DesignSystem.Spacing.xs)
                     .padding(.horizontal, DesignSystem.Spacing.sm)
                     .contentShape(Rectangle())
             }
-            .disabled(viewModel.isDeleteButtonDisabled)
+            .disabled(sessionVM.isDeleteButtonDisabled)
         }
         .padding(.horizontal, DesignSystem.Spacing.sm)
         .padding(.vertical, DesignSystem.Spacing.sm)
@@ -317,7 +311,7 @@ struct EventsView: View {
             SessionCardView(
                 session: session,
                 style: .standard,
-                onDuplicate: { viewModel.startDuplicateSession(session) },
+                onDuplicate: { sessionVM.startDuplicateSession(session) },
                 onEdit: { editingSession = session },
                 onDelete: {
                     sessionToDelete = session
@@ -336,14 +330,14 @@ struct EventsView: View {
         NavigationView {
             Form {
                 // 場次名稱
-                TextField("eventsDuplicateNameLabel", text: $viewModel.duplicateSessionName)
-                    .onChange(of: viewModel.duplicateSessionName) {
-                        viewModel.onSessionNameChanged()
+                TextField("eventsDuplicateNameLabel", text: $sessionVM.duplicateSessionName)
+                    .onChange(of: sessionVM.duplicateSessionName) {
+                        sessionVM.onSessionNameChanged()
                     }
 
                 Section {
                     // 場次類型
-                    Picker("eventsDuplicateTypeLabel", selection: $viewModel.duplicateSessionDateType) {
+                    Picker("eventsDuplicateTypeLabel", selection: $sessionVM.duplicateSessionDateType) {
                         // 單日
                         Text("eventsDateTypeSingle").tag(SessionDateType.single)
                         // 多日
@@ -352,11 +346,11 @@ struct EventsView: View {
                         Text("eventsDateTypePermanent").tag(SessionDateType.permanent)
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: viewModel.duplicateSessionDateType) { _, newType in
+                    .onChange(of: sessionVM.duplicateSessionDateType) { _, newType in
                         if newType == .multi {
-                            viewModel.duplicateSessionEndDate = Calendar.current.date(
-                                byAdding: .day, value: 1, to: viewModel.duplicateSessionDate
-                            ) ?? viewModel.duplicateSessionDate
+                            sessionVM.duplicateSessionEndDate = Calendar.current.date(
+                                byAdding: .day, value: 1, to: sessionVM.duplicateSessionDate
+                            ) ?? sessionVM.duplicateSessionDate
                         }
                     }
                 }
@@ -364,17 +358,17 @@ struct EventsView: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
                 Section {
-                    switch viewModel.duplicateSessionDateType {
+                    switch sessionVM.duplicateSessionDateType {
                     case .single:
                         // 日期
-                        DatePicker("eventsDuplicateDate", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+                        DatePicker("eventsDuplicateDate", selection: $sessionVM.duplicateSessionDate, displayedComponents: .date)
 
                     case .multi:
                         // 開始日期
-                        DatePicker("eventsDuplicateStartDate", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
-                            .onChange(of: viewModel.duplicateSessionDate) { _, newStartDate in
-                                if viewModel.duplicateSessionEndDate <= newStartDate {
-                                    viewModel.duplicateSessionEndDate = Calendar.current.date(
+                        DatePicker("eventsDuplicateStartDate", selection: $sessionVM.duplicateSessionDate, displayedComponents: .date)
+                            .onChange(of: sessionVM.duplicateSessionDate) { _, newStartDate in
+                                if sessionVM.duplicateSessionEndDate <= newStartDate {
+                                    sessionVM.duplicateSessionEndDate = Calendar.current.date(
                                         byAdding: .day, value: 1, to: newStartDate
                                     ) ?? newStartDate
                                 }
@@ -383,8 +377,8 @@ struct EventsView: View {
                         // 結束日期
                         DatePicker(
                             "eventsDuplicateEndDate",
-                            selection: $viewModel.duplicateSessionEndDate,
-                            in: viewModel.duplicateEndDateRange,
+                            selection: $sessionVM.duplicateSessionEndDate,
+                            in: sessionVM.duplicateEndDateRange,
                             displayedComponents: .date
                         )
 
@@ -400,7 +394,7 @@ struct EventsView: View {
 
                     case .permanent:
                         // 開始日期
-                        DatePicker("eventsDuplicateStartDate", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+                        DatePicker("eventsDuplicateStartDate", selection: $sessionVM.duplicateSessionDate, displayedComponents: .date)
 
                         HStack {
                             Image(systemName: "infinity")
@@ -420,16 +414,16 @@ struct EventsView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     // 取消
                     Button("commonCancel") {
-                        viewModel.cancelDuplicateSession()
+                        sessionVM.cancelDuplicateSession()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     // 確定
                     Button("commonConfirm") {
-                        viewModel.confirmDuplicateSession(using: sessionDataManager)
+                        sessionVM.confirmDuplicateSession(using: sessionDataManager)
                     }
-                    .disabled(viewModel.isDuplicateButtonDisabled)
+                    .disabled(sessionVM.isDuplicateButtonDisabled)
                 }
             }
         }
