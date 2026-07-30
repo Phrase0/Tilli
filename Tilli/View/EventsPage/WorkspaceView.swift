@@ -160,7 +160,7 @@ struct WorkspaceView: View {
                 icon: "shippingbox",
                 // 管理商品
                 titleKey: "workspaceInventoryButton",
-                destination: inventoryPlaceholder
+                destination: InventoryView(event: event)
             )
 
             workspaceButton(
@@ -218,14 +218,6 @@ struct WorkspaceView: View {
             .navigationTitle("workspacePosButton")
     }
 
-    private var inventoryPlaceholder: some View {
-        Text("Inventory - TODO")
-            .font(DesignSystem.Typography.title1)
-            .foregroundColor(DesignSystem.ColorToken.muted)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(DesignSystem.ColorToken.paper)
-            .navigationTitle("workspaceInventoryButton")
-    }
 
     private var reportsPlaceholder: some View {
         Text("Reports - TODO")

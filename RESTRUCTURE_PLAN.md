@@ -403,11 +403,11 @@ func testEventsViewModelDisplayModeToggle() {
 5. WorkspaceView 接收 `EventModel`（非 Binding）
 
 **測試（手動）：**
-- [ ] List 模式點擊場次 → 進入 WorkspaceView
-- [ ] Calendar 模式點擊場次 → 進入 WorkspaceView
-- [ ] WorkspaceView 顯示正確的場次名稱和日期
-- [ ] 三個按鈕可點擊，各自進入 placeholder 頁
-- [ ] 返回按鈕正常
+- [x] List 模式點擊場次 → 進入 WorkspaceView
+- [x] Calendar 模式點擊場次 → 進入 WorkspaceView
+- [x] WorkspaceView 顯示正確的場次名稱和日期
+- [x] 三個按鈕可點擊，各自進入 placeholder 頁
+- [x] 返回按鈕正常
 
 **測試（自動）：**
 ```swift
