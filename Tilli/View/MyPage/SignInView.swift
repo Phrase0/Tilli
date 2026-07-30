@@ -13,56 +13,49 @@ struct SignInView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground)
+            DesignSystem.ColorToken.paper
                 .ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: DesignSystem.Spacing.lg) {
                 Spacer()
 
-                // Logo 或標題區
-                VStack(spacing: 8) {
+                VStack(spacing: DesignSystem.Spacing.xs) {
                     Image(systemName: "person.circle.fill")
                         .font(.system(size: 80))
-                        .foregroundColor(.blue)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
 
-                    Text("歡迎來到 Tilli")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                    Text("signInWelcome")
+                        .font(DesignSystem.Typography.title2)
 
-                    Text("登入以同步資料並使用進階功能")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    Text("signInSubtitle")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, DesignSystem.Spacing.lg)
                 }
 
                 Spacer()
 
-                // 登入按鈕區
-                VStack(spacing: 16) {
-                    // Apple 登入按鈕
+                VStack(spacing: DesignSystem.Spacing.md) {
                     Button {
                         authManager.signInWithApple()
                     } label: {
                         HStack {
                             Image(systemName: "apple.logo")
-                                .font(.title3)
-                            Text("使用 Apple 登入")
-                                .font(.headline)
+                                .font(.system(size: 16, weight: .medium))
+                            Text("signInApple")
+                                .font(.system(size: 16, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.black)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(DesignSystem.ColorToken.buttonFilled)
+                        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
                     }
 
-                    // Google 登入按鈕
                     Button {
                         Task {
                             await authManager.signInWithGoogle()
-                            // 登入成功後直接 dismiss
-                            // ContentView 會根據 authState 自動顯示 ProfileEditView
                             if authManager.errorMessage == nil &&
                                (authManager.authState == .needsSetup || authManager.authState == .ready) {
                                 dismiss()
@@ -71,40 +64,38 @@ struct SignInView: View {
                     } label: {
                         HStack {
                             Image(systemName: "g.circle.fill")
-                                .font(.title3)
-                            Text("使用 Google 登入")
-                                .font(.headline)
+                                .font(.system(size: 16, weight: .medium))
+                            Text("signInGoogle")
+                                .font(.system(size: 16, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.white)
-                        .foregroundColor(.black)
-                        .cornerRadius(12)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(DesignSystem.ColorToken.cardSurface)
+                        .foregroundColor(DesignSystem.ColorToken.ink)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: DesignSystem.Radius.md)
+                                .stroke(DesignSystem.Border.cardColor, lineWidth: DesignSystem.Border.cardWidth)
                         )
                     }
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, DesignSystem.Spacing.lg)
 
-                // 錯誤訊息
                 if let errorMessage = authManager.errorMessage, !errorMessage.isEmpty {
                     Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundColor(.red)
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.alertRed)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, DesignSystem.Spacing.lg)
                 }
 
                 Spacer()
             }
         }
-        .navigationTitle("登入 / 註冊")
+        .navigationTitle("signInTitle")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(authManager.isLoading)
         .onChange(of: authManager.authState) { newState in
-            // Apple Sign In 透過 delegate 回傳，需要監聽 authState 變化來 dismiss
             if newState == .needsSetup || newState == .ready {
                 dismiss()
             }

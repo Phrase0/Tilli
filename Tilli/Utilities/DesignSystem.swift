@@ -38,6 +38,13 @@ enum DesignSystem {
         static let quietFill = Color(.systemGray5)
         static let alertRed = Color(.systemRed)
 
+        static let buttonFilled = Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(white: 0.35, alpha: 1)
+                : UIColor.black
+        })
+        static let onButtonFilled = Color.white
+
         // MARK: - 需手動適配深色模式的顏色
         static let marketGreen = Color(UIColor { traits in
             traits.userInterfaceStyle == .dark

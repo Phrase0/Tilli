@@ -1473,6 +1473,182 @@
     "Pro 會員" : {
 
     },
+    "profileEditAddPhoto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增照片"
+          }
+        }
+      }
+    },
+    "profileEditCreateTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Profile"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "建立個人資料"
+          }
+        }
+      }
+    },
+    "profileEditDone" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
+    "profileEditEditTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Profile"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯個人資料"
+          }
+        }
+      }
+    },
+    "profileEditNameEmpty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name cannot be empty"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名稱不可為空白"
+          }
+        }
+      }
+    },
+    "profileEditNameLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名稱"
+          }
+        }
+      }
+    },
+    "profileEditNamePlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入您的名稱"
+          }
+        }
+      }
+    },
+    "profileEditSave" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存"
+          }
+        }
+      }
+    },
+    "profileEditSaveError %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save failed: %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存失敗：%@"
+          }
+        }
+      }
+    },
+    "profileEditSetupSubtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your name. Profile photo is optional."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入您的名稱，頭貼為選填"
+          }
+        }
+      }
+    },
+    "profileEditSetupTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Up Your Profile"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定您的個人資料"
+          }
+        }
+      }
+    },
     "QRCode" : {
 
     },
@@ -1524,6 +1700,86 @@
         }
       }
     },
+    "signInApple" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Apple 登入"
+          }
+        }
+      }
+    },
+    "signInGoogle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Google"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Google 登入"
+          }
+        }
+      }
+    },
+    "signInSubtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to sync data and access advanced features"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入以同步資料並使用進階功能"
+          }
+        }
+      }
+    },
+    "signInTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入 / 註冊"
+          }
+        }
+      }
+    },
+    "signInWelcome" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Tilli"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歡迎來到 Tilli"
+          }
+        }
+      }
+    },
     "Tilli Pro" : {
 
     },
@@ -1555,12 +1811,6 @@
 
     },
     "件" : {
-
-    },
-    "使用 Apple 登入" : {
-
-    },
-    "使用 Google 登入" : {
 
     },
     "使用數位錢包付款" : {
@@ -1651,12 +1901,6 @@
 
     },
     "取消全選" : {
-
-    },
-    "名稱" : {
-
-    },
-    "名稱不可為空白" : {
 
     },
     "商品" : {
@@ -1762,9 +2006,6 @@
     "庫存總覽" : {
 
     },
-    "建立個人資料" : {
-
-    },
     "復原" : {
 
     },
@@ -1813,9 +2054,6 @@
     "數量: %lld" : {
 
     },
-    "新增照片" : {
-
-    },
     "新增產品" : {
 
     },
@@ -1847,9 +2085,6 @@
 
     },
     "查無結果" : {
-
-    },
-    "歡迎來到 Tilli" : {
 
     },
     "此場次無結束日期" : {
@@ -1927,9 +2162,6 @@
     "異動紀錄" : {
 
     },
-    "登入 / 註冊" : {
-
-    },
     "登入以同步資料並使用進階功能" : {
 
     },
@@ -1996,9 +2228,6 @@
     "編輯" : {
 
     },
-    "編輯個人資料" : {
-
-    },
     "編輯產品" : {
 
     },
@@ -2029,9 +2258,6 @@
     "計算機功能" : {
 
     },
-    "設定您的個人資料" : {
-
-    },
     "註冊 / 登入" : {
 
     },
@@ -2051,12 +2277,6 @@
 
     },
     "請輸入庫存數量" : {
-
-    },
-    "請輸入您的名稱" : {
-
-    },
-    "請輸入您的名稱，頭貼為選填" : {
 
     },
     "請輸入產品名稱" : {

@@ -136,10 +136,10 @@ struct MyView: View {
                 Text("mySignIn")
                     .font(DesignSystem.Typography.body)
                     .fontWeight(.semibold)
-                    .foregroundColor(DesignSystem.ColorToken.cardSurface)
+                    .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, DesignSystem.Spacing.md)
-                    .background(DesignSystem.ColorToken.ink)
+                    .background(DesignSystem.ColorToken.buttonFilled)
                     .cornerRadius(DesignSystem.Radius.md)
             }
         }
