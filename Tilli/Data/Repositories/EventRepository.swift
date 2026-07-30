@@ -69,11 +69,7 @@ class EventRepository: ObservableObject {
         do {
             let result = try context.fetch(request)
             let newEvents = result.map { $0.toModel() }
-
-            // 確保在主線程更新 @Published 屬性
-            DispatchQueue.main.async {
-                self.events = newEvents
-            }
+            self.events = newEvents
         } catch {
             print("Fetch events failed:", error)
         }

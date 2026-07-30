@@ -12,6 +12,9 @@ struct EventsCalendarView: View {
     @ObservedObject var calendarVM: EventsCalendarViewModel
     @EnvironmentObject var eventDataManager: EventRepository
     var onSelectEvent: (EventModel) -> Void
+    var onDuplicate: ((EventModel) -> Void)? = nil
+    var onEdit: ((EventModel) -> Void)? = nil
+    var onDelete: ((EventModel) -> Void)? = nil
 
     private let calendar = Calendar.current
 
@@ -139,24 +142,25 @@ struct EventsCalendarView: View {
     private var calendarEventList: some View {
         let (realEvents, virtualEvents) = calendarVM.getAllEventsForDate(from: eventDataManager.events)
         let permanentEvents = calendarVM.getPermanentEvents(from: eventDataManager.events)
+        let sortByCreatedAt: (EventModel, EventModel) -> Bool = { $0.createdAt < $1.createdAt }
 
         return Group {
             if !realEvents.isEmpty || !virtualEvents.isEmpty || !permanentEvents.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         if !permanentEvents.isEmpty {
-                            ForEach(permanentEvents) { event in
+                            ForEach(permanentEvents.sorted(by: sortByCreatedAt)) { event in
                                 calendarEventCard(event)
                                     .onTapGesture { onSelectEvent(event) }
                             }
                         }
 
-                        ForEach(realEvents) { event in
+                        ForEach(realEvents.sorted(by: sortByCreatedAt)) { event in
                             calendarEventCard(event)
                                 .onTapGesture { onSelectEvent(event) }
                         }
 
-                        ForEach(virtualEvents) { event in
+                        ForEach(virtualEvents.sorted(by: sortByCreatedAt)) { event in
                             calendarEventCard(event)
                                 .opacity(0.7)
                                 .onTapGesture { onSelectEvent(event) }
@@ -173,9 +177,12 @@ struct EventsCalendarView: View {
         let summary = calendarVM.transactionSummary(for: event)
         return EventCardView(
             event: event,
-            style: .simple,
+            style: .standard,
             transactionCount: summary.count,
-            transactionTotal: summary.total
+            transactionTotal: summary.total,
+            onDuplicate: { onDuplicate?(event) },
+            onEdit: { onEdit?(event) },
+            onDelete: { onDelete?(event) }
         )
     }
 }

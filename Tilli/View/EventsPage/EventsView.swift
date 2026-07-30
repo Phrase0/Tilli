@@ -61,6 +61,16 @@ struct EventsView: View {
                         calendarVM: calendarVM,
                         onSelectEvent: { event in
                             selectedEvent = event
+                        },
+                        onDuplicate: { event in
+                            eventsVM.startDuplicateEvent(event)
+                        },
+                        onEdit: { event in
+                            editingEvent = event
+                        },
+                        onDelete: { event in
+                            eventToDelete = event
+                            showDeleteConfirmation = true
                         }
                     )
                 }
@@ -98,9 +108,7 @@ struct EventsView: View {
                 }
             }
             .navigationDestination(item: $selectedEvent) { event in
-                if let index = eventDataManager.events.firstIndex(where: { $0.id == event.id }) {
-                    EventDetailView(event: $eventDataManager.events[index])
-                }
+                WorkspaceView(event: event)
             }
             .toolbar(eventsVM.isSelectionMode ? .hidden : .visible, for: .tabBar)
             .animation(.easeInOut(duration: 0.3), value: eventsVM.isSelectionMode)

@@ -16,4 +16,9 @@ final class TilliSmokeTests: XCTestCase {
         XCTAssertEqual(product.stock, 10)
         XCTAssertFalse(product.isDisabled)
     }
+
+    func testWorkspaceViewInitWithEvent() {
+        let event = EventModel.mock()
+        let _ = WorkspaceView(event: event)
+    }
 }

@@ -25,17 +25,15 @@ struct EventModel: Identifiable, Codable, Hashable {
 
     var displayTimeInfo: String {
         let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("MdE")
+        formatter.dateFormat = "yyyy/MM/dd(E)"
         switch dateType {
         case .single:
             return formatter.string(from: startDate)
         case .multi:
             guard let endDate = endDate else { return formatter.string(from: startDate) }
-            let endStr = DateFormatter()
-            endStr.setLocalizedDateFormatFromTemplate("Md")
-            return "\(formatter.string(from: startDate)) - \(endStr.string(from: endDate))"
+            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
         case .permanent:
-            return "\(formatter.string(from: startDate)) ~"
+            return "\(formatter.string(from: startDate)) ∞"
         }
     }
 
