@@ -10,7 +10,7 @@ service cloud.firestore {
       allow read, write: if isUser(userId);
     }
 
-    match /users/{userId}/sessions/{docId} {
+    match /users/{userId}/events/{docId} {
       allow read, write: if isUser(userId);
     }
 

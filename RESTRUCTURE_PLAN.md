@@ -7,11 +7,11 @@ RootTabView (2 tabs)
 │
 ├── Tab 0: EventsView (場次)
 │   ├── Segmented Control: List / Calendar
-│   ├── List 模式 → 場次卡片列表 (原 SessionsView 邏輯)
+│   ├── List 模式 → 場次卡片列表 (原 EventsView 邏輯)
 │   ├── Calendar 模式 → 日曆格子 + 當日場次列表 (原 CalendarView 邏輯)
-│   ├── toolbar [+] → EventEditorSheet (原 AddSessionView，用 sheet 呈現)
+│   ├── toolbar [+] → EventEditorSheet (原 AddEventView，用 sheet 呈現)
 │   └── 點擊場次卡片 → NavigationLink →
-│       WorkspaceView (原 SessionDetailView 改造)
+│       WorkspaceView (原 EventDetailView 改造)
 │       ├── Header: 場次名稱 + 日期 + 今日營收 + 訂單數
 │       ├── 三個按鈕 (NavigationLink):
 │       │   ├── 開始收銀 (POS) → POSView (原 ProductDetailView，移除編輯/新增功能)
@@ -36,21 +36,21 @@ RootTabView (2 tabs)
 **決策：建立新的 `EventsViewModel`，內部組合兩個子 ViewModel。**
 
 理由：
-- `SessionViewModel` 管理場次列表的搜尋、排序、選取、刪除、複製
+- `EventViewModel` 管理場次列表的搜尋、排序、選取、刪除、複製
 - `CalendarViewModel` 管理日曆的月份切換、日期選擇、場次指示器
-- 兩者的資料來源都是同一個 `SessionRepository.sessions`，不需要各自 fetch
+- 兩者的資料來源都是同一個 `EventRepository.events`，不需要各自 fetch
 - 但各自的 UI 狀態（搜尋文字、選中日期、月份等）完全不同，不應混在一起
 
 實作方式：
 ```swift
 class EventsViewModel: ObservableObject {
     @Published var displayMode: DisplayMode = .list  // .list / .calendar
-    @Published var sessionViewModel = SessionViewModel()
+    @Published var eventViewModel = EventViewModel()
     @Published var calendarViewModel = CalendarViewModel()
     // 不轉發子 ViewModel 的 objectWillChange：SwiftUI 對 @Published 持有的
     // ObservableObject 屬性，子物件變化本來就會觸發父物件的畫面更新，
-    // 同 SessionDetailFromCalendarViewModel 的組合方式。
-    // 不要用 SessionDetailViewModel 的 Combine sink 轉發（見 CONVENTIONS.md
+    // 同 EventDetailFromCalendarViewModel 的組合方式。
+    // 不要用 EventDetailViewModel 的 Combine sink 轉發（見 CONVENTIONS.md
     // 「要移除的舊 pattern」），那是要淘汰的做法，不該複製進新 ViewModel。
 }
 ```
@@ -102,25 +102,25 @@ class EventsViewModel: ObservableObject {
 
 ## 難點及解法
 
-### 難點 1: SessionDetailView 的 Binding<SessionModel> 傳遞
+### 難點 1: EventDetailView 的 Binding<EventModel> 傳遞
 
-**現狀：** `SessionsView` 用 `$sessionDataManager.sessions[index]` 把 Binding 傳給 `SessionDetailView`，編輯後自動回寫。
+**現狀：** `EventsView` 用 `$eventDataManager.events[index]` 把 Binding 傳給 `EventDetailView`，編輯後自動回寫。
 
-**問題：** 新架構中 EventsView 有兩個入口（List / Calendar），Calendar 模式目前用 `.constant(session)` 傳給 `SessionDetailFromCalendarView`，這不會回寫。
+**問題：** 新架構中 EventsView 有兩個入口（List / Calendar），Calendar 模式目前用 `.constant(event)` 傳給 `EventDetailFromCalendarView`，這不會回寫。
 
-**解法：** WorkspaceView 統一接收 `SessionModel`（非 Binding），內部用 `@State` 持有副本。需要回寫時透過 `SessionRepository` 的方法直接更新，而非依賴 Binding。這樣兩個入口都用同一套邏輯。
+**解法：** WorkspaceView 統一接收 `EventModel`（非 Binding），內部用 `@State` 持有副本。需要回寫時透過 `EventRepository` 的方法直接更新，而非依賴 Binding。這樣兩個入口都用同一套邏輯。
 
 具體改法：
 ```swift
 // WorkspaceView
 struct WorkspaceView: View {
-    let session: SessionModel  // 用 let，不用 Binding
-    @EnvironmentObject var sessionDataManager: SessionRepository
-    // 需要最新資料時從 sessionDataManager.sessions 中查
+    let event: EventModel  // 用 let，不用 Binding
+    @EnvironmentObject var eventDataManager: EventRepository
+    // 需要最新資料時從 eventDataManager.events 中查
 }
 ```
 
-**風險：** `ProductViewModel` 和 `SessionDetailViewModel` 目前都用 `@Binding var session`。改成非 Binding 後，需要確認所有寫入 session 的地方（如結帳後更新營收）改用 Repository 方法。
+**風險：** `ProductViewModel` 和 `EventDetailViewModel` 目前都用 `@Binding var event`。改成非 Binding 後，需要確認所有寫入 event 的地方（如結帳後更新營收）改用 Repository 方法。
 
 **驗證方式：** 在 POSView 結帳後，回到 WorkspaceView 檢查營收數字是否更新。
 
@@ -144,8 +144,8 @@ struct WorkspaceView: View {
 // POSView
 struct POSView: View {
     @StateObject private var productViewModel: ProductViewModel
-    init(session: SessionModel) {
-        _productViewModel = StateObject(wrappedValue: ProductViewModel(session: .constant(session)))
+    init(event: EventModel) {
+        _productViewModel = StateObject(wrappedValue: ProductViewModel(event: .constant(event)))
     }
     var body: some View { ... }
         .onAppear { productViewModel.loadProducts() }
@@ -154,35 +154,35 @@ struct POSView: View {
 // InventoryView — 同理
 struct InventoryView: View {
     @StateObject private var productViewModel: ProductViewModel
-    init(session: SessionModel) {
-        _productViewModel = StateObject(wrappedValue: ProductViewModel(session: .constant(session)))
+    init(event: EventModel) {
+        _productViewModel = StateObject(wrappedValue: ProductViewModel(event: .constant(event)))
     }
     var body: some View { ... }
         .onAppear { productViewModel.loadProducts() }
 }
 ```
 
-**注意：** `ProductViewModel` 目前用 `@Binding var session`。拆開後可改為 `let session: SessionModel`（配合難點 1 的 Binding 移除）。如改動範圍太大，可暫時用 `.constant(session)` 包裝。
+**注意：** `ProductViewModel` 目前用 `@Binding var event`。拆開後可改為 `let event: EventModel`（配合難點 1 的 Binding 移除）。如改動範圍太大，可暫時用 `.constant(event)` 包裝。
 
 ### 難點 3: CheckoutFlowView 的 EnvironmentKey 關閉機制
 
 **現狀：** `CheckoutFlowView` 用 `$showCheckoutSheet` 和 `$checkoutCompleted` 兩個 Binding 控制。
 
-**問題：** 從 `SessionDetailView` 搬到 `POSView` 後，這些 State 的持有者改變。
+**問題：** 從 `EventDetailView` 搬到 `POSView` 後，這些 State 的持有者改變。
 
-**解法：** 風險其實不大。`showCheckoutSheet` 和 `checkoutCompleted` 原本就定義在 `SessionDetailView` 裡（現在會在 POSView 或其父層），sheet 的呈現邏輯不變。只要確保 `.sheet(isPresented:)` 和 `.onChange(of: checkoutCompleted)` 在同一個 View 層級即可。
+**解法：** 風險其實不大。`showCheckoutSheet` 和 `checkoutCompleted` 原本就定義在 `EventDetailView` 裡（現在會在 POSView 或其父層），sheet 的呈現邏輯不變。只要確保 `.sheet(isPresented:)` 和 `.onChange(of: checkoutCompleted)` 在同一個 View 層級即可。
 
-**做法：** 把這兩個 `@State` 和相關 `.sheet` / `.onChange` 從 SessionDetailView 搬到 POSView 內。
+**做法：** 把這兩個 `@State` 和相關 `.sheet` / `.onChange` 從 EventDetailView 搬到 POSView 內。
 
 ### 難點 4: CalendarView 場次列表的導航目標改變
 
-**現狀：** CalendarView 的場次列表用 `NavigationLink` → `SessionDetailFromCalendarView`（報表頁）。
+**現狀：** CalendarView 的場次列表用 `NavigationLink` → `EventDetailFromCalendarView`（報表頁）。
 
 **問題：** 新架構中，Calendar 點場次應該進 WorkspaceView（和 List 模式一樣）。
 
-**解法：** CalendarView 的 `NavigationLink` 目標改為 `WorkspaceView`。`SessionDetailFromCalendarView` 的報表功能搬到 `ReportsView`。
+**解法：** CalendarView 的 `NavigationLink` 目標改為 `WorkspaceView`。`EventDetailFromCalendarView` 的報表功能搬到 `ReportsView`。
 
-**注意：** `SessionDetailFromCalendarView` 和 `SessionDetailFromCalendarViewModel` 在重構完成後可以刪除（或保留作為 ReportsView 的參考）。
+**注意：** `EventDetailFromCalendarView` 和 `EventDetailFromCalendarViewModel` 在重構完成後可以刪除（或保留作為 ReportsView 的參考）。
 
 ### 難點 5: InventoryTabView 廢棄後，庫存入口改變
 
@@ -207,18 +207,18 @@ struct InventoryView: View {
 #### 應先建立的測試基礎設施
 
 1. **建立 `TilliTests` target**（Xcode > File > New > Target > Unit Testing Bundle）
-2. **建立 Mock Repository**：因為 ViewModel 依賴 `SessionRepository`、`ProductRepository` 等，測試時需要 mock
-3. **建立測試用 SessionModel / ProductModel 工廠方法**
+2. **建立 Mock Repository**：因為 ViewModel 依賴 `EventRepository`、`ProductRepository` 等，測試時需要 mock
+3. **建立測試用 EventModel / ProductModel 工廠方法**
 
 ```swift
 // TestHelpers.swift
-extension SessionModel {
+extension EventModel {
     static func mock(
         title: String = "測試場次",
         startDate: Date = Date(),
         currency: String = "TWD"
-    ) -> SessionModel {
-        SessionModel(id: UUID(), title: title, startDate: startDate, ...)
+    ) -> EventModel {
+        EventModel(id: UUID(), title: title, startDate: startDate, ...)
     }
 }
 ```
@@ -236,14 +236,14 @@ extension SessionModel {
 
 **步驟：**
 - [x] Xcode 建立 `TilliTests` target
-- [x] 建立 `TestHelpers.swift`，加入 `SessionModel.mock()` 和 `ProductModel.mock()` 工廠方法
+- [x] 建立 `TestHelpers.swift`，加入 `EventModel.mock()` 和 `ProductModel.mock()` 工廠方法
 - [x] 寫一個 smoke test 確認 target 能跑（`TilliSmokeTests.swift`）
 
 **測試：**
 ```swift
 func testSmokeTest() {
-    let session = SessionModel.mock()
-    XCTAssertFalse(session.title.isEmpty)
+    let event = EventModel.mock()
+    XCTAssertFalse(event.title.isEmpty)
 }
 ```
 
@@ -335,21 +335,21 @@ func testRootTabViewHasTwoTabs() {
 ---
 
 ### ✅ 斷點 3：EventsView 骨架（List 模式）
-**目標：** Tab 0 (Events) 顯示場次列表，功能等同原 SessionsView
+**目標：** Tab 0 (Events) 顯示場次列表，功能等同原 EventsView
 
 **步驟：**
 1. 新建 `EventsView.swift`
 2. 頂部加 `Picker("", selection: $displayMode)` segmented control（List / Calendar）
-3. 先只實作 List 模式：直接嵌入原 `SessionsView` 的列表邏輯
+3. 先只實作 List 模式：直接嵌入原 `EventsView` 的列表邏輯
 4. Calendar 模式暫時放 `Text("Calendar - TODO")`
-5. 點擊場次暫時還是導航到 `SessionDetailView`（下一個斷點才改）
+5. 點擊場次暫時還是導航到 `EventDetailView`（下一個斷點才改）
 6. 修改 `RootTabView`：Tab 0 用 `EventsView()`
 
 **測試（手動）：**
 - [x] Tab Events 顯示場次列表
 - [x] 搜尋功能正常
 - [x] 新增場次按鈕（+）正常
-- [x] 點擊場次進入 SessionDetailView（舊頁面，暫時保留）
+- [x] 點擊場次進入 EventDetailView（舊頁面，暫時保留）
 - [x] 滑動操作（編輯/複製/刪除）正常
 - [x] 選取模式正常
 - [x] Segmented Control 可切換，Calendar 顯示 placeholder
@@ -361,11 +361,11 @@ func testRootTabViewHasTwoTabs() {
 
 **步驟：**
 - [x] 在 `EventsView` 的 Calendar 模式嵌入原 `CalendarView` 的邏輯
-- [x] Calendar 模式點擊場次，暫時還是導航到 `SessionDetailView`
-- [x] 建立 `EventsViewModel`，組合 `SessionViewModel` + `CalendarViewModel`
+- [x] Calendar 模式點擊場次，暫時還是導航到 `EventDetailView`
+- [x] 建立 `EventsViewModel`，組合 `EventViewModel` + `CalendarViewModel`
 - [x] 套用 Design System（移除所有藍/紫色，改用 ink/muted/marketGreen）
 - [x] 所有使用者看得到的文字走 i18n（9 個新 localization keys）
-- [x] 移動 `AddSessionView.swift` 到 `EventsPage/` 資料夾
+- [x] 移動 `AddEventView.swift` 到 `EventsPage/` 資料夾
 - [x] 移除舊 CalendarView 的 `refreshID` hack（改用 onAppear 同步）
 
 **測試（手動）：**
@@ -373,7 +373,7 @@ func testRootTabViewHasTwoTabs() {
 - [x] 月份切換正常（左右箭頭 + 點擊月份標題選擇器）
 - [x] 日期有場次圓點指示器
 - [x] 點擊日期顯示當日場次列表
-- [x] 點擊場次進入 SessionDetailView
+- [x] 點擊場次進入 EventDetailView
 - [x] 切回 List 模式，列表狀態保持
 - [x] 左右滑動切換月份正常
 
@@ -399,8 +399,8 @@ func testEventsViewModelDisplayModeToggle() {
    - 開始收銀 (POS) → `Text("POS - TODO")`
    - 管理商品 → `Text("Inventory - TODO")`
    - 查看報表 (Reports) → `Text("Reports - TODO")`
-4. 修改 `EventsView`：場次點擊導航目標從 `SessionDetailView` 改為 `WorkspaceView`
-5. WorkspaceView 接收 `SessionModel`（非 Binding）
+4. 修改 `EventsView`：場次點擊導航目標從 `EventDetailView` 改為 `WorkspaceView`
+5. WorkspaceView 接收 `EventModel`（非 Binding）
 
 **測試（手動）：**
 - [ ] List 模式點擊場次 → 進入 WorkspaceView
@@ -411,9 +411,9 @@ func testEventsViewModelDisplayModeToggle() {
 
 **測試（自動）：**
 ```swift
-func testWorkspaceViewInitWithSession() {
-    let session = SessionModel.mock()
-    let _ = WorkspaceView(session: session)
+func testWorkspaceViewInitWithEvent() {
+    let event = EventModel.mock()
+    let _ = WorkspaceView(event: event)
     // 編譯通過即可
 }
 ```
@@ -440,7 +440,7 @@ func testWorkspaceViewInitWithSession() {
    - 結帳完成後刷新庫存
 5. POSView 內部建立 `@StateObject ProductViewModel`（獨立 instance）
 6. `onAppear` 呼叫 `loadProducts()` 載入最新商品資料
-7. 修改 WorkspaceView 的 POS 按鈕：NavigationLink → `POSView(session: session)`
+7. 修改 WorkspaceView 的 POS 按鈕：NavigationLink → `POSView(event: event)`
 
 **測試（手動）：**
 - [ ] POS 頁面顯示商品列表（按分類分組）
@@ -478,7 +478,7 @@ func testPOSViewHasNoEditCapability() {
 8. 調整庫存 → NavigationLink → `InventoryChangeView`（或 sheet）
 9. 下架/刪除 → 沿用原 `productActionContent` 邏輯
 10. 下架商品區（可展開，含「復原」操作）
-11. 修改 WorkspaceView 的管理商品按鈕：NavigationLink → `InventoryView(session: session)`
+11. 修改 WorkspaceView 的管理商品按鈕：NavigationLink → `InventoryView(event: event)`
 
 **測試（手動）：**
 - [ ] InventoryView 頁顯示所有商品（按分類分組）
@@ -504,7 +504,7 @@ func testPOSViewHasNoEditCapability() {
    - `TransactionHistoryView`
    - `ProductPerformanceView`
    - `SalesAnalyticsView`
-5. 建立 `ReportsViewModel`（參考 `SessionDetailFromCalendarViewModel` 的組合方式）
+5. 建立 `ReportsViewModel`（參考 `EventDetailFromCalendarViewModel` 的組合方式）
 6. 修改 WorkspaceView 的 Reports 按鈕：NavigationLink → `ReportsView`
 
 **測試（手動）：**
@@ -526,9 +526,9 @@ func testPOSViewHasNoEditCapability() {
    - `ContentView.swift`（已被 `RootTabView` 取代）
    - `InventoryTabView.swift`（功能已移至 `InventoryView`）
    - `InventoryTabViewModel.swift`
-   - `SessionDetailFromCalendarView.swift`（功能已移至 `ReportsView`）
-   - `SessionDetailFromCalendarViewModel.swift`
-3. 確認 `SessionDetailView.swift` 是否還有引用，若無也移除
+   - `EventDetailFromCalendarView.swift`（功能已移至 `ReportsView`）
+   - `EventDetailFromCalendarViewModel.swift`
+3. 確認 `EventDetailView.swift` 是否還有引用，若無也移除
 4. 確認編譯通過，無 warning
 
 **測試（手動）：**
@@ -546,13 +546,13 @@ func testPOSViewHasNoEditCapability() {
 | 新檔案 | 基於 / 來源 | 說明 |
 |--------|------------|------|
 | `RootTabView.swift` | `ContentView.swift` | 2 tabs，含 auth 邏輯 |
-| `EventsView.swift` | `SessionsView.swift` + `CalendarView.swift` | List/Calendar 合併 |
-| `EventsViewModel.swift` | `SessionViewModel` + `CalendarViewModel` | 組合兩個子 VM |
-| `WorkspaceView.swift` | `SessionDetailView.swift` | 場次 dashboard + 三按鈕 |
+| `EventsView.swift` | `EventsView.swift` + `CalendarView.swift` | List/Calendar 合併 |
+| `EventsViewModel.swift` | `EventViewModel` + `CalendarViewModel` | 組合兩個子 VM |
+| `WorkspaceView.swift` | `EventDetailView.swift` | 場次 dashboard + 三按鈕 |
 | `POSView.swift` | `ProductDetailView.swift` | 精簡版，純結帳 |
 | `InventoryView.swift` | 新建 + 部分 `ProductDetailView` + `InventoryChangeView` | 商品管理 |
-| `ReportsView.swift` | `SessionDetailFromCalendarView.swift` | 報表整合 |
-| `ReportsViewModel.swift` | `SessionDetailFromCalendarViewModel.swift` | 報表 VM |
+| `ReportsView.swift` | `EventDetailFromCalendarView.swift` | 報表整合 |
+| `ReportsViewModel.swift` | `EventDetailFromCalendarViewModel.swift` | 報表 VM |
 | `MyView.swift` | `ProfileView.swift` + QRCode 入口 | 我的頁面 |
 
 ## ViewModel 生命週期
@@ -561,7 +561,7 @@ func testPOSViewHasNoEditCapability() {
 RootTabView
 ├── EventsView
 │   └── @StateObject EventsViewModel
-│       ├── sessionViewModel: SessionViewModel (管理列表)
+│       ├── eventViewModel: EventViewModel (管理列表)
 │       └── calendarViewModel: CalendarViewModel (管理日曆)
 │
 │   └── WorkspaceView (NavigationStack push)
@@ -616,12 +616,12 @@ RootTabView
 | 舊檔案 | 被取代為 | 可刪除時機 |
 |--------|---------|-----------|
 | `ContentView.swift` | `RootTabView.swift` | 斷點 9 |
-| `SessionsView.swift` | `EventsView.swift`（List 模式） | 斷點 3 完成後 |
+| `EventsView.swift` | `EventsView.swift`（List 模式） | 斷點 3 完成後 |
 | `CalendarView.swift` | `EventsView.swift`（Calendar 模式） | 斷點 4 完成後 |
-| `SessionDetailView.swift` | `WorkspaceView.swift` | 斷點 5 完成後 |
-| `SessionDetailViewModel.swift` | 不再需要 | 斷點 5 完成後 |
-| `SessionDetailFromCalendarView.swift` | `ReportsView.swift` | 斷點 8 完成後 |
-| `SessionDetailFromCalendarViewModel.swift` | `ReportsViewModel.swift` | 斷點 8 完成後 |
+| `EventDetailView.swift` | `WorkspaceView.swift` | 斷點 5 完成後 |
+| `EventDetailViewModel.swift` | 不再需要 | 斷點 5 完成後 |
+| `EventDetailFromCalendarView.swift` | `ReportsView.swift` | 斷點 8 完成後 |
+| `EventDetailFromCalendarViewModel.swift` | `ReportsViewModel.swift` | 斷點 8 完成後 |
 | `InventoryTabView.swift` | `InventoryView.swift` | 斷點 7 完成後 |
 | `InventoryTabViewModel.swift` | 不再需要 | 斷點 7 完成後 |
 | `ProductDetailView.swift` | `POSView.swift` + `InventoryView.swift` | 斷點 7 完成後 |

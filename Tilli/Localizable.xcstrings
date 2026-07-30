@@ -42,12 +42,6 @@
     "%lld%%" : {
 
     },
-    "%lld年" : {
-
-    },
-    "%lld月" : {
-
-    },
     "+%lld" : {
 
     },
@@ -57,7 +51,7 @@
     "0" : {
 
     },
-    "addSessionCategoryEditWarning" : {
+    "addEventCategoryEditWarning" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -73,7 +67,7 @@
         }
       }
     },
-    "addSessionCategoryHeader" : {
+    "addEventCategoryHeader" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -89,7 +83,7 @@
         }
       }
     },
-    "addSessionCategoryNamePlaceholder" : {
+    "addEventCategoryNamePlaceholder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -105,7 +99,7 @@
         }
       }
     },
-    "addSessionCurrencyLabel" : {
+    "addEventCurrencyLabel" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -121,7 +115,7 @@
         }
       }
     },
-    "addSessionCurrencyLocked" : {
+    "addEventCurrencyLocked" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -137,7 +131,7 @@
         }
       }
     },
-    "addSessionDateTypeLabel" : {
+    "addEventDateTypeLabel" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -153,7 +147,7 @@
         }
       }
     },
-    "addSessionDisable" : {
+    "addEventDisable" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -169,7 +163,7 @@
         }
       }
     },
-    "addSessionDisabledCategoryHeader" : {
+    "addEventDisabledCategoryHeader" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -185,7 +179,7 @@
         }
       }
     },
-    "addSessionDiscountHeader" : {
+    "addEventDiscountHeader" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -201,7 +195,7 @@
         }
       }
     },
-    "addSessionDiscountTypeLabel" : {
+    "addEventDiscountTypeLabel" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -217,7 +211,7 @@
         }
       }
     },
-    "addSessionDiscountValuePlaceholder" : {
+    "addEventDiscountValuePlaceholder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -233,7 +227,7 @@
         }
       }
     },
-    "addSessionEditTitle" : {
+    "addEventEditTitle" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -249,7 +243,7 @@
         }
       }
     },
-    "addSessionNameHeader" : {
+    "addEventNameHeader" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -265,7 +259,7 @@
         }
       }
     },
-    "addSessionNamePlaceholder" : {
+    "addEventNamePlaceholder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -281,7 +275,7 @@
         }
       }
     },
-    "addSessionNewCategoryPlaceholder" : {
+    "addEventNewCategoryPlaceholder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -297,7 +291,7 @@
         }
       }
     },
-    "addSessionRestore" : {
+    "addEventRestore" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -313,7 +307,7 @@
         }
       }
     },
-    "addSessionSave" : {
+    "addEventSave" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -329,7 +323,7 @@
         }
       }
     },
-    "addSessionTitle" : {
+    "addEventTitle" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -345,7 +339,7 @@
         }
       }
     },
-    "addSessionTransactionCount %lld" : {
+    "addEventTransactionCount %lld" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -362,9 +356,6 @@
       }
     },
     "Amount" : {
-
-    },
-    "App Version" : {
 
     },
     "calendarDayProgress %lld %lld" : {
@@ -595,9 +586,6 @@
           }
         }
       }
-    },
-    "English" : {
-
     },
     "eventsCalendarPlaceholder" : {
       "extractionState" : "stale",
@@ -1130,6 +1118,54 @@
         }
       }
     },
+    "eventStatusCompleted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
+    "eventStatusOngoing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進行中"
+          }
+        }
+      }
+    },
+    "eventStatusUpcoming" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即將到來"
+          }
+        }
+      }
+    },
     "eventsTransactionCount %lld" : {
       "localizations" : {
         "en" : {
@@ -1649,57 +1685,6 @@
         }
       }
     },
-    "QRCode" : {
-
-    },
-    "sessionStatusCompleted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completed"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已完成"
-          }
-        }
-      }
-    },
-    "sessionStatusOngoing" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Running"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "進行中"
-          }
-        }
-      }
-    },
-    "sessionStatusUpcoming" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upcoming"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "即將到來"
-          }
-        }
-      }
-    },
     "signInApple" : {
       "localizations" : {
         "en" : {
@@ -1792,9 +1777,6 @@
     "下架商品" : {
 
     },
-    "中文" : {
-
-    },
     "交易數" : {
 
     },
@@ -1819,12 +1801,6 @@
     "使用現金付款" : {
 
     },
-    "個人" : {
-
-    },
-    "個人資料" : {
-
-    },
     "價格" : {
 
     },
@@ -1832,9 +1808,6 @@
 
     },
     "免費版" : {
-
-    },
-    "全選" : {
 
     },
     "全部" : {
@@ -1864,18 +1837,6 @@
     "刪除" : {
 
     },
-    "刪除 (%lld)" : {
-
-    },
-    "刪除帳號" : {
-
-    },
-    "刪除後將同時移除底下的所有類別、商品，且無法復原，是否確定？" : {
-
-    },
-    "刪除後將同時移除所有類別、商品，且無法復原，是否確定？" : {
-
-    },
     "刪除後將無法復原" : {
 
     },
@@ -1900,37 +1861,16 @@
     "取消" : {
 
     },
-    "取消全選" : {
-
-    },
     "商品" : {
 
     },
     "單價" : {
 
     },
-    "單日" : {
-
-    },
     "圖表" : {
 
     },
     "報表已成功匯出" : {
-
-    },
-    "場次" : {
-
-    },
-    "場次名稱" : {
-
-    },
-    "場次類型" : {
-
-    },
-    "多日" : {
-
-    },
-    "多日場次最多 31 天" : {
 
     },
     "好" : {
@@ -1951,28 +1891,16 @@
     "小計" : {
 
     },
-    "尚未登入" : {
-
-    },
     "尚未設定收款碼" : {
 
     },
     "尚無商品" : {
 
     },
-    "帳號刪除後所有資料將永久消失，且無法復原。" : {
-
-    },
     "帳號已在其他裝置登入" : {
 
     },
     "平均客單價" : {
-
-    },
-    "年份" : {
-
-    },
-    "庫存" : {
 
     },
     "庫存: %lld" : {
@@ -2000,9 +1928,6 @@
     "庫存異動明細" : {
 
     },
-    "庫存管理" : {
-
-    },
     "庫存總覽" : {
 
     },
@@ -2013,9 +1938,6 @@
 
     },
     "我的收款碼" : {
-
-    },
-    "我的行事曆" : {
 
     },
     "找不到符合「%@」的商品" : {
@@ -2033,9 +1955,6 @@
     "提醒" : {
 
     },
-    "搜尋場次" : {
-
-    },
     "支付" : {
 
     },
@@ -2043,9 +1962,6 @@
 
     },
     "支付方式分布" : {
-
-    },
-    "支付方式分析" : {
 
     },
     "數量" : {
@@ -2057,19 +1973,10 @@
     "新增產品" : {
 
     },
-    "日曆" : {
-
-    },
     "日期" : {
 
     },
-    "日營收趨勢" : {
-
-    },
     "時段" : {
-
-    },
-    "時段銷售分析" : {
 
     },
     "時間" : {
@@ -2081,13 +1988,7 @@
     "月份" : {
 
     },
-    "月營收趨勢" : {
-
-    },
     "查無結果" : {
-
-    },
-    "此場次無結束日期" : {
 
     },
     "此時間範圍內無異動紀錄" : {
@@ -2100,9 +2001,6 @@
 
     },
     "每月" : {
-
-    },
-    "深色模式" : {
 
     },
     "清除" : {
@@ -2118,12 +2016,6 @@
 
     },
     "無法新增交易" : {
-
-    },
-    "無限期" : {
-
-    },
-    "熱門商品排行" : {
 
     },
     "熱門商品榜單" : {
@@ -2162,25 +2054,13 @@
     "異動紀錄" : {
 
     },
-    "登入以同步資料並使用進階功能" : {
-
-    },
-    "登出" : {
-
-    },
     "登出其他裝置" : {
 
     },
     "確定" : {
 
     },
-    "確定要刪除 %lld 個場次嗎？" : {
-
-    },
     "確定要刪除此收款碼嗎？" : {
-
-    },
-    "確定要刪除這個場次嗎？" : {
 
     },
     "確定要復原此產品嗎？" : {
@@ -2204,9 +2084,6 @@
     "確認刪除" : {
 
     },
-    "確認刪除帳號" : {
-
-    },
     "確認復原" : {
 
     },
@@ -2217,9 +2094,6 @@
 
     },
     "結束" : {
-
-    },
-    "結束日期" : {
 
     },
     "統計範圍：%@" : {
@@ -2249,22 +2123,10 @@
     "補記帳" : {
 
     },
-    "複製場次" : {
-
-    },
     "訂單摘要" : {
 
     },
-    "計算機功能" : {
-
-    },
-    "註冊 / 登入" : {
-
-    },
     "詳細資訊" : {
-
-    },
-    "語言" : {
 
     },
     "請先在場次中新增商品" : {
@@ -2294,16 +2156,7 @@
     "貢獻度" : {
 
     },
-    "通知" : {
-
-    },
     "選中" : {
-
-    },
-    "選取" : {
-
-    },
-    "選擇月份" : {
 
     },
     "金額" : {
@@ -2324,9 +2177,6 @@
     "開始" : {
 
     },
-    "開始日期" : {
-
-    },
     "關閉" : {
 
     },
@@ -2334,9 +2184,6 @@
 
     },
     "類別" : {
-
-    },
-    "類別銷售匯總" : {
 
     },
     "類別銷售彙總" : {

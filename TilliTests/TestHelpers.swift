@@ -1,19 +1,19 @@
 import Foundation
 @testable import Tilli
 
-extension SessionModel {
+extension EventModel {
     static func mock(
         id: UUID = UUID(),
         title: String = "測試場次",
         startDate: Date = Date(),
         endDate: Date? = nil,
-        dateType: SessionDateType = .single,
+        dateType: EventDateType = .single,
         categories: [CategoryModel] = [],
         createdAt: Date = Date(),
         currency: String = "TWD",
         discounts: [DiscountModel] = []
-    ) -> SessionModel {
-        SessionModel(
+    ) -> EventModel {
+        EventModel(
             id: id,
             title: title,
             startDate: startDate,
@@ -30,7 +30,7 @@ extension SessionModel {
 extension ProductModel {
     static func mock(
         id: UUID = UUID(),
-        sessionId: UUID = UUID(),
+        eventId: UUID = UUID(),
         name: String = "測試商品",
         price: Decimal = 100,
         stock: Int = 10,
@@ -44,7 +44,7 @@ extension ProductModel {
     ) -> ProductModel {
         ProductModel(
             id: id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: name,
             price: price,
             stock: stock,

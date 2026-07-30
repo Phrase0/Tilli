@@ -18,7 +18,7 @@ extension CDProductEntity {
     @NSManaged public var categoryId: UUID
     @NSManaged public var categoryName: String
     @NSManaged public var id: UUID
-    @NSManaged public var sessionId: UUID
+    @NSManaged public var eventId: UUID
     @NSManaged public var name: String
     @NSManaged public var price: NSDecimalNumber
     @NSManaged public var stock: Int32
@@ -40,7 +40,7 @@ extension CDProductEntity {
     
     func update(from model: ProductModel, context: NSManagedObjectContext) {
         self.id = model.id
-        self.sessionId = model.sessionId
+        self.eventId = model.eventId
         self.name = model.name
         self.price = NSDecimalNumber(decimal: model.price)
         self.stock = Int32(model.stock)

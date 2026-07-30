@@ -13,7 +13,7 @@ struct CheckoutSummaryView: View {
     let totalAmount: Decimal
     let selectedDiscount: DiscountModel?
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
 
     @Environment(\.dismiss) private var dismiss
 
@@ -30,20 +30,20 @@ struct CheckoutSummaryView: View {
     /// 計算補記帳日期的有效範圍（只在需要時呼叫）
     private func calculateBackdatedDateRange() -> ClosedRange<Date> {
         let calendar = Calendar.current
-        let startOfSessionDate = calendar.startOfDay(for: session.startDate)
+        let startOfEventDate = calendar.startOfDay(for: event.startDate)
         let now = Date()
 
         // 結束日期
         let endDate: Date
-        if let sessionEndDate = session.endDate {
-            // 取 session.endDate 當天的最後一秒，再與 now 比較
-            let endOfSessionEndDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: sessionEndDate) ?? sessionEndDate
-            endDate = min(endOfSessionEndDate, now)
+        if let eventEndDate = event.endDate {
+            // 取 event.endDate 當天的最後一秒，再與 now 比較
+            let endOfEventEndDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: eventEndDate) ?? eventEndDate
+            endDate = min(endOfEventEndDate, now)
         } else {
             endDate = now
         }
 
-        return startOfSessionDate...endDate
+        return startOfEventDate...endDate
     }
 
     /// 補記帳時要傳遞的 occurredAt 值
@@ -67,7 +67,7 @@ struct CheckoutSummaryView: View {
                                         .font(.caption)
                                         .foregroundColor(.gray)
 
-                                    Text(item.price.money(currency: session.currency))
+                                    Text(item.price.money(currency: event.currency))
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }
@@ -75,7 +75,7 @@ struct CheckoutSummaryView: View {
 
                             Spacer()
 
-                            Text(item.total.money(currency: session.currency))
+                            Text(item.total.money(currency: event.currency))
                                 .font(.body)
                                 .fontWeight(.semibold)
                         }
@@ -145,7 +145,7 @@ struct CheckoutSummaryView: View {
 
                 // 顯示折扣標籤
                 if let discount = selectedDiscount {
-                    Text(discount.displayText(currency: session.currency))
+                    Text(discount.displayText(currency: event.currency))
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -153,7 +153,7 @@ struct CheckoutSummaryView: View {
                         .cornerRadius(4)
                 }
 
-                Text(totalAmount.money(currency: session.currency))
+                Text(totalAmount.money(currency: event.currency))
                     .font(.headline)
                     .bold()
             }
@@ -165,7 +165,7 @@ struct CheckoutSummaryView: View {
                 Button {
                     // 先驗證日期（補記帳時用 backdatedDate，否則用當前時間）
                     let dateToValidate = isBackdatedMode ? backdatedDate : Date()
-                    let validation = DateValidationHelper.validateTransactionDate(for: session, transactionDate: dateToValidate)
+                    let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
                     if !validation.isValid {
                         dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
                         showDateWarning = true
@@ -193,7 +193,7 @@ struct CheckoutSummaryView: View {
                 Button {
                     // 先驗證日期（補記帳時用 backdatedDate，否則用當前時間）
                     let dateToValidate = isBackdatedMode ? backdatedDate : Date()
-                    let validation = DateValidationHelper.validateTransactionDate(for: session, transactionDate: dateToValidate)
+                    let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
                     if !validation.isValid {
                         dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
                         showDateWarning = true
@@ -223,7 +223,7 @@ struct CheckoutSummaryView: View {
         .navigationDestination(isPresented: $navigateToCashPayment) {
             CashPaymentView(
                 totalAmount: totalAmount,
-                session: $session,
+                event: $event,
                 summaryItems: selectedItems,
                 selectedDiscount: selectedDiscount,
                 occurredAt: occurredAtValue
@@ -232,7 +232,7 @@ struct CheckoutSummaryView: View {
         .navigationDestination(isPresented: $navigateToEPayment) {
             EPaymentView(
                 totalAmount: totalAmount,
-                session: $session,
+                event: $event,
                 summaryItems: selectedItems,
                 selectedDiscount: selectedDiscount,
                 occurredAt: occurredAtValue

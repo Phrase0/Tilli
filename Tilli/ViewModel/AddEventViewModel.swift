@@ -1,5 +1,5 @@
 //
-//  AddSessionViewModel.swift
+//  AddEventViewModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/6/17.
@@ -8,9 +8,9 @@
 import Foundation
 import SwiftUI
 
-class AddSessionViewModel: ObservableObject {
-    @Published var sessionName: String
-    @Published var sessionDate: Date
+class AddEventViewModel: ObservableObject {
+    @Published var eventName: String
+    @Published var eventDate: Date
     @Published var selectedCurrency: String
     @Published var newCategory: String = ""
     @Published var categories: [CategoryModel]
@@ -20,7 +20,7 @@ class AddSessionViewModel: ObservableObject {
     var originalCategoryName: String?
 
     // 多日場次支援
-    @Published var dateType: SessionDateType
+    @Published var dateType: EventDateType
     @Published var endDate: Date
 
     // 折扣相關狀態
@@ -38,7 +38,7 @@ class AddSessionViewModel: ObservableObject {
     // 類別編輯警告（點擊不可編輯類別時顯示）
     @Published var showCategoryEditWarning = false
 
-    var editingSession: SessionModel?
+    var editingEvent: EventModel?
 
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionRepository?
@@ -51,11 +51,11 @@ class AddSessionViewModel: ObservableObject {
 
     // 取得場次的交易筆數
     var transactionCount: Int {
-        guard let sessionId = editingSession?.id,
+        guard let eventId = editingEvent?.id,
               let transactionManager = transactionDataManager else {
             return 0
         }
-        return transactionManager.fetchTransactions(forSessionId: sessionId).count
+        return transactionManager.fetchTransactions(forEventId: eventId).count
     }
     
     var sortedCategories: [CategoryModel] {
@@ -78,7 +78,7 @@ class AddSessionViewModel: ObservableObject {
     var dayCount: Int? {
         guard dateType == .multi else { return nil }
         let calendar = Calendar.current
-        let startDay = calendar.startOfDay(for: sessionDate)
+        let startDay = calendar.startOfDay(for: eventDate)
         let endDay = calendar.startOfDay(for: endDate)
         let days = calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
         return days + 1
@@ -90,18 +90,18 @@ class AddSessionViewModel: ObservableObject {
     }
 
     /// 場次名稱字數上限
-    var sessionNameMaxLength: Int {
-        return TextHelper.sessionNameLimit
+    var eventNameMaxLength: Int {
+        return TextHelper.eventNameLimit
     }
 
     /// 場次名稱剩餘字數
-    var sessionNameRemainingCharacters: Int {
-        return TextHelper.remainingCharacters(for: sessionName, limit: TextHelper.sessionNameLimit)
+    var eventNameRemainingCharacters: Int {
+        return TextHelper.remainingCharacters(for: eventName, limit: TextHelper.eventNameLimit)
     }
 
     /// 截斷場次名稱至上限
-    func enforceSessionNameLimit() {
-        sessionName = TextHelper.truncateToLimit(sessionName, limit: TextHelper.sessionNameLimit)
+    func enforceEventNameLimit() {
+        eventName = TextHelper.truncateToLimit(eventName, limit: TextHelper.eventNameLimit)
     }
 
     // MARK: - 日期範圍計算（用於 DatePicker 限制）
@@ -109,7 +109,7 @@ class AddSessionViewModel: ObservableObject {
     /// 結束日期的可選範圍（多日場次：開始日期隔天 ~ +30天，確保至少 2 天）
     var endDateRange: ClosedRange<Date> {
         let calendar = Calendar.current
-        let startDateDay = calendar.startOfDay(for: sessionDate)
+        let startDateDay = calendar.startOfDay(for: eventDate)
 
         // 結束日期：從開始日期隔天開始，最多往後 30 天（總共 31 天）
         let minEndDate = calendar.date(byAdding: .day, value: 1, to: startDateDay)!
@@ -118,22 +118,22 @@ class AddSessionViewModel: ObservableObject {
         return minEndDate...maxEndDate
     }
 
-    init(sessionToEdit: SessionModel? = nil) {
-        self.editingSession = sessionToEdit
-        self.sessionName = sessionToEdit?.title ?? ""
-        self.sessionDate = sessionToEdit?.startDate ?? Date()
-        self.selectedCurrency = sessionToEdit?.currency ?? "TWD"
-        self.categories = sessionToEdit?.categories ?? []
-        self.discounts = sessionToEdit?.discounts ?? []
+    init(eventToEdit: EventModel? = nil) {
+        self.editingEvent = eventToEdit
+        self.eventName = eventToEdit?.title ?? ""
+        self.eventDate = eventToEdit?.startDate ?? Date()
+        self.selectedCurrency = eventToEdit?.currency ?? "TWD"
+        self.categories = eventToEdit?.categories ?? []
+        self.discounts = eventToEdit?.discounts ?? []
 
         // 初始化場次類型和結束日期
-        self.dateType = sessionToEdit?.dateType ?? .single
+        self.dateType = eventToEdit?.dateType ?? .single
 
         // 設定結束日期：若是編輯模式使用現有值，否則預設為開始日期 +1 天
-        if let existingEndDate = sessionToEdit?.endDate {
+        if let existingEndDate = eventToEdit?.endDate {
             self.endDate = existingEndDate
         } else {
-            let startDate = sessionToEdit?.startDate ?? Date()
+            let startDate = eventToEdit?.startDate ?? Date()
             self.endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
         }
     }
@@ -370,11 +370,11 @@ class AddSessionViewModel: ObservableObject {
     }
     
     func hasTransaction(for categoryId: UUID? = nil) -> Bool {
-        guard let sessionId = editingSession?.id else { return false }
+        guard let eventId = editingEvent?.id else { return false }
         
         let transactions: [TransactionModel]
         if let transactionManager = transactionDataManager {
-            transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+            transactions = transactionManager.fetchTransactions(forEventId: eventId)
         } else {
             transactions = []
         }
@@ -392,11 +392,11 @@ class AddSessionViewModel: ObservableObject {
     
     /// 檢查類別是否有產品（從最新數據源）
     func hasProducts(for categoryId: UUID) -> Bool {
-        guard let sessionId = editingSession?.id,
+        guard let eventId = editingEvent?.id,
               let productRepo = productRepository else {
             return false
         }
-        let products = productRepo.fetchProducts(forSessionId: sessionId)
+        let products = productRepo.fetchProducts(forEventId: eventId)
         return products.contains { $0.categoryId == categoryId }
     }
 
@@ -520,15 +520,15 @@ class AddSessionViewModel: ObservableObject {
         switch dateType {
         case .single:
             // 單日場次：檢查是否包含所有交易日期
-            if let sessionId = editingSession?.id {
-                let transactionDateRange = getTransactionDateRange(for: sessionId)
+            if let eventId = editingEvent?.id {
+                let transactionDateRange = getTransactionDateRange(for: eventId)
                 if let (minDate, maxDate) = transactionDateRange {
-                    let sessionDay = calendar.startOfDay(for: sessionDate)
+                    let eventDay = calendar.startOfDay(for: eventDate)
                     let minDay = calendar.startOfDay(for: minDate)
                     let maxDay = calendar.startOfDay(for: maxDate)
 
                     // 單日場次：所有交易必須在同一天
-                    if minDay != sessionDay || maxDay != sessionDay {
+                    if minDay != eventDay || maxDay != eventDay {
                         let minDateStr = DateFormatter.standardDate.string(from: minDate)
                         let maxDateStr = DateFormatter.standardDate.string(from: maxDate)
                         return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
@@ -539,7 +539,7 @@ class AddSessionViewModel: ObservableObject {
 
         case .multi:
             // 多日場次：結束日期必須晚於開始日期
-            let startDay = calendar.startOfDay(for: sessionDate)
+            let startDay = calendar.startOfDay(for: eventDate)
             let endDay = calendar.startOfDay(for: endDate)
 
             guard endDay > startDay else {
@@ -559,8 +559,8 @@ class AddSessionViewModel: ObservableObject {
             }
 
             // 檢查是否包含所有交易日期
-            if let sessionId = editingSession?.id {
-                let transactionDateRange = getTransactionDateRange(for: sessionId)
+            if let eventId = editingEvent?.id {
+                let transactionDateRange = getTransactionDateRange(for: eventId)
                 if let (minDate, maxDate) = transactionDateRange {
                     let minDay = calendar.startOfDay(for: minDate)
                     let maxDay = calendar.startOfDay(for: maxDate)
@@ -577,10 +577,10 @@ class AddSessionViewModel: ObservableObject {
 
         case .permanent:
             // 無限期場次：檢查開始日期是否早於最早的交易
-            if let sessionId = editingSession?.id {
-                let transactionDateRange = getTransactionDateRange(for: sessionId)
+            if let eventId = editingEvent?.id {
+                let transactionDateRange = getTransactionDateRange(for: eventId)
                 if let (minDate, _) = transactionDateRange {
-                    let startDay = calendar.startOfDay(for: sessionDate)
+                    let startDay = calendar.startOfDay(for: eventDate)
                     let minDay = calendar.startOfDay(for: minDate)
 
                     if startDay > minDay {
@@ -595,10 +595,10 @@ class AddSessionViewModel: ObservableObject {
 
     /// 取得場次的交易日期範圍（最早和最晚的交易日期）
     /// 使用 displayDate（優先 occurredAt，否則 timestamp）
-    private func getTransactionDateRange(for sessionId: UUID) -> (min: Date, max: Date)? {
+    private func getTransactionDateRange(for eventId: UUID) -> (min: Date, max: Date)? {
         guard let transactionManager = transactionDataManager else { return nil }
 
-        let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+        let transactions = transactionManager.fetchTransactions(forEventId: eventId)
 
         guard !transactions.isEmpty else { return nil }
 
@@ -608,8 +608,8 @@ class AddSessionViewModel: ObservableObject {
         return (minDate, maxDate)
     }
 
-    func save() -> SessionModel {
-        let baseSession = editingSession ?? SessionModel(
+    func save() -> EventModel {
+        let baseEvent = editingEvent ?? EventModel(
             title: "",
             startDate: Date(),
             endDate: Date(),
@@ -622,21 +622,21 @@ class AddSessionViewModel: ObservableObject {
         let finalEndDate: Date?
         switch dateType {
         case .single:
-            finalEndDate = sessionDate  // 單日場次：endDate = startDate
+            finalEndDate = eventDate  // 單日場次：endDate = startDate
         case .multi:
             finalEndDate = endDate      // 多日場次：使用選擇的 endDate
         case .permanent:
             finalEndDate = nil          // 無限期場次：endDate = nil
         }
 
-        return SessionModel(
-            id: baseSession.id,
-            title: sessionName,
-            startDate: sessionDate,
+        return EventModel(
+            id: baseEvent.id,
+            title: eventName,
+            startDate: eventDate,
             endDate: finalEndDate,
             dateType: dateType,
             categories: categories,
-            createdAt: baseSession.createdAt,
+            createdAt: baseEvent.createdAt,
             currency: selectedCurrency,
             discounts: discounts
         )

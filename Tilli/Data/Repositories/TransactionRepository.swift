@@ -10,7 +10,7 @@ import CoreData
 import SwiftUI
 
 /// TransactionDataManager: 專門用於查詢 Transaction 數據
-/// 注意：Transaction 的 CRUD 操作已移至 SessionDataManager
+/// 注意：Transaction 的 CRUD 操作已移至 EventDataManager
 /// 這個 class 主要用於查詢和統計用途
 class TransactionRepository: ObservableObject {
     private let container: NSPersistentContainer
@@ -50,13 +50,13 @@ class TransactionRepository: ObservableObject {
         }
     }
 
-    // MARK: - Read Operations Only (Transaction CRUD moved to SessionDataManager)
+    // MARK: - Read Operations Only (Transaction CRUD moved to EventDataManager)
 
-    /// 取得指定 Session 的交易記錄
+    /// 取得指定 Event 的交易記錄
     /// 按 displayDate（優先 occurredAt，否則 timestamp）排序
-    func fetchTransactions(forSessionId sessionId: UUID) -> [TransactionModel] {
+    func fetchTransactions(forEventId eventId: UUID) -> [TransactionModel] {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        request.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
 
         do {
             let result = try context.fetch(request)
@@ -64,18 +64,18 @@ class TransactionRepository: ObservableObject {
             // 按 displayDate 排序
             return transactions.sorted { $0.displayDate > $1.displayDate }
         } catch {
-            print("Fetch transactions for session failed:", error)
+            print("Fetch transactions for event failed:", error)
             return []
         }
     }
 
     /// 根據場次和日期範圍查詢交易記錄（用於多日場次報表）
     /// 使用 displayDate（優先 occurredAt，否則 timestamp）進行日期篩選
-    func fetchTransactions(forSessionId sessionId: UUID, dateRange: DateInterval?) -> [TransactionModel] {
+    func fetchTransactions(forEventId eventId: UUID, dateRange: DateInterval?) -> [TransactionModel] {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
 
-        // 建立 sessionId 條件
-        let sessionPredicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        // 建立 eventId 條件
+        let eventPredicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
 
         // 如果有日期範圍，加入 OR 條件（timestamp 或 occurredAt 在範圍內）
         if let range = dateRange {
@@ -94,13 +94,13 @@ class TransactionRepository: ObservableObject {
                 occurredAtPredicate
             ])
 
-            // 組合：sessionId AND (timestamp OR occurredAt)
+            // 組合：eventId AND (timestamp OR occurredAt)
             request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                sessionPredicate,
+                eventPredicate,
                 datePredicate
             ])
         } else {
-            request.predicate = sessionPredicate
+            request.predicate = eventPredicate
         }
 
         do {
@@ -161,10 +161,10 @@ class TransactionRepository: ObservableObject {
         }
     }
     
-    /// 取得指定日期的交易記錄，按SessionId分組
-    func fetchTransactionsGroupedBySession(for date: Date) -> [String: [TransactionModel]] {
+    /// 取得指定日期的交易記錄，按EventId分組
+    func fetchTransactionsGroupedByEvent(for date: Date) -> [String: [TransactionModel]] {
         let transactions = fetchTransactions(for: date)
-        return Dictionary(grouping: transactions) { $0.sessionId.uuidString }
+        return Dictionary(grouping: transactions) { $0.eventId.uuidString }
     }
 
 }

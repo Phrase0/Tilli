@@ -36,15 +36,15 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     @Published var currentShareItems: [Any] = []
     @Published var showingExportSuccessAlert = false
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
 
     let tabTitles = ["交易明細", "產品績效", "銷售分析"]
 
-    init(session: Binding<SessionModel>) {
+    init(event: Binding<EventModel>) {
         self._session = session
-        self.transactionViewModel = TransactionViewModel(session: session)
-        self.productPerformanceViewModel = ProductPerformanceViewModel(session: session)
-        self.salesAnalyticsViewModel = SalesAnalyticsViewModel(session: session)
+        self.transactionViewModel = TransactionViewModel(event: session)
+        self.productPerformanceViewModel = ProductPerformanceViewModel(event: session)
+        self.salesAnalyticsViewModel = SalesAnalyticsViewModel(event: session)
     }
     
     // MARK: - DataManager 管理
@@ -52,14 +52,14 @@ class SessionDetailFromCalendarViewModel: ObservableObject {
     /// 更新 DataManager 引用給所有子 ViewModel
     func updateDataManagers(
         transactionDataManager: TransactionRepository,
-        sessionDataManager: SessionRepository
+        eventDataManager: EventRepository
     ) {
         transactionViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager
         )
         productPerformanceViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager,
-            sessionDataManager: sessionDataManager
+            eventDataManager: eventDataManager
         )
         salesAnalyticsViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager

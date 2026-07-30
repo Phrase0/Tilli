@@ -22,7 +22,7 @@ extension EnvironmentValues {
 struct CheckoutFlowView: View {
     @Binding var isPresented: Bool
     @Binding var checkoutCompleted: Bool
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
 
     let selectedItems: [SummaryItemModel]
     let totalAmount: Decimal
@@ -34,7 +34,7 @@ struct CheckoutFlowView: View {
                 selectedItems: selectedItems,
                 totalAmount: totalAmount,
                 selectedDiscount: selectedDiscount,
-                session: $session
+                event: $event
             )
         }
         .environment(\.closeCheckoutFlow, {

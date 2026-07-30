@@ -1,5 +1,5 @@
 //
-//  CDSessionEntity+CoreDataProperties.swift
+//  CDEventEntity+CoreDataProperties.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/8/3.
@@ -9,10 +9,10 @@
 import Foundation
 import CoreData
 
-extension CDSessionEntity {
+extension CDEventEntity {
 
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<CDSessionEntity> {
-        return NSFetchRequest<CDSessionEntity>(entityName: "CDSessionEntity")
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<CDEventEntity> {
+        return NSFetchRequest<CDEventEntity>(entityName: "CDEventEntity")
     }
 
     
@@ -36,7 +36,7 @@ extension CDSessionEntity {
 }
 
 // MARK: Generated accessors for transactions
-extension CDSessionEntity {
+extension CDEventEntity {
 
     @objc(addTransactionsObject:)
     @NSManaged public func addToTransactions(_ value: CDTransactionEntity)
@@ -53,7 +53,7 @@ extension CDSessionEntity {
 }
 
 // MARK: Generated accessors for categories
-extension CDSessionEntity {
+extension CDEventEntity {
 
     @objc(addCategoriesObject:)
     @NSManaged public func addToCategories(_ value: CDCategoryEntity)
@@ -70,7 +70,7 @@ extension CDSessionEntity {
 }
 
 // MARK: Generated accessors for inventoryChanges
-extension CDSessionEntity {
+extension CDEventEntity {
 
     @objc(addInventoryChangesObject:)
     @NSManaged public func addToInventoryChanges(_ value: CDInventoryChangeEntity)
@@ -86,8 +86,8 @@ extension CDSessionEntity {
 
 }
 
-extension CDSessionEntity {
-    func update(from model: SessionModel, context: NSManagedObjectContext) {
+extension CDEventEntity {
+    func update(from model: EventModel, context: NSManagedObjectContext) {
         self.id = model.id
         self.title = model.title
         self.startDate = model.startDate
@@ -98,8 +98,8 @@ extension CDSessionEntity {
         self.discountsData = try? JSONEncoder().encode(model.discounts)
     }
 
-    func toModel() -> SessionModel {
-        SessionModel(entity: self)
+    func toModel() -> EventModel {
+        EventModel(entity: self)
     }
 }
 

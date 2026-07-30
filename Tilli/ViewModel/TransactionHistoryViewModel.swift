@@ -33,7 +33,7 @@ enum PaymentMethodFilter {
 
 class TransactionViewModel: ObservableObject {
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
 
     // Transaction History 相關狀態
     @Published var transactions: [TransactionModel] = []
@@ -52,9 +52,9 @@ class TransactionViewModel: ObservableObject {
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionRepository?
     
-    var sessionTotalAmount: Decimal {
+    var eventTotalAmount: Decimal {
         if let transactionManager = transactionDataManager {
-            let transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+            let transactions = transactionManager.fetchTransactions(forEventId: event.id)
             return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
         } else {
             return 0
@@ -116,8 +116,8 @@ class TransactionViewModel: ObservableObject {
         return paymentFilter != .all
     }
 
-    init(session: Binding<SessionModel>) {
-        self._session = session
+    init(event: Binding<EventModel>) {
+        self._event = event
     }
 
     // MARK: - 排序切換
@@ -155,12 +155,12 @@ class TransactionViewModel: ObservableObject {
         if let timeRange = timeRange {
             // 使用時間範圍查詢
             transactions = transactionManager.fetchTransactions(
-                forSessionId: session.id,
+                forEventId: event.id,
                 dateRange: timeRange.dateInterval
             )
         } else {
             // 查詢所有交易（向後兼容）
-            transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+            transactions = transactionManager.fetchTransactions(forEventId: event.id)
         }
 
         // 按日分組交易
@@ -193,15 +193,15 @@ class TransactionViewModel: ObservableObject {
     }
     
     func generateCSVContent() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "交易明細_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "交易明細_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "交易明細_\(session.title)\n"
+            csvContent += "交易明細_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -246,7 +246,7 @@ class TransactionViewModel: ObservableObject {
     func createTempCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符（/ : 等）
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -303,7 +303,7 @@ class TransactionViewModel: ObservableObject {
     }
     
     func formatAmount(_ amount: Decimal, currency: String? = nil) -> String {
-        let currencyCode = currency ?? session.currency
+        let currencyCode = currency ?? event.currency
         return MoneyHelper.format(amount, currencyCode: currencyCode)
     }
 

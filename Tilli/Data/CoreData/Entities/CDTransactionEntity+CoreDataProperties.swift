@@ -16,8 +16,8 @@ extension CDTransactionEntity {
     }
 
     @NSManaged public var id: UUID
-    @NSManaged public var sessionId: UUID
-    @NSManaged public var sessionTitle: String
+    @NSManaged public var eventId: UUID
+    @NSManaged public var eventTitle: String
     @NSManaged public var currency: String
     @NSManaged public var itemsData: Data?
     @NSManaged public var totalAmount: NSDecimalNumber
@@ -26,7 +26,7 @@ extension CDTransactionEntity {
     @NSManaged public var occurredAt: Date?           // 補記帳時的實際發生時間
     @NSManaged public var discountType: String?       // 折扣類型："percentage" | "amount"
     @NSManaged public var discountValue: NSDecimalNumber?  // 折扣數值
-    @NSManaged public var session: CDSessionEntity?
+    @NSManaged public var event: CDEventEntity?
 
     // MARK: - Sync 相關欄位
     @NSManaged public var userId: String?        // 所屬用戶 ID
@@ -49,8 +49,8 @@ extension CDTransactionEntity {
 
     func update(from model: TransactionModel, context: NSManagedObjectContext) {
         self.id = model.id
-        self.sessionId = model.sessionId
-        self.sessionTitle = model.sessionTitle
+        self.eventId = model.eventId
+        self.eventTitle = model.eventTitle
         self.currency = model.currency
         self.totalAmount = NSDecimalNumber(decimal: model.totalAmount)
         self.paymentMethod = model.paymentMethod.rawValue

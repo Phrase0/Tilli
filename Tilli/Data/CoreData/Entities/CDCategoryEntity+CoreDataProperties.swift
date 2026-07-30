@@ -19,14 +19,14 @@ extension CDCategoryEntity {
     @NSManaged public var id: UUID
     @NSManaged public var name: String
     @NSManaged public var createdAt: Date
-    @NSManaged public var session: CDSessionEntity
+    @NSManaged public var event: CDEventEntity
     @NSManaged public var products: NSSet?
     @NSManaged public var isDisabled: Bool
     @NSManaged public var sortOrder: Int16
 
     // MARK: - Sync 相關欄位
     @NSManaged public var userId: String?        // 所屬用戶 ID
-    @NSManaged public var sessionId: UUID?       // Firestore 同步用
+    @NSManaged public var eventId: UUID?       // Firestore 同步用
     @NSManaged public var updatedAt: Date?       // 最後更新時間
     @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
 
@@ -56,7 +56,7 @@ extension CDCategoryEntity {
         self.createdAt = model.createdAt
         self.isDisabled = model.isDisabled
         self.sortOrder = Int16(model.sortOrder)
-        self.sessionId = model.sessionId
+        self.eventId = model.eventId
     }
 
     func toModel() -> CategoryModel {

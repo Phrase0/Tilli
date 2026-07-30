@@ -10,14 +10,14 @@ import SwiftUI
 /// 庫存管理 Tab 入口頁面
 /// 顯示場次列表，選擇後進入庫存管理詳情
 struct InventoryTabView: View {
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @StateObject private var viewModel = InventoryTabViewModel()
-    @State private var selectedSession: SessionModel? = nil
+    @State private var selectedSession: EventModel? = nil
     @State private var searchText = ""
 
     /// 當前顯示的場次列表
-    private var displayedSessions: [SessionModel] {
-        viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)
+    private var displayedSessions: [EventModel] {
+        viewModel.sortedFilteredEvents(by: searchText, from: eventDataManager.events)
     }
 
     var body: some View {
@@ -28,7 +28,7 @@ struct InventoryTabView: View {
                         emptyState
                     } else {
                         ForEach(displayedSessions) { session in
-                            SessionCardView(session: session, style: .simple)
+                            EventCardView(event: session, style: .simple)
                                 .onTapGesture {
                                     selectedSession = session
                                 }
@@ -40,14 +40,14 @@ struct InventoryTabView: View {
             .navigationTitle("庫存管理")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋場次")
             .navigationDestination(item: $selectedSession) { session in
-                if let index = sessionDataManager.sessions.firstIndex(where: { $0.id == session.id }) {
-                    InventoryChangeView(session: sessionDataManager.sessions[index])
+                if let index = eventDataManager.events.firstIndex(where: { $0.id == session.id }) {
+                    InventoryChangeView(event: eventDataManager.events[index])
                 }
             }
-            .onChange(of: sessionDataManager.sessions) {
+            .onChange(of: eventDataManager.events) {
                 // 檢查當前選中的場次是否還存在，若已被刪除則重置選擇
                 if let selected = selectedSession,
-                   !sessionDataManager.sessions.contains(where: { $0.id == selected.id }) {
+                   !eventDataManager.events.contains(where: { $0.id == selected.id }) {
                     selectedSession = nil
                 }
             }

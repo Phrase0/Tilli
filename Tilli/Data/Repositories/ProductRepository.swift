@@ -144,7 +144,7 @@ class ProductRepository: ObservableObject {
             }
 
             // 檢查是否有相關 Transaction
-            if hasRelatedTransactions(productId: productId, sessionId: productEntity.sessionId) {
+            if hasRelatedTransactions(productId: productId, eventId: productEntity.eventId) {
                 // 有 Transaction，只能停用
                 productEntity.isDisabled = true
                 productEntity.syncStatus = "pending"
@@ -177,10 +177,10 @@ class ProductRepository: ObservableObject {
     // MARK: - Helper Methods
 
     /// 檢查 Product 是否有相關 Transaction（僅查詢同場次的交易）
-    private func hasRelatedTransactions(productId: UUID, sessionId: UUID?) -> Bool {
+    private func hasRelatedTransactions(productId: UUID, eventId: UUID?) -> Bool {
         let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        if let sessionId = sessionId {
-            transactionRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        if let eventId = eventId {
+            transactionRequest.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
         }
 
         do {
@@ -225,10 +225,10 @@ class ProductRepository: ObservableObject {
     }
     
 
-    /// 取得指定 Session 下的所有 Product
-    func fetchProducts(forSessionId sessionId: UUID) -> [ProductModel] {
+    /// 取得指定 Event 下的所有 Product
+    func fetchProducts(forEventId eventId: UUID) -> [ProductModel] {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "sessionId == %@", sessionId as CVarArg)
+        request.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(key: "category.name", ascending: true), 
                                    NSSortDescriptor(key: "name", ascending: true)]
 
@@ -236,7 +236,7 @@ class ProductRepository: ObservableObject {
             let result = try context.fetch(request)
             return result.map { $0.toModel() }
         } catch {
-            print("Fetch products for session failed:", error)
+            print("Fetch products for event failed:", error)
             return []
         }
     }

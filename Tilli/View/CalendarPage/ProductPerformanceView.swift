@@ -10,13 +10,13 @@ import Charts
 
 struct ProductPerformanceView: View {
     @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     let timeRange: ReportTimeRange
     @State private var expandedProducts: Set<Int> = []
 
-    init(viewModel: ProductPerformanceViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
+    init(viewModel: ProductPerformanceViewModel, event: Binding<EventModel>, timeRange: ReportTimeRange) {
         self.productPerformanceViewModel = viewModel
-        self._session = session
+        self._event = event
         self.timeRange = timeRange
     }
     
@@ -81,7 +81,7 @@ struct ProductPerformanceView: View {
                         originalPrice: product.originalPrice,
                         discount: product.discount,
                         actualRevenue: product.actualRevenue,
-                        currency: session.currency,
+                        currency: event.currency,
                         isExpanded: expandedProducts.contains(product.rank)
                     ) {
                         toggleExpansion(for: product.rank)
@@ -103,7 +103,7 @@ struct ProductPerformanceView: View {
             
             VStack(spacing: 16) {
                 // Pie Chart
-                PieChartView(categories: productPerformanceViewModel.categoryAnalysis, currency: session.currency)
+                PieChartView(categories: productPerformanceViewModel.categoryAnalysis, currency: event.currency)
                     .frame(height: 250)
 
                 // Category Details
@@ -114,7 +114,7 @@ struct ProductPerformanceView: View {
                             name: category.name,
                             amount: category.amount,
                             percentage: category.percentage,
-                            currency: session.currency
+                            currency: event.currency
                         )
                     }
                 }

@@ -9,7 +9,7 @@ import SwiftUI
 
 /// 報表時間範圍選擇器
 struct ReportTimeRangeSelector: View {
-    let session: SessionModel
+    let event: EventModel
     @Binding var selectedRange: ReportTimeRange
 
     var body: some View {
@@ -49,13 +49,13 @@ struct ReportTimeRangeSelector: View {
 
     @ViewBuilder
     private var rangeSelector: some View {
-        switch session.dateType {
+        switch event.dateType {
         case .single:
             // 單日場次：不顯示選擇器
             EmptyView()
 
         case .multi:
-            if let days = session.dayCount {
+            if let days = event.dayCount {
                 // 多日場次：提供全部、今日、（超過7天時）最近7天、自訂選項
                 Menu {
                     Button("全部") {
@@ -207,7 +207,7 @@ struct ReportTimeRangeSelector: View {
     }
 
     private var dateIcon: String {
-        switch session.dateType {
+        switch event.dateType {
         case .single:
             return "calendar"
         case .multi:
@@ -218,7 +218,7 @@ struct ReportTimeRangeSelector: View {
     }
 
     private var iconColor: Color {
-        switch session.dateType {
+        switch event.dateType {
         case .single, .multi:
             return .blue
         case .permanent:
@@ -231,11 +231,11 @@ struct ReportTimeRangeSelector: View {
     /// 開始日期的可選範圍
     private var startDateRange: ClosedRange<Date> {
         let calendar = Calendar.current
-        let sessionStart = calendar.startOfDay(for: session.startDate)
+        let eventStart = calendar.startOfDay(for: event.startDate)
         let customEnd = calendar.startOfDay(for: selectedRange.customEnd)
 
         // 開始日期：不可早於場次開始日期，不可晚於結束日期
-        return sessionStart...customEnd
+        return eventStart...customEnd
     }
 
     /// 結束日期的可選範圍
@@ -246,14 +246,14 @@ struct ReportTimeRangeSelector: View {
 
         // 結束日期的上限
         let upperLimit: Date
-        if session.dateType == .permanent {
+        if event.dateType == .permanent {
             // 無限期場次：限制最多90天，且不可超過今天
             let maxEnd = calendar.date(byAdding: .day, value: 89, to: customStart)!
             upperLimit = min(maxEnd, today)
-        } else if let sessionEnd = session.endDate {
+        } else if let eventEnd = event.endDate {
             // 多日場次：不可超過場次結束日期
-            let sessionEndDay = calendar.startOfDay(for: sessionEnd)
-            upperLimit = sessionEndDay
+            let eventEndDay = calendar.startOfDay(for: eventEnd)
+            upperLimit = eventEndDay
         } else {
             // 單日場次（理論上不會到這裡）
             upperLimit = today

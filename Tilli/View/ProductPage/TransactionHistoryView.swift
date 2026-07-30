@@ -9,14 +9,14 @@ import SwiftUI
 
 struct TransactionHistoryView: View {
     @ObservedObject var transactionViewModel: TransactionViewModel
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     let timeRange: ReportTimeRange?
 
     init(transactionViewModel: TransactionViewModel,
-         session: Binding<SessionModel>,
+         event: Binding<EventModel>,
          timeRange: ReportTimeRange? = nil) {
         self.transactionViewModel = transactionViewModel
-        self._session = session
+        self._event = event
         self.timeRange = timeRange
     }
 

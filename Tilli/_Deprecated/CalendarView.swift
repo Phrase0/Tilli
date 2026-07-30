@@ -9,7 +9,7 @@ import SwiftUI
 import Foundation
 
 struct CalendarView: View {
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @StateObject private var viewModel = CalendarViewModel()
     @State private var currentDate = Date()
@@ -40,7 +40,7 @@ struct CalendarView: View {
             .onAppear {
                 viewModel.updateDataManagers(
                     transactionDataManager: transactionDataManager,
-                    sessionDataManager: sessionDataManager
+                    eventDataManager: eventDataManager
                 )
                 // 設置完 dataManagers 後刷新，確保首次載入資料正確
                 refreshID = UUID()
@@ -110,7 +110,7 @@ struct CalendarView: View {
     private var calendarGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
             ForEach(viewModel.daysInMonth(for: currentDate), id: \.self) { date in
-                let sessionsForDate = viewModel.sessionsForDate(date, from: sessionDataManager.sessions)
+                let sessionsForDate = viewModel.sessionsForDate(date, from: eventDataManager.events)
                 let hasTransactions = viewModel.hasTransactions(on: date)
 
                 DayCell(
@@ -141,10 +141,10 @@ struct CalendarView: View {
     private var sessionList: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 1. 獲取選中日期的場次（不包含永久場次）
-            let (realSessions, virtualSessions) = viewModel.getAllSessionsForDate(selectedDate, from: sessionDataManager.sessions)
+            let (realSessions, virtualSessions) = viewModel.getAllSessionsForDate(selectedDate, from: eventDataManager.events)
 
             // 2. 獲取所有永久場次（固定顯示，需判斷 startDate <= selectedDate）
-            let permanentSessions = viewModel.getPermanentSessions(from: sessionDataManager.sessions, selectedDate: selectedDate)
+            let permanentSessions = viewModel.getPermanentSessions(from: eventDataManager.events, selectedDate: selectedDate)
 
             if !realSessions.isEmpty || !virtualSessions.isEmpty || !permanentSessions.isEmpty {
                 ScrollView {
@@ -153,9 +153,9 @@ struct CalendarView: View {
                         if !permanentSessions.isEmpty {
                             ForEach(permanentSessions) { session in
                                 NavigationLink(destination: SessionDetailFromCalendarView(
-                                    session: .constant(session)
+                                    event: .constant(event)
                                 )) {
-                                    SessionRowView(session: session, isVirtual: false, isPermanent: true, selectedDate: selectedDate, viewModel: viewModel)
+                                    SessionRowView(event: session, isVirtual: false, isPermanent: true, selectedDate: selectedDate, viewModel: viewModel)
                                 }
                             }
 
@@ -169,18 +169,18 @@ struct CalendarView: View {
                         // 選中日期的真實 Session（藍色底）
                         ForEach(realSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
-                                session: .constant(session)
+                                event: .constant(event)
                             )) {
-                                SessionRowView(session: session, isVirtual: false, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
+                                SessionRowView(event: session, isVirtual: false, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
                             }
                         }
 
                         // 選中日期的虛擬 Session（孤兒交易，灰色底 + 淡化）
                         ForEach(virtualSessions) { session in
                             NavigationLink(destination: SessionDetailFromCalendarView(
-                                session: .constant(session)
+                                event: .constant(event)
                             )) {
-                                SessionRowView(session: session, isVirtual: true, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
+                                SessionRowView(event: session, isVirtual: true, isPermanent: false, selectedDate: selectedDate, viewModel: viewModel)
                                     .opacity(0.7)  // 淡化顯示
                             }
                         }
@@ -198,7 +198,7 @@ struct DayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-    let sessions: [SessionModel]
+    let sessions: [EventModel]
     let hasOrphanTransactions: Bool
     let currentMonth: Date
     let onTap: () -> Void
@@ -262,7 +262,7 @@ struct DayCell: View {
     }
 
     // 根據場次類型返回圓點顏色
-    private func dotColor(for session: SessionModel) -> Color {
+    private func dotColor(for event: EventModel) -> Color {
         switch session.dateType {
         case .permanent:
             return .purple  // 無限期場次用紫色
@@ -287,7 +287,7 @@ struct DayCell: View {
 
 // Session 行視圖
 struct SessionRowView: View {
-    let session: SessionModel
+    let event: EventModel
     let isVirtual: Bool      // 是否為虛擬 Session（孤兒交易）
     let isPermanent: Bool    // 是否為永久場次
     let selectedDate: Date   // 日曆選中的日期
@@ -299,7 +299,7 @@ struct SessionRowView: View {
         HStack(alignment: .top) {
             // 左側：標題 + 場次資訊
             VStack(alignment: .leading, spacing: 4) {
-                Text(session.title + (isPermanent ? " ∞" : ""))
+                Text(event.title + (isPermanent ? " ∞" : ""))
                     .font(.headline)
                     .foregroundColor(.black)
                     .lineLimit(1)

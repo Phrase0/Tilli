@@ -10,7 +10,7 @@ import Foundation
 
 struct ProductDetailView: View {
     @ObservedObject var productViewModel: ProductViewModel
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     @Binding var editingProduct: ProductModel?
     @Binding var showAddProduct: Bool
     @Binding var showCheckoutSheet: Bool
@@ -52,7 +52,7 @@ struct ProductDetailView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
                             // 啟用的產品列表
-                            ForEach(productViewModel.session.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.id) { category in
+                            ForEach(productViewModel.event.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.id) { category in
                                 let items = productViewModel.getSortedProductsForCategory(category.id)
                                 if !items.isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
@@ -152,7 +152,7 @@ struct ProductDetailView: View {
                     // Footer - 折扣選擇器、總計和結帳按鈕
                     VStack(spacing: 12) {
                         // 折扣選擇器（只在有折扣選項時顯示）
-                        if !productViewModel.session.discounts.isEmpty {
+                        if !productViewModel.event.discounts.isEmpty {
                             HStack(spacing: 12) {
                                 Text("折扣")
                                     .font(.subheadline)
@@ -172,12 +172,12 @@ struct ProductDetailView: View {
                                     }
 
                                     // 各個折扣選項
-                                    ForEach(productViewModel.session.discounts) { discount in
+                                    ForEach(productViewModel.event.discounts) { discount in
                                         Button {
                                             productViewModel.selectedDiscountId = discount.id
                                         } label: {
                                             HStack {
-                                                Text(discount.displayText(currency: productViewModel.session.currency))
+                                                Text(discount.displayText(currency: productViewModel.event.currency))
                                                 if productViewModel.selectedDiscountId == discount.id {
                                                     Image(systemName: "checkmark")
                                                 }
@@ -188,7 +188,7 @@ struct ProductDetailView: View {
                                     HStack {
                                         // 靠右對齊
                                         Spacer()
-                                        Text(productViewModel.selectedDiscount?.displayText(currency: productViewModel.session.currency) ?? "- -")
+                                        Text(productViewModel.selectedDiscount?.displayText(currency: productViewModel.event.currency) ?? "- -")
                                             .font(.subheadline)
                                             .foregroundColor(.primary)
                                         Image(systemName: "chevron.up.chevron.down")
@@ -220,7 +220,7 @@ struct ProductDetailView: View {
                             Text("總計")
                                 .font(.headline)
                             Spacer()
-                            Text(MoneyHelper.format(productViewModel.totalAmount(), currencyCode: productViewModel.session.currency))
+                            Text(MoneyHelper.format(productViewModel.totalAmount(), currencyCode: productViewModel.event.currency))
                                 .font(.headline)
                                 .bold()
                         }
@@ -250,7 +250,7 @@ struct ProductDetailView: View {
             CheckoutFlowView(
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted,
-                session: $session,
+                event: $event,
                 selectedItems: productViewModel.selectedProductsWithQuantity(),
                 totalAmount: productViewModel.totalAmount(),
                 selectedDiscount: productViewModel.effectiveDiscount()
@@ -317,7 +317,7 @@ struct ProductDetailView: View {
                 // 下半部：價格、庫存與數量按鈕
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.event.currency))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(isOutOfStock ? .gray : .blue)
@@ -426,7 +426,7 @@ struct ProductDetailView: View {
 
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+                        Text(MoneyHelper.format(product.price, currencyCode: productViewModel.event.currency))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.gray)
@@ -517,7 +517,7 @@ struct ProductDetailView: View {
                 }
 
                 // 價格
-                Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+                Text(MoneyHelper.format(product.price, currencyCode: productViewModel.event.currency))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(isOutOfStock ? .gray : .blue)
@@ -634,7 +634,7 @@ struct ProductDetailView: View {
 //                    }
 //                }
 //
-//                Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+//                Text(MoneyHelper.format(product.price, currencyCode: productViewModel.event.currency))
 //                    .font(.subheadline)
 //                    .foregroundColor(.gray)
 //
@@ -698,7 +698,7 @@ struct ProductDetailView: View {
                 }
 
                 // 價格
-                Text(MoneyHelper.format(product.price, currencyCode: productViewModel.session.currency))
+                Text(MoneyHelper.format(product.price, currencyCode: productViewModel.event.currency))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.gray)

@@ -11,11 +11,11 @@ import Foundation
 struct CashPaymentView: View {
 
     @EnvironmentObject var transactionDataManager: TransactionRepository
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
 
     @Environment(\.closeCheckoutFlow) private var closeFlow
 
@@ -32,15 +32,15 @@ struct CashPaymentView: View {
 
     init(
         totalAmount: Decimal,
-        session: Binding<SessionModel>,
+        event: Binding<EventModel>,
         summaryItems: [SummaryItemModel],
         selectedDiscount: DiscountModel? = nil,
         occurredAt: Date? = nil
     ) {
-        self._session = session
+        self._event = event
         self._viewModel = ObservedObject(wrappedValue: CashPaymentViewModel(
             totalAmount: totalAmount,
-            session: session.wrappedValue,
+            event: event.wrappedValue,
             summaryItems: summaryItems,
             selectedDiscount: selectedDiscount,
             occurredAt: occurredAt
@@ -68,7 +68,7 @@ struct CashPaymentView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "tag.fill")
                         .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money(currency: session.currency))
+                    Text(viewModel.totalAmount.money(currency: event.currency))
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.black)
@@ -105,7 +105,7 @@ struct CashPaymentView: View {
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(max(viewModel.change, 0).money(currency: session.currency))
+                Text(max(viewModel.change, 0).money(currency: event.currency))
                     .font(.title)
                     .foregroundColor(.blue)
                     .bold()
@@ -165,7 +165,7 @@ struct CashPaymentView: View {
                     Image(systemName: "tag.fill")
                         .font(.title)
                         .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money(currency: session.currency))
+                    Text(viewModel.totalAmount.money(currency: event.currency))
                         .font(.system(size: 48, weight: .bold))
                         .foregroundColor(.primary)
                 }
@@ -197,12 +197,12 @@ struct CashPaymentView: View {
     private func completePayment() {
         guard viewModel.isAmountValid else { return }
 
-        let updatedSession = viewModel.performCheckout(
-            sessionDataManager: sessionDataManager,
+        let updateEvent = viewModel.performCheckout(
+            eventDataManager: eventDataManager,
             productRepository: productRepository,
             inventoryChangeRepository: inventoryChangeRepository
         )
-        session = updatedSession
+        event = updateEvent
 
         // 先收起鍵盤
         focusedField = nil
@@ -216,12 +216,12 @@ struct CashPaymentView: View {
 
     /// 簡化模式：直接完成交易
     private func completePaymentSimple() {
-        let updatedSession = viewModel.performCheckout(
-            sessionDataManager: sessionDataManager,
+        let updateEvent = viewModel.performCheckout(
+            eventDataManager: eventDataManager,
             productRepository: productRepository,
             inventoryChangeRepository: inventoryChangeRepository
         )
-        session = updatedSession
+        event = updateEvent
         closeFlow()
     }
 }

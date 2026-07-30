@@ -96,7 +96,7 @@ struct InventoryChangeModel: Identifiable, Codable {
     var customReason: String?              // 「其他調整」時的自定義原因
     var transactionId: UUID?               // 關聯的交易 ID（僅銷售出庫時有值）
     var timestamp: Date
-    var sessionId: UUID?                   // Firestore 同步用
+    var eventId: UUID?                   // Firestore 同步用
 
     /// 格式化的變化量文字（如 +10 或 -3）
     var changeText: String {
@@ -137,6 +137,6 @@ extension InventoryChangeModel {
         self.customReason = entity.customReason
         self.transactionId = entity.transactionId
         self.timestamp = entity.timestamp
-        self.sessionId = entity.sessionId ?? entity.session?.id
+        self.eventId = entity.eventId ?? entity.event?.id
     }
 }

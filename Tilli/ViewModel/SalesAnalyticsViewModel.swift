@@ -72,12 +72,12 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     // MARK: - Dependencies
     private var transactionDataManager: TransactionRepository?
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     private(set) var currentTimeRange: ReportTimeRange?
 
     // MARK: - Initialization
-    init(session: Binding<SessionModel>) {
-        self._session = session
+    init(event: Binding<EventModel>) {
+        self._event = event
     }
 
     // MARK: - DataManager 管理
@@ -109,14 +109,14 @@ class SalesAnalyticsViewModel: ObservableObject {
     // MARK: - CSV Export Methods
 
     func generateHourlyAnalysisCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "時段銷售分析_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "時段銷售分析_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "時段銷售分析_\(session.title)\n"
+            csvContent += "時段銷售分析_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -137,14 +137,14 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     func generatePaymentMethodCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "支付方式分析_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "支付方式分析_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "支付方式分析_\(session.title)\n"
+            csvContent += "支付方式分析_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -165,15 +165,15 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     func generateDailyRevenueTrendCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "日營收趨勢_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "日營收趨勢_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "日營收趨勢_\(session.title)\n"
+            csvContent += "日營收趨勢_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -192,15 +192,15 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     func generateMonthlyRevenueTrendCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "月營收趨勢_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "月營收趨勢_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "月營收趨勢_\(session.title)\n"
+            csvContent += "月營收趨勢_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -222,7 +222,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     func createHourlyAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -242,7 +242,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     func createPaymentMethodCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -262,7 +262,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     func createDailyRevenueTrendCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -282,7 +282,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     func createMonthlyRevenueTrendCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -311,11 +311,11 @@ private extension SalesAnalyticsViewModel {
         let transactions: [TransactionModel]
         if let timeRange = timeRange {
             transactions = transactionDataManager.fetchTransactions(
-                forSessionId: session.id,
+                forEventId: event.id,
                 dateRange: timeRange.dateInterval
             )
         } else {
-            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+            transactions = transactionDataManager.fetchTransactions(forEventId: event.id)
         }
 
         // 初始化 Helper Classes

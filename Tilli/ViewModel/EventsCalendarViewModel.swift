@@ -21,11 +21,11 @@ class EventsCalendarViewModel: ObservableObject {
 
     func updateDataManagers(
         transactionDataManager: TransactionRepository,
-        sessionDataManager: SessionRepository
+        eventDataManager: EventRepository
     ) {
         calendarVM.updateDataManagers(
             transactionDataManager: transactionDataManager,
-            sessionDataManager: sessionDataManager
+            eventDataManager: eventDataManager
         )
     }
 
@@ -39,20 +39,20 @@ class EventsCalendarViewModel: ObservableObject {
         calendarVM.daysInMonth(for: currentDate)
     }
 
-    func sessionsForDate(_ date: Date, from sessions: [SessionModel]) -> [SessionModel] {
-        calendarVM.sessionsForDate(date, from: sessions)
+    func eventsForDate(_ date: Date, from events: [EventModel]) -> [EventModel] {
+        calendarVM.eventsForDate(date, from: events)
     }
 
     func hasTransactions(on date: Date) -> Bool {
         calendarVM.hasTransactions(on: date)
     }
 
-    func getAllSessionsForDate(from sessions: [SessionModel]) -> (real: [SessionModel], virtual: [SessionModel]) {
-        calendarVM.getAllSessionsForDate(selectedDate, from: sessions)
+    func getAllEventsForDate(from events: [EventModel]) -> (real: [EventModel], virtual: [EventModel]) {
+        calendarVM.getAllEventsForDate(selectedDate, from: events)
     }
 
-    func getPermanentSessions(from sessions: [SessionModel]) -> [SessionModel] {
-        calendarVM.getPermanentSessions(from: sessions, selectedDate: selectedDate)
+    func getPermanentEvents(from events: [EventModel]) -> [EventModel] {
+        calendarVM.getPermanentEvents(from: events, selectedDate: selectedDate)
     }
 
     var weekdays: [String] {
@@ -71,8 +71,8 @@ class EventsCalendarViewModel: ObservableObject {
         return formatter.string(from: selectedDate)
     }
 
-    func transactionSummary(for session: SessionModel) -> (count: Int, total: Decimal) {
-        let result = calendarVM.calculateTransactionSummary(for: session)
+    func transactionSummary(for event: EventModel) -> (count: Int, total: Decimal) {
+        let result = calendarVM.calculateTransactionSummary(for: event)
         return (result.count, result.totalAmount)
     }
 }

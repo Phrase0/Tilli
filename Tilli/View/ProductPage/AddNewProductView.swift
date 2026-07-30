@@ -25,12 +25,12 @@ struct AddNewProductView: View {
 
     var onSave: (() -> Void)?
     
-    init(session: SessionModel,
+    init(event: EventModel,
          productToEdit: ProductModel? = nil,
          onSave: (() -> Void)? = nil) {
         
         _viewModel = StateObject(wrappedValue: AddNewProductViewModel(
-            session: session,
+            event: event,
             productToEdit: productToEdit
         ))
         self.onSave = onSave

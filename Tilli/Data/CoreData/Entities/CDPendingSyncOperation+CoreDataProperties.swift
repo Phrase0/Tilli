@@ -17,7 +17,7 @@ extension CDPendingSyncOperation {
     }
 
     @NSManaged public var id: UUID                   // 操作的唯一識別碼
-    @NSManaged public var entityType: String         // "session" | "category" | "product" | ...
+    @NSManaged public var entityType: String         // "event" | "category" | "product" | ...
     @NSManaged public var entityId: UUID             // 被操作的實體 ID
     @NSManaged public var operationType: String      // "create" | "update" | "delete"
     @NSManaged public var payload: Data?             // JSON encoded data
@@ -42,7 +42,7 @@ enum SyncOperationType: String {
 // MARK: - 實體類型
 
 enum SyncEntityType: String {
-    case session = "session"
+    case event = "event"
     case category = "category"
     case product = "product"
     case transaction = "transaction"

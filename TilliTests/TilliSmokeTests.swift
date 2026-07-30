@@ -2,11 +2,11 @@ import XCTest
 @testable import Tilli
 
 final class TilliSmokeTests: XCTestCase {
-    func testSessionMock() {
-        let session = SessionModel.mock()
-        XCTAssertFalse(session.title.isEmpty)
-        XCTAssertEqual(session.currency, "TWD")
-        XCTAssertEqual(session.dateType, .single)
+    func testEventMock() {
+        let event = EventModel.mock()
+        XCTAssertFalse(event.title.isEmpty)
+        XCTAssertEqual(event.currency, "TWD")
+        XCTAssertEqual(event.dateType, .single)
     }
 
     func testProductMock() {

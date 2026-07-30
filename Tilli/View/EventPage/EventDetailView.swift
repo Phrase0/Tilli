@@ -1,5 +1,5 @@
 //
-//  SessionDetailView.swift
+//  EventDetailView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/5.
@@ -8,14 +8,14 @@
 import SwiftUI
 import Foundation
 
-struct SessionDetailView: View {
+struct EventDetailView: View {
     
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
-    @StateObject private var viewModel: SessionDetailViewModel
+    @StateObject private var viewModel: EventDetailViewModel
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     @State private var showingShareSheet = false
     @State private var showClearAlert = false
     
@@ -26,13 +26,13 @@ struct SessionDetailView: View {
     @State private var editingProduct: ProductModel? = nil
     @State private var showAddProduct = false
 
-    init(session: Binding<SessionModel>) {
-        self._session = session
-        self._viewModel = StateObject(wrappedValue: SessionDetailViewModel(session: session))
+    init(event: Binding<EventModel>) {
+        self._event = event
+        self._viewModel = StateObject(wrappedValue: EventDetailViewModel(event: event))
     }
 
     var body: some View {
-        sessionDetailContent
+        eventDetailContent
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     switch selectedTab {
@@ -90,7 +90,7 @@ struct SessionDetailView: View {
             }
             .navigationDestination(isPresented: $showAddProduct) {
                 AddNewProductView(
-                    session: session,
+                    event: event,
                     productToEdit: editingProduct,
                     onSave: {
                         viewModel.productViewModel.loadProducts()
@@ -99,14 +99,14 @@ struct SessionDetailView: View {
             }
     }
     
-    private var sessionDetailContent: some View {
+    private var eventDetailContent: some View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 4) {
-                Text(viewModel.session.title)
+                Text(viewModel.event.title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                Text("\(viewModel.session.displayDateRange) • \(MoneyHelper.format(viewModel.sessionTotalAmount, currencyCode: viewModel.session.currency))")
+                Text("\(viewModel.event.displayDateRange) • \(MoneyHelper.format(viewModel.eventTotalAmount, currencyCode: viewModel.event.currency))")
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
@@ -144,7 +144,7 @@ struct SessionDetailView: View {
                 // 商品頁 - 使用 ProductDetailView
                 ProductDetailView(
                     productViewModel: viewModel.productViewModel,
-                    session: $session,
+                    event: $event,
                     editingProduct: $editingProduct,
                     showAddProduct: $showAddProduct,
                     showCheckoutSheet: $showCheckoutSheet,
@@ -155,7 +155,7 @@ struct SessionDetailView: View {
                 // 記錄頁 - 使用 TransactionHistoryView
                 TransactionHistoryView(
                     transactionViewModel: viewModel.transactionViewModel,
-                    session: $session
+                    event: $event
                 )
                 .tag(1)
             }
@@ -167,7 +167,7 @@ struct SessionDetailView: View {
                 // 只刷新產品庫存，交易明細會在切換頁面時自動載入
                 viewModel.productViewModel.loadProducts()
                 viewModel.productViewModel.clearAllQuantities()
-                viewModel.updateSessionTotalAmount()
+                viewModel.updateEventTotalAmount()
 
                 // 重置標記
                 DispatchQueue.main.async {
@@ -177,7 +177,7 @@ struct SessionDetailView: View {
         .onAppear {
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
-                sessionDataManager: sessionDataManager,
+                eventDataManager: eventDataManager,
                 productRepository: productRepository
             )
             viewModel.loadData()

@@ -1,18 +1,18 @@
 
 //
-//  SessionModel.swift
+//  EventModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/4/23.
 //
 import SwiftUI
 
-struct SessionModel: Identifiable, Codable, Hashable {
+struct EventModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String                   // 場次名稱，例如「2025/08/01 花博市集」
     var startDate: Date                 // 場次開始日期（必填）
     var endDate: Date?                  // 場次結束日期（可選，nil 表示無限期）
-    var dateType: SessionDateType       // 場次類型：單日/多日/無限期
+    var dateType: EventDateType       // 場次類型：單日/多日/無限期
     var categories: [CategoryModel]     // 類別選單，用於過濾商品或報表
     var createdAt: Date                 // 場次建立時間
     var currency: String = "TWD"        // 場次使用的幣別，預設為台幣
@@ -69,7 +69,7 @@ struct SessionModel: Identifiable, Codable, Hashable {
     }
 
     // 計算屬性：場次狀態
-    var status: SessionStatus {
+    var status: EventStatus {
         let today = Calendar.current.startOfDay(for: Date())
         let start = Calendar.current.startOfDay(for: startDate)
 
@@ -105,13 +105,13 @@ struct SessionModel: Identifiable, Codable, Hashable {
     }
 }
 
-enum SessionDateType: String, Codable, Hashable {
+enum EventDateType: String, Codable, Hashable {
     case single      // 單日場次
     case multi       // 多日場次
     case permanent   // 無限期場次
 }
 
-enum SessionStatus: String, Codable {
+enum EventStatus: String, Codable {
     case ongoing
     case completed
     case upcoming
@@ -134,21 +134,21 @@ enum SessionStatus: String, Codable {
 
     var localizedDescription: String {
         switch self {
-        case .ongoing: return String(localized: "sessionStatusOngoing")
-        case .completed: return String(localized: "sessionStatusCompleted")
-        case .upcoming: return String(localized: "sessionStatusUpcoming")
+        case .ongoing: return String(localized: "eventStatusOngoing")
+        case .completed: return String(localized: "eventStatusCompleted")
+        case .upcoming: return String(localized: "eventStatusUpcoming")
         }
     }
 }
 
 // MARK: - CoreData 轉換
-extension SessionModel {
-    init(entity: CDSessionEntity) {
+extension EventModel {
+    init(entity: CDEventEntity) {
         self.id = entity.id
         self.title = entity.title
         self.startDate = entity.startDate
         self.endDate = entity.endDate
-        self.dateType = SessionDateType(rawValue: entity.dateType) ?? .single
+        self.dateType = EventDateType(rawValue: entity.dateType) ?? .single
         self.createdAt = entity.createdAt
         self.currency = entity.currency
 

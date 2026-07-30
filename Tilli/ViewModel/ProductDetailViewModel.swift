@@ -15,7 +15,7 @@ enum ProductLayoutMode: String, Codable {
 
 class ProductViewModel: ObservableObject {
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     @Published var categories: [CategoryModel] = []
     @Published var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
@@ -41,7 +41,7 @@ class ProductViewModel: ObservableObject {
     
     // 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionRepository?
-    private var sessionDataManager: SessionRepository?
+    private var eventDataManager: EventRepository?
     private var productRepository: ProductRepository?
     
     // 計算屬性：可顯示的產品（Product.isDisabled == false && Category.isDisabled == false）
@@ -67,7 +67,7 @@ class ProductViewModel: ObservableObject {
 
     /// 檢查是否有任何可用商品（用於判斷是否顯示空狀態）
     var hasAnyProducts: Bool {
-        let activeCategories = session.categories.filter { !$0.isDisabled }
+        let activeCategories = event.categories.filter { !$0.isDisabled }
         return activeCategories.contains { category in
             !getSortedProductsForCategory(category.id).isEmpty
         }
@@ -81,11 +81,11 @@ class ProductViewModel: ObservableObject {
     /// 取得選中的折扣 Model
     var selectedDiscount: DiscountModel? {
         guard let id = selectedDiscountId else { return nil }
-        return session.discounts.first { $0.id == id }
+        return event.discounts.first { $0.id == id }
     }
 
-    init(session: Binding<SessionModel>) {
-        self._session = session
+    init(event: Binding<EventModel>) {
+        self._event = event
 
         // 从 UserDefaults 讀取布局模式
         if let savedMode = UserDefaults.standard.string(forKey: "ProductLayoutMode"),
@@ -101,11 +101,11 @@ class ProductViewModel: ObservableObject {
     /// 更新 DataManager 引用
     func updateDataManagers(
         transactionDataManager: TransactionRepository,
-        sessionDataManager: SessionRepository,
+        eventDataManager: EventRepository,
         productRepository: ProductRepository
     ) {
         self.transactionDataManager = transactionDataManager
-        self.sessionDataManager = sessionDataManager
+        self.eventDataManager = eventDataManager
         self.productRepository = productRepository
     }
     
@@ -164,8 +164,8 @@ class ProductViewModel: ObservableObject {
     
     func loadProducts() {
         guard let productRepo = productRepository else { return }
-        products = productRepo.fetchProducts(forSessionId: session.id)
-        categories = session.categories
+        products = productRepo.fetchProducts(forEventId: event.id)
+        categories = event.categories
         
         // 首次載入時展開所有分類
         if expandedCategories.isEmpty {
@@ -290,11 +290,11 @@ class ProductViewModel: ObservableObject {
     
     /// 檢查產品是否有交易記錄
     func hasTransaction(for productId: UUID) -> Bool {
-        guard let sessionId = session.id as UUID? else { return false }
+        guard let eventId = event.id as UUID? else { return false }
         
         // 優先使用 TransactionDataManager 獲取最新的交易數據
         if let transactionManager = transactionDataManager {
-            let transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+            let transactions = transactionManager.fetchTransactions(forEventId: eventId)
             for transaction in transactions {
                 for item in transaction.items {
                     if item.productId == productId {
@@ -399,7 +399,7 @@ class ProductViewModel: ObservableObject {
         isDisableAction = false
     }
     
-    /// 處理 Actions（參考 AddSessionViewModel）
+    /// 處理 Actions（參考 AddEventViewModel）
     func getActionType(for productId: UUID) -> ProductActionType {
         if hasTransaction(for: productId) {
             return .disable

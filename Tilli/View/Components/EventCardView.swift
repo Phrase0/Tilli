@@ -1,5 +1,5 @@
 //
-//  SessionCardView.swift
+//  EventCardView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/1/12.
@@ -7,14 +7,14 @@
 
 import SwiftUI
 
-enum SessionCardStyle {
+enum EventCardStyle {
     case standard
     case simple
 }
 
-struct SessionCardView: View {
-    let session: SessionModel
-    let style: SessionCardStyle
+struct EventCardView: View {
+    let event: EventModel
+    let style: EventCardStyle
     var transactionCount: Int = 0
     var transactionTotal: Decimal = 0
 
@@ -25,7 +25,7 @@ struct SessionCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
-                Text(session.title)
+                Text(event.title)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(DesignSystem.ColorToken.ink)
                     .lineLimit(1)
@@ -37,7 +37,7 @@ struct SessionCardView: View {
                 }
             }
 
-            Text(session.displayTimeInfo)
+            Text(event.displayTimeInfo)
                 .font(DesignSystem.Typography.caption)
                 .foregroundColor(DesignSystem.ColorToken.muted)
                 .lineLimit(1)
@@ -52,7 +52,7 @@ struct SessionCardView: View {
 
                     Spacer()
 
-                    Text(transactionTotal.money(currency: session.currency))
+                    Text(transactionTotal.money(currency: event.currency))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(DesignSystem.ColorToken.ink)
                 }
@@ -85,7 +85,7 @@ struct SessionCardView: View {
                 Button {
                     onEdit()
                 } label: {
-                    Label("addSessionEditTitle", systemImage: "pencil")
+                    Label("addEventEditTitle", systemImage: "pencil")
                 }
 
                 Button {

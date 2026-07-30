@@ -128,10 +128,10 @@ class SyncManager: ObservableObject {
         hybridListener.resetLocalVersion()
     }
 
-    // MARK: - Session Sync
+    // MARK: - Event Sync
 
-    /// 同步 Session（新增或更新）
-    func syncSession(_ session: SessionModel, operation: SyncOperationType) {
+    /// 同步 Event（新增或更新）
+    func syncEvent(_ event: EventModel, operation: SyncOperationType) {
         guard isUserLoggedIn else { return }
 
         Task {
@@ -139,63 +139,63 @@ class SyncManager: ObservableObject {
                 do {
                     switch operation {
                     case .create:
-                        try await uploader.uploadSession(session)
+                        try await uploader.uploadEvent(event)
                     case .update:
-                        try await uploader.updateSession(session)
+                        try await uploader.updateEvent(event)
                     case .delete:
                         break // 刪除用另一個方法
                     }
-                    updateEntitySyncStatus(entityType: SyncEntityType.session.rawValue, entityId: session.id, status: .synced)
-                    print("✅ Session 同步成功: \(session.id)")
+                    updateEntitySyncStatus(entityType: SyncEntityType.event.rawValue, entityId: event.id, status: .synced)
+                    print("✅ Event 同步成功: \(event.id)")
                 } catch {
-                    handleSyncError(error, entityType: .session, entityId: session.id, operation: operation, model: session)
+                    handleSyncError(error, entityType: .event, entityId: event.id, operation: operation, model: event)
                 }
             } else {
-                enqueueSessionOperation(session, operation: operation)
+                enqueueEventOperation(event, operation: operation)
             }
         }
     }
 
-    /// 同步刪除 Session
-    func syncDeleteSession(_ sessionId: UUID, withChildren: Bool = true) {
+    /// 同步刪除 Event
+    func syncDeleteEvent(_ eventId: UUID, withChildren: Bool = true) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
                     if withChildren {
-                        try await uploader.deleteSessionWithChildren(sessionId)
+                        try await uploader.deleteEventWithChildren(eventId)
                     } else {
-                        try await uploader.deleteSession(sessionId)
+                        try await uploader.deleteEvent(eventId)
                     }
-                    print("✅ Session 刪除同步成功: \(sessionId)")
+                    print("✅ Event 刪除同步成功: \(eventId)")
                 } catch {
-                    print("❌ Session 刪除同步失敗: \(error)")
+                    print("❌ Event 刪除同步失敗: \(error)")
                     // 刪除失敗加入佇列
-                    enqueueOperation(entityType: .session, entityId: sessionId, operationType: .delete, payload: nil)
+                    enqueueOperation(entityType: .event, entityId: eventId, operationType: .delete, payload: nil)
                 }
             } else {
-                enqueueOperation(entityType: .session, entityId: sessionId, operationType: .delete, payload: nil)
+                enqueueOperation(entityType: .event, entityId: eventId, operationType: .delete, payload: nil)
             }
         }
     }
 
-    /// 同步完整 Session（包含 Categories 和 Products）
-    func syncSessionWithChildren(_ session: SessionModel) {
+    /// 同步完整 Event（包含 Categories 和 Products）
+    func syncEventWithChildren(_ event: EventModel) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
-                    try await uploader.uploadSessionWithChildren(session)
-                    updateEntitySyncStatus(entityType: SyncEntityType.session.rawValue, entityId: session.id, status: .synced)
-                    print("✅ Session（含子項目）同步成功: \(session.id)")
+                    try await uploader.uploadEventWithChildren(event)
+                    updateEntitySyncStatus(entityType: SyncEntityType.event.rawValue, entityId: event.id, status: .synced)
+                    print("✅ Event（含子項目）同步成功: \(event.id)")
                 } catch {
-                    print("❌ Session（含子項目）同步失敗: \(error)")
-                    enqueueSessionOperation(session, operation: .create)
+                    print("❌ Event（含子項目）同步失敗: \(error)")
+                    enqueueEventOperation(event, operation: .create)
                 }
             } else {
-                enqueueSessionOperation(session, operation: .create)
+                enqueueEventOperation(event, operation: .create)
             }
         }
     }
@@ -203,7 +203,7 @@ class SyncManager: ObservableObject {
     // MARK: - Category Sync
 
     /// 同步 Category
-    func syncCategory(_ category: CategoryModel, sessionId: UUID, operation: SyncOperationType) {
+    func syncCategory(_ category: CategoryModel, eventId: UUID, operation: SyncOperationType) {
         guard isUserLoggedIn else { return }
 
         Task {
@@ -211,19 +211,19 @@ class SyncManager: ObservableObject {
                 do {
                     switch operation {
                     case .create:
-                        try await uploader.uploadCategory(category, sessionId: sessionId)
+                        try await uploader.uploadCategory(category, eventId: eventId)
                     case .update:
-                        try await uploader.updateCategory(category, sessionId: sessionId)
+                        try await uploader.updateCategory(category, eventId: eventId)
                     case .delete:
                         break
                     }
                     updateEntitySyncStatus(entityType: SyncEntityType.category.rawValue, entityId: category.id, status: .synced)
                     print("✅ Category 同步成功: \(category.id)")
                 } catch {
-                    handleSyncError(error, entityType: .category, entityId: category.id, operation: operation, model: category, sessionId: sessionId)
+                    handleSyncError(error, entityType: .category, entityId: category.id, operation: operation, model: category, eventId: eventId)
                 }
             } else {
-                enqueueCategoryOperation(category, sessionId: sessionId, operation: operation)
+                enqueueCategoryOperation(category, eventId: eventId, operation: operation)
             }
         }
     }
@@ -372,20 +372,20 @@ class SyncManager: ObservableObject {
     // MARK: - InventoryChange Sync
 
     /// 同步 InventoryChange
-    func syncInventoryChange(_ change: InventoryChangeModel, sessionId: UUID) {
+    func syncInventoryChange(_ change: InventoryChangeModel, eventId: UUID) {
         guard isUserLoggedIn else { return }
 
         Task {
             if isNetworkAvailable {
                 do {
-                    try await uploader.uploadInventoryChange(change, sessionId: sessionId)
+                    try await uploader.uploadInventoryChange(change, eventId: eventId)
                     updateEntitySyncStatus(entityType: SyncEntityType.inventoryChange.rawValue, entityId: change.id, status: .synced)
                     print("✅ InventoryChange 同步成功: \(change.id)")
                 } catch {
-                    handleSyncError(error, entityType: .inventoryChange, entityId: change.id, operation: .create, model: change, sessionId: sessionId)
+                    handleSyncError(error, entityType: .inventoryChange, entityId: change.id, operation: .create, model: change, eventId: eventId)
                 }
             } else {
-                enqueueInventoryChangeOperation(change, sessionId: sessionId)
+                enqueueInventoryChangeOperation(change, eventId: eventId)
             }
         }
     }
@@ -433,17 +433,17 @@ class SyncManager: ObservableObject {
 
     // MARK: - Error Handling
 
-    private func handleSyncError<T: Encodable>(_ error: Error, entityType: SyncEntityType, entityId: UUID, operation: SyncOperationType, model: T, sessionId: UUID? = nil) {
+    private func handleSyncError<T: Encodable>(_ error: Error, entityType: SyncEntityType, entityId: UUID, operation: SyncOperationType, model: T, eventId: UUID? = nil) {
         print("❌ \(entityType.rawValue) 同步失敗: \(error)")
         updateEntitySyncStatus(entityType: entityType.rawValue, entityId: entityId, status: .error)
 
-        // 加入重試佇列（確保 sessionId 被寫入 payload）
+        // 加入重試佇列（確保 eventId 被寫入 payload）
         var payload: Data?
-        if var category = model as? CategoryModel, let sid = sessionId {
-            category.sessionId = sid
+        if var category = model as? CategoryModel, let sid = eventId {
+            category.eventId = sid
             payload = try? JSONEncoder().encode(category)
-        } else if var change = model as? InventoryChangeModel, let sid = sessionId {
-            change.sessionId = sid
+        } else if var change = model as? InventoryChangeModel, let sid = eventId {
+            change.eventId = sid
             payload = try? JSONEncoder().encode(change)
         } else {
             payload = try? JSONEncoder().encode(model)
@@ -456,16 +456,16 @@ class SyncManager: ObservableObject {
 
     // MARK: - Enqueue Helpers
 
-    private func enqueueSessionOperation(_ session: SessionModel, operation: SyncOperationType) {
-        if let payload = try? JSONEncoder().encode(session) {
-            enqueueOperation(entityType: .session, entityId: session.id, operationType: operation, payload: payload)
+    private func enqueueEventOperation(_ event: EventModel, operation: SyncOperationType) {
+        if let payload = try? JSONEncoder().encode(event) {
+            enqueueOperation(entityType: .event, entityId: event.id, operationType: operation, payload: payload)
         }
-        updateEntitySyncStatus(entityType: SyncEntityType.session.rawValue, entityId: session.id, status: .pending)
+        updateEntitySyncStatus(entityType: SyncEntityType.event.rawValue, entityId: event.id, status: .pending)
     }
 
-    private func enqueueCategoryOperation(_ category: CategoryModel, sessionId: UUID, operation: SyncOperationType) {
+    private func enqueueCategoryOperation(_ category: CategoryModel, eventId: UUID, operation: SyncOperationType) {
         var categoryToEnqueue = category
-        categoryToEnqueue.sessionId = sessionId
+        categoryToEnqueue.eventId = eventId
         if let payload = try? JSONEncoder().encode(categoryToEnqueue) {
             enqueueOperation(entityType: .category, entityId: category.id, operationType: operation, payload: payload)
         }
@@ -486,9 +486,9 @@ class SyncManager: ObservableObject {
         updateEntitySyncStatus(entityType: SyncEntityType.transaction.rawValue, entityId: transaction.id, status: .pending)
     }
 
-    private func enqueueInventoryChangeOperation(_ change: InventoryChangeModel, sessionId: UUID) {
+    private func enqueueInventoryChangeOperation(_ change: InventoryChangeModel, eventId: UUID) {
         var changeToEnqueue = change
-        changeToEnqueue.sessionId = sessionId
+        changeToEnqueue.eventId = eventId
         if let payload = try? JSONEncoder().encode(changeToEnqueue) {
             enqueueOperation(entityType: .inventoryChange, entityId: change.id, operationType: .create, payload: payload)
         }
@@ -580,14 +580,14 @@ class SyncManager: ObservableObject {
         let decoder = JSONDecoder()
 
         switch op.entityType {
-        case SyncEntityType.session.rawValue:
-            let model = try decoder.decode(SessionModel.self, from: payload)
-            try await uploader.uploadSession(model)
+        case SyncEntityType.event.rawValue:
+            let model = try decoder.decode(EventModel.self, from: payload)
+            try await uploader.uploadEvent(model)
 
         case SyncEntityType.category.rawValue:
             let model = try decoder.decode(CategoryModel.self, from: payload)
-            guard let sessionId = model.sessionId else { throw SyncError.dataCorrupted }
-            try await uploader.uploadCategory(model, sessionId: sessionId)
+            guard let eventId = model.eventId else { throw SyncError.dataCorrupted }
+            try await uploader.uploadCategory(model, eventId: eventId)
 
         case SyncEntityType.product.rawValue:
             let model = try decoder.decode(ProductModel.self, from: payload)
@@ -604,8 +604,8 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.inventoryChange.rawValue:
             let model = try decoder.decode(InventoryChangeModel.self, from: payload)
-            guard let sessionId = model.sessionId else { throw SyncError.dataCorrupted }
-            try await uploader.uploadInventoryChange(model, sessionId: sessionId)
+            guard let eventId = model.eventId else { throw SyncError.dataCorrupted }
+            try await uploader.uploadInventoryChange(model, eventId: eventId)
 
         case SyncEntityType.qrCode.rawValue:
             let model = try decoder.decode(QRCodeModel.self, from: payload)
@@ -625,14 +625,14 @@ class SyncManager: ObservableObject {
         let decoder = JSONDecoder()
 
         switch op.entityType {
-        case SyncEntityType.session.rawValue:
-            let model = try decoder.decode(SessionModel.self, from: payload)
-            try await uploader.updateSession(model)
+        case SyncEntityType.event.rawValue:
+            let model = try decoder.decode(EventModel.self, from: payload)
+            try await uploader.updateEvent(model)
 
         case SyncEntityType.category.rawValue:
             let model = try decoder.decode(CategoryModel.self, from: payload)
-            guard let sessionId = model.sessionId else { throw SyncError.dataCorrupted }
-            try await uploader.updateCategory(model, sessionId: sessionId)
+            guard let eventId = model.eventId else { throw SyncError.dataCorrupted }
+            try await uploader.updateCategory(model, eventId: eventId)
 
         case SyncEntityType.product.rawValue:
             let model = try decoder.decode(ProductModel.self, from: payload)
@@ -653,13 +653,13 @@ class SyncManager: ObservableObject {
     }
 
     /// 從 Firestore 刪除實體（透過 uploader 的正確方法）
-    /// Session / Category / Product 使用 WithChildren 版本，確保 cascade delete
+    /// Event / Category / Product 使用 WithChildren 版本，確保 cascade delete
     private func deleteEntity(_ op: CDPendingSyncOperation) async throws {
         let entityId = op.entityId
 
         switch op.entityType {
-        case SyncEntityType.session.rawValue:
-            try await uploader.deleteSessionWithChildren(entityId)
+        case SyncEntityType.event.rawValue:
+            try await uploader.deleteEventWithChildren(entityId)
 
         case SyncEntityType.category.rawValue:
             try await uploader.deleteCategoryWithProducts(entityId)
@@ -710,7 +710,7 @@ class SyncManager: ObservableObject {
     /// 根據 entityType 取得 Firestore collection 名稱
     private func getCollectionName(for entityType: String) -> String {
         switch entityType {
-        case "session": return "sessions"
+        case "event": return "events"
         case "category": return "categories"
         case "product": return "products"
         case "transaction": return "transactions"
@@ -740,7 +740,7 @@ class SyncManager: ObservableObject {
     /// 根據 entityType 取得 CoreData entity 名稱
     private func getEntityName(for entityType: String) -> String {
         switch entityType {
-        case "session": return "CDSessionEntity"
+        case "event": return "CDEventEntity"
         case "category": return "CDCategoryEntity"
         case "product": return "CDProductEntity"
         case "transaction": return "CDTransactionEntity"
@@ -760,11 +760,11 @@ class SyncManager: ObservableObject {
 
     /// 檢查本地是否有指定用戶的資料（用於登入前捕捉匿名 UID 的情境）
     func hasLocalData(for userId: String) -> Bool {
-        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        sessionRequest.predicate = NSPredicate(format: "userId == %@", userId)
-        if (try? context.count(for: sessionRequest)) ?? 0 > 0 { return true }
+        let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        eventRequest.predicate = NSPredicate(format: "userId == %@", userId)
+        if (try? context.count(for: eventRequest)) ?? 0 > 0 { return true }
 
-        // Guest 可能只有 QRCode（無 sessions），也需觸發升級流程
+        // Guest 可能只有 QRCode（無 events），也需觸發升級流程
         let qrRequest: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
         qrRequest.predicate = NSPredicate(format: "userId == %@", userId)
         return (try? context.count(for: qrRequest)) ?? 0 > 0
@@ -774,7 +774,7 @@ class SyncManager: ObservableObject {
     func hasCloudData(userId: String) async -> Bool {
         do {
             let snapshot = try await db.collection("users").document(userId)
-                .collection("sessions")
+                .collection("events")
                 .limit(to: 1)
                 .getDocuments()
             return !snapshot.documents.isEmpty
@@ -787,7 +787,7 @@ class SyncManager: ObservableObject {
     /// 批次更新所有實體的 userId（匿名 → 正式帳號升級時使用）
     func updateAllUserIds(from oldUID: String, to newUID: String) {
         let entityNames = [
-            "CDSessionEntity",
+            "CDEventEntity",
             "CDCategoryEntity",
             "CDProductEntity",
             "CDTransactionEntity",
@@ -831,16 +831,16 @@ class SyncManager: ObservableObject {
         defer { isSyncing = false }
 
         do {
-            // 1. 上傳 Sessions（含 Categories + Products）
-            let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-            sessionRequest.predicate = NSPredicate(format: "userId == %@", userId)
-            let sessions = try context.fetch(sessionRequest)
+            // 1. 上傳 Events（含 Categories + Products）
+            let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+            eventRequest.predicate = NSPredicate(format: "userId == %@", userId)
+            let events = try context.fetch(eventRequest)
 
-            for session in sessions {
+            for event in events {
                 do {
-                    try await uploader.uploadSessionWithChildren(session.toModel())
+                    try await uploader.uploadEventWithChildren(event.toModel())
                 } catch {
-                    print("❌ fullUpload Session 失敗: \(session.id) - \(error)")
+                    print("❌ fullUpload Event 失敗: \(event.id) - \(error)")
                 }
             }
 
@@ -865,8 +865,8 @@ class SyncManager: ObservableObject {
             for change in changes {
                 do {
                     let model = change.toModel()
-                    if let sessionId = model.sessionId {
-                        try await uploader.uploadInventoryChange(model, sessionId: sessionId)
+                    if let eventId = model.eventId {
+                        try await uploader.uploadInventoryChange(model, eventId: eventId)
                     }
                 } catch {
                     print("❌ fullUpload InventoryChange 失敗: \(change.id) - \(error)")
@@ -906,13 +906,13 @@ class SyncManager: ObservableObject {
             }
 
             // 5. 批次更新 syncStatus = "synced"
-            let allEntities: [NSManagedObject] = sessions + transactions + changes + qrCodes
+            let allEntities: [NSManagedObject] = events + transactions + changes + qrCodes
             for entity in allEntities {
                 entity.setValue("synced", forKey: "syncStatus")
             }
-            // Sessions 內的 Categories 和 Products 也要更新
-            for session in sessions {
-                if let categories = session.categories as? Set<CDCategoryEntity> {
+            // Events 內的 Categories 和 Products 也要更新
+            for event in events {
+                if let categories = event.categories as? Set<CDCategoryEntity> {
                     for category in categories {
                         category.syncStatus = "synced"
                         if let products = category.products as? Set<CDProductEntity> {
@@ -933,7 +933,7 @@ class SyncManager: ObservableObject {
     }
 
     /// 清除所有本地資料（登出時呼叫）
-    /// CDSessionEntity 設有 cascade delete rule，刪除 session 會自動連動刪除
+    /// CDEventEntity 設有 cascade delete rule，刪除 event 會自動連動刪除
     /// CDCategoryEntity、CDProductEntity、CDInventoryChangeEntity
     func clearAllLocalData() {
         do {
@@ -942,12 +942,12 @@ class SyncManager: ObservableObject {
             let pendingOps = try context.fetch(pendingRequest)
             pendingOps.forEach { context.delete($0) }
 
-            // 2. 刪除 CDSessionEntity → cascade 自動刪 Category / Product / InventoryChange
-            let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-            let sessions = try context.fetch(sessionRequest)
-            sessions.forEach { context.delete($0) }
+            // 2. 刪除 CDEventEntity → cascade 自動刪 Category / Product / InventoryChange
+            let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+            let events = try context.fetch(eventRequest)
+            events.forEach { context.delete($0) }
 
-            // 3. 刪除 CDTransactionEntity（與 Session 無 cascade 關係）
+            // 3. 刪除 CDTransactionEntity（與 Event 無 cascade 關係）
             let txRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
             let transactions = try context.fetch(txRequest)
             transactions.forEach { context.delete($0) }
@@ -1008,8 +1008,8 @@ class SyncManager: ObservableObject {
         downloadProgress = nil
     }
 
-    /// 下載特定 Session 及其子項目
-    func performSessionDownload(sessionId: UUID) async {
+    /// 下載特定 Event 及其子項目
+    func performEventDownload(eventId: UUID) async {
         guard isUserLoggedIn else { return }
         guard isNetworkAvailable else {
             syncError = .networkUnavailable
@@ -1019,10 +1019,10 @@ class SyncManager: ObservableObject {
         isDownloading = true
 
         do {
-            try await downloader.downloadSessionWithChildren(id: sessionId)
-            print("✅ SyncManager: Session 下載完成 - \(sessionId)")
+            try await downloader.downloadEventWithChildren(id: eventId)
+            print("✅ SyncManager: Event 下載完成 - \(eventId)")
         } catch {
-            print("❌ SyncManager: Session 下載失敗 - \(error)")
+            print("❌ SyncManager: Event 下載失敗 - \(error)")
             syncError = .unknown(error)
         }
 
@@ -1031,7 +1031,7 @@ class SyncManager: ObservableObject {
 
     /// 增量下載（Phase 5 Hybrid Listener 用）
     func performIncrementalSync(
-        sessionIds: [UUID] = [],
+        eventIds: [UUID] = [],
         categoryIds: [UUID] = [],
         productIds: [UUID] = [],
         transactionIds: [UUID] = [],
@@ -1043,7 +1043,7 @@ class SyncManager: ObservableObject {
 
         do {
             try await downloader.downloadEntities(
-                sessionIds: sessionIds,
+                eventIds: eventIds,
                 categoryIds: categoryIds,
                 productIds: productIds,
                 transactionIds: transactionIds,

@@ -9,7 +9,7 @@ import SwiftUI
 
 class CalendarViewModel: ObservableObject {
 
-    private var sessionDataManager: SessionRepository?
+    private var eventDataManager: EventRepository?
     private var transactionDataManager: TransactionRepository?
 
     // MARK: - DataManager 管理
@@ -17,9 +17,9 @@ class CalendarViewModel: ObservableObject {
     /// 更新 DataManager 引用
     func updateDataManagers(
         transactionDataManager: TransactionRepository,
-        sessionDataManager: SessionRepository
+        eventDataManager: EventRepository
     ) {
-        self.sessionDataManager = sessionDataManager
+        self.eventDataManager = eventDataManager
         self.transactionDataManager = transactionDataManager
     }
     
@@ -63,19 +63,19 @@ class CalendarViewModel: ObservableObject {
         return dates
     }
     
-    /// 獲取指定日期的sessions（支援多日場次）
-    func sessionsForDate(_ date: Date, from sessions: [SessionModel]) -> [SessionModel] {
+    /// 獲取指定日期的events（支援多日場次）
+    func eventsForDate(_ date: Date, from events: [EventModel]) -> [EventModel] {
         let day = calendar.startOfDay(for: date)
 
-        return sessions.filter { session in
-            let start = calendar.startOfDay(for: session.startDate)
+        return events.filter { event in
+            let start = calendar.startOfDay(for: event.startDate)
 
-            switch session.dateType {
+            switch event.dateType {
             case .single:
                 return day == start
 
             case .multi:
-                guard let endDate = session.endDate else { return false }
+                guard let endDate = event.endDate else { return false }
                 let end = calendar.startOfDay(for: endDate)
                 return day >= start && day <= end
 
@@ -85,18 +85,18 @@ class CalendarViewModel: ObservableObject {
         }
     }
 
-    /// 檢查指定日期是否有sessions
-    func hasSessions(on date: Date, from sessions: [SessionModel]) -> Bool {
-        return !sessionsForDate(date, from: sessions).isEmpty
+    /// 檢查指定日期是否有events
+    func hasEvents(on date: Date, from events: [EventModel]) -> Bool {
+        return !eventsForDate(date, from: events).isEmpty
     }
 
     /// 獲取所有永久場次（固定顯示在日曆下方）
     /// 只返回 startDate <= 當前選中日期的永久場次
-    func getPermanentSessions(from sessions: [SessionModel], selectedDate: Date) -> [SessionModel] {
+    func getPermanentEvents(from events: [EventModel], selectedDate: Date) -> [EventModel] {
         let selectedDay = calendar.startOfDay(for: selectedDate)
-        return sessions.filter { session in
-            guard session.dateType == .permanent else { return false }
-            let startDay = calendar.startOfDay(for: session.startDate)
+        return events.filter { event in
+            guard event.dateType == .permanent else { return false }
+            let startDay = calendar.startOfDay(for: event.startDate)
             return startDay <= selectedDay  // 只顯示已經開始的永久場次
         }
     }
@@ -108,10 +108,10 @@ class CalendarViewModel: ObservableObject {
         return !transactions.isEmpty
     }
     
-    /// 獲取指定日期的所有交易記錄分組（按SessionId）
+    /// 獲取指定日期的所有交易記錄分組（按EventId）
     func transactionGroupsForDate(_ date: Date) -> [String: [TransactionModel]] {
         guard let transactionManager = transactionDataManager else { return [:] }
-        return transactionManager.fetchTransactionsGroupedBySession(for: date)
+        return transactionManager.fetchTransactionsGroupedByEvent(for: date)
     }
     
     /// 改變月份
@@ -131,22 +131,22 @@ class CalendarViewModel: ObservableObject {
         ["日", "一", "二", "三", "四", "五", "六"]
     }
 
-    // MARK: - Virtual Session Management
+    // MARK: - Virtual Event Management
 
-    /// 創建虛擬 Session（用於孤兒交易）
-    func createVirtualSession(
-        sessionId: UUID,
+    /// 創建虛擬 Event（用於孤兒交易）
+    func createVirtualEvent(
+        eventId: UUID,
         transactions: [TransactionModel]
-    ) -> SessionModel {
+    ) -> EventModel {
         guard let firstTransaction = transactions.first else {
             fatalError("交易列表不能為空")
         }
 
-        return SessionModel(
-            id: sessionId,
-            title: firstTransaction.sessionTitle,  // 使用保存的原始 Session 名稱
+        return EventModel(
+            id: eventId,
+            title: firstTransaction.eventTitle,  // 使用保存的原始 Event 名稱
             startDate: firstTransaction.displayDate,
-            endDate: firstTransaction.displayDate,   // 虛擬 Session 為單日
+            endDate: firstTransaction.displayDate,   // 虛擬 Event 為單日
             dateType: .single,
             categories: [],
             createdAt: firstTransaction.displayDate,
@@ -154,51 +154,51 @@ class CalendarViewModel: ObservableObject {
         )
     }
 
-    /// 取得指定日期的所有 Session（包括虛擬 Session，但排除永久場次）
+    /// 取得指定日期的所有 Event（包括虛擬 Event，但排除永久場次）
     /// 永久場次會固定顯示在日曆下方，不需要在這裡返回
-    func getAllSessionsForDate(_ date: Date, from sessions: [SessionModel]) -> (real: [SessionModel], virtual: [SessionModel]) {
-        let allSessions = sessionsForDate(date, from: sessions)
+    func getAllEventsForDate(_ date: Date, from events: [EventModel]) -> (real: [EventModel], virtual: [EventModel]) {
+        let allEvents = eventsForDate(date, from: events)
         // 排除永久場次（永久場次會固定顯示，不受日期選擇影響）
-        let existingSessions = allSessions.filter { $0.dateType != .permanent }
+        let existingEvents = allEvents.filter { $0.dateType != .permanent }
         let transactionGroups = transactionGroupsForDate(date)
 
-        var virtualSessions: [SessionModel] = []
+        var virtualEvents: [EventModel] = []
 
-        // 找出孤兒交易並創建虛擬 Session
-        for (sessionIdString, transactions) in transactionGroups {
-            guard let sessionId = UUID(uuidString: sessionIdString) else {
+        // 找出孤兒交易並創建虛擬 Event
+        for (eventIdString, transactions) in transactionGroups {
+            guard let eventId = UUID(uuidString: eventIdString) else {
                 continue
             }
 
             // 檢查是否已存在於當日場次中
-            if existingSessions.contains(where: { $0.id == sessionId }) {
+            if existingEvents.contains(where: { $0.id == eventId }) {
                 continue
             }
 
-            // ⚠️ 重要：檢查該 sessionId 是否對應永久場次
+            // ⚠️ 重要：檢查該 eventId 是否對應永久場次
             // 永久場次的交易不應該作為孤兒交易顯示
-            if sessions.contains(where: { $0.id == sessionId && $0.dateType == .permanent }) {
+            if events.contains(where: { $0.id == eventId && $0.dateType == .permanent }) {
                 continue
             }
 
-            let virtualSession = createVirtualSession(
-                sessionId: sessionId,
+            let virtualEvent = createVirtualEvent(
+                eventId: eventId,
                 transactions: transactions
             )
-            virtualSessions.append(virtualSession)
+            virtualEvents.append(virtualEvent)
         }
 
-        return (real: existingSessions, virtual: virtualSessions)
+        return (real: existingEvents, virtual: virtualEvents)
     }
 
     // MARK: - Transaction Calculations
 
-    /// 計算 Session 的交易摘要（筆數 + 總金額）
-    func calculateTransactionSummary(for session: SessionModel) -> (count: Int, totalAmount: Decimal) {
+    /// 計算 Event 的交易摘要（筆數 + 總金額）
+    func calculateTransactionSummary(for event: EventModel) -> (count: Int, totalAmount: Decimal) {
         guard let transactionManager = transactionDataManager else {
             return (count: 0, totalAmount: 0)
         }
-        let transactions = transactionManager.fetchTransactions(forSessionId: session.id)
+        let transactions = transactionManager.fetchTransactions(forEventId: event.id)
         let total = transactions.reduce(Decimal(0)) { MoneyHelper.add($0, $1.totalAmount) }
         return (count: transactions.count, totalAmount: total)
     }

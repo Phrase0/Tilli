@@ -11,7 +11,7 @@ import SwiftUI
 class CashPaymentViewModel: ObservableObject {
 
     let totalAmount: Decimal
-    let session: SessionModel
+    let event: EventModel
     let summaryItems: [SummaryItemModel]
     let selectedDiscount: DiscountModel?
     let occurredAt: Date?  // 補記帳時的實際發生時間
@@ -27,7 +27,7 @@ class CashPaymentViewModel: ObservableObject {
 
     /// 根據幣別四捨五入後的總額（用於驗證和找零計算）
     private var roundedTotalAmount: Decimal {
-        let currency = Currency(rawValue: session.currency) ?? .twd
+        let currency = Currency(rawValue: event.currency) ?? .twd
         let handler = NSDecimalNumberHandler(
             roundingMode: .plain,
             scale: Int16(currency.decimalPlaces),
@@ -53,13 +53,13 @@ class CashPaymentViewModel: ObservableObject {
     }
 
     var currencyPlaceholder: String {
-        let currency = Currency(rawValue: session.currency) ?? .twd
+        let currency = Currency(rawValue: event.currency) ?? .twd
         return currency.symbol
     }
 
     /// 當前幣別
     var currentCurrency: Currency {
-        return Currency(rawValue: session.currency) ?? .twd
+        return Currency(rawValue: event.currency) ?? .twd
     }
 
     /// 當前幣別是否支持小數點
@@ -107,9 +107,9 @@ class CashPaymentViewModel: ObservableObject {
         return filtered
     }
 
-    init(totalAmount: Decimal, session: SessionModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil, occurredAt: Date? = nil) {
+    init(totalAmount: Decimal, event: EventModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil, occurredAt: Date? = nil) {
         self.totalAmount = totalAmount
-        self.session = session
+        self.event = event
         self.summaryItems = summaryItems
         self.selectedDiscount = selectedDiscount
         self.occurredAt = occurredAt
@@ -117,7 +117,7 @@ class CashPaymentViewModel: ObservableObject {
 
     /// 驗證交易日期是否在場次範圍內
     func validateTransactionDate() -> Bool {
-        let validation = DateValidationHelper.validateTransactionDate(for: session)
+        let validation = DateValidationHelper.validateTransactionDate(for: event)
         if !validation.isValid {
             dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
             showDateWarning = true
@@ -127,16 +127,16 @@ class CashPaymentViewModel: ObservableObject {
     }
 
     func performCheckout(
-        sessionDataManager: SessionRepository,
+        eventDataManager: EventRepository,
         productRepository: ProductRepository,
         inventoryChangeRepository: InventoryChangeRepository
-    ) -> SessionModel {
+    ) -> EventModel {
 
         // 批次更新產品庫存
         var stockUpdates: [UUID: Int] = [:]
 
         // 首先獲取所有相關產品
-        let allProducts = productRepository.fetchProducts(forSessionId: session.id)
+        let allProducts = productRepository.fetchProducts(forEventId: event.id)
         let productDict = Dictionary(uniqueKeysWithValues: allProducts.map { ($0.id, $0) })
 
         // 準備批次更新數據
@@ -158,9 +158,9 @@ class CashPaymentViewModel: ObservableObject {
 
         // 創建交易記錄
         let transaction = TransactionModel(
-            sessionId: session.id,
-            sessionTitle: session.title,
-            currency: session.currency,
+            eventId: event.id,
+            eventTitle: event.title,
+            currency: event.currency,
             items: summaryItems,
             totalAmount: totalAmount,
             paymentMethod: .cash,
@@ -170,8 +170,8 @@ class CashPaymentViewModel: ObservableObject {
             discountValue: selectedDiscount?.value
         )
 
-        // 使用 SessionDataManager 添加交易記錄
-        sessionDataManager.addTransaction(transaction)
+        // 使用 EventDataManager 添加交易記錄
+        eventDataManager.addTransaction(transaction)
 
         // 記錄庫存異動（銷售出庫）
         let changeTimestamp = occurredAt ?? Date()
@@ -184,11 +184,11 @@ class CashPaymentViewModel: ObservableObject {
                 transactionId: transaction.id,
                 timestamp: changeTimestamp
             )
-            inventoryChangeRepository.addChange(inventoryChange, sessionId: session.id)
+            inventoryChangeRepository.addChange(inventoryChange, eventId: event.id)
         }
 
-        // 直接返回原 session，UI 更新由 onChange(of: checkoutCompleted) 處理
-        return session
+        // 直接返回原 event，UI 更新由 onChange(of: checkoutCompleted) 處理
+        return event
     }
 
 

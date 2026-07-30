@@ -10,9 +10,9 @@
 import Foundation
 import FirebaseFirestore
 
-// MARK: - SessionModel + Firestore
+// MARK: - EventModel + Firestore
 
-extension SessionModel {
+extension EventModel {
     /// 轉換為 Firestore Dictionary
     func toFirestoreData(userId: String) -> [String: Any] {
         var data: [String: Any] = [
@@ -47,7 +47,7 @@ extension SessionModel {
               let title = document["title"] as? String,
               let startDateTimestamp = document["startDate"] as? Timestamp,
               let dateTypeString = document["dateType"] as? String,
-              let dateType = SessionDateType(rawValue: dateTypeString),
+              let dateType = EventDateType(rawValue: dateTypeString),
               let createdAtTimestamp = document["createdAt"] as? Timestamp,
               let currency = document["currency"] as? String
         else { return nil }
@@ -76,11 +76,11 @@ extension SessionModel {
 
 extension CategoryModel {
     /// 轉換為 Firestore Dictionary
-    func toFirestoreData(userId: String, sessionId: UUID) -> [String: Any] {
+    func toFirestoreData(userId: String, eventId: UUID) -> [String: Any] {
         return [
             "id": id.uuidString,
             "userId": userId,
-            "sessionId": sessionId.uuidString,
+            "eventId": eventId.uuidString,
             "name": name,
             "sortOrder": sortOrder,
             "isDisabled": isDisabled,
@@ -104,9 +104,9 @@ extension CategoryModel {
         self.isDisabled = document["isDisabled"] as? Bool ?? false
         self.products = [] // Products 從獨立 collection 載入
 
-        // sessionId
-        if let sessionIdString = document["sessionId"] as? String {
-            self.sessionId = UUID(uuidString: sessionIdString)
+        // eventId
+        if let eventIdString = document["eventId"] as? String {
+            self.eventId = UUID(uuidString: eventIdString)
         }
     }
 }
@@ -119,7 +119,7 @@ extension ProductModel {
         var data: [String: Any] = [
             "id": id.uuidString,
             "userId": userId,
-            "sessionId": sessionId.uuidString,
+            "eventId": eventId.uuidString,
             "categoryId": categoryId.uuidString,
             "categoryName": categoryName,
             "name": name,
@@ -147,8 +147,8 @@ extension ProductModel {
     init?(from document: [String: Any]) {
         guard let idString = document["id"] as? String,
               let id = UUID(uuidString: idString),
-              let sessionIdString = document["sessionId"] as? String,
-              let sessionId = UUID(uuidString: sessionIdString),
+              let eventIdString = document["eventId"] as? String,
+              let eventId = UUID(uuidString: eventIdString),
               let categoryIdString = document["categoryId"] as? String,
               let categoryId = UUID(uuidString: categoryIdString),
               let categoryName = document["categoryName"] as? String,
@@ -158,7 +158,7 @@ extension ProductModel {
         else { return nil }
 
         self.id = id
-        self.sessionId = sessionId
+        self.eventId = eventId
         self.categoryId = categoryId
         self.categoryName = categoryName
         self.name = name
@@ -186,8 +186,8 @@ extension TransactionModel {
         var data: [String: Any] = [
             "id": id.uuidString,
             "userId": userId,
-            "sessionId": sessionId.uuidString,
-            "sessionTitle": sessionTitle,
+            "eventId": eventId.uuidString,
+            "eventTitle": eventTitle,
             "currency": currency,
             "totalAmount": decimalToCents(totalAmount),  // Decimal → Integer（分）
             "paymentMethod": paymentMethod.rawValue,
@@ -219,9 +219,9 @@ extension TransactionModel {
     init?(from document: [String: Any]) {
         guard let idString = document["id"] as? String,
               let id = UUID(uuidString: idString),
-              let sessionIdString = document["sessionId"] as? String,
-              let sessionId = UUID(uuidString: sessionIdString),
-              let sessionTitle = document["sessionTitle"] as? String,
+              let eventIdString = document["eventId"] as? String,
+              let eventId = UUID(uuidString: eventIdString),
+              let eventTitle = document["eventTitle"] as? String,
               let currency = document["currency"] as? String,
               let totalAmountCents = document["totalAmount"] as? Int,
               let paymentMethodString = document["paymentMethod"] as? String,
@@ -230,8 +230,8 @@ extension TransactionModel {
         else { return nil }
 
         self.id = id
-        self.sessionId = sessionId
-        self.sessionTitle = sessionTitle
+        self.eventId = eventId
+        self.eventTitle = eventTitle
         self.currency = currency
         self.totalAmount = centsToDecimal(totalAmountCents)
         self.paymentMethod = paymentMethod
@@ -266,11 +266,11 @@ extension TransactionModel {
 
 extension InventoryChangeModel {
     /// 轉換為 Firestore Dictionary
-    func toFirestoreData(userId: String, sessionId: UUID) -> [String: Any] {
+    func toFirestoreData(userId: String, eventId: UUID) -> [String: Any] {
         var data: [String: Any] = [
             "id": id.uuidString,
             "userId": userId,
-            "sessionId": sessionId.uuidString,
+            "eventId": eventId.uuidString,
             "productId": productId.uuidString,
             "change": change,
             "reason": reason.rawValue,
@@ -313,9 +313,9 @@ extension InventoryChangeModel {
             self.transactionId = nil
         }
 
-        // sessionId
-        if let sessionIdString = document["sessionId"] as? String {
-            self.sessionId = UUID(uuidString: sessionIdString)
+        // eventId
+        if let eventIdString = document["eventId"] as? String {
+            self.eventId = UUID(uuidString: eventIdString)
         }
     }
 }

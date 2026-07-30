@@ -49,16 +49,16 @@ class InventoryChangeViewModel: ObservableObject {
     @Published var currentShareItems: [Any] = []
 
     // MARK: - Dependencies
-    let session: SessionModel
+    let event: EventModel
     private var productRepository: ProductRepository?
     private var inventoryChangeRepository: InventoryChangeRepository?
     private var transactionDataManager: TransactionRepository?
 
     // MARK: - Computed Properties
 
-    /// 從 session 取得類別列表（只顯示啟用的，按 sortOrder 排序）
+    /// 從 event 取得類別列表（只顯示啟用的，按 sortOrder 排序）
     var sortedCategories: [CategoryModel] {
-        session.categories
+        event.categories
             .filter { !$0.isDisabled }
             .sorted { $0.sortOrder < $1.sortOrder }
     }
@@ -87,11 +87,11 @@ class InventoryChangeViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(session: SessionModel) {
-        self.session = session
-        self.selectedTimeRange = ReportTimeRange(session: session)
+    init(event: EventModel) {
+        self.event = event
+        self.selectedTimeRange = ReportTimeRange(event: event)
         // 預設展開所有類別
-        self.expandedCategoryIds = Set(session.categories.filter { !$0.isDisabled }.map { $0.id })
+        self.expandedCategoryIds = Set(event.categories.filter { !$0.isDisabled }.map { $0.id })
     }
 
     // MARK: - Public Methods
@@ -112,12 +112,12 @@ class InventoryChangeViewModel: ObservableObject {
               let changeRepo = inventoryChangeRepository else { return }
 
         // 取得該場次的所有產品
-        let allProducts = productRepo.fetchProducts(forSessionId: session.id)
+        let allProducts = productRepo.fetchProducts(forEventId: event.id)
         let enabledProducts = allProducts.filter { !$0.isDisabled }
         let disabledProducts = allProducts.filter { $0.isDisabled }
 
         // 取得該場次的所有異動紀錄
-        let allChanges = changeRepo.fetchChanges(forSessionId: session.id)
+        let allChanges = changeRepo.fetchChanges(forEventId: event.id)
 
         // 組合成 InventoryProductItem（啟用的商品）
         inventoryItems = enabledProducts.map { product in
@@ -196,12 +196,12 @@ class InventoryChangeViewModel: ObservableObject {
 
     /// 生成庫存總覽 CSV
     func generateInventorySummaryCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
         // 報表標題行
-        csvContent += "庫存總覽_\(session.title), \(selectedTimeRange.csvDateRangeText)\n"
+        csvContent += "庫存總覽_\(event.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
         // 欄位標題（新增「狀態」欄位）
@@ -242,7 +242,7 @@ class InventoryChangeViewModel: ObservableObject {
         var csvContent = ""
 
         // 報表標題行
-        csvContent += "庫存異動明細_\(session.title), \(selectedTimeRange.csvDateRangeText)\n"
+        csvContent += "庫存異動明細_\(event.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
         // 欄位標題（新增「狀態」欄位）
@@ -318,7 +318,7 @@ class InventoryChangeViewModel: ObservableObject {
     /// 建立庫存總覽 CSV 檔案 URL
     func createInventorySummaryCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -338,7 +338,7 @@ class InventoryChangeViewModel: ObservableObject {
     /// 建立庫存異動明細 CSV 檔案 URL
     func createInventoryDetailCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -357,7 +357,7 @@ class InventoryChangeViewModel: ObservableObject {
 
     /// 取得類別名稱
     private func getCategoryName(for categoryId: UUID) -> String {
-        session.categories.first { $0.id == categoryId }?.name ?? "未分類"
+        event.categories.first { $0.id == categoryId }?.name ?? "未分類"
     }
 
     // MARK: - Export Management

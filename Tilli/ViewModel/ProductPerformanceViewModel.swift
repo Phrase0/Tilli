@@ -17,13 +17,13 @@ class ProductPerformanceViewModel: ObservableObject {
     
     // MARK: - Dependencies
     private var transactionDataManager: TransactionRepository?
-    private var sessionDataManager: SessionRepository?
-    @Binding var session: SessionModel
+    private var eventDataManager: EventRepository?
+    @Binding var event: EventModel
     private(set) var currentTimeRange: ReportTimeRange?
     
     // MARK: - Initialization
-    init(session: Binding<SessionModel>) {
-        self._session = session
+    init(event: Binding<EventModel>) {
+        self._event = event
     }
     
     // MARK: - DataManager 管理
@@ -31,10 +31,10 @@ class ProductPerformanceViewModel: ObservableObject {
     /// 更新 DataManager 引用
     func updateDataManagers(
         transactionDataManager: TransactionRepository,
-        sessionDataManager: SessionRepository
+        eventDataManager: EventRepository
     ) {
         self.transactionDataManager = transactionDataManager
-        self.sessionDataManager = sessionDataManager
+        self.eventDataManager = eventDataManager
     }
     
     // MARK: - Public Methods
@@ -61,14 +61,14 @@ class ProductPerformanceViewModel: ObservableObject {
     // MARK: - CSV Export Methods
 
     func generateTopProductsCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "熱門商品排行_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "熱門商品排行_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "熱門商品排行_\(session.title)\n"
+            csvContent += "熱門商品排行_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -94,14 +94,14 @@ class ProductPerformanceViewModel: ObservableObject {
     }
 
     func generateCategoryAnalysisCSV() -> String {
-        let currencyCode = session.currency
+        let currencyCode = event.currency
         var csvContent = ""
 
         // 報表標題行
         if let timeRange = currentTimeRange {
-            csvContent += "類別銷售匯總_\(session.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "類別銷售匯總_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "類別銷售匯總_\(session.title)\n"
+            csvContent += "類別銷售匯總_\(event.title)\n"
         }
         csvContent += "\n"
 
@@ -123,7 +123,7 @@ class ProductPerformanceViewModel: ObservableObject {
     func createTopProductsCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符（/ : 等）
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -143,7 +143,7 @@ class ProductPerformanceViewModel: ObservableObject {
     func createCategoryAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         // 過濾檔名中的非法字符（/ : 等）
-        let safeTitle = session.title
+        let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
@@ -172,11 +172,11 @@ private extension ProductPerformanceViewModel {
         let transactions: [TransactionModel]
         if let timeRange = timeRange {
             transactions = transactionDataManager.fetchTransactions(
-                forSessionId: session.id,
+                forEventId: event.id,
                 dateRange: timeRange.dateInterval
             )
         } else {
-            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+            transactions = transactionDataManager.fetchTransactions(forEventId: event.id)
         }
         
         // 建立商品銷售統計字典
@@ -283,11 +283,11 @@ private extension ProductPerformanceViewModel {
         let transactions: [TransactionModel]
         if let timeRange = timeRange {
             transactions = transactionDataManager.fetchTransactions(
-                forSessionId: session.id,
+                forEventId: event.id,
                 dateRange: timeRange.dateInterval
             )
         } else {
-            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+            transactions = transactionDataManager.fetchTransactions(forEventId: event.id)
         }
         
         // 建立分類銷售統計字典
@@ -423,11 +423,11 @@ private extension ProductPerformanceViewModel {
         let transactions: [TransactionModel]
         if let timeRange = timeRange {
             transactions = transactionDataManager.fetchTransactions(
-                forSessionId: session.id,
+                forEventId: event.id,
                 dateRange: timeRange.dateInterval
             )
         } else {
-            transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
+            transactions = transactionDataManager.fetchTransactions(forEventId: event.id)
         }
 
         // 建立商品折扣統計（累計折扣金額和原價）

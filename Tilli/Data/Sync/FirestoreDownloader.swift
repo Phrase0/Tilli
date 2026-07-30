@@ -15,7 +15,7 @@ import FirebaseAuth
 
 /// Firestore 下載服務
 /// 負責從 Firestore 下載資料並寫入本地 CoreData
-/// 衝突策略：LWW（Session/Category/Product/QRCode）、Skip-if-exists（Transaction/InventoryChange）
+/// 衝突策略：LWW（Event/Category/Product/QRCode）、Skip-if-exists（Transaction/InventoryChange）
 class FirestoreDownloader {
     static let shared = FirestoreDownloader()
 
@@ -35,7 +35,7 @@ class FirestoreDownloader {
     // MARK: - Collection Names
 
     private enum Collection {
-        static let sessions = "sessions"
+        static let events = "events"
         static let categories = "categories"
         static let products = "products"
         static let transactions = "transactions"
@@ -67,20 +67,20 @@ class FirestoreDownloader {
 
     // MARK: - Single Entity Download
 
-    /// 下載 Session
-    func downloadSession(id: UUID) async throws {
+    /// 下載 Event
+    func downloadEvent(id: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
 
-        let doc = try await userCollection(Collection.sessions, userId: userId).document(id.uuidString).getDocument()
+        let doc = try await userCollection(Collection.events, userId: userId).document(id.uuidString).getDocument()
         guard let data = doc.data(),
-              let model = SessionModel(from: data),
+              let model = EventModel(from: data),
               let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
         else { return }
 
         await MainActor.run {
-            saveSession(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+            saveEvent(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
         }
     }
 
@@ -169,28 +169,28 @@ class FirestoreDownloader {
 
     // MARK: - Batch Download
 
-    /// 下載所有 Sessions
-    func downloadAllSessions() async throws {
+    /// 下載所有 Events
+    func downloadAllEvents() async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
 
-        reportProgress(step: "正在下載場次...", entity: "sessions", progress: 0.0)
+        reportProgress(step: "正在下載場次...", entity: "events", progress: 0.0)
 
-        let snapshot = try await userCollection(Collection.sessions, userId: userId).getDocuments()
+        let snapshot = try await userCollection(Collection.events, userId: userId).getDocuments()
 
         await MainActor.run {
             for doc in snapshot.documents {
                 let data = doc.data()
-                guard let model = SessionModel(from: data),
+                guard let model = EventModel(from: data),
                       let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
                 else { continue }
 
-                saveSession(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+                saveEvent(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
             }
         }
 
-        print("✅ 下載 Sessions 完成: \(snapshot.documents.count) 筆")
+        print("✅ 下載 Events 完成: \(snapshot.documents.count) 筆")
     }
 
     /// 下載所有 Categories
@@ -323,20 +323,20 @@ class FirestoreDownloader {
 
     // MARK: - Download With Children
 
-    /// 下載 Session 及其子項目（Categories + Products + InventoryChanges）
-    func downloadSessionWithChildren(id: UUID) async throws {
+    /// 下載 Event 及其子項目（Categories + Products + InventoryChanges）
+    func downloadEventWithChildren(id: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
 
-        let sessionIdString = id.uuidString
+        let eventIdString = id.uuidString
 
-        // 1. 下載 Session
-        try await downloadSession(id: id)
+        // 1. 下載 Event
+        try await downloadEvent(id: id)
 
-        // 2. 下載 Categories（by sessionId，路徑已限定 userId）
+        // 2. 下載 Categories（by eventId，路徑已限定 userId）
         let categoriesSnapshot = try await userCollection(Collection.categories, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionIdString)
+            .whereField("eventId", isEqualTo: eventIdString)
             .getDocuments()
 
         let categoryIds: [UUID] = await MainActor.run {
@@ -353,9 +353,9 @@ class FirestoreDownloader {
             return ids
         }
 
-        // 3. 下載 Products（by sessionId）
+        // 3. 下載 Products（by eventId）
         let productsSnapshot = try await userCollection(Collection.products, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionIdString)
+            .whereField("eventId", isEqualTo: eventIdString)
             .getDocuments()
 
         await MainActor.run {
@@ -369,11 +369,11 @@ class FirestoreDownloader {
             }
         }
 
-        // 4. 下載 InventoryChanges（by sessionId）
+        // 4. 下載 InventoryChanges（by eventId）
         let existingChangeIds = await MainActor.run { fetchExistingInventoryChangeIds() }
 
         let changesSnapshot = try await userCollection(Collection.inventoryChanges, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionIdString)
+            .whereField("eventId", isEqualTo: eventIdString)
             .getDocuments()
 
         await MainActor.run {
@@ -385,7 +385,7 @@ class FirestoreDownloader {
             }
         }
 
-        print("✅ 下載 Session（含子項目）完成: \(id)")
+        print("✅ 下載 Event（含子項目）完成: \(id)")
     }
 
     // MARK: - Full Sync
@@ -397,7 +397,7 @@ class FirestoreDownloader {
         }
 
         // 1. 按 parent-first 順序下載
-        try await downloadAllSessions()
+        try await downloadAllEvents()
         try await downloadAllCategories()
         try await downloadAllProducts()
         try await downloadAllTransactions()
@@ -416,7 +416,7 @@ class FirestoreDownloader {
 
     /// 增量下載（給 Phase 5 Hybrid Listener 用）
     func downloadEntities(
-        sessionIds: [UUID] = [],
+        eventIds: [UUID] = [],
         categoryIds: [UUID] = [],
         productIds: [UUID] = [],
         transactionIds: [UUID] = [],
@@ -424,8 +424,8 @@ class FirestoreDownloader {
         qrCodeIds: [UUID] = []
     ) async throws {
         // 按 parent-first 順序下載
-        for id in sessionIds {
-            try await downloadSession(id: id)
+        for id in eventIds {
+            try await downloadEvent(id: id)
         }
         for id in categoryIds {
             try await downloadCategory(id: id)
@@ -456,7 +456,7 @@ class FirestoreDownloader {
 
         let collectionName: String
         switch type {
-        case .session: collectionName = Collection.sessions
+        case .event: collectionName = Collection.events
         case .category: collectionName = Collection.categories
         case .product: collectionName = Collection.products
         case .transaction: collectionName = Collection.transactions
@@ -494,12 +494,12 @@ class FirestoreDownloader {
 
         // 文件存在，根據類型執行對應的 save/create 邏輯
         switch type {
-        case .session:
-            guard let model = SessionModel(from: data),
+        case .event:
+            guard let model = EventModel(from: data),
                   let remoteUpdatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
             else { return true }
             await MainActor.run {
-                saveSession(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
+                saveEvent(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
             }
 
         case .category:
@@ -547,7 +547,7 @@ class FirestoreDownloader {
     private func deleteLocalEntity(type: SyncEntityType, id: UUID) {
         let entityName: String
         switch type {
-        case .session: entityName = "CDSessionEntity"
+        case .event: entityName = "CDEventEntity"
         case .category: entityName = "CDCategoryEntity"
         case .product: entityName = "CDProductEntity"
         case .transaction: entityName = "CDTransactionEntity"
@@ -575,7 +575,7 @@ class FirestoreDownloader {
     /// 只清理 syncStatus == "synced" 的資料（保留 "pending" 尚未上傳的）
     private func cleanUpDeletedEntities(userId: String) async throws {
         // 從 Firestore 取得所有遠端 ID（路徑已限定 userId）
-        let remoteSessions = try await fetchRemoteIds(collection: Collection.sessions, userId: userId)
+        let remoteEvents = try await fetchRemoteIds(collection: Collection.events, userId: userId)
         let remoteCategories = try await fetchRemoteIds(collection: Collection.categories, userId: userId)
         let remoteProducts = try await fetchRemoteIds(collection: Collection.products, userId: userId)
         let remoteTransactions = try await fetchRemoteIds(collection: Collection.transactions, userId: userId)
@@ -605,8 +605,8 @@ class FirestoreDownloader {
                 userId: userId
             )
             cleanUpLocalEntities(
-                entityName: "CDSessionEntity",
-                remoteIds: remoteSessions,
+                entityName: "CDEventEntity",
+                remoteIds: remoteEvents,
                 userId: userId
             )
             cleanUpLocalEntities(
@@ -627,15 +627,15 @@ class FirestoreDownloader {
 
     // MARK: LWW Save Helpers
 
-    /// 儲存 Session（LWW 策略）
+    /// 儲存 Event（LWW 策略）
     @MainActor
-    private func saveSession(_ model: SessionModel, remoteUpdatedAt: Date, userId: String) {
-        let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
+    private func saveEvent(_ model: EventModel, remoteUpdatedAt: Date, userId: String) {
+        let request: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
 
         do {
             let results = try context.fetch(request)
-            let entity: CDSessionEntity
+            let entity: CDEventEntity
 
             if let existing = results.first {
                 // LWW：本地較新就跳過
@@ -644,7 +644,7 @@ class FirestoreDownloader {
                 }
                 entity = existing
             } else {
-                entity = CDSessionEntity(context: context)
+                entity = CDEventEntity(context: context)
             }
 
             entity.update(from: model, context: context)
@@ -654,22 +654,22 @@ class FirestoreDownloader {
 
             try context.save()
         } catch {
-            print("❌ saveSession 失敗: \(error)")
+            print("❌ saveEvent 失敗: \(error)")
         }
     }
 
-    /// 儲存 Category（LWW 策略）— 需重建 category.session relationship
+    /// 儲存 Category（LWW 策略）— 需重建 category.event relationship
     @MainActor
     private func saveCategory(_ model: CategoryModel, remoteUpdatedAt: Date, userId: String) {
-        // 必須找到對應的 Session，找不到就跳過
-        guard let sessionId = model.sessionId else { return }
+        // 必須找到對應的 Event，找不到就跳過
+        guard let eventId = model.eventId else { return }
 
-        let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        sessionRequest.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
+        let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        eventRequest.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
 
         do {
-            guard let sessionEntity = try context.fetch(sessionRequest).first else {
-                print("⚠️ saveCategory 跳過: 找不到 Session \(sessionId)")
+            guard let eventEntity = try context.fetch(eventRequest).first else {
+                print("⚠️ saveCategory 跳過: 找不到 Event \(eventId)")
                 return
             }
 
@@ -690,7 +690,7 @@ class FirestoreDownloader {
             }
 
             entity.update(from: model, context: context)
-            entity.session = sessionEntity
+            entity.event = eventEntity
             entity.userId = userId
             entity.updatedAt = remoteUpdatedAt
             entity.syncStatus = SyncStatus.synced.rawValue
@@ -798,7 +798,7 @@ class FirestoreDownloader {
 
     // MARK: Skip-if-exists Create Helpers
 
-    /// 建立 Transaction（存在就跳過）— 重建 transaction.session relationship
+    /// 建立 Transaction（存在就跳過）— 重建 transaction.event relationship
     @MainActor
     private func createTransaction(_ model: TransactionModel, userId: String) {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
@@ -813,10 +813,10 @@ class FirestoreDownloader {
             entity.userId = userId
             entity.syncStatus = SyncStatus.synced.rawValue
 
-            // 重建 session relationship（optional）
-            let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-            sessionRequest.predicate = NSPredicate(format: "id == %@", model.sessionId as CVarArg)
-            entity.session = try context.fetch(sessionRequest).first
+            // 重建 event relationship（optional）
+            let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+            eventRequest.predicate = NSPredicate(format: "id == %@", model.eventId as CVarArg)
+            entity.event = try context.fetch(eventRequest).first
 
             try context.save()
         } catch {
@@ -824,7 +824,7 @@ class FirestoreDownloader {
         }
     }
 
-    /// 建立 InventoryChange（存在就跳過）— 重建 inventoryChange.session relationship
+    /// 建立 InventoryChange（存在就跳過）— 重建 inventoryChange.event relationship
     @MainActor
     private func createInventoryChange(_ model: InventoryChangeModel, userId: String) {
         let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
@@ -839,11 +839,11 @@ class FirestoreDownloader {
             entity.userId = userId
             entity.syncStatus = SyncStatus.synced.rawValue
 
-            // 重建 session relationship（optional）
-            if let sessionId = model.sessionId {
-                let sessionRequest: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-                sessionRequest.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
-                entity.session = try context.fetch(sessionRequest).first
+            // 重建 event relationship（optional）
+            if let eventId = model.eventId {
+                let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+                eventRequest.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
+                entity.event = try context.fetch(eventRequest).first
             }
 
             try context.save()

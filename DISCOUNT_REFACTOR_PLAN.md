@@ -2,11 +2,11 @@
 
 ## 目標
 
-將折扣從「商品級別固定選項 (5%, 10%, 20%)」改為「Session 級別自訂折扣」。
+將折扣從「商品級別固定選項 (5%, 10%, 20%)」改為「Event 級別自訂折扣」。
 
 ### 需求
 
-1. 在新增/編輯 Session 時，可自訂折扣選項
+1. 在新增/編輯 Event 時，可自訂折扣選項
 2. 支援兩種折扣類型：
    - 百分比折扣：5%, 10% 等
    - 金額折扣：5 元, 10 元等
@@ -22,7 +22,7 @@
 ```
 DiscountType (enum)              ← 共用
     │
-    ├── DiscountModel            ← Session 用（需要 id 給 UI ForEach）
+    ├── DiscountModel            ← Event 用（需要 id 給 UI ForEach）
     │       ├── id: UUID
     │       ├── type: DiscountType
     │       └── value: Decimal
@@ -48,14 +48,14 @@ DiscountType (enum)              ← 共用
 
 | 檔案 | 修改內容 |
 |------|----------|
-| `SessionModel.swift` | 新增 `discounts: [DiscountModel]` |
+| `EventModel.swift` | 新增 `discounts: [DiscountModel]` |
 | `TransactionModel.swift` | 新增 `discountType: DiscountType?` + `discountValue: Decimal?` |
 | `SummaryItemModel.swift` | 移除 `discount: Int`（不再需要） |
-| `Tilli.xcdatamodeld` | CDSessionEntity 新增 `discountsData`，CDTransactionEntity 新增折扣欄位 |
-| `CDSessionEntity` | 新增 `discountsData` 屬性和轉換邏輯 |
+| `Tilli.xcdatamodeld` | CDEventEntity 新增 `discountsData`，CDTransactionEntity 新增折扣欄位 |
+| `CDEventEntity` | 新增 `discountsData` 屬性和轉換邏輯 |
 | `CDTransactionEntity` | 新增折扣欄位和轉換邏輯 |
-| `AddSessionView.swift` | 新增折扣編輯 Section（在類別 Section 後面） |
-| `AddSessionViewModel.swift` | 新增折扣相關狀態和方法 |
+| `AddEventView.swift` | 新增折扣編輯 Section（在類別 Section 後面） |
+| `AddEventViewModel.swift` | 新增折扣相關狀態和方法 |
 | `ProductDetailView.swift` | 移除舊折扣按鈕，新增折扣選擇器 |
 | `ProductDetailViewModel.swift` | 改用新折扣結構 |
 | `CheckoutSummaryView.swift` | 顯示訂單層級的折扣 |
@@ -104,17 +104,17 @@ struct DiscountModel: Identifiable, Codable, Hashable {
 
 ## 二、修改 Model
 
-### 2.1 SessionModel.swift
+### 2.1 EventModel.swift
 
 **新增屬性：**
 
 ```swift
-struct SessionModel: Identifiable, Codable, Hashable {
+struct EventModel: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String
     var startDate: Date
     var endDate: Date?
-    var dateType: SessionDateType
+    var dateType: EventDateType
     var categories: [CategoryModel]
     var createdAt: Date
     var currency: String = "TWD"
@@ -131,8 +131,8 @@ struct SessionModel: Identifiable, Codable, Hashable {
 ```swift
 struct TransactionModel: Identifiable, Codable, Hashable {
     var id = UUID()
-    var sessionId: UUID
-    var sessionTitle: String
+    var eventId: UUID
+    var eventTitle: String
     var currency: String
     var items: [SummaryItemModel]
     var totalAmount: Decimal
@@ -163,7 +163,7 @@ var total: Decimal {
 
 ### 3.1 Tilli.xcdatamodeld
 
-**CDSessionEntity 新增屬性：**
+**CDEventEntity 新增屬性：**
 - **Name:** `discountsData`
 - **Type:** Binary Data
 - **Optional:** Yes
@@ -177,30 +177,30 @@ var total: Decimal {
 - **Type:** Decimal
 - **Optional:** Yes
 
-### 3.2 CDSessionEntity+CoreDataProperties.swift
+### 3.2 CDEventEntity+CoreDataProperties.swift
 
 **新增屬性：**
 ```swift
 @NSManaged public var discountsData: Data?
 ```
 
-### 3.3 CDSessionEntity 轉換方法
+### 3.3 CDEventEntity 轉換方法
 
 **修改 toModel()：**
 ```swift
-func toModel() -> SessionModel {
+func toModel() -> EventModel {
     // 解碼 discounts
     let discounts: [DiscountModel] = {
         guard let data = discountsData else { return [] }
         return (try? JSONDecoder().decode([DiscountModel].self, from: data)) ?? []
     }()
 
-    return SessionModel(
+    return EventModel(
         id: id,
         title: title,
         startDate: startDate,
         endDate: endDate,
-        dateType: SessionDateType(rawValue: dateType) ?? .single,
+        dateType: EventDateType(rawValue: dateType) ?? .single,
         categories: /* 現有邏輯 */,
         createdAt: createdAt,
         currency: currency,
@@ -211,7 +211,7 @@ func toModel() -> SessionModel {
 
 **修改 update(from:)：**
 ```swift
-func update(from model: SessionModel, context: NSManagedObjectContext) {
+func update(from model: EventModel, context: NSManagedObjectContext) {
     // ... 現有邏輯
 
     // 編碼 discounts
@@ -251,7 +251,7 @@ func update(from model: TransactionModel, context: NSManagedObjectContext) {
 
 ---
 
-## 四、修改 AddSessionView（折扣編輯）
+## 四、修改 AddEventView（折扣編輯）
 
 ### 4.1 UI 設計
 
@@ -267,7 +267,7 @@ func update(from model: TransactionModel, context: NSManagedObjectContext) {
 └─────────────────────────────────────────┘
 ```
 
-### 4.2 AddSessionViewModel.swift 新增
+### 4.2 AddEventViewModel.swift 新增
 
 ```swift
 // MARK: - 折扣相關狀態
@@ -334,8 +334,8 @@ func deleteDiscount(_ discount: DiscountModel) {
 
 **修改 save() 方法：**
 ```swift
-func save() -> SessionModel {
-    return SessionModel(
+func save() -> EventModel {
+    return EventModel(
         // ... 現有參數
         discounts: discounts   // ← 新增
     )
@@ -344,15 +344,15 @@ func save() -> SessionModel {
 
 **編輯模式初始化：**
 ```swift
-init(sessionToEdit: SessionModel? = nil) {
-    if let session = sessionToEdit {
+init(eventToEdit: EventModel? = nil) {
+    if let event = eventToEdit {
         // ... 現有邏輯
-        self.discounts = session.discounts   // ← 新增
+        self.discounts = event.discounts   // ← 新增
     }
 }
 ```
 
-### 4.3 AddSessionView.swift 新增 Section
+### 4.3 AddEventView.swift 新增 Section
 
 **位置：在類別 Section 之後、已停用類別 Section 之前**
 
@@ -457,7 +457,7 @@ func isDiscountSelected(for product: ProductModel, percent: Int) -> Bool { ... }
 /// 取得選中的折扣 Model
 var selectedDiscount: DiscountModel? {
     guard let id = selectedDiscountId else { return nil }
-    return session.discounts.first { $0.id == id }
+    return event.discounts.first { $0.id == id }
 }
 
 /// 計算小計（未套用折扣）
@@ -525,7 +525,7 @@ HStack(spacing: 8) {
 
 @ViewBuilder
 private var discountSelector: some View {
-    if !productViewModel.session.discounts.isEmpty {
+    if !productViewModel.event.discounts.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
             Text("套用折扣")
                 .font(.subheadline)
@@ -533,10 +533,10 @@ private var discountSelector: some View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(productViewModel.session.discounts) { discount in
+                    ForEach(productViewModel.event.discounts) { discount in
                         let isSelected = productViewModel.selectedDiscountId == discount.id
 
-                        Text(discount.displayText(currency: productViewModel.session.currency))
+                        Text(discount.displayText(currency: productViewModel.event.currency))
                             .font(.subheadline)
                             .fontWeight(isSelected ? .semibold : .regular)
                             .padding(.vertical, 8)
@@ -585,7 +585,7 @@ var body: some View {
 
                 // 顯示選中的折扣
                 if let discount = productViewModel.selectedDiscount {
-                    Text(discount.displayText(currency: productViewModel.session.currency))
+                    Text(discount.displayText(currency: productViewModel.event.currency))
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -595,7 +595,7 @@ var body: some View {
 
                 Text(MoneyHelper.format(
                     productViewModel.totalAmount(),
-                    currencyCode: productViewModel.session.currency
+                    currencyCode: productViewModel.event.currency
                 ))
                 .font(.headline)
                 .bold()
@@ -646,7 +646,7 @@ HStack {
 
     // 顯示折扣標籤
     if let discount = selectedDiscount {
-        Text(discount.displayText(currency: session.currency))
+        Text(discount.displayText(currency: event.currency))
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -654,7 +654,7 @@ HStack {
             .cornerRadius(4)
     }
 
-    Text(totalAmount.money(currency: session.currency))
+    Text(totalAmount.money(currency: event.currency))
         .font(.headline)
         .bold()
 }
@@ -681,18 +681,18 @@ HStack {
 
 1. **Model 層**
    - [ ] 新增 `DiscountModel.swift`（含 DiscountType）
-   - [ ] 修改 `SessionModel.swift`
+   - [ ] 修改 `EventModel.swift`
    - [ ] 修改 `TransactionModel.swift`
    - [ ] 修改 `SummaryItemModel.swift`（移除 discount）
 
 2. **CoreData 層**
    - [ ] 修改 `Tilli.xcdatamodeld`
-   - [ ] 修改 `CDSessionEntity`
+   - [ ] 修改 `CDEventEntity`
    - [ ] 修改 `CDTransactionEntity`
 
-3. **Session 編輯**
-   - [ ] 修改 `AddSessionViewModel.swift`
-   - [ ] 修改 `AddSessionView.swift`
+3. **Event 編輯**
+   - [ ] 修改 `AddEventViewModel.swift`
+   - [ ] 修改 `AddEventView.swift`
 
 4. **產品頁面**
    - [ ] 修改 `ProductDetailViewModel.swift`

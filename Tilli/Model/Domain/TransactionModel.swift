@@ -8,8 +8,8 @@ import SwiftUI
 
 struct TransactionModel: Identifiable, Codable, Hashable {
     var id = UUID()
-    var sessionId: UUID
-    var sessionTitle: String          // Session 名稱
+    var eventId: UUID
+    var eventTitle: String          // Event 名稱
     var currency: String              // 幣別
     var items: [SummaryItemModel]     // 多筆商品銷售記錄
     var totalAmount: Decimal
@@ -39,8 +39,8 @@ enum PaymentMethod: String, Codable {
 extension TransactionModel {
     init(entity: CDTransactionEntity) {
         self.id = entity.id
-        self.sessionId = entity.sessionId
-        self.sessionTitle = entity.sessionTitle
+        self.eventId = entity.eventId
+        self.eventTitle = entity.eventTitle
         self.currency = entity.currency
         self.totalAmount = entity.totalAmount.decimalValue
         self.paymentMethod = PaymentMethod(rawValue: entity.paymentMethod) ?? .cash

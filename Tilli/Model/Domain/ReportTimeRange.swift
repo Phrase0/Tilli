@@ -12,7 +12,7 @@ struct ReportTimeRange: Equatable {
     var type: RangeType
     var customStart: Date
     var customEnd: Date
-    let session: SessionModel
+    let event: EventModel
 
     enum RangeType {
         case all            // 全部（場次完整範圍）
@@ -23,20 +23,20 @@ struct ReportTimeRange: Equatable {
     }
 
     /// 初始化時設定合理的預設值
-    init(session: SessionModel, type: RangeType? = nil) {
-        self.session = session
+    init(event: EventModel, type: RangeType? = nil) {
+        self.event = event
 
         // 根據場次類型設定預設 type
         if let type = type {
             self.type = type
         } else {
             // 無限期場次預設為最近30天，其他為全部
-            self.type = session.dateType == .permanent ? .recent30 : .all
+            self.type = event.dateType == .permanent ? .recent30 : .all
         }
 
         // 初始化自訂日期範圍
-        self.customStart = session.startDate
-        self.customEnd = session.endDate ?? Date()
+        self.customStart = event.startDate
+        self.customEnd = event.endDate ?? Date()
     }
 
     // MARK: - 計算屬性
@@ -47,7 +47,7 @@ struct ReportTimeRange: Equatable {
 
         switch type {
         case .all:
-            return calendar.startOfDay(for: session.startDate)
+            return calendar.startOfDay(for: event.startDate)
 
         case .today:
             return calendar.startOfDay(for: Date())
@@ -56,15 +56,15 @@ struct ReportTimeRange: Equatable {
             let today = calendar.startOfDay(for: Date())
             let sevenDaysAgo = calendar.date(byAdding: .day, value: -6, to: today)!
             // 確保不早於場次開始日期
-            let sessionStart = calendar.startOfDay(for: session.startDate)
-            return max(sevenDaysAgo, sessionStart)
+            let eventStart = calendar.startOfDay(for: event.startDate)
+            return max(sevenDaysAgo, eventStart)
 
         case .recent30:
             let today = calendar.startOfDay(for: Date())
             let thirtyDaysAgo = calendar.date(byAdding: .day, value: -29, to: today)!
             // 確保不早於場次開始日期
-            let sessionStart = calendar.startOfDay(for: session.startDate)
-            return max(thirtyDaysAgo, sessionStart)
+            let eventStart = calendar.startOfDay(for: event.startDate)
+            return max(thirtyDaysAgo, eventStart)
 
         case .custom:
             return calendar.startOfDay(for: customStart)
@@ -80,7 +80,7 @@ struct ReportTimeRange: Equatable {
         case .all:
             // 單日/多日：使用場次結束日期
             // 無限期：使用今天
-            if let endDate = session.endDate {
+            if let endDate = event.endDate {
                 return calendar.startOfDay(for: endDate)
             } else {
                 return today
@@ -99,15 +99,15 @@ struct ReportTimeRange: Equatable {
             let customEndDay = calendar.startOfDay(for: customEnd)
 
             // 無限期場次限制自訂範圍最多90天
-            if session.dateType == .permanent {
+            if event.dateType == .permanent {
                 let maxEnd = calendar.date(byAdding: .day, value: 89, to: actualStart)!
                 return min(customEndDay, maxEnd, today)
             }
 
             // 多日場次限制不超過場次結束日期
-            if let sessionEnd = session.endDate {
-                let sessionEndDay = calendar.startOfDay(for: sessionEnd)
-                return min(customEndDay, sessionEndDay)
+            if let eventEnd = event.endDate {
+                let eventEndDay = calendar.startOfDay(for: eventEnd)
+                return min(customEndDay, eventEndDay)
             }
 
             return min(customEndDay, today)
@@ -133,7 +133,7 @@ struct ReportTimeRange: Equatable {
     var displayText: String {
         switch type {
         case .all:
-            if session.dateType == .permanent {
+            if event.dateType == .permanent {
                 return "\(DateFormatter.standardDate.string(from: actualStart)) 至今"
             } else {
                 return "\(DateFormatter.standardDate.string(from: actualStart)) - \(DateFormatter.standardDate.string(from: actualEnd))"
@@ -183,7 +183,7 @@ struct ReportTimeRange: Equatable {
         }
 
         // 無限期場次：自訂範圍最多90天
-        if session.dateType == .permanent {
+        if event.dateType == .permanent {
             let days = calendar.dateComponents([.day], from: start, to: end).day! + 1
             if days > 90 {
                 return (false, "無限期場次的自訂範圍不可超過 90 天")

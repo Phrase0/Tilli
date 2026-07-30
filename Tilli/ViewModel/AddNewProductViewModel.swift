@@ -20,8 +20,8 @@ class AddNewProductViewModel: ObservableObject {
     /// 庫存提示顯示門檻（位數）
     static let stockWarningThreshold = 9
 
-    // MARK: - 輸入 Session
-    let session: SessionModel
+    // MARK: - 輸入 Event
+    let event: EventModel
 
     // MARK: - 編輯欄位狀態綁定
     @Published var name: String = ""
@@ -59,7 +59,7 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
-        session.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
+        event.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
     }
 
     var selectedCategory: CategoryModel? {
@@ -68,13 +68,13 @@ class AddNewProductViewModel: ObservableObject {
     }
 
     var pricePlaceholder: String {
-        let currency = Currency(rawValue: session.currency) ?? .twd
+        let currency = Currency(rawValue: event.currency) ?? .twd
         return "\(currency.symbol) 0"
     }
     
     /// 當前幣別
     var currentCurrency: Currency {
-        return Currency(rawValue: session.currency) ?? .twd
+        return Currency(rawValue: event.currency) ?? .twd
     }
 
     /// 產品名稱字數上限
@@ -268,10 +268,10 @@ class AddNewProductViewModel: ObservableObject {
     }
 
     // MARK: - 初始化
-    init(session: SessionModel,
+    init(event: EventModel,
          productToEdit: ProductModel? = nil) {
 
-        self.session = session
+        self.event = event
         self.editingProduct = productToEdit
         
         // 設置預設選中第一個啟用的類別
@@ -281,7 +281,7 @@ class AddNewProductViewModel: ObservableObject {
         if let product = editingProduct {
             self.name = product.name
             // 使用新的轉換方法，避免精度丟失
-            let currency = Currency(rawValue: session.currency) ?? .twd
+            let currency = Currency(rawValue: event.currency) ?? .twd
             self.price = MoneyHelper.toEditableString(product.price, currency: currency)
             self.quantity = String(product.stock)
             self.selectedCategoryID = product.categoryId
@@ -303,13 +303,13 @@ class AddNewProductViewModel: ObservableObject {
     // MARK: - 交易檢查邏輯
     /// 檢查產品是否有交易記錄
     func hasTransaction(for productId: UUID? = nil) -> Bool {
-        guard let sessionId = session.id as UUID? else { 
+        guard let eventId = event.id as UUID? else { 
             return false 
         }
         
         let transactions: [TransactionModel]
         if let transactionManager = transactionDataManager {
-            transactions = transactionManager.fetchTransactions(forSessionId: sessionId)
+            transactions = transactionManager.fetchTransactions(forEventId: eventId)
         } else {
             transactions = []
         }
@@ -353,7 +353,7 @@ class AddNewProductViewModel: ObservableObject {
                 // 有交易記錄時，保持原有的名稱、價格和類別不變
                 return ProductModel(
                     id: editing.id,                    // 保留原 ID
-                    sessionId: editing.sessionId,      // 保留原 sessionId
+                    eventId: editing.eventId,      // 保留原 eventId
                     name: editing.name,                // 保持原名稱
                     price: editing.price,              // 保持原價格
                     stock: quantityValue,              // 允許更新庫存
@@ -368,7 +368,7 @@ class AddNewProductViewModel: ObservableObject {
                 // 無交易記錄時，允許更新所有欄位
                 return ProductModel(
                     id: editing.id,                    // 保留原 ID
-                    sessionId: editing.sessionId,      // 保留原 sessionId
+                    eventId: editing.eventId,      // 保留原 eventId
                     name: name,                        // 允許更新名稱
                     price: priceValue,                 // 允許更新價格
                     stock: quantityValue,              // 允許更新庫存
@@ -382,7 +382,7 @@ class AddNewProductViewModel: ObservableObject {
         } else {
             // 新增模式
             return ProductModel(
-                sessionId: session.id,
+                eventId: event.id,
                 name: name,
                 price: priceValue,
                 stock: quantityValue,
@@ -405,8 +405,8 @@ class AddNewProductViewModel: ObservableObject {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let excludingId = editingProduct?.id // 編輯模式時排除自己
         
-        // 取得該 Session 下所有產品
-        let allProducts = productRepository.fetchProducts(forSessionId: session.id)
+        // 取得該 Event 下所有產品
+        let allProducts = productRepository.fetchProducts(forEventId: event.id)
         
         // 檢查同一個 Category 內是否有同名產品
         let isDuplicate = allProducts.contains { product in
@@ -449,7 +449,7 @@ class AddNewProductViewModel: ObservableObject {
                     customReason: stockChangeReason == .adjustment ? customChangeReason : nil,
                     timestamp: Date()
                 )
-                inventoryChangeRepository.addChange(change, sessionId: session.id)
+                inventoryChangeRepository.addChange(change, eventId: event.id)
             }
         } else {
             // 新增模式 → 新增產品
@@ -465,7 +465,7 @@ class AddNewProductViewModel: ObservableObject {
                     customReason: nil,
                     timestamp: Date()
                 )
-                inventoryChangeRepository.addChange(change, sessionId: session.id)
+                inventoryChangeRepository.addChange(change, eventId: event.id)
             }
         }
         return true

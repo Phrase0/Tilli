@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ProductModel: Identifiable, Hashable, Codable {
     var id: UUID = UUID()
-    var sessionId: UUID               // 所屬 Session 的 ID
+    var eventId: UUID               // 所屬 Event 的 ID
     var name: String
     var price: Decimal
     var stock: Int                   // 初始庫存
@@ -40,7 +40,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
 extension ProductModel {
     init(entity: CDProductEntity) {
         self.id = entity.id
-        self.sessionId = entity.sessionId
+        self.eventId = entity.eventId
         self.name = entity.name
         self.price = entity.price.decimalValue
         self.stock = Int(entity.stock)

@@ -9,26 +9,26 @@ import SwiftUI
 
 struct SessionsView: View {
 
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
 
     @State private var searchText = ""
     @State private var isNavigatingToAddSession = false
-    @State private var editingSession: SessionModel? = nil
-    @State private var sessionToDelete: SessionModel? = nil
+    @State private var editingSession: EventModel? = nil
+    @State private var sessionToDelete: EventModel? = nil
     @State private var showDeleteConfirmation = false
     @State private var showBatchDeleteConfirmation = false
 
-    @State private var selectedSession: SessionModel? = nil
+    @State private var selectedSession: EventModel? = nil
 
-    @StateObject private var viewModel: SessionViewModel
+    @StateObject private var viewModel: EventsViewModel
     init() {
-        _viewModel = StateObject(wrappedValue: SessionViewModel())
+        _viewModel = StateObject(wrappedValue: EventsViewModel())
     }
     
 
     /// 當前顯示的場次列表（用於全選判斷）
-    private var displayedSessions: [SessionModel] {
-        viewModel.sortedFilteredSessions(by: searchText, from: sessionDataManager.sessions)
+    private var displayedSessions: [EventModel] {
+        viewModel.sortedFilteredEvents(by: searchText, from: eventDataManager.events)
     }
 
     var body: some View {
@@ -59,16 +59,16 @@ struct SessionsView: View {
                                 HStack(spacing: 12) {
                                     // 選取模式下顯示勾選框
                                     if viewModel.isSelectionMode {
-                                        Image(systemName: viewModel.selectedSessionIds.contains(session.id) ? "checkmark.circle.fill" : "circle")
+                                        Image(systemName: viewModel.selectedEventIds.contains(event.id) ? "checkmark.circle.fill" : "circle")
                                             .font(.title2)
-                                            .foregroundColor(viewModel.selectedSessionIds.contains(session.id) ? .blue : .gray)
+                                            .foregroundColor(viewModel.selectedEventIds.contains(event.id) ? .blue : .gray)
                                     }
 
-                                    sessionCard(session, showMenu: !viewModel.isSelectionMode)
+                                    sessionCard(event, showMenu: !viewModel.isSelectionMode)
                                 }
                                 .onTapGesture {
                                     if viewModel.isSelectionMode {
-                                        viewModel.toggleSelection(sessionId: session.id)
+                                        viewModel.toggleSelection(eventId: session.id)
                                     } else {
                                         selectedSession = session
                                     }
@@ -99,7 +99,7 @@ struct SessionsView: View {
                         Button("選取") {
                             viewModel.enterSelectionMode()
                         }
-                        .disabled(sessionDataManager.sessions.isEmpty)
+                        .disabled(eventDataManager.events.isEmpty)
                     }
                 }
 
@@ -115,14 +115,14 @@ struct SessionsView: View {
                 }
             }
             .navigationDestination(isPresented: $isNavigatingToAddSession) {
-                AddSessionView(onSave: { newSession in
-                    viewModel.addSession(newSession, using: sessionDataManager)
+                AddEventView(onSave: { newEvent in
+                    viewModel.addEvent(newEvent, using: eventDataManager)
                     isNavigatingToAddSession = false
                 })
             }
             .navigationDestination(item: $selectedSession) { session in
-                if let index = sessionDataManager.sessions.firstIndex(where: { $0.id == session.id }) {
-                    SessionDetailView(session: $sessionDataManager.sessions[index])
+                if let index = eventDataManager.events.firstIndex(where: { $0.id == session.id }) {
+                    EventDetailView(event: $eventDataManager.events[index])
                 }
             }
             .navigationDestination(isPresented: Binding(
@@ -131,9 +131,9 @@ struct SessionsView: View {
                     if !isActive { editingSession = nil }
                 }
             )) {
-                if let session = editingSession {
-                    AddSessionView(sessionToEdit: session, onSave: { updatedSession in
-                        viewModel.updateSession(updatedSession, using: sessionDataManager)
+                if let event = editingSession {
+                    AddEventView(sessionToEdit: session, onSave: { updateEvent in
+                        viewModel.updateEvent(updateEvent, using: eventDataManager)
                         editingSession = nil
                     })
                 }
@@ -146,7 +146,7 @@ struct SessionsView: View {
         }
         .alert("確定要刪除這個場次嗎？", isPresented: $showDeleteConfirmation, presenting: sessionToDelete) { session in
             Button("刪除", role: .destructive) {
-                viewModel.deleteSession(session, using: sessionDataManager)
+                viewModel.deleteEvent(event, using: eventDataManager)
             }
             Button("取消", role: .cancel) { }
         } message: { session in
@@ -154,39 +154,39 @@ struct SessionsView: View {
         }
         .alert("確定要刪除 \(viewModel.selectedCount) 個場次嗎？", isPresented: $showBatchDeleteConfirmation) {
             Button("刪除", role: .destructive) {
-                viewModel.deleteSelectedSessions(using: sessionDataManager)
+                viewModel.deleteSelectedEvents(using: eventDataManager)
             }
             Button("取消", role: .cancel) { }
         } message: {
             Text("刪除後將同時移除所有類別、商品，且無法復原，是否確定？")
         }
-        .sheet(isPresented: $viewModel.showDuplicateSessionDialog) {
-            duplicateSessionView
+        .sheet(isPresented: $viewModel.showDuplicateEventDialog) {
+            duplicateEventView
         }
     }
 
     // MARK: - 複製場次 View
     @ViewBuilder
-    private var duplicateSessionView: some View {
+    private var duplicateEventView: some View {
         NavigationView {
             Form {
-                TextField("場次名稱", text: $viewModel.duplicateSessionName)
-                    .onChange(of: viewModel.duplicateSessionName) {
-                        viewModel.onSessionNameChanged()
+                TextField("場次名稱", text: $viewModel.duplicateEventName)
+                    .onChange(of: viewModel.duplicateEventName) {
+                        viewModel.onEventNameChanged()
                     }
 
                 // 場次類型選擇器
                 Section {
-                    Picker("場次類型", selection: $viewModel.duplicateSessionDateType) {
-                        Text("單日").tag(SessionDateType.single)
-                        Text("多日").tag(SessionDateType.multi)
-                        Text("無限期").tag(SessionDateType.permanent)
+                    Picker("場次類型", selection: $viewModel.duplicateEventDateType) {
+                        Text("單日").tag(EventDateType.single)
+                        Text("多日").tag(EventDateType.multi)
+                        Text("無限期").tag(EventDateType.permanent)
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: viewModel.duplicateSessionDateType) { _, newType in
+                    .onChange(of: viewModel.duplicateEventDateType) { _, newType in
                         // 切換到多日時，自動設定結束日期為開始日期 +1 天
                         if newType == .multi {
-                            viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.duplicateSessionDate) ?? viewModel.duplicateSessionDate
+                            viewModel.duplicateEventEndDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.duplicateEventDate) ?? viewModel.duplicateEventDate
                         }
                     }
                 }
@@ -195,26 +195,26 @@ struct SessionsView: View {
 
                 // 動態日期選擇器
                 Section {
-                    switch viewModel.duplicateSessionDateType {
+                    switch viewModel.duplicateEventDateType {
                     case .single:
-                        DatePicker("日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+                        DatePicker("日期", selection: $viewModel.duplicateEventDate, displayedComponents: .date)
 
                     case .multi:
                         DatePicker(
                             "開始日期",
-                            selection: $viewModel.duplicateSessionDate,
+                            selection: $viewModel.duplicateEventDate,
                             displayedComponents: .date
                         )
-                        .onChange(of: viewModel.duplicateSessionDate) { _, newStartDate in
+                        .onChange(of: viewModel.duplicateEventDate) { _, newStartDate in
                             // 結束日期必須至少是開始日期的隔天
-                            if viewModel.duplicateSessionEndDate <= newStartDate {
-                                viewModel.duplicateSessionEndDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
+                            if viewModel.duplicateEventEndDate <= newStartDate {
+                                viewModel.duplicateEventEndDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
                             }
                         }
 
                         DatePicker(
                             "結束日期",
-                            selection: $viewModel.duplicateSessionEndDate,
+                            selection: $viewModel.duplicateEventEndDate,
                             in: viewModel.duplicateEndDateRange,
                             displayedComponents: .date
                         )
@@ -229,7 +229,7 @@ struct SessionsView: View {
                         }
 
                     case .permanent:
-                        DatePicker("開始日期", selection: $viewModel.duplicateSessionDate, displayedComponents: .date)
+                        DatePicker("開始日期", selection: $viewModel.duplicateEventDate, displayedComponents: .date)
 
                         HStack {
                             Image(systemName: "infinity")
@@ -246,13 +246,13 @@ struct SessionsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") {
-                        viewModel.cancelDuplicateSession()
+                        viewModel.cancelDuplicateEvent()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("確定") {
-                        viewModel.confirmDuplicateSession(using: sessionDataManager)
+                        viewModel.confirmDuplicateEvent(using: eventDataManager)
                     }
                     .disabled(viewModel.isDuplicateButtonDisabled)
                 }
@@ -302,12 +302,12 @@ struct SessionsView: View {
 
     // MARK: - 卡片 View
     @ViewBuilder
-    private func sessionCard(_ session: SessionModel, showMenu: Bool = true) -> some View {
+    private func sessionCard(_ event: EventModel, showMenu: Bool = true) -> some View {
         if showMenu {
-            SessionCardView(
-                session: session,
+            EventCardView(
+                event: session,
                 style: .standard,
-                onDuplicate: { viewModel.startDuplicateSession(session) },
+                onDuplicate: { viewModel.startDuplicateEvent(event) },
                 onEdit: { editingSession = session },
                 onDelete: {
                     sessionToDelete = session
@@ -315,7 +315,7 @@ struct SessionsView: View {
                 }
             )
         } else {
-            SessionCardView(session: session, style: .simple)
+            EventCardView(event: session, style: .simple)
         }
     }
 }

@@ -50,6 +50,14 @@
 		211060F92F1F853F00BB0E0F /* Exceptions for "Tilli" folder in "Tilli" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				_Deprecated/CalendarView.swift,
+				_Deprecated/ContentView.swift,
+				_Deprecated/InventoryTabView.swift,
+				_Deprecated/InventoryTabViewModel.swift,
+				_Deprecated/ProfileView.swift,
+				_Deprecated/SessionDetailFromCalendarView.swift,
+				_Deprecated/SessionDetailFromCalendarViewModel.swift,
+				_Deprecated/SessionsView.swift,
 				Info.plist,
 			);
 			target = F84D81F52DB85002006730C2 /* Tilli */;

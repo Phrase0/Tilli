@@ -21,28 +21,28 @@ class InventoryChangeRepository: ObservableObject {
     // MARK: - Create
 
     /// 新增庫存異動紀錄
-    func addChange(_ change: InventoryChangeModel, sessionId: UUID) {
-        guard let sessionEntity = fetchSessionEntity(by: sessionId) else {
-            print("Session not found for id: \(sessionId)")
+    func addChange(_ change: InventoryChangeModel, eventId: UUID) {
+        guard let eventEntity = fetchEventEntity(by: eventId) else {
+            print("Event not found for id: \(eventId)")
             return
         }
         let entity = CDInventoryChangeEntity(context: context)
         entity.update(from: change, context: context)
         entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
         entity.syncStatus = "pending"
-        entity.session = sessionEntity
-        entity.sessionId = sessionId
+        entity.event = eventEntity
+        entity.eventId = eventId
         saveContext()
         // 同步到 Firestore
         Task { @MainActor in
-            SyncManager.shared.syncInventoryChange(change, sessionId: sessionId)
+            SyncManager.shared.syncInventoryChange(change, eventId: eventId)
         }
     }
 
     /// 批次新增庫存異動紀錄
-    func addChanges(_ changes: [InventoryChangeModel], sessionId: UUID) {
-        guard let sessionEntity = fetchSessionEntity(by: sessionId) else {
-            print("Session not found for id: \(sessionId)")
+    func addChanges(_ changes: [InventoryChangeModel], eventId: UUID) {
+        guard let eventEntity = fetchEventEntity(by: eventId) else {
+            print("Event not found for id: \(eventId)")
             return
         }
         let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
@@ -51,22 +51,22 @@ class InventoryChangeRepository: ObservableObject {
             entity.update(from: change, context: context)
             entity.userId = currentUserId
             entity.syncStatus = "pending"
-            entity.session = sessionEntity
-            entity.sessionId = sessionId
+            entity.event = eventEntity
+            entity.eventId = eventId
         }
         saveContext()
         // 批次同步到 Firestore
         Task { @MainActor in
             for change in changes {
-                SyncManager.shared.syncInventoryChange(change, sessionId: sessionId)
+                SyncManager.shared.syncInventoryChange(change, eventId: eventId)
             }
         }
     }
 
-    /// 根據 sessionId 取得 CDSessionEntity
-    private func fetchSessionEntity(by sessionId: UUID) -> CDSessionEntity? {
-        let request: NSFetchRequest<CDSessionEntity> = CDSessionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", sessionId as CVarArg)
+    /// 根據 eventId 取得 CDEventEntity
+    private func fetchEventEntity(by eventId: UUID) -> CDEventEntity? {
+        let request: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
         request.fetchLimit = 1
         return try? context.fetch(request).first
     }
@@ -89,26 +89,26 @@ class InventoryChangeRepository: ObservableObject {
     }
 
     /// 取得指定場次的所有異動紀錄
-    func fetchChanges(forSessionId sessionId: UUID) -> [InventoryChangeModel] {
+    func fetchChanges(forEventId eventId: UUID) -> [InventoryChangeModel] {
         let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "session.id == %@", sessionId as CVarArg)
+        request.predicate = NSPredicate(format: "event.id == %@", eventId as CVarArg)
         request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
 
         do {
             let result = try context.fetch(request)
             return result.map { $0.toModel() }
         } catch {
-            print("Fetch inventory changes for session failed:", error)
+            print("Fetch inventory changes for event failed:", error)
             return []
         }
     }
 
     /// 取得指定場次在時間範圍內的異動紀錄
-    func fetchChanges(forSessionId sessionId: UUID, in dateInterval: DateInterval) -> [InventoryChangeModel] {
+    func fetchChanges(forEventId eventId: UUID, in dateInterval: DateInterval) -> [InventoryChangeModel] {
         let request: NSFetchRequest<CDInventoryChangeEntity> = CDInventoryChangeEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "session.id == %@ AND timestamp >= %@ AND timestamp <= %@",
-            sessionId as CVarArg,
+            format: "event.id == %@ AND timestamp >= %@ AND timestamp <= %@",
+            eventId as CVarArg,
             dateInterval.start as CVarArg,
             dateInterval.end as CVarArg
         )
@@ -118,7 +118,7 @@ class InventoryChangeRepository: ObservableObject {
             let result = try context.fetch(request)
             return result.map { $0.toModel() }
         } catch {
-            print("Fetch inventory changes for session in date range failed:", error)
+            print("Fetch inventory changes for event in date range failed:", error)
             return []
         }
     }

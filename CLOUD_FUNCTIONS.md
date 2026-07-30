@@ -356,7 +356,7 @@ Google / Apple 共用的帳號刪除流程，核心邏輯全在 server 端執行
 **4. 刪除 Firestore 資料**
 ```
 子集合（每批最多 450 筆，避免超過 batch 上限 500）：
-  sessions / categories / products / inventoryChanges / transactions / qrCodes
+  events / categories / products / inventoryChanges / transactions / qrCodes
 private 子集合（所有文件，包含 appleToken 等）
 主文件 users/{uid}
 ```

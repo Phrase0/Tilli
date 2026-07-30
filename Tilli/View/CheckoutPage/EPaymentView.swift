@@ -11,12 +11,12 @@ import Foundation
 struct EPaymentView: View {
 
     @EnvironmentObject var transactionDataManager: TransactionRepository
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var qrCodeDataManager: QRCodeRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
 
     @Environment(\.closeCheckoutFlow) private var closeFlow
 
@@ -24,15 +24,15 @@ struct EPaymentView: View {
 
     init(
         totalAmount: Decimal,
-        session: Binding<SessionModel>,
+        event: Binding<EventModel>,
         summaryItems: [SummaryItemModel],
         selectedDiscount: DiscountModel? = nil,
         occurredAt: Date? = nil
     ) {
-        self._session = session
+        self._event = event
         self._viewModel = ObservedObject(wrappedValue: EPaymentViewModel(
             totalAmount: totalAmount,
-            session: session.wrappedValue,
+            event: event.wrappedValue,
             summaryItems: summaryItems,
             selectedDiscount: selectedDiscount,
             occurredAt: occurredAt
@@ -50,7 +50,7 @@ struct EPaymentView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "tag.fill")
                         .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money(currency: session.currency))
+                    Text(viewModel.totalAmount.money(currency: event.currency))
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.black)
@@ -125,12 +125,12 @@ struct EPaymentView: View {
     private func completePayment() {
         guard qrCodeDataManager.qrCodeImage != nil else { return }
 
-        let updatedSession = viewModel.performCheckout(
-            sessionDataManager: sessionDataManager,
+        let updateEvent = viewModel.performCheckout(
+            eventDataManager: eventDataManager,
             productRepository: productRepository,
             inventoryChangeRepository: inventoryChangeRepository
         )
-        session = updatedSession
+        event = updateEvent
 
         // 電子支付無鍵盤，直接關閉整個 flow
         closeFlow()

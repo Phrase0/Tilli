@@ -10,7 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: Int = 0
     @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     // MARK: - 測試用（測試完成後刪除這段）
@@ -85,11 +85,11 @@ struct ContentView: View {
         // MARK: - 測試用（測試完成後刪除這段 .onAppear）
 //        .onAppear {
 //            TestDataGenerator.generateTestData(
-//                sessionDataManager: sessionDataManager,
+//                eventDataManager: eventDataManager,
 //                inventoryChangeRepository: inventoryChangeRepository
 //            )
 //            TestDataGenerator.generate30DaysMultiCafeSession(
-//                sessionDataManager: sessionDataManager,
+//                eventDataManager: eventDataManager,
 //                inventoryChangeRepository: inventoryChangeRepository
 //            )
 //        }

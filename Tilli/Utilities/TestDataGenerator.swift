@@ -9,24 +9,24 @@
 import Foundation
 
 /// 測試資料生成器
-/// 使用方式：在 App 啟動時呼叫 TestDataGenerator.generateTestData(sessionDataManager:)
+/// 使用方式：在 App 啟動時呼叫 TestDataGenerator.generateTestData(eventDataManager:)
 class TestDataGenerator {
     
-    private static let testSessionId =
+    private static let testEventId =
         UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
 
-    private static let didGenerateKey = "didGenerateTestCafeSession"
+    private static let didGenerateKey = "didGenerateTestCafeEvent"
 
-    private static let testMulti30DaysSessionId =
+    private static let testMulti30DaysEventId =
         UUID(uuidString: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")!
 
     private static let didGenerateMulti30DaysKey =
-        "didGenerateTestMulti30DaysCafeSession"
+        "didGenerateTestMulti30DaysCafeEvent"
     
     /// 生成測試資料：永久場次 + 類別 + 產品 + 跨多月交易 + 庫存異動
     /// 如果已存在測試場次則跳過
     static func generateTestData(
-        sessionDataManager: SessionRepository,
+        eventDataManager: EventRepository,
         inventoryChangeRepository: InventoryChangeRepository
     ) {
         
@@ -37,11 +37,11 @@ class TestDataGenerator {
         }
         
         // 檢查是否已有測試資料，有的話就跳過
-        if sessionDataManager.sessions.contains(where: { $0.title == "測試咖啡廳（永久）" }) {
+        if eventDataManager.events.contains(where: { $0.title == "測試咖啡廳（永久）" }) {
             print("⏭️ 測試資料已存在，跳過生成")
             return
         }
-        let sessionId = testSessionId
+        let eventId = testEventId
         let category1Id = UUID()
         let category2Id = UUID()
         let category3Id = UUID()
@@ -56,7 +56,7 @@ class TestDataGenerator {
         // 類別 1: 飲品
         let product1 = ProductModel(
             id: product1Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "拿鐵咖啡",
             price: 120,
             stock: 100,
@@ -69,7 +69,7 @@ class TestDataGenerator {
 
         let product2 = ProductModel(
             id: product2Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "美式咖啡",
             price: 80,
             stock: 100,
@@ -92,7 +92,7 @@ class TestDataGenerator {
         // 類別 2: 甜點
         let product3 = ProductModel(
             id: product3Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "提拉米蘇",
             price: 150,
             stock: 50,
@@ -105,7 +105,7 @@ class TestDataGenerator {
 
         let product4 = ProductModel(
             id: product4Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "巧克力蛋糕",
             price: 180,
             stock: 50,
@@ -128,7 +128,7 @@ class TestDataGenerator {
         // 類別 3: 輕食
         let product5 = ProductModel(
             id: product5Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "三明治",
             price: 100,
             stock: 80,
@@ -167,8 +167,8 @@ class TestDataGenerator {
             DiscountModel(type: .amount, value: 100)
         ]
 
-        let session = SessionModel(
-            id: sessionId,
+        let event = EventModel(
+            id: eventId,
             title: "測試咖啡廳（永久）",
             startDate: startDate,
             endDate: nil,  // 永久場次
@@ -180,7 +180,7 @@ class TestDataGenerator {
         )
 
         // 新增場次
-        sessionDataManager.addSession(session)
+        eventDataManager.addEvent(event)
 
         // 產品資訊（ID, 名稱, 價格, 類別ID, 類別名稱, 初始庫存）
         let productsInfo: [(UUID, String, Decimal, UUID, String, Int)] = [
@@ -201,16 +201,16 @@ class TestDataGenerator {
                 transactionId: nil,
                 timestamp: startDate
             )
-            inventoryChangeRepository.addChange(initialChange, sessionId: sessionId)
+            inventoryChangeRepository.addChange(initialChange, eventId: eventId)
         }
 
         // 生成跨 1 個月的交易資料
         generateTransactions(
-            sessionDataManager: sessionDataManager,
+            eventDataManager: eventDataManager,
             inventoryChangeRepository: inventoryChangeRepository,
-            sessionId: sessionId,
-            sessionTitle: session.title,
-            sessionCurrency: "TWD",
+            eventId: eventId,
+            eventTitle: event.title,
+            eventCurrency: "TWD",
             startDate: startDate,
             endDate: nil,
             products: productsInfo.map { ($0.0, $0.1, $0.2, $0.3, $0.4) },
@@ -221,15 +221,15 @@ class TestDataGenerator {
         print("✅ 測試資料生成完成")
     }
 
-    static func generate30DaysMultiCafeSession(
-        sessionDataManager: SessionRepository,
+    static func generate30DaysMultiCafeEvent(
+        eventDataManager: EventRepository,
         inventoryChangeRepository: InventoryChangeRepository
     ) {
         if UserDefaults.standard.bool(forKey: didGenerateMulti30DaysKey) {
             return
         }
 
-        let sessionId = testMulti30DaysSessionId
+        let eventId = testMulti30DaysEventId
 
         let category1Id = UUID()
         let category2Id = UUID()
@@ -244,7 +244,7 @@ class TestDataGenerator {
         // MARK: - 飲品（小數）
         let product1 = ProductModel(
             id: product1Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "拿鐵咖啡",
             price: Decimal(string: "4.50")!,
             stock: 100,
@@ -257,7 +257,7 @@ class TestDataGenerator {
 
         let product2 = ProductModel(
             id: product2Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "美式咖啡",
             price: Decimal(string: "3.20")!,
             stock: 100,
@@ -280,7 +280,7 @@ class TestDataGenerator {
         // MARK: - 甜點（小數）
         let product3 = ProductModel(
             id: product3Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "提拉米蘇",
             price: Decimal(string: "5.80")!,
             stock: 50,
@@ -293,7 +293,7 @@ class TestDataGenerator {
 
         let product4 = ProductModel(
             id: product4Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "巧克力蛋糕",
             price: Decimal(string: "6.40")!,
             stock: 50,
@@ -316,7 +316,7 @@ class TestDataGenerator {
         // MARK: - 輕食（小數）
         let product5 = ProductModel(
             id: product5Id,
-            sessionId: sessionId,
+            eventId: eventId,
             name: "三明治",
             price: Decimal(string: "4.75")!,
             stock: 80,
@@ -363,8 +363,8 @@ class TestDataGenerator {
             DiscountModel(type: .amount, value: 10)
         ]
 
-        let session = SessionModel(
-            id: sessionId,
+        let event = EventModel(
+            id: eventId,
             title: "測試咖啡廳（30 天 / EUR）",
             startDate: startDate,
             endDate: endDate,
@@ -375,7 +375,7 @@ class TestDataGenerator {
             discounts: eurDiscounts
         )
 
-        sessionDataManager.addSession(session)
+        eventDataManager.addEvent(event)
 
         // 產品資訊（ID, 名稱, 價格, 類別ID, 類別名稱, 初始庫存）
         let productsInfo: [(UUID, String, Decimal, UUID, String, Int)] = [
@@ -396,16 +396,16 @@ class TestDataGenerator {
                 transactionId: nil,
                 timestamp: startDate
             )
-            inventoryChangeRepository.addChange(initialChange, sessionId: sessionId)
+            inventoryChangeRepository.addChange(initialChange, eventId: eventId)
         }
 
         // MARK: - 交易（沿用你原本的 generator）
         generateTransactions(
-            sessionDataManager: sessionDataManager,
+            eventDataManager: eventDataManager,
             inventoryChangeRepository: inventoryChangeRepository,
-            sessionId: sessionId,
-            sessionTitle: session.title,
-            sessionCurrency: "EUR",
+            eventId: eventId,
+            eventTitle: event.title,
+            eventCurrency: "EUR",
             startDate: startDate,
             endDate: endDate,
             products: productsInfo.map { ($0.0, $0.1, $0.2, $0.3, $0.4) },
@@ -417,11 +417,11 @@ class TestDataGenerator {
 
     /// 生成跨多月的交易資料與庫存異動
     private static func generateTransactions(
-        sessionDataManager: SessionRepository,
+        eventDataManager: EventRepository,
         inventoryChangeRepository: InventoryChangeRepository,
-        sessionId: UUID,
-        sessionTitle: String,
-        sessionCurrency: String,
+        eventId: UUID,
+        eventTitle: String,
+        eventCurrency: String,
         startDate: Date,
         endDate: Date?,
         products: [(UUID, String, Decimal, UUID, String)],
@@ -505,9 +505,9 @@ class TestDataGenerator {
 
                 let transaction = TransactionModel(
                     id: UUID(),
-                    sessionId: sessionId,
-                    sessionTitle: sessionTitle,
-                    currency: sessionCurrency,
+                    eventId: eventId,
+                    eventTitle: eventTitle,
+                    currency: eventCurrency,
                     items: items,
                     totalAmount: totalAmount,
                     paymentMethod: Bool.random() ? .cash : .ePayment,
@@ -517,7 +517,7 @@ class TestDataGenerator {
                     discountValue: discountValue
                 )
 
-                sessionDataManager.addTransaction(transaction)
+                eventDataManager.addTransaction(transaction)
 
                 // 記錄庫存異動（銷售出庫）
                 let changeTimestamp = occurredAt ?? transactionTime
@@ -530,7 +530,7 @@ class TestDataGenerator {
                         transactionId: transaction.id,
                         timestamp: changeTimestamp
                     )
-                    inventoryChangeRepository.addChange(inventoryChange, sessionId: sessionId)
+                    inventoryChangeRepository.addChange(inventoryChange, eventId: eventId)
                 }
             }
 
@@ -540,11 +540,11 @@ class TestDataGenerator {
     }
 
     /// 清除測試資料（根據場次名稱）
-    static func clearTestData(sessionDataManager: SessionRepository) {
-        if let testSession = sessionDataManager.sessions.first(where: {
-            $0.id == testSessionId
+    static func clearTestData(eventDataManager: EventRepository) {
+        if let testEvent = eventDataManager.events.first(where: {
+            $0.id == testEventId
         }) {
-            sessionDataManager.deleteSession(testSession.id)
+            eventDataManager.deleteEvent(testEvent.id)
         }
         UserDefaults.standard.removeObject(forKey: didGenerateKey)
         print("🗑️ 測試資料已清除")

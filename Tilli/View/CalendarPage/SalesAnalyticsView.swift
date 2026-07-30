@@ -10,7 +10,7 @@ import Charts
 
 struct SalesAnalyticsView: View {
     @ObservedObject var salesAnalyticsViewModel: SalesAnalyticsViewModel
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     let timeRange: ReportTimeRange
 
     // 時間分佈圖選中狀態
@@ -19,9 +19,9 @@ struct SalesAnalyticsView: View {
     // 營收趨勢選中狀態
     @State private var selectedDailyData: DailyRevenueData?
     @State private var selectedMonthlyData: MonthlyRevenueData?
-    init(viewModel: SalesAnalyticsViewModel, session: Binding<SessionModel>, timeRange: ReportTimeRange) {
+    init(viewModel: SalesAnalyticsViewModel, event: Binding<EventModel>, timeRange: ReportTimeRange) {
         self.salesAnalyticsViewModel = viewModel
-        self._session = session
+        self._event = event
         self.timeRange = timeRange
     }
 
@@ -83,13 +83,13 @@ struct SalesAnalyticsView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             if let totalAmount = salesAnalyticsViewModel.salesOverview?.totalAmount {
-                Text(MoneyHelper.format(totalAmount, currencyCode: session.currency))
+                Text(MoneyHelper.format(totalAmount, currencyCode: event.currency))
                     .font(.title2)
                     .fontWeight(.bold)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
             } else {
-                Text(MoneyHelper.format(0, currencyCode: session.currency))
+                Text(MoneyHelper.format(0, currencyCode: event.currency))
                     .font(.title2)
                     .fontWeight(.bold)
             }
@@ -178,7 +178,7 @@ struct SalesAnalyticsView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        Text(MoneyHelper.format(method.amount, currencyCode: session.currency))
+                        Text(MoneyHelper.format(method.amount, currencyCode: event.currency))
                             .font(.system(size: 14, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .center)
 
@@ -265,11 +265,11 @@ struct SalesAnalyticsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         if let peakAmount = salesAnalyticsViewModel.salesOverview?.peakHourAmount {
-                            Text(MoneyHelper.format(peakAmount, currencyCode: session.currency))
+                            Text(MoneyHelper.format(peakAmount, currencyCode: event.currency))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         } else {
-                            Text(MoneyHelper.format(0, currencyCode: session.currency))
+                            Text(MoneyHelper.format(0, currencyCode: event.currency))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -328,7 +328,7 @@ struct SalesAnalyticsView: View {
                                         .font(.system(size: 14, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                                    Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                    Text(MoneyHelper.format(data.amount, currencyCode: event.currency))
                                         .font(.system(size: 14, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .center)
 
@@ -336,7 +336,7 @@ struct SalesAnalyticsView: View {
                                         .font(.system(size: 14))
                                         .frame(maxWidth: .infinity, alignment: .center)
 
-                                    Text(MoneyHelper.format(data.avgPrice, currencyCode: session.currency))
+                                    Text(MoneyHelper.format(data.avgPrice, currencyCode: event.currency))
                                         .font(.system(size: 14, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .trailing)
                                 }
@@ -481,7 +481,7 @@ struct SalesAnalyticsView: View {
 
     /// 是否顯示營收趨勢（單日不顯示，天數 > 1 才顯示）
     private var shouldShowRevenueTrend: Bool {
-        session.dateType != .single && timeRange.dayCount > 1
+        event.dateType != .single && timeRange.dayCount > 1
     }
 
     /// 營收趨勢視圖
@@ -547,7 +547,7 @@ struct SalesAnalyticsView: View {
                     VStack(spacing: 4) {
                         // 金額標籤（≤7天時顯示）
                         if timeRange.dayCount <= 7 {
-                            Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                            Text(MoneyHelper.format(data.amount, currencyCode: event.currency))
                                 .font(.system(size: 9))
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
@@ -688,7 +688,7 @@ struct SalesAnalyticsView: View {
                     }
                     .frame(height: 24)
 
-                    Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                    Text(MoneyHelper.format(data.amount, currencyCode: event.currency))
                         .font(.system(size: 12, design: .monospaced))
                         .frame(width: 80, alignment: .trailing)
                 }
@@ -739,7 +739,7 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14))
                                     .frame(maxWidth: .infinity, alignment: .center)
 
-                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                Text(MoneyHelper.format(data.amount, currencyCode: event.currency))
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
@@ -812,7 +812,7 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14))
                                     .frame(maxWidth: .infinity, alignment: .center)
 
-                                Text(MoneyHelper.format(data.amount, currencyCode: session.currency))
+                                Text(MoneyHelper.format(data.amount, currencyCode: event.currency))
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }

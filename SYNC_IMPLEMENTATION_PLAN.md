@@ -27,11 +27,11 @@
 |------|------|------|
 | 合併選項 | 自動合併 | UUID 唯一性保證不衝突，所有情境自動合併（無需用戶選擇） |
 | 圖片同步 | 同步 | 上傳至 Firebase Storage，需壓縮圖片 |
-| 刪除策略 | Hard Delete + Cascade | 真刪除，Session 刪除時連帶刪除 Categories/Products/InventoryChanges，但保留 Transactions |
+| 刪除策略 | Hard Delete + Cascade | 真刪除，Event 刪除時連帶刪除 Categories/Products/InventoryChanges，但保留 Transactions |
 | 同步頻率 | 即時同步 | 每次操作即時同步 + 離線時排隊 |
 | 登出處理 | 清除資料 | 登出後清除本地資料，回到匿名狀態 |
 | 資料遷移 | 不需要 | App 尚未上架，無需遷移腳本 |
-| sessionId 欄位 | 冗餘欄位 | Category/InventoryChange 加 sessionId 屬性（Firestore 無 relationship）|
+| eventId 欄位 | 冗餘欄位 | Category/InventoryChange 加 eventId 屬性（Firestore 無 relationship）|
 | Binary 資料 | 維持 Binary | discountsData/itemsData 維持 Binary，同步時轉換為 JSON String |
 | Transaction createdAt | 不需要 | 使用現有的 timestamp 欄位即可 |
 | 圖片存儲 | Hybrid | 本地存 imageData + 雲端存 imageURL，優先讀本地 |
@@ -55,13 +55,13 @@
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                              App Layer (Views)                                │
 │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────────────────────┐   │
-│  │SessionView │ │ProductView │ │  QRView    │ │   SyncableImageView     │   │
+│  │EventView │ │ProductView │ │  QRView    │ │   SyncableImageView     │   │
 │  └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └────────────┬─────────────┘   │
 │        │              │              │                      │                 │
 ├────────┼──────────────┼──────────────┼──────────────────────┼─────────────────┤
 │        ▼              ▼              ▼                      │                 │
 │  ┌─────────────┐┌─────────────┐┌─────────────┐             │                 │
-│  │SessionRepo  ││ProductRepo  ││ QRCodeRepo  │             │                 │
+│  │EventRepo  ││ProductRepo  ││ QRCodeRepo  │             │                 │
 │  │             ││             ││             │             │                 │
 │  │InventoryChg ││             ││             │             │                 │
 │  │ Repo        ││             ││             │             │                 │
@@ -69,7 +69,7 @@
 │         │              │              │                     │                 │
 │    ┌────▼──────────────▼──────────────▼─────┐              │                 │
 │    │           CoreData (Local)              │              │                 │
-│    │  CDSession / CDCategory / CDProduct     │              │                 │
+│    │  CDEvent / CDCategory / CDProduct     │              │                 │
 │    │  CDTransaction / CDInventoryChange      │              │                 │
 │    │  CDQRCode / CDPendingSyncOperation      │              │                 │
 │    └────────────────────┬───────────────────┘              │                 │
@@ -96,7 +96,7 @@
 │              ▼                ▼                      ▼                        │
 │    ┌──────────────────────────────────┐  ┌──────────────────────┐             │
 │    │      Firebase Firestore          │  │  Firebase Storage     │             │
-│    │  sessions / categories / products│  │  users/{uid}/products │             │
+│    │  events / categories / products│  │  users/{uid}/products │             │
 │    │  transactions / inventoryChanges │  │  users/{uid}/qrcodes  │             │
 │    │  qrCodes / syncState             │  │  profile_photos/      │             │
 │    └──────────────────────────────────┘  └──────────────────────┘             │
@@ -345,7 +345,7 @@ firestore/
 │   ├── createdAt: timestamp
 │   └── currentDeviceId: string?
 │
-├── sessions/{sessionId}              # 場次
+├── events/{eventId}              # 場次
 │   ├── id: string (UUID)             ✅ 現有
 │   ├── userId: string                🆕 新增
 │   ├── title: string                 ✅ 現有
@@ -356,13 +356,13 @@ firestore/
 │   ├── discountsData: string (JSON)  🔄 CoreData Binary → Firestore JSON String
 │   ├── createdAt: timestamp          ✅ 現有
 │   └── updatedAt: timestamp          🆕 新增
-│   # 📝 categories 不存在於 Firestore（獨立 collection，用 sessionId 關聯）
+│   # 📝 categories 不存在於 Firestore（獨立 collection，用 eventId 關聯）
 │   # 📝 discounts 在 CoreData 是 [DiscountModel]，存為 discountsData Binary
 │
 ├── categories/{categoryId}           # 類別
 │   ├── id: string (UUID)             ✅ 現有
 │   ├── userId: string                🆕 新增
-│   ├── sessionId: string             🆕 新增（CoreData 用 relationship，Firestore 用 ID）
+│   ├── eventId: string             🆕 新增（CoreData 用 relationship，Firestore 用 ID）
 │   ├── name: string                  ✅ 現有
 │   ├── sortOrder: number             ✅ 現有
 │   ├── isDisabled: boolean           ✅ 現有
@@ -373,7 +373,7 @@ firestore/
 ├── products/{productId}              # 產品
 │   ├── id: string (UUID)             ✅ 現有
 │   ├── userId: string                🆕 新增
-│   ├── sessionId: string             ✅ 現有
+│   ├── eventId: string             ✅ 現有
 │   ├── categoryId: string            ✅ 現有
 │   ├── categoryName: string          ✅ 現有
 │   ├── name: string                  ✅ 現有
@@ -389,8 +389,8 @@ firestore/
 ├── transactions/{transactionId}      # 交易記錄（不可修改）
 │   ├── id: string (UUID)             ✅ 現有
 │   ├── userId: string                🆕 新增
-│   ├── sessionId: string             ✅ 現有
-│   ├── sessionTitle: string          ✅ 現有
+│   ├── eventId: string             ✅ 現有
+│   ├── eventTitle: string          ✅ 現有
 │   ├── itemsData: string (JSON)      🔄 CoreData Binary → Firestore JSON String
 │   ├── totalAmount: number           ✅ 現有
 │   ├── currency: string              ✅ 現有
@@ -401,12 +401,12 @@ firestore/
 │   └── timestamp: timestamp          ✅ 現有（記錄建立時間）
 │   # 📝 items 在 CoreData 是 [SummaryItemModel]，存為 itemsData Binary
 │   # 📝 業務規則：Transaction 為 create-only（不可更新、不可刪除）
-│   # 📝 Firestore Rules 允許 delete 是因為 Cascade Delete（刪 Session 時連帶刪除）
+│   # 📝 Firestore Rules 允許 delete 是因為 Cascade Delete（刪 Event 時連帶刪除）
 │
 ├── inventoryChanges/{changeId}       # 庫存異動
 │   ├── id: string (UUID)             ✅ 現有
 │   ├── userId: string                🆕 新增
-│   ├── sessionId: string             🆕 新增（CoreData 用 relationship，Firestore 用 ID）
+│   ├── eventId: string             🆕 新增（CoreData 用 relationship，Firestore 用 ID）
 │   ├── productId: string             ✅ 現有
 │   ├── change: number                ✅ 現有
 │   ├── reason: string                ✅ 現有
@@ -429,13 +429,13 @@ firestore/
 
 | Model 屬性 | CoreData 存儲 | Firestore 存儲 | 說明 |
 |-----------|--------------|----------------|------|
-| Session.categories | relationship | 獨立 collection | Firestore 無 relationship，用 sessionId 關聯 |
-| Session.discounts | `discountsData: Binary` | `discountsData: JSON String` | 同步時轉換格式 |
+| Event.categories | relationship | 獨立 collection | Firestore 無 relationship，用 eventId 關聯 |
+| Event.discounts | `discountsData: Binary` | `discountsData: JSON String` | 同步時轉換格式 |
 | Category.products | relationship | 獨立 collection | Firestore 無 relationship，用 categoryId 關聯 |
-| Category.session | relationship | `sessionId: String` | 新增冗餘欄位 |
+| Category.event | relationship | `eventId: String` | 新增冗餘欄位 |
 | Transaction.items | `itemsData: Binary` | `itemsData: JSON String` | 同步時轉換格式 |
 | Product.imageData | Binary | 不上傳 | 改用 imageURL 指向 Storage |
-| InventoryChange.session | relationship | `sessionId: String` | 新增冗餘欄位 |
+| InventoryChange.event | relationship | `eventId: String` | 新增冗餘欄位 |
 | QRCode.imageData | Binary | 不上傳 | 改用 imageURL 指向 Storage |
 | **Decimal 金額** | `Decimal` | `Integer（分）` | 乘 100 存整數，避免浮點精度問題 |
 
@@ -499,7 +499,7 @@ service cloud.firestore {
     // 共用邏輯：只能存取自己的資料（userId 欄位 == auth uid）
     // get 使用 isOwnerOrDeleted() 以支援 HybridSyncListener 偵測已刪除的文件
 
-    match /sessions/{docId} {
+    match /events/{docId} {
       allow get: if isOwnerOrDeleted();
       allow list: if isOwner();
       allow create: if isOwnerWrite();
@@ -549,7 +549,7 @@ service cloud.firestore {
 
 > **設計重點**：
 > - `isOwnerOrDeleted()` 允許 get 已刪除的文件（`resource == null`），讓 HybridSyncListener 可以偵測到文件已被其他裝置刪除
-> - 所有 Entity Collection 都允許 delete，因為 Cascade Delete（刪 Session 連帶刪 Transaction/InventoryChange）需要此權限
+> - 所有 Entity Collection 都允許 delete，因為 Cascade Delete（刪 Event 連帶刪 Transaction/InventoryChange）需要此權限
 > - 業務層面的 create-only / create+delete 限制由 App 端控制，不在 Firestore Rules 層面限制
 
 ### Firebase Storage 結構
@@ -579,11 +579,11 @@ Firestore 單欄位查詢會自動建立索引，但**複合查詢**（多欄位
 
 | Collection | 索引欄位 | 用途 |
 |------------|---------|------|
-| categories | `userId` (ASC) + `sessionId` (ASC) | 取得某場次的所有類別 |
-| products | `userId` (ASC) + `sessionId` (ASC) | 取得某場次的所有產品 |
+| categories | `userId` (ASC) + `eventId` (ASC) | 取得某場次的所有類別 |
+| products | `userId` (ASC) + `eventId` (ASC) | 取得某場次的所有產品 |
 | products | `userId` (ASC) + `categoryId` (ASC) | 取得某類別的所有產品 |
-| transactions | `userId` (ASC) + `sessionId` (ASC) + `timestamp` (DESC) | 取得某場次的交易記錄（按時間排序）|
-| inventoryChanges | `userId` (ASC) + `sessionId` (ASC) + `timestamp` (DESC) | 取得某場次的庫存異動 |
+| transactions | `userId` (ASC) + `eventId` (ASC) + `timestamp` (DESC) | 取得某場次的交易記錄（按時間排序）|
+| inventoryChanges | `userId` (ASC) + `eventId` (ASC) + `timestamp` (DESC) | 取得某場次的庫存異動 |
 | inventoryChanges | `userId` (ASC) + `productId` (ASC) + `timestamp` (DESC) | 取得某產品的庫存異動 |
 
 ### firestore.indexes.json
@@ -596,7 +596,7 @@ Firestore 單欄位查詢會自動建立索引，但**複合查詢**（多欄位
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "sessionId", "order": "ASCENDING" }
+        { "fieldPath": "eventId", "order": "ASCENDING" }
       ]
     },
     {
@@ -604,7 +604,7 @@ Firestore 單欄位查詢會自動建立索引，但**複合查詢**（多欄位
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "sessionId", "order": "ASCENDING" }
+        { "fieldPath": "eventId", "order": "ASCENDING" }
       ]
     },
     {
@@ -620,7 +620,7 @@ Firestore 單欄位查詢會自動建立索引，但**複合查詢**（多欄位
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "sessionId", "order": "ASCENDING" },
+        { "fieldPath": "eventId", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
@@ -629,7 +629,7 @@ Firestore 單欄位查詢會自動建立索引，但**複合查詢**（多欄位
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "sessionId", "order": "ASCENDING" },
+        { "fieldPath": "eventId", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
@@ -801,7 +801,7 @@ extension QRCodeModel {
 
 | Model | Extension 方法 | 狀態 |
 |-------|---------------|------|
-| SessionModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
+| EventModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
 | CategoryModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
 | ProductModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
 | TransactionModel | `toFirestoreData()` / `init?(from:)` | ✅ 已完成 |
@@ -816,28 +816,28 @@ extension QRCodeModel {
 
 ### 設計說明
 
-#### 為什麼需要 sessionId 冗餘欄位？
+#### 為什麼需要 eventId 冗餘欄位？
 
 Firestore 是 NoSQL 文件資料庫，沒有關聯式資料庫的 relationship 概念：
 
 ```
 CoreData (關聯式):
 ┌─────────────┐         ┌─────────────┐
-│   Session   │◄────────│  Category   │
+│   Event   │◄────────│  Category   │
 │             │ 1    N  │             │
 └─────────────┘         └─────────────┘
       透過 relationship 連結
 
 Firestore (文件式):
-sessions/abc123          categories/xyz789
+events/abc123          categories/xyz789
 ┌─────────────┐         ┌─────────────────┐
 │ id: abc123  │         │ id: xyz789      │
-│ title: "..."│         │ sessionId: abc123 │ ← 必須用 ID 綁定
+│ title: "..."│         │ eventId: abc123 │ ← 必須用 ID 綁定
 └─────────────┘         └─────────────────┘
       沒有 relationship，用欄位值查詢
 ```
 
-**決策：Category 和 InventoryChange 加冗餘的 sessionId 屬性**
+**決策：Category 和 InventoryChange 加冗餘的 eventId 屬性**
 - 查詢快、程式碼簡單
 - CoreData 和 Firestore 結構一致
 - UUID 只佔 16 bytes，成本極低
@@ -858,7 +858,7 @@ sessions/abc123          categories/xyz789
 
 ```swift
 // 同步到 Firestore 時轉換
-if let discountsData = session.discountsData,
+if let discountsData = event.discountsData,
    let jsonString = String(data: discountsData, encoding: .utf8) {
     data["discountsData"] = jsonString
 }
@@ -866,13 +866,13 @@ if let discountsData = session.discountsData,
 // 從 Firestore 下載時轉換回 Binary
 if let jsonString = doc.get("discountsData") as? String,
    let data = jsonString.data(using: .utf8) {
-    cdSession.discountsData = data
+    cdEvent.discountsData = data
 }
 ```
 
 ### 需要新增的欄位
 
-#### CDSessionEntity
+#### CDEventEntity
 ```swift
 // 新增欄位
 attribute userId: String              // 所屬用戶 ID
@@ -884,7 +884,7 @@ attribute syncStatus: String          // "synced" | "pending" | "error"
 ```swift
 // 新增欄位
 attribute userId: String
-attribute sessionId: UUID             // 冗餘欄位，給 Firestore 用（保留 relationship）
+attribute eventId: UUID             // 冗餘欄位，給 Firestore 用（保留 relationship）
 attribute updatedAt: Date
 attribute syncStatus: String
 ```
@@ -913,7 +913,7 @@ attribute syncStatus: String
 ```swift
 // 新增欄位
 attribute userId: String
-attribute sessionId: UUID             // 冗餘欄位，給 Firestore 用（保留 relationship）
+attribute eventId: UUID             // 冗餘欄位，給 Firestore 用（保留 relationship）
 attribute syncStatus: String
 // 不需要 createdAt（使用現有的 timestamp）
 ```
@@ -935,7 +935,7 @@ attribute imageURL: String?           // Firebase Storage URL
 ```swift
 entity CDPendingSyncOperation {
     attribute id: UUID
-    attribute entityType: String      // "session" | "category" | "product" | ...
+    attribute entityType: String      // "event" | "category" | "product" | ...
     attribute entityId: UUID
     attribute operationType: String   // "create" | "update" | "delete"
     attribute payload: Binary?        // JSON encoded data
@@ -997,7 +997,7 @@ syncStatus =           等待網路恢復
 | 欄位 | 類型 | 說明 | 範例 |
 |------|------|------|------|
 | `id` | UUID | 操作的唯一識別碼 | `550e8400-e29b-41d4-a716-446655440000` |
-| `entityType` | String | 操作的實體類型 | `"session"`, `"product"`, `"category"` |
+| `entityType` | String | 操作的實體類型 | `"event"`, `"product"`, `"category"` |
 | `entityId` | UUID | 被操作的實體 ID | 產品的 UUID |
 | `operationType` | String | CRUD 操作類型 | `"create"`, `"update"`, `"delete"` |
 | `payload` | Binary? | 操作的資料內容 (JSON) | `{"name": "新商品", "price": 100}` |
@@ -1381,7 +1381,7 @@ enum ImageType {
 ```
 firestore/
 ├── products/{productId}              // 完整資料（不監聽）
-├── sessions/{sessionId}              // 完整資料（不監聯）
+├── events/{eventId}              // 完整資料（不監聯）
 ├── categories/{categoryId}           // 完整資料（不監聽）
 ├── transactions/{transactionId}      // 完整資料（不監聽）
 └── users/{userId}/
@@ -1392,7 +1392,7 @@ firestore/
               "lastUpdate": timestamp,
               "pendingChanges": {
                 "products": ["id1", "id2"],
-                "sessions": ["id3"],
+                "events": ["id3"],
                 "categories": [],
                 "transactions": ["id4"]
               }
@@ -1503,13 +1503,13 @@ class HybridSyncListener {
             await downloadAllProducts()
         }
 
-        // Sessions（同樣邏輯）
-        if let sessionIds = pendingChanges["sessions"], !sessionIds.isEmpty {
-            for id in sessionIds {
-                await downloadSession(id: id)
+        // Events（同樣邏輯）
+        if let eventIds = pendingChanges["events"], !eventIds.isEmpty {
+            for id in eventIds {
+                await downloadEvent(id: id)
             }
         } else if cloudVersion > localVersion {
-            await downloadAllSessions()
+            await downloadAllEvents()
         }
 
         // Categories、Transactions... 同樣邏輯
@@ -1531,7 +1531,7 @@ class HybridSyncListener {
         try? await syncStateRef.updateData([
             "pendingChanges": [
                 "products": [],
-                "sessions": [],
+                "events": [],
                 "categories": [],
                 "transactions": []
             ]
@@ -1560,7 +1560,7 @@ func initializeSyncState(userId: String) async throws {
             "lastUpdate": FieldValue.serverTimestamp(),
             "pendingChanges": [
                 "products": [],
-                "sessions": [],
+                "events": [],
                 "categories": [],
                 "transactions": []
             ]
@@ -1618,7 +1618,7 @@ func handleRemoteChange<T: NSManagedObject>(
 
 ### Cascade Delete 策略
 
-#### Session 刪除時的連鎖處理
+#### Event 刪除時的連鎖處理
 
 | Entity | 處理方式 | 原因 |
 |--------|---------|------|
@@ -1650,36 +1650,36 @@ func handleRemoteChange<T: NSManagedObject>(
 - **有 Transaction** → 只停用（`isDisabled = true`），不硬刪除
 - **無 Transaction** → 硬刪除產品 + 連帶刪除 InventoryChanges
 
-### Session 刪除實作
+### Event 刪除實作
 
-由 `FirestoreUploader.deleteSessionWithChildren()` 處理 Firestore 端的 cascade delete：
+由 `FirestoreUploader.deleteEventWithChildren()` 處理 Firestore 端的 cascade delete：
 
 ```swift
 // FirestoreUploader（實際實作摘要）
-func deleteSessionWithChildren(_ sessionId: UUID) async throws {
-    let sessionIdStr = sessionId.uuidString
+func deleteEventWithChildren(_ eventId: UUID) async throws {
+    let eventIdStr = eventId.uuidString
     guard let userId = currentUserId else { throw SyncError.authenticationRequired }
 
     // 1. 查詢所有子文件
     let categories = try await db.collection("categories")
         .whereField("userId", isEqualTo: userId)
-        .whereField("sessionId", isEqualTo: sessionIdStr)
+        .whereField("eventId", isEqualTo: eventIdStr)
         .getDocuments()
 
     let products = try await db.collection("products")
         .whereField("userId", isEqualTo: userId)
-        .whereField("sessionId", isEqualTo: sessionIdStr)
+        .whereField("eventId", isEqualTo: eventIdStr)
         .getDocuments()
 
     let inventoryChanges = try await db.collection("inventoryChanges")
         .whereField("userId", isEqualTo: userId)
-        .whereField("sessionId", isEqualTo: sessionIdStr)
+        .whereField("eventId", isEqualTo: eventIdStr)
         .getDocuments()
 
     // ⚠️ Transactions 不刪除，保留歷史記錄
 
     // 2. 收集所有被刪除的 ID
-    var allDeletedIds: [String] = [sessionIdStr]
+    var allDeletedIds: [String] = [eventIdStr]
     // ... 收集 category, product, inventoryChange IDs
 
     // 3. 批次刪除（自動分批處理 Firestore 500 筆限制）
@@ -1687,7 +1687,7 @@ func deleteSessionWithChildren(_ sessionId: UUID) async throws {
 }
 ```
 
-> **本地端**：CoreData 的 cascade relationship 會自動處理 Session → Category → Product 的連鎖刪除。InventoryChange 因為透過 relationship 連結到 Session，也會被 cascade 刪除。
+> **本地端**：CoreData 的 cascade relationship 會自動處理 Event → Category → Product 的連鎖刪除。InventoryChange 因為透過 relationship 連結到 Event，也會被 cascade 刪除。
 
 ### 大量資料的分批刪除
 
@@ -1722,13 +1722,13 @@ Firestore Batch Write 是**原子操作**，多個寫入要嘛全部成功，要
 
 ```swift
 // 沒有 Batch（可能部分成功，導致資料不一致）
-try await db.collection("sessions").document(id).setData(sessionData)  // ✅ 成功
+try await db.collection("events").document(id).setData(eventData)  // ✅ 成功
 try await db.collection("categories").document(id).setData(catData)    // ❌ 失敗
-// 結果：Session 存在，但 Category 沒有
+// 結果：Event 存在，但 Category 沒有
 
 // 使用 Batch（原子操作）
 let batch = db.batch()
-batch.setData(sessionData, forDocument: db.collection("sessions").document(id))
+batch.setData(eventData, forDocument: db.collection("events").document(id))
 batch.setData(catData, forDocument: db.collection("categories").document(id))
 try await batch.commit()  // 全部成功或全部失敗
 ```
@@ -1736,18 +1736,18 @@ try await batch.commit()  // 全部成功或全部失敗
 #### Parent-First 同步實作
 
 ```swift
-func syncNewSession(_ session: SessionModel) async throws {
+func syncNewEvent(_ event: EventModel) async throws {
     let batch = db.batch()
 
-    // 1. Parent: Session
-    let sessionRef = db.collection("sessions").document(session.id.uuidString)
-    batch.setData(session.toFirestoreData(), forDocument: sessionRef)
+    // 1. Parent: Event
+    let eventRef = db.collection("events").document(event.id.uuidString)
+    batch.setData(event.toFirestoreData(), forDocument: eventRef)
 
     // 2. Children: Categories
-    for category in session.categories {
+    for category in event.categories {
         let catRef = db.collection("categories").document(category.id.uuidString)
         var catData = category.toFirestoreData()
-        catData["sessionId"] = session.id.uuidString  // 加入關聯 ID
+        catData["eventId"] = event.id.uuidString  // 加入關聯 ID
         batch.setData(catData, forDocument: catRef)
 
         // 3. Grandchildren: Products
@@ -1761,12 +1761,12 @@ func syncNewSession(_ session: SessionModel) async throws {
     do {
         try await batch.commit()
         // 成功：更新本地 syncStatus
-        updateLocalSyncStatus(session, status: .synced)
+        updateLocalSyncStatus(event, status: .synced)
     } catch {
         // 失敗：加入佇列重試
         enqueuePendingOperation(
-            entityType: "session",
-            entityId: session.id,
+            entityType: "event",
+            entityId: event.id,
             operationType: "create"
         )
         throw error
@@ -1803,9 +1803,9 @@ productEntity.category = categoryEntity
 
 | Repository | 方法 | 設定 userId 的 Entity |
 |------------|------|----------------------|
-| SessionRepository | addSession() | Session, Category, Product |
-| SessionRepository | addTransaction() | Transaction |
-| SessionRepository | duplicateSession() | Session, Category, Product, InventoryChange |
+| EventRepository | addEvent() | Event, Category, Product |
+| EventRepository | addTransaction() | Transaction |
+| EventRepository | duplicateEvent() | Event, Category, Product, InventoryChange |
 | ProductRepository | addProduct() | Product |
 | InventoryChangeRepository | addChange() | InventoryChange |
 | InventoryChangeRepository | addChanges() | InventoryChange (batch) |
@@ -2010,7 +2010,7 @@ func saveProduct(_ product: ProductModel) async {
 
 - [x] **1.2 CoreData Schema 更新**（App 尚未上架，無需 Migration 腳本）
   - [x] 新增 `userId`, `updatedAt`, `syncStatus` 欄位到所有 Entity
-  - [x] 新增 `sessionId` 欄位到 Category 和 InventoryChange（Firestore 同步用）
+  - [x] 新增 `eventId` 欄位到 Category 和 InventoryChange（Firestore 同步用）
   - [x] 新增 `imageURL` 欄位到 Product 和 QRCode
   - [x] 新增 `createdAt` 欄位到 Product
   - [x] 新增 `CDPendingSyncOperation` Entity
@@ -2032,13 +2032,13 @@ func saveProduct(_ product: ProductModel) async {
 
 - [x] **2.1 資料上傳服務**
   - [x] `FirestoreUploader` - 上傳資料到 Firestore
-  - [x] Session 上傳（單一 + 批次 + Batch Write）
+  - [x] Event 上傳（單一 + 批次 + Batch Write）
   - [x] Category 上傳（單一 + 批次）
   - [x] Product 上傳（單一 + 批次）
   - [x] Transaction 上傳（單一 + 批次）
   - [x] InventoryChange 上傳（單一 + 批次）
   - [x] QRCode 上傳（單一）
-  - [x] Update 功能（Session, Category, Product, QRCode）
+  - [x] Update 功能（Event, Category, Product, QRCode）
   - [x] Delete 功能（所有 Entity + Cascade Delete）
   - [x] **Hybrid Listener 整合**
     - [x] `initializeSyncState()` - 初始化 syncState 文件
@@ -2063,7 +2063,7 @@ func saveProduct(_ product: ProductModel) async {
   - [x] 重試機制（syncWithRetry）
 
 - [x] **2.4 整合到現有 Repository**
-  - [x] `SessionRepository` 整合同步
+  - [x] `EventRepository` 整合同步
   - [x] `ProductRepository` 整合同步
   - [x] `TransactionRepository` 整合同步
   - [x] `InventoryChangeRepository` 整合同步
@@ -2073,7 +2073,7 @@ func saveProduct(_ product: ProductModel) async {
 
 - [x] **3.1 資料下載服務**
   - [x] `FirestoreDownloader` - 從 Firestore 下載資料
-  - [x] Session 下載並寫入 CoreData
+  - [x] Event 下載並寫入 CoreData
   - [x] Category 下載
   - [x] Product 下載
   - [x] Transaction 下載
@@ -2103,7 +2103,7 @@ func saveProduct(_ product: ProductModel) async {
 #### 實作步驟
 
 - [x] **4.1 SyncManager 新增登入流程方法** ✅（已完成）
-  - [x] `hasLocalData() -> Bool` — 檢查本地是否有資料（Session count > 0）
+  - [x] `hasLocalData() -> Bool` — 檢查本地是否有資料（Event count > 0）
   - [x] `hasCloudData(userId:) -> Bool` — 檢查 Firestore 是否有該 userId 的資料
   - [x] `updateAllUserIds(from:to:)` — 批次更新所有 Entity 的 userId
   - [x] `fullUploadAllData()` — 全量上傳所有本地資料到 Firestore
@@ -2354,9 +2354,9 @@ struct SyncStatusIndicator: View {
 
 | 場景 | 預期結果 |
 |------|----------|
-| 新增 Session | 即時同步到雲端 |
-| 修改 Session | 即時同步到雲端 |
-| 刪除 Session | 雲端同步刪除 |
+| 新增 Event | 即時同步到雲端 |
+| 修改 Event | 即時同步到雲端 |
+| 刪除 Event | 雲端同步刪除 |
 | 離線新增 | 上線後自動同步 |
 | 離線修改 | 上線後自動同步 |
 | 其他裝置新增 | 本地即時更新 |
@@ -2400,7 +2400,7 @@ struct SyncStatusIndicator: View {
 Tilli/
 ├── Model/
 │   └── Domain/
-│       ├── SessionModel.swift             # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
+│       ├── EventModel.swift             # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
 │       ├── CategoryModel.swift            # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
 │       ├── ProductModel.swift             # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
 │       ├── TransactionModel.swift         # ✅ Firestore Extension 在 ModelFirestoreExtensions.swift
@@ -2412,7 +2412,7 @@ Tilli/
 │   ├── CoreData/
 │   │   └── Tilli.xcdatamodeld             # ✅ 已更新 Schema
 │   ├── Repositories/
-│   │   ├── SessionRepository.swift        # ✅ 已整合同步
+│   │   ├── EventRepository.swift        # ✅ 已整合同步
 │   │   ├── ProductRepository.swift        # ✅ 已整合同步
 │   │   ├── InventoryChangeRepository.swift # ✅ 已整合同步
 │   │   └── AuthenticationManager.swift    # ✅ 現有，Phase 4 將修改
@@ -2449,11 +2449,11 @@ Tilli/
 
 | Entity | 新增欄位 | 說明 |
 |--------|---------|------|
-| **CDSessionEntity** | `userId: String` | 所屬用戶 ID |
+| **CDEventEntity** | `userId: String` | 所屬用戶 ID |
 | | `updatedAt: Date` | 最後更新時間 |
 | | `syncStatus: String` | synced / pending / error |
 | **CDCategoryEntity** | `userId: String` | 所屬用戶 ID |
-| | `sessionId: UUID` | 冗餘欄位（Firestore 用）|
+| | `eventId: UUID` | 冗餘欄位（Firestore 用）|
 | | `updatedAt: Date` | 最後更新時間 |
 | | `syncStatus: String` | synced / pending / error |
 | **CDProductEntity** | `userId: String` | 所屬用戶 ID |
@@ -2464,7 +2464,7 @@ Tilli/
 | **CDTransactionEntity** | `userId: String` | 所屬用戶 ID |
 | | `syncStatus: String` | synced / pending / error |
 | **CDInventoryChangeEntity** | `userId: String` | 所屬用戶 ID |
-| | `sessionId: UUID` | 冗餘欄位（Firestore 用）|
+| | `eventId: UUID` | 冗餘欄位（Firestore 用）|
 | | `syncStatus: String` | synced / pending / error |
 | **CDQRCodeEntity** | `userId: String` | 所屬用戶 ID |
 | | `updatedAt: Date` | 最後更新時間 |
@@ -2476,7 +2476,7 @@ Tilli/
 
 | Entity | 欄位 | 說明 |
 |--------|------|------|
-| CDSessionEntity | `discountsData: Binary` | 維持 Binary，同步時轉 JSON String |
+| CDEventEntity | `discountsData: Binary` | 維持 Binary，同步時轉 JSON String |
 | CDTransactionEntity | `itemsData: Binary` | 維持 Binary，同步時轉 JSON String |
 | CDTransactionEntity | `timestamp: Date` | 用作建立時間，不需額外 createdAt |
 | CDTransactionEntity | `occurredAt: Date?` | 補記帳時間，不影響離線同步 |

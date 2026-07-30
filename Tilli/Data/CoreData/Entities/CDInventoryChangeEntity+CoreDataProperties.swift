@@ -21,11 +21,11 @@ extension CDInventoryChangeEntity {
     @NSManaged public var customReason: String?
     @NSManaged public var transactionId: UUID?
     @NSManaged public var timestamp: Date
-    @NSManaged public var session: CDSessionEntity?
+    @NSManaged public var event: CDEventEntity?
 
     // MARK: - Sync 相關欄位
     @NSManaged public var userId: String?        // 所屬用戶 ID
-    @NSManaged public var sessionId: UUID?       // Firestore 同步用
+    @NSManaged public var eventId: UUID?       // Firestore 同步用
     @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
 }
 
@@ -39,7 +39,7 @@ extension CDInventoryChangeEntity {
         self.customReason = model.customReason
         self.transactionId = model.transactionId
         self.timestamp = model.timestamp
-        self.sessionId = model.sessionId
+        self.eventId = model.eventId
     }
 
     func toModel() -> InventoryChangeModel {

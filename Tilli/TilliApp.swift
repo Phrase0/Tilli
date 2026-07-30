@@ -11,7 +11,7 @@ import FirebaseCore
 @main
 struct TilliApp: App {
     @StateObject private var authenticationManager = AuthenticationManager()
-    @StateObject private var sessionDataManager = SessionRepository()
+    @StateObject private var eventDataManager = EventRepository()
     @StateObject private var transactionDataManager = TransactionRepository()
     @StateObject private var productRepository = ProductRepository()
     @StateObject private var inventoryChangeRepository = InventoryChangeRepository()
@@ -31,7 +31,7 @@ struct TilliApp: App {
                 .environment(\.locale, Locale(identifier: selectedLanguage))
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(authenticationManager)
-                .environmentObject(sessionDataManager)
+                .environmentObject(eventDataManager)
                 .environmentObject(transactionDataManager)
                 .environmentObject(productRepository)
                 .environmentObject(inventoryChangeRepository)

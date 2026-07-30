@@ -10,8 +10,8 @@ import SwiftUI
 struct EventsCalendarView: View {
 
     @ObservedObject var calendarVM: EventsCalendarViewModel
-    @EnvironmentObject var sessionDataManager: SessionRepository
-    var onSelectSession: (SessionModel) -> Void
+    @EnvironmentObject var eventDataManager: EventRepository
+    var onSelectEvent: (EventModel) -> Void
 
     private let calendar = Calendar.current
 
@@ -21,7 +21,7 @@ struct EventsCalendarView: View {
             weekHeader
             calendarGrid
             selectedDateHeader
-            calendarSessionList
+            calendarEventList
             Spacer()
         }
         .onAppear {
@@ -93,15 +93,15 @@ struct EventsCalendarView: View {
     private var calendarGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
             ForEach(calendarVM.daysInMonth(), id: \.self) { date in
-                let sessionsForDate = calendarVM.sessionsForDate(date, from: sessionDataManager.sessions)
+                let eventsForDate = calendarVM.eventsForDate(date, from: eventDataManager.events)
                 let hasTransactions = calendarVM.hasTransactions(on: date)
 
                 CalendarDayCell(
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: calendarVM.selectedDate),
                     isToday: calendar.isDateInToday(date),
-                    sessions: sessionsForDate,
-                    hasOrphanTransactions: hasTransactions && sessionsForDate.isEmpty,
+                    events: eventsForDate,
+                    hasOrphanTransactions: hasTransactions && eventsForDate.isEmpty,
                     currentMonth: calendarVM.currentDate,
                     onTap: { calendarVM.selectedDate = date }
                 )
@@ -134,32 +134,32 @@ struct EventsCalendarView: View {
         .padding(.bottom, DesignSystem.Spacing.xs)
     }
 
-    // MARK: - Session List
+    // MARK: - Event List
 
-    private var calendarSessionList: some View {
-        let (realSessions, virtualSessions) = calendarVM.getAllSessionsForDate(from: sessionDataManager.sessions)
-        let permanentSessions = calendarVM.getPermanentSessions(from: sessionDataManager.sessions)
+    private var calendarEventList: some View {
+        let (realEvents, virtualEvents) = calendarVM.getAllEventsForDate(from: eventDataManager.events)
+        let permanentEvents = calendarVM.getPermanentEvents(from: eventDataManager.events)
 
         return Group {
-            if !realSessions.isEmpty || !virtualSessions.isEmpty || !permanentSessions.isEmpty {
+            if !realEvents.isEmpty || !virtualEvents.isEmpty || !permanentEvents.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
-                        if !permanentSessions.isEmpty {
-                            ForEach(permanentSessions) { session in
-                                calendarSessionCard(session)
-                                    .onTapGesture { onSelectSession(session) }
+                        if !permanentEvents.isEmpty {
+                            ForEach(permanentEvents) { event in
+                                calendarEventCard(event)
+                                    .onTapGesture { onSelectEvent(event) }
                             }
                         }
 
-                        ForEach(realSessions) { session in
-                            calendarSessionCard(session)
-                                .onTapGesture { onSelectSession(session) }
+                        ForEach(realEvents) { event in
+                            calendarEventCard(event)
+                                .onTapGesture { onSelectEvent(event) }
                         }
 
-                        ForEach(virtualSessions) { session in
-                            calendarSessionCard(session)
+                        ForEach(virtualEvents) { event in
+                            calendarEventCard(event)
                                 .opacity(0.7)
-                                .onTapGesture { onSelectSession(session) }
+                                .onTapGesture { onSelectEvent(event) }
                         }
                     }
                     .padding(.horizontal, DesignSystem.Spacing.md)
@@ -169,10 +169,10 @@ struct EventsCalendarView: View {
         }
     }
 
-    private func calendarSessionCard(_ session: SessionModel) -> some View {
-        let summary = calendarVM.transactionSummary(for: session)
-        return SessionCardView(
-            session: session,
+    private func calendarEventCard(_ event: EventModel) -> some View {
+        let summary = calendarVM.transactionSummary(for: event)
+        return EventCardView(
+            event: event,
             style: .simple,
             transactionCount: summary.count,
             transactionTotal: summary.total
@@ -186,7 +186,7 @@ struct CalendarDayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-    let sessions: [SessionModel]
+    let events: [EventModel]
     let hasOrphanTransactions: Bool
     let currentMonth: Date
     let onTap: () -> Void
@@ -208,7 +208,7 @@ struct CalendarDayCell: View {
                         .foregroundColor(textColor)
                 }
 
-                sessionIndicators
+                eventIndicators
             }
             .frame(height: 44)
             .frame(maxWidth: .infinity)
@@ -216,20 +216,20 @@ struct CalendarDayCell: View {
         .buttonStyle(PlainButtonStyle())
     }
 
-    private var sessionIndicators: some View {
+    private var eventIndicators: some View {
         Group {
-            if !sessions.isEmpty {
+            if !events.isEmpty {
                 HStack(spacing: 2) {
-                    ForEach(sessions.prefix(3)) { session in
+                    ForEach(events.prefix(3)) { event in
                         Circle()
-                            .fill(session.status == .ongoing
+                            .fill(event.status == .ongoing
                                   ? DesignSystem.ColorToken.marketGreen
                                   : DesignSystem.ColorToken.muted)
                             .frame(width: 4, height: 4)
                     }
 
-                    if sessions.count > 3 {
-                        Text("+\(sessions.count - 3)")
+                    if events.count > 3 {
+                        Text("+\(events.count - 3)")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(DesignSystem.ColorToken.muted)
                     }

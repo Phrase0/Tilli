@@ -39,7 +39,7 @@ class HybridSyncListener {
     }
 
     /// 所有 entity type 的 key（對應 syncState.pendingChanges 中的 key）
-    private let allEntityKeys = ["sessions", "categories", "products", "transactions", "inventoryChanges", "qrCodes"]
+    private let allEntityKeys = ["events", "categories", "products", "transactions", "inventoryChanges", "qrCodes"]
 
     private init() {}
 
@@ -140,7 +140,7 @@ class HybridSyncListener {
     /// 增量同步：按 parent-first 順序處理每個 entity type 的 ID
     private func performIncrementalSync(pendingChanges: [String: [String]]) async {
         let typeOrder: [(key: String, type: SyncEntityType)] = [
-            ("sessions", .session),
+            ("events", .event),
             ("categories", .category),
             ("products", .product),
             ("transactions", .transaction),

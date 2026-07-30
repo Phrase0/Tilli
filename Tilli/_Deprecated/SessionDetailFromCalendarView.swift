@@ -9,24 +9,24 @@ import SwiftUI
 
 struct SessionDetailFromCalendarView: View {
     @StateObject private var viewModel: SessionDetailFromCalendarViewModel
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @Environment(\.dismiss) private var dismiss
 
     @State private var showingShareSheet = false
     @State private var timeRange: ReportTimeRange
 
-    init(session: Binding<SessionModel>) {
-        self._viewModel = StateObject(wrappedValue: SessionDetailFromCalendarViewModel(session: session))
+    init(event: Binding<EventModel>) {
+        self._viewModel = StateObject(wrappedValue: SessionDetailFromCalendarViewModel(event: session))
 
         // 初始化時間範圍
-        self._timeRange = State(initialValue: ReportTimeRange(session: session.wrappedValue))
+        self._timeRange = State(initialValue: ReportTimeRange(event: session.wrappedValue))
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // 時間範圍選擇器
-            ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
+            ReportTimeRangeSelector(event: viewModel.event, selectedRange: $timeRange)
                 .padding(.horizontal)
 
             // 自定義 Picker
@@ -61,21 +61,21 @@ struct SessionDetailFromCalendarView: View {
             TabView(selection: $viewModel.selectedTab) {
                 TransactionHistoryView(
                     transactionViewModel: viewModel.transactionViewModel,
-                    session: $viewModel.session,
+                    event: $viewModel.event,
                     timeRange: timeRange
                 )
                 .tag(0)
 
                 ProductPerformanceView(
                     viewModel: viewModel.productPerformanceViewModel,
-                    session: $viewModel.session,
+                    event: $viewModel.event,
                     timeRange: timeRange
                 )
                     .tag(1)
 
                 SalesAnalyticsView(
                     viewModel: viewModel.salesAnalyticsViewModel,
-                    session: $viewModel.session,
+                    event: $viewModel.event,
                     timeRange: timeRange
                 )
                     .tag(2)
@@ -97,7 +97,7 @@ struct SessionDetailFromCalendarView: View {
 
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 2) {
-                    Text(viewModel.session.title)
+                    Text(viewModel.event.title)
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -110,7 +110,7 @@ struct SessionDetailFromCalendarView: View {
         .onAppear {
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
-                sessionDataManager: sessionDataManager
+                eventDataManager: eventDataManager
             )
             // 使用當前的時間範圍載入資料
             viewModel.transactionViewModel.loadData(timeRange: timeRange)
@@ -229,7 +229,7 @@ struct SessionDetailFromCalendarView: View {
                 }
 
                 // 永久場次才顯示月營收趨勢
-                if viewModel.session.dateType == .permanent {
+                if viewModel.event.dateType == .permanent {
                     Button {
                         viewModel.prepareExport(type: .monthlyRevenueTrend)
                         showingShareSheet = true

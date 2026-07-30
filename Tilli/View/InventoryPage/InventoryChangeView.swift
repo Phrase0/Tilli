@@ -12,22 +12,22 @@ struct InventoryChangeView: View {
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
-    @EnvironmentObject var sessionDataManager: SessionRepository
+    @EnvironmentObject var eventDataManager: EventRepository
     @Environment(\.dismiss) private var dismiss
 
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
     @State private var showShareSheet = false
 
-    init(session: SessionModel) {
-        self._viewModel = StateObject(wrappedValue: InventoryChangeViewModel(session: session))
-        self._timeRange = State(initialValue: ReportTimeRange(session: session))
+    init(event: EventModel) {
+        self._viewModel = StateObject(wrappedValue: InventoryChangeViewModel(event: event))
+        self._timeRange = State(initialValue: ReportTimeRange(event: event))
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // 時間範圍選擇器
-            ReportTimeRangeSelector(session: viewModel.session, selectedRange: $timeRange)
+            ReportTimeRangeSelector(event: viewModel.event, selectedRange: $timeRange)
                 .padding(.horizontal)
             // 商品列表（按類別分組）
             productList
@@ -45,7 +45,7 @@ struct InventoryChangeView: View {
             }
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 2) {
-                    Text(viewModel.session.title)
+                    Text(viewModel.event.title)
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -120,10 +120,10 @@ struct InventoryChangeView: View {
                 viewModel.selectedTimeRange = timeRange
             }
         }
-        .onChange(of: sessionDataManager.sessions) {
+        .onChange(of: eventDataManager.events) {
             // 檢查當前場次是否還存在，若已被刪除則返回上一頁
-            let sessionExists = sessionDataManager.sessions.contains { $0.id == viewModel.session.id }
-            if !sessionExists {
+            let eventExists = eventDataManager.events.contains { $0.id == viewModel.event.id }
+            if !eventExists {
                 dismiss()
             }
         }

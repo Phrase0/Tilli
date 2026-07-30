@@ -34,7 +34,7 @@ class FirestoreUploader {
     // MARK: - Collection Names
 
     private enum Collection {
-        static let sessions = "sessions"
+        static let events = "events"
         static let categories = "categories"
         static let products = "products"
         static let transactions = "transactions"
@@ -44,7 +44,7 @@ class FirestoreUploader {
 
     /// syncState 中 pendingChanges 的 key
     private enum SyncStateKey: String {
-        case sessions
+        case events
         case categories
         case products
         case transactions
@@ -83,7 +83,7 @@ class FirestoreUploader {
                 "version": 0,
                 "lastUpdate": FieldValue.serverTimestamp(),
                 "pendingChanges": [
-                    SyncStateKey.sessions.rawValue: [],
+                    SyncStateKey.events.rawValue: [],
                     SyncStateKey.categories.rawValue: [],
                     SyncStateKey.products.rawValue: [],
                     SyncStateKey.transactions.rawValue: [],
@@ -129,8 +129,8 @@ class FirestoreUploader {
 
     // MARK: - Single Entity Upload
 
-    /// 上傳 Session
-    func uploadSession(_ session: SessionModel) async throws {
+    /// 上傳 Event
+    func uploadEvent(_ event: EventModel) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -138,28 +138,28 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 上傳資料
-        let sessionRef = userCollection(Collection.sessions, userId: userId).document(session.id.uuidString)
-        let data = session.toFirestoreData(userId: userId)
-        batch.setData(data, forDocument: sessionRef)
+        let eventRef = userCollection(Collection.events, userId: userId).document(event.id.uuidString)
+        let data = event.toFirestoreData(userId: userId)
+        batch.setData(data, forDocument: eventRef)
 
         // 2. 更新 syncState
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
             "lastUpdate": FieldValue.serverTimestamp(),
-            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([session.id.uuidString])
+            "pendingChanges.\(SyncStateKey.events.rawValue)": FieldValue.arrayUnion([event.id.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
 
         // 3. 檢查是否超過上限
         Task {
-            await trimPendingChangesIfNeeded(userId: userId, entityType: .sessions)
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .events)
         }
     }
 
     /// 上傳 Category
-    func uploadCategory(_ category: CategoryModel, sessionId: UUID) async throws {
+    func uploadCategory(_ category: CategoryModel, eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -168,7 +168,7 @@ class FirestoreUploader {
 
         // 1. 上傳資料
         let categoryRef = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
-        let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
+        let data = category.toFirestoreData(userId: userId, eventId: eventId)
         batch.setData(data, forDocument: categoryRef)
 
         // 2. 更新 syncState
@@ -251,7 +251,7 @@ class FirestoreUploader {
     }
 
     /// 上傳 InventoryChange
-    func uploadInventoryChange(_ change: InventoryChangeModel, sessionId: UUID) async throws {
+    func uploadInventoryChange(_ change: InventoryChangeModel, eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -260,7 +260,7 @@ class FirestoreUploader {
 
         // 1. 上傳資料
         let changeRef = userCollection(Collection.inventoryChanges, userId: userId).document(change.id.uuidString)
-        let data = change.toFirestoreData(userId: userId, sessionId: sessionId)
+        let data = change.toFirestoreData(userId: userId, eventId: eventId)
         batch.setData(data, forDocument: changeRef)
 
         // 2. 更新 syncState
@@ -316,8 +316,8 @@ class FirestoreUploader {
 
     // MARK: - Update Entity
 
-    /// 更新 Session
-    func updateSession(_ session: SessionModel) async throws {
+    /// 更新 Event
+    func updateEvent(_ event: EventModel) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -325,27 +325,27 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 更新資料
-        let sessionRef = userCollection(Collection.sessions, userId: userId).document(session.id.uuidString)
-        let data = session.toFirestoreData(userId: userId)
-        batch.updateData(data, forDocument: sessionRef)
+        let eventRef = userCollection(Collection.events, userId: userId).document(event.id.uuidString)
+        let data = event.toFirestoreData(userId: userId)
+        batch.updateData(data, forDocument: eventRef)
 
         // 2. 更新 syncState
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
             "lastUpdate": FieldValue.serverTimestamp(),
-            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([session.id.uuidString])
+            "pendingChanges.\(SyncStateKey.events.rawValue)": FieldValue.arrayUnion([event.id.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
 
         Task {
-            await trimPendingChangesIfNeeded(userId: userId, entityType: .sessions)
+            await trimPendingChangesIfNeeded(userId: userId, entityType: .events)
         }
     }
 
     /// 更新 Category
-    func updateCategory(_ category: CategoryModel, sessionId: UUID) async throws {
+    func updateCategory(_ category: CategoryModel, eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -354,7 +354,7 @@ class FirestoreUploader {
 
         // 1. 更新資料
         let categoryRef = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
-        let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
+        let data = category.toFirestoreData(userId: userId, eventId: eventId)
         batch.updateData(data, forDocument: categoryRef)
 
         // 2. 更新 syncState
@@ -408,8 +408,8 @@ class FirestoreUploader {
 
     // MARK: - Delete Entity
 
-    /// 刪除 Session
-    func deleteSession(_ sessionId: UUID) async throws {
+    /// 刪除 Event
+    func deleteEvent(_ eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -417,15 +417,15 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 1. 刪除資料
-        let sessionRef = userCollection(Collection.sessions, userId: userId).document(sessionId.uuidString)
-        batch.deleteDocument(sessionRef)
+        let eventRef = userCollection(Collection.events, userId: userId).document(eventId.uuidString)
+        batch.deleteDocument(eventRef)
 
         // 2. 更新 syncState（version +1，加入 pendingChanges 供 Listener 增量偵測刪除）
         let syncRef = syncStateRef(userId: userId)
         batch.updateData([
             "version": FieldValue.increment(Int64(1)),
             "lastUpdate": FieldValue.serverTimestamp(),
-            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([sessionId.uuidString])
+            "pendingChanges.\(SyncStateKey.events.rawValue)": FieldValue.arrayUnion([eventId.uuidString])
         ], forDocument: syncRef)
 
         try await batch.commit()
@@ -565,9 +565,9 @@ class FirestoreUploader {
 
     // MARK: - Batch Upload (Parent-First)
 
-    /// 批次上傳完整 Session（包含 Categories 和 Products）
+    /// 批次上傳完整 Event（包含 Categories 和 Products）
     /// 使用 Batch Write 確保原子性，Parent-First 順序
-    func uploadSessionWithChildren(_ session: SessionModel) async throws {
+    func uploadEventWithChildren(_ event: EventModel) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -575,19 +575,19 @@ class FirestoreUploader {
         let batch = db.batch()
 
         // 收集所有 ID 用於更新 syncState
-        let sessionIds: [String] = [session.id.uuidString]
+        let eventIds: [String] = [event.id.uuidString]
         var categoryIds: [String] = []
         var productIds: [String] = []
 
-        // 1. Parent: Session
-        let sessionRef = userCollection(Collection.sessions, userId: userId).document(session.id.uuidString)
-        let sessionData = session.toFirestoreData(userId: userId)
-        batch.setData(sessionData, forDocument: sessionRef)
+        // 1. Parent: Event
+        let eventRef = userCollection(Collection.events, userId: userId).document(event.id.uuidString)
+        let eventData = event.toFirestoreData(userId: userId)
+        batch.setData(eventData, forDocument: eventRef)
 
         // 2. Children: Categories
-        for category in session.categories {
+        for category in event.categories {
             let categoryRef = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
-            let categoryData = category.toFirestoreData(userId: userId, sessionId: session.id)
+            let categoryData = category.toFirestoreData(userId: userId, eventId: event.id)
             batch.setData(categoryData, forDocument: categoryRef)
             categoryIds.append(category.id.uuidString)
 
@@ -604,14 +604,14 @@ class FirestoreUploader {
         let syncRef = syncStateRef(userId: userId)
 
         // 計算總變更數，決定是否清空 pendingChanges
-        let totalChanges = sessionIds.count + categoryIds.count + productIds.count
+        let totalChanges = eventIds.count + categoryIds.count + productIds.count
 
         if totalChanges > pendingChangesLimit {
             // 變更太多，只增加 version（觸發全量同步）
             batch.updateData([
                 "version": FieldValue.increment(Int64(1)),
                 "lastUpdate": FieldValue.serverTimestamp(),
-                "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.delete(),
+                "pendingChanges.\(SyncStateKey.events.rawValue)": FieldValue.delete(),
                 "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.delete(),
                 "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.delete()
             ], forDocument: syncRef)
@@ -620,7 +620,7 @@ class FirestoreUploader {
             batch.updateData([
                 "version": FieldValue.increment(Int64(1)),
                 "lastUpdate": FieldValue.serverTimestamp(),
-                "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion(sessionIds),
+                "pendingChanges.\(SyncStateKey.events.rawValue)": FieldValue.arrayUnion(eventIds),
                 "pendingChanges.\(SyncStateKey.categories.rawValue)": FieldValue.arrayUnion(categoryIds),
                 "pendingChanges.\(SyncStateKey.products.rawValue)": FieldValue.arrayUnion(productIds)
             ], forDocument: syncRef)
@@ -631,7 +631,7 @@ class FirestoreUploader {
     }
 
     /// 批次上傳多個 Categories
-    func uploadCategories(_ categories: [CategoryModel], sessionId: UUID) async throws {
+    func uploadCategories(_ categories: [CategoryModel], eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -646,7 +646,7 @@ class FirestoreUploader {
 
             for category in chunk {
                 let ref = userCollection(Collection.categories, userId: userId).document(category.id.uuidString)
-                let data = category.toFirestoreData(userId: userId, sessionId: sessionId)
+                let data = category.toFirestoreData(userId: userId, eventId: eventId)
                 batch.setData(data, forDocument: ref)
                 categoryIds.append(category.id.uuidString)
             }
@@ -748,7 +748,7 @@ class FirestoreUploader {
     }
 
     /// 批次上傳多個 InventoryChanges
-    func uploadInventoryChanges(_ changes: [InventoryChangeModel], sessionId: UUID) async throws {
+    func uploadInventoryChanges(_ changes: [InventoryChangeModel], eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
@@ -761,7 +761,7 @@ class FirestoreUploader {
 
             for change in chunk {
                 let ref = userCollection(Collection.inventoryChanges, userId: userId).document(change.id.uuidString)
-                let data = change.toFirestoreData(userId: userId, sessionId: sessionId)
+                let data = change.toFirestoreData(userId: userId, eventId: eventId)
                 batch.setData(data, forDocument: ref)
                 changeIds.append(change.id.uuidString)
             }
@@ -787,26 +787,26 @@ class FirestoreUploader {
 
     // MARK: - Cascade Delete
 
-    /// 刪除 Session 及其所有相關資料（Cascade Delete）
+    /// 刪除 Event 及其所有相關資料（Cascade Delete）
     /// - Note: Transactions 不刪除，保留歷史記錄
-    func deleteSessionWithChildren(_ sessionId: UUID) async throws {
+    func deleteEventWithChildren(_ eventId: UUID) async throws {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
 
-        let sessionIdString = sessionId.uuidString
+        let eventIdString = eventId.uuidString
 
         // 1. 查詢所有子項目（路徑已限定 userId，不需 whereField）
         let categoriesSnapshot = try await userCollection(Collection.categories, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionIdString)
+            .whereField("eventId", isEqualTo: eventIdString)
             .getDocuments()
 
         let productsSnapshot = try await userCollection(Collection.products, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionIdString)
+            .whereField("eventId", isEqualTo: eventIdString)
             .getDocuments()
 
         let changesSnapshot = try await userCollection(Collection.inventoryChanges, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionIdString)
+            .whereField("eventId", isEqualTo: eventIdString)
             .getDocuments()
 
         // 收集所有被刪除的 ID（供 pendingChanges 使用）
@@ -831,16 +831,16 @@ class FirestoreUploader {
             try await batch.commit()
         }
 
-        // 4. 刪除 Session 本身 + 統一更新 syncState（含所有被刪的 ID）
+        // 4. 刪除 Event 本身 + 統一更新 syncState（含所有被刪的 ID）
         let finalBatch = db.batch()
-        let sessionRef = userCollection(Collection.sessions, userId: userId).document(sessionIdString)
-        finalBatch.deleteDocument(sessionRef)
+        let eventRef = userCollection(Collection.events, userId: userId).document(eventIdString)
+        finalBatch.deleteDocument(eventRef)
 
         let syncRef = syncStateRef(userId: userId)
         var syncUpdate: [String: Any] = [
             "version": FieldValue.increment(Int64(1)),
             "lastUpdate": FieldValue.serverTimestamp(),
-            "pendingChanges.\(SyncStateKey.sessions.rawValue)": FieldValue.arrayUnion([sessionIdString])
+            "pendingChanges.\(SyncStateKey.events.rawValue)": FieldValue.arrayUnion([eventIdString])
         ]
 
         // 各類型：超過上限就清空（觸發全量同步），否則加入 ID
@@ -940,14 +940,14 @@ class FirestoreUploader {
 
     // MARK: - Get Product Image URLs for Deletion
 
-    /// 取得 Session 下所有產品的圖片 URL（用於刪除 Storage 圖片）
-    func getProductImageURLs(forSessionId sessionId: UUID) async throws -> [String] {
+    /// 取得 Event 下所有產品的圖片 URL（用於刪除 Storage 圖片）
+    func getProductImageURLs(forEventId eventId: UUID) async throws -> [String] {
         guard let userId = currentUserId else {
             throw SyncError.authenticationRequired
         }
 
         let productsSnapshot = try await userCollection(Collection.products, userId: userId)
-            .whereField("sessionId", isEqualTo: sessionId.uuidString)
+            .whereField("eventId", isEqualTo: eventId.uuidString)
             .getDocuments()
 
         return productsSnapshot.documents.compactMap { doc in

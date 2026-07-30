@@ -1,5 +1,5 @@
 //
-//  SessionDetailViewModel.swift
+//  EventDetailViewModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/7/8.
@@ -9,25 +9,25 @@ import SwiftUI
 import Foundation
 import Combine
 
-class SessionDetailViewModel: ObservableObject {
+class EventDetailViewModel: ObservableObject {
 
     @Published var productViewModel: ProductViewModel
     @Published var transactionViewModel: TransactionViewModel
-    @Published var sessionTotalAmount: Decimal = 0
+    @Published var eventTotalAmount: Decimal = 0
 
     // MARK: - Export Properties
     @Published var currentShareItems: [Any] = []
     @Published var showingExportSuccessAlert = false
 
-    @Binding var session: SessionModel
+    @Binding var event: EventModel
     private var transactionDataManager: TransactionRepository?
     private var cancellables = Set<AnyCancellable>()
 
-    init(session: Binding<SessionModel>) {
-        self._session = session
-        self.productViewModel = ProductViewModel(session: session)
-        self.transactionViewModel = TransactionViewModel(session: session)
-        self.sessionTotalAmount = 0
+    init(event: Binding<EventModel>) {
+        self._event = event
+        self.productViewModel = ProductViewModel(event: event)
+        self.transactionViewModel = TransactionViewModel(event: event)
+        self.eventTotalAmount = 0
 
         // 轉發子 ViewModel 的變化通知
         productViewModel.objectWillChange
@@ -48,14 +48,14 @@ class SessionDetailViewModel: ObservableObject {
     /// 更新 DataManager 引用給所有子 ViewModel
     func updateDataManagers(
         transactionDataManager: TransactionRepository,
-        sessionDataManager: SessionRepository,
+        eventDataManager: EventRepository,
         productRepository: ProductRepository
     ) {
         self.transactionDataManager = transactionDataManager
 
         productViewModel.updateDataManagers(
             transactionDataManager: transactionDataManager,
-            sessionDataManager: sessionDataManager,
+            eventDataManager: eventDataManager,
             productRepository: productRepository
         )
 
@@ -63,18 +63,18 @@ class SessionDetailViewModel: ObservableObject {
             transactionDataManager: transactionDataManager
         )
 
-        updateSessionTotalAmount()
+        updateEventTotalAmount()
     }
 
-    /// 更新 sessionTotalAmount
-    func updateSessionTotalAmount() {
+    /// 更新 eventTotalAmount
+    func updateEventTotalAmount() {
         guard let transactionDataManager = transactionDataManager else {
-            sessionTotalAmount = 0
+            eventTotalAmount = 0
             return
         }
 
-        let transactions = transactionDataManager.fetchTransactions(forSessionId: session.id)
-        sessionTotalAmount = transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+        let transactions = transactionDataManager.fetchTransactions(forEventId: event.id)
+        eventTotalAmount = transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
     }
     
     /// 載入數據

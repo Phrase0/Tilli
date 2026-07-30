@@ -60,7 +60,7 @@ function buildAppleClientSecret(): string {
 async function deleteAllFirestoreData(uid: string): Promise<void> {
   const db = admin.firestore();
   const collections = [
-    "sessions",
+    "events",
     "categories",
     "products",
     "inventoryChanges",

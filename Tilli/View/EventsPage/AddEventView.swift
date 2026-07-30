@@ -1,5 +1,5 @@
 //
-//  AddSessionView.swift
+//  AddEventView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/4/23.
@@ -7,17 +7,17 @@
 
 import SwiftUI
 
-struct AddSessionView: View {
+struct AddEventView: View {
 
-    @StateObject private var viewModel: AddSessionViewModel
-    var onSave: (SessionModel) -> Void
+    @StateObject private var viewModel: AddEventViewModel
+    var onSave: (EventModel) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @EnvironmentObject var productRepository: ProductRepository
 
     enum FocusField: Hashable {
-        case sessionName
+        case eventName
         case newCategory
         case editingCategory
         case newDiscount
@@ -25,8 +25,8 @@ struct AddSessionView: View {
 
     @FocusState private var focusedField: FocusField?
 
-    init(sessionToEdit: SessionModel? = nil, onSave: @escaping (SessionModel) -> Void) {
-        self._viewModel = StateObject(wrappedValue: AddSessionViewModel(sessionToEdit: sessionToEdit))
+    init(eventToEdit: EventModel? = nil, onSave: @escaping (EventModel) -> Void) {
+        self._viewModel = StateObject(wrappedValue: AddEventViewModel(eventToEdit: eventToEdit))
         self.onSave = onSave
     }
 
@@ -38,20 +38,20 @@ struct AddSessionView: View {
 
         Form {
             // 場次名稱
-            Section(header: Text("addSessionNameHeader")) {
+            Section(header: Text("addEventNameHeader")) {
                 // 請輸入場次名稱
-                TextField("addSessionNamePlaceholder", text: $viewModel.sessionName)
-                    .focused($focusedField, equals: .sessionName)
+                TextField("addEventNamePlaceholder", text: $viewModel.eventName)
+                    .focused($focusedField, equals: .eventName)
                     .submitLabel(.next)
                     .onSubmit { focusedField = .newCategory }
-                    .onChange(of: viewModel.sessionName) {
-                        viewModel.enforceSessionNameLimit()
+                    .onChange(of: viewModel.eventName) {
+                        viewModel.enforceEventNameLimit()
                     }
 
                 HStack {
-                    Text("\(viewModel.sessionName.count)/\(viewModel.sessionNameMaxLength)")
+                    Text("\(viewModel.eventName.count)/\(viewModel.eventNameMaxLength)")
                         .font(DesignSystem.Typography.caption)
-                        .foregroundColor(viewModel.sessionNameRemainingCharacters <= 5
+                        .foregroundColor(viewModel.eventNameRemainingCharacters <= 5
                                          ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                 }
             }
@@ -59,18 +59,18 @@ struct AddSessionView: View {
             // 場次類型
             Section {
                 // 場次類型
-                Picker("addSessionDateTypeLabel", selection: $viewModel.dateType) {
+                Picker("addEventDateTypeLabel", selection: $viewModel.dateType) {
                     // 單日
-                    Text("eventsDateTypeSingle").tag(SessionDateType.single)
+                    Text("eventsDateTypeSingle").tag(EventDateType.single)
                     // 多日
-                    Text("eventsDateTypeMulti").tag(SessionDateType.multi)
+                    Text("eventsDateTypeMulti").tag(EventDateType.multi)
                     // 無限期
-                    Text("eventsDateTypePermanent").tag(SessionDateType.permanent)
+                    Text("eventsDateTypePermanent").tag(EventDateType.permanent)
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: viewModel.dateType) { _, newType in
                     if newType == .multi {
-                        viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.sessionDate) ?? viewModel.sessionDate
+                        viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: viewModel.eventDate) ?? viewModel.eventDate
                     }
                 }
             }
@@ -82,12 +82,12 @@ struct AddSessionView: View {
                 switch viewModel.dateType {
                 case .single:
                     // 日期
-                    DatePicker("eventsDuplicateDate", selection: $viewModel.sessionDate, displayedComponents: .date)
+                    DatePicker("eventsDuplicateDate", selection: $viewModel.eventDate, displayedComponents: .date)
 
                 case .multi:
                     // 開始日期
-                    DatePicker("eventsDuplicateStartDate", selection: $viewModel.sessionDate, displayedComponents: .date)
-                        .onChange(of: viewModel.sessionDate) { _, newStartDate in
+                    DatePicker("eventsDuplicateStartDate", selection: $viewModel.eventDate, displayedComponents: .date)
+                        .onChange(of: viewModel.eventDate) { _, newStartDate in
                             if viewModel.endDate <= newStartDate {
                                 viewModel.endDate = Calendar.current.date(byAdding: .day, value: 1, to: newStartDate) ?? newStartDate
                             }
@@ -113,7 +113,7 @@ struct AddSessionView: View {
 
                 case .permanent:
                     // 開始日期
-                    DatePicker("eventsDuplicateStartDate", selection: $viewModel.sessionDate, displayedComponents: .date)
+                    DatePicker("eventsDuplicateStartDate", selection: $viewModel.eventDate, displayedComponents: .date)
 
                     HStack {
                         Image(systemName: "infinity")
@@ -125,13 +125,13 @@ struct AddSessionView: View {
                     }
                 }
 
-                if viewModel.editingSession != nil && viewModel.transactionCount > 0 {
+                if viewModel.editingEvent != nil && viewModel.transactionCount > 0 {
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                         HStack {
                             Image(systemName: "info.circle")
                                 .foregroundColor(DesignSystem.ColorToken.muted)
                             // 此場次已有 N 筆交易
-                            Text("addSessionTransactionCount \(viewModel.transactionCount)")
+                            Text("addEventTransactionCount \(viewModel.transactionCount)")
                                 .font(DesignSystem.Typography.caption)
                                 .foregroundColor(DesignSystem.ColorToken.muted)
                         }
@@ -154,7 +154,7 @@ struct AddSessionView: View {
             }
 
             // 幣別
-            Picker("addSessionCurrencyLabel", selection: $viewModel.selectedCurrency) {
+            Picker("addEventCurrencyLabel", selection: $viewModel.selectedCurrency) {
                 ForEach(Currency.allCases, id: \.self) { currency in
                     Text(currency.displayName)
                         .tag(currency.rawValue)
@@ -167,14 +167,14 @@ struct AddSessionView: View {
                     Image(systemName: "info.circle")
                         .foregroundColor(DesignSystem.ColorToken.muted)
                     // 此場次已有交易記錄，無法更改幣別
-                    Text("addSessionCurrencyLocked")
+                    Text("addEventCurrencyLocked")
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.muted)
                 }
             }
 
             // 類別
-            Section(header: Text("addSessionCategoryHeader")) {
+            Section(header: Text("addEventCategoryHeader")) {
                 ForEach(viewModel.activeSortedCategories, id: \.id) { category in
                     categoryRow(for: category)
                         .id(category.id)
@@ -188,7 +188,7 @@ struct AddSessionView: View {
 
                 HStack {
                     // 新增類別
-                    TextField("addSessionNewCategoryPlaceholder", text: $viewModel.newCategory)
+                    TextField("addEventNewCategoryPlaceholder", text: $viewModel.newCategory)
                         .focused($focusedField, equals: .newCategory)
                         .submitLabel(.done)
                         .onSubmit {
@@ -216,7 +216,7 @@ struct AddSessionView: View {
                         Image(systemName: "info.circle")
                             .foregroundColor(DesignSystem.ColorToken.muted)
                         // 此類別已有交易紀錄，無法更改名稱
-                        Text("addSessionCategoryEditWarning")
+                        Text("addEventCategoryEditWarning")
                             .font(DesignSystem.Typography.caption)
                             .foregroundColor(DesignSystem.ColorToken.muted)
                     }
@@ -224,7 +224,7 @@ struct AddSessionView: View {
             }
 
             // 折扣
-            Section(header: Text("addSessionDiscountHeader")) {
+            Section(header: Text("addEventDiscountHeader")) {
                 ForEach(viewModel.discounts) { discount in
                     HStack {
                         Image(systemName: "line.3.horizontal")
@@ -243,7 +243,7 @@ struct AddSessionView: View {
 
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     // 數值
-                    TextField("addSessionDiscountValuePlaceholder", text: $viewModel.newDiscountValue)
+                    TextField("addEventDiscountValuePlaceholder", text: $viewModel.newDiscountValue)
                         .keyboardType(.numberPad)
                         .frame(width: 80)
                         .focused($focusedField, equals: .newDiscount)
@@ -253,7 +253,7 @@ struct AddSessionView: View {
                         }
 
                     // 類型
-                    Picker("addSessionDiscountTypeLabel", selection: $viewModel.newDiscountType) {
+                    Picker("addEventDiscountTypeLabel", selection: $viewModel.newDiscountType) {
                         Text("%").tag(DiscountType.percentage)
                         Text(viewModel.currentCurrency.symbol).tag(DiscountType.amount)
                     }
@@ -273,13 +273,13 @@ struct AddSessionView: View {
             }
 
             // 已停用類別
-            Section(header: Text("addSessionDisabledCategoryHeader")) {
+            Section(header: Text("addEventDisabledCategoryHeader")) {
                 ForEach(viewModel.disabledSortedCategories, id: \.id) { category in
                     Text(category.name)
                         .foregroundColor(DesignSystem.ColorToken.muted)
                         .swipeActions(edge: .trailing) {
                             // 復原
-                            Button("addSessionRestore") {
+                            Button("addEventRestore") {
                                 viewModel.handleRestoreAction(for: category.id)
                             }
                             .tint(DesignSystem.ColorToken.marketGreen)
@@ -288,9 +288,9 @@ struct AddSessionView: View {
             }
         }
         // 新增場次 / 編輯場次
-        .navigationTitle(viewModel.editingSession == nil
-                         ? String(localized: "addSessionTitle")
-                         : String(localized: "addSessionEditTitle"))
+        .navigationTitle(viewModel.editingEvent == nil
+                         ? String(localized: "addEventTitle")
+                         : String(localized: "addEventEditTitle"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -314,11 +314,11 @@ struct AddSessionView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 // 儲存
-                Button("addSessionSave") {
+                Button("addEventSave") {
                     switch viewModel.validateSave() {
                     case .success:
-                        let session = viewModel.save()
-                        onSave(session)
+                        let event = viewModel.save()
+                        onSave(event)
                         dismiss()
                     case .failure(let error):
                         viewModel.alertMessage = error
@@ -326,7 +326,7 @@ struct AddSessionView: View {
                     }
                 }
                 .disabled(
-                    viewModel.sessionName.trimmingCharacters(in: .whitespaces).isEmpty ||
+                    viewModel.eventName.trimmingCharacters(in: .whitespaces).isEmpty ||
                     !viewModel.validateDates().isValid
                 )
             }
@@ -346,8 +346,8 @@ struct AddSessionView: View {
             }
         }
         .onAppear {
-            if viewModel.editingSession == nil {
-                focusedField = .sessionName
+            if viewModel.editingEvent == nil {
+                focusedField = .eventName
             }
         }
     }
@@ -386,7 +386,7 @@ struct AddSessionView: View {
                 Image(systemName: "line.3.horizontal")
                     .foregroundColor(DesignSystem.ColorToken.muted)
                 // 類別名稱
-                TextField("addSessionCategoryNamePlaceholder", text: Binding(
+                TextField("addEventCategoryNamePlaceholder", text: Binding(
                     get: {
                         viewModel.categories.first(where: { $0.id == category.id })?.name ?? ""
                     },
@@ -427,7 +427,7 @@ struct AddSessionView: View {
         switch viewModel.getSwipeAction(for: category) {
         case .disable:
             // 停用
-            Button("addSessionDisable") {
+            Button("addEventDisable") {
                 viewModel.handleDisableAction(for: category.id)
             }
             .tint(DesignSystem.ColorToken.muted)

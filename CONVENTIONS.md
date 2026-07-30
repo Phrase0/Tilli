@@ -20,8 +20,8 @@
 // 正確
 struct POSView: View {
     @StateObject private var viewModel: ProductViewModel
-    init(session: SessionModel) {
-        _viewModel = StateObject(wrappedValue: ProductViewModel(session: session))
+    init(event: EventModel) {
+        _viewModel = StateObject(wrappedValue: ProductViewModel(event: event))
     }
 }
 
@@ -51,12 +51,12 @@ struct POSView: View {
 |-------------|------|---------|
 | Combine `objectWillChange.sink` 轉發子 VM | 複雜、要管理 cancellables | 頁面各自有 VM，不需轉發 |
 | `@State refreshID = UUID()` 強制刷新 | hack，不直覺，難維護 | `onAppear` 重新載入 |
-| `@Binding` 跨頁面層層傳遞 | 多入口時容易斷、Calendar 用 `.constant` 不會回寫 | `let session` + Repository 直接更新 |
+| `@Binding` 跨頁面層層傳遞 | 多入口時容易斷、Calendar 用 `.constant` 不會回寫 | `let event` + Repository 直接更新 |
 | `onChange(of: repository.updateTrigger)` | 手動觸發器，容易遺漏 | `onAppear` 重新載入 |
 
 #### 規則 3：Repository 層用 `@EnvironmentObject` 注入，ViewModel 在 `updateDataManagers()` 接收
 
-Repository（`SessionRepository`、`ProductRepository`、`TransactionRepository`、`InventoryChangeRepository`）在 `TilliApp.swift` 建立，透過 `.environmentObject()` 注入。
+Repository（`EventRepository`、`ProductRepository`、`TransactionRepository`、`InventoryChangeRepository`）在 `TilliApp.swift` 建立，透過 `.environmentObject()` 注入。
 
 View 層在 `onAppear` 呼叫 `viewModel.updateDataManagers(...)` 把 Repository 傳給 ViewModel。
 
@@ -111,9 +111,9 @@ struct POSView: View {
 
 | 舊 pattern | 所在檔案 | 替代方式 | 處理斷點 |
 |-----------|---------|---------|---------|
-| `SessionDetailViewModel` 的 Combine `sink` 轉發 | `SessionDetailViewModel.swift` | POSView/InventoryView 各自有獨立 VM | 斷點 6、7 |
+| `EventDetailViewModel` 的 Combine `sink` 轉發 | `EventDetailViewModel.swift` | POSView/InventoryView 各自有獨立 VM | 斷點 6、7 |
 | `CalendarView` 的 `refreshID = UUID()` | `CalendarView.swift` | `onAppear` 重新載入 | 斷點 4 |
-| `@Binding var session` 層層傳遞 | `SessionDetailView`, `ProductViewModel` | `let session` + Repository 直接更新 | 斷點 5 |
+| `@Binding var event` 層層傳遞 | `EventDetailView`, `ProductViewModel` | `let event` + Repository 直接更新 | 斷點 5 |
 | `onChange(of: transactionUpdateTrigger)` | `CalendarView.swift` | `onAppear` 重新載入 | 斷點 4 |
 
 ---
@@ -260,7 +260,7 @@ Tilli/View/
 │   └── ReportsView.swift
 ├── MyPage/
 │   └── MyView.swift
-├── SessionPage/            ← 保留，斷點 9 確認後可清理
+├── EventPage/            ← 保留，斷點 9 確認後可清理
 ├── CalendarPage/           ← 保留，斷點 9 確認後可清理
 └── ...
 
