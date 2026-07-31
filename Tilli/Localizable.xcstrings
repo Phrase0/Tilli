@@ -345,6 +345,390 @@
         }
       }
     },
+    "addProductCategoryPlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Category"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇類別"
+          }
+        }
+      }
+    },
+    "addProductCustomReasonPlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter adjustment reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入調整原因"
+          }
+        }
+      }
+    },
+    "addProductDescriptionPlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter description"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入產品描述"
+          }
+        }
+      }
+    },
+    "addProductDuplicateMessage %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category \"%1$@\" already has a product named \"%2$@\". Please choose a different name."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」分類已有相同名稱的商品「%2$@」，請更換名稱"
+          }
+        }
+      }
+    },
+    "addProductDuplicateNameTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate Product Name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "產品名稱重複"
+          }
+        }
+      }
+    },
+    "addProductNamePlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter product name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入產品名稱"
+          }
+        }
+      }
+    },
+    "addProductNavTitleEdit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Product"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯產品"
+          }
+        }
+      }
+    },
+    "addProductNavTitleNew" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Product"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增產品"
+          }
+        }
+      }
+    },
+    "addProductPriceHintDecimal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max 10 digits with 2 decimal places"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多可輸入 10 位數及兩位小數"
+          }
+        }
+      }
+    },
+    "addProductPriceHintInteger" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max 10 digits"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多可輸入 10 位數"
+          }
+        }
+      }
+    },
+    "addProductReasonLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "異動原因"
+          }
+        }
+      }
+    },
+    "addProductSave" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存"
+          }
+        }
+      }
+    },
+    "addProductSectionCategory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別"
+          }
+        }
+      }
+    },
+    "addProductSectionDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description (Optional)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "產品描述（選填）"
+          }
+        }
+      }
+    },
+    "addProductSectionImage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product Image (Optional)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "產品圖片（選填）"
+          }
+        }
+      }
+    },
+    "addProductSectionName" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product Name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "產品名稱"
+          }
+        }
+      }
+    },
+    "addProductSectionPrice" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Price"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "價格"
+          }
+        }
+      }
+    },
+    "addProductSectionStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock Quantity"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存數量"
+          }
+        }
+      }
+    },
+    "addProductStockChangeInfo %lld %lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock changes from %1$lld to %2$lld (%3$@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存將從 %1$lld 調整為 %2$lld（%3$@）"
+          }
+        }
+      }
+    },
+    "addProductStockHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max 9 digits"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多可輸入 9 位數"
+          }
+        }
+      }
+    },
+    "addProductStockPlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter stock quantity"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入庫存數量"
+          }
+        }
+      }
+    },
+    "addProductTransactionRestriction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This product has transactions. Name, price, and category cannot be changed."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此產品已有交易記錄，無法更改名稱、價格和類別"
+          }
+        }
+      }
+    },
+    "addProductUploadImage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload Image"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上傳圖片"
+          }
+        }
+      }
+    },
+    "addProductValidationError" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please complete all required fields"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請完成所有必填欄位"
+          }
+        }
+      }
+    },
     "Amount" : {
 
     },
@@ -1960,6 +2344,38 @@
         }
       }
     },
+    "posClearAlertConfirm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除"
+          }
+        }
+      }
+    },
+    "posClearAlertTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all selected quantities?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要清除所有已選數量嗎？"
+          }
+        }
+      }
+    },
     "posDisabledHeader" : {
       "localizations" : {
         "en" : {
@@ -2513,9 +2929,6 @@
         }
       }
     },
-    "上傳圖片" : {
-
-    },
     "下架商品" : {
 
     },
@@ -2532,12 +2945,6 @@
 
     },
     "件" : {
-
-    },
-    "價格" : {
-
-    },
-    "儲存" : {
 
     },
     "免費版" : {
@@ -2600,9 +3007,6 @@
     "好" : {
 
     },
-    "完成" : {
-
-    },
     "實收金額" : {
 
     },
@@ -2622,19 +3026,6 @@
 
     },
     "庫存不足" : {
-
-    },
-    "庫存將從 %lld 調整為 %lld（%@%lld）" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "庫存將從 %1$lld 調整為 %2$lld（%3$@%4$lld）"
-          }
-        }
-      }
-    },
-    "庫存數量" : {
 
     },
     "庫存正常" : {
@@ -2667,9 +3058,6 @@
     "數量" : {
 
     },
-    "新增產品" : {
-
-    },
     "日期" : {
 
     },
@@ -2689,9 +3077,6 @@
 
     },
     "此時間範圍內無異動紀錄" : {
-
-    },
-    "此產品已有交易記錄，無法更改名稱、價格和類別" : {
 
     },
     "每日" : {
@@ -2716,21 +3101,6 @@
 
     },
     "現金" : {
-
-    },
-    "產品名稱" : {
-
-    },
-    "產品名稱重複" : {
-
-    },
-    "產品圖片（選填）" : {
-
-    },
-    "產品描述（選填）" : {
-
-    },
-    "異動原因" : {
 
     },
     "異動紀錄" : {
@@ -2772,9 +3142,6 @@
     "統計範圍：%@" : {
 
     },
-    "編輯產品" : {
-
-    },
     "總交易數" : {
 
     },
@@ -2788,21 +3155,6 @@
 
     },
     "請先在場次中新增商品" : {
-
-    },
-    "請完成所有必填欄位" : {
-
-    },
-    "請輸入庫存數量" : {
-
-    },
-    "請輸入產品名稱" : {
-
-    },
-    "請輸入產品描述" : {
-
-    },
-    "請輸入調整原因" : {
 
     },
     "貢獻度" : {

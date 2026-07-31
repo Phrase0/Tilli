@@ -18,6 +18,7 @@ struct POSView: View {
 
     @State private var showCheckoutSheet = false
     @State private var checkoutCompleted = false
+    @State private var showClearAlert = false
     @State private var eventState: EventModel
 
     init(event: EventModel) {
@@ -43,27 +44,38 @@ struct POSView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: DesignSystem.Spacing.sm) {
+                HStack(spacing: DesignSystem.Spacing.md) {
+                    // 清除所有已選數量
                     Button {
-                        viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
+                        showClearAlert = true
                     } label: {
-                        Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
+                        Image(systemName: "trash")
                             .foregroundColor(DesignSystem.ColorToken.ink)
                     }
 
-                    if viewModel.subtotal() > 0 {
-                        Button {
-                            viewModel.clearAllQuantities()
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .foregroundColor(DesignSystem.ColorToken.ink)
+                    // 布局切換
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
                         }
+                    } label: {
+                        Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
+                            .foregroundColor(DesignSystem.ColorToken.ink)
                     }
                 }
             }
         }
         .alert(isPresented: $viewModel.showAlert) {
             viewModel.createAlert()
+        }
+        // 確定要清除所有已選數量嗎？
+        .alert("posClearAlertTitle", isPresented: $showClearAlert) {
+            // 取消
+            Button("commonCancel", role: .cancel) { }
+            // 清除
+            Button("posClearAlertConfirm", role: .destructive) {
+                viewModel.clearAllQuantities()
+            }
         }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutFlowView(

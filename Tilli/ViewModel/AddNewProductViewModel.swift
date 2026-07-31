@@ -146,9 +146,9 @@ class AddNewProductViewModel: ObservableObject {
     /// 價格提示文字
     var priceHintText: String {
         if supportsDecimal {
-            return "最多可輸入 \(Self.priceMaxIntegerDigits) 位數及兩位小數"
+            return String(localized: "addProductPriceHintDecimal")
         } else {
-            return "最多可輸入 \(Self.priceMaxIntegerDigits) 位數"
+            return String(localized: "addProductPriceHintInteger")
         }
     }
 
@@ -166,7 +166,7 @@ class AddNewProductViewModel: ObservableObject {
 
     /// 庫存提示文字
     var stockHintText: String {
-        return "最多可輸入 \(Self.stockMaxDigits) 位數"
+        return String(localized: "addProductStockHint")
     }
     
     /// 驗證並格式化價格輸入
@@ -246,6 +246,10 @@ class AddNewProductViewModel: ObservableObject {
     var stockDelta: Int {
         let newStock = Int(quantity) ?? 0
         return newStock - originalStock
+    }
+
+    var stockDeltaText: String {
+        stockDelta >= 0 ? "+\(stockDelta)" : "\(stockDelta)"
     }
 
     /// 是否顯示異動原因選擇器（編輯模式且庫存有變化）
@@ -416,7 +420,7 @@ class AddNewProductViewModel: ObservableObject {
         }
         
         if isDuplicate {
-            duplicateNameMessage = "「\(selectedCategory.name)」分類已有相同名稱的商品「\(trimmedName)」，請更換名稱"
+            duplicateNameMessage = String(localized: "addProductDuplicateMessage \(selectedCategory.name) \(trimmedName)")
             showDuplicateNameAlert = true
         }
         
