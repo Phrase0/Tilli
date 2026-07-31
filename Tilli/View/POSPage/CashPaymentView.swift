@@ -21,7 +21,6 @@ struct CashPaymentView: View {
 
     @ObservedObject var viewModel: CashPaymentViewModel
 
-    // 計算機功能開關
     @AppStorage("calculatorEnabled") private var calculatorEnabled = true
 
     enum FocusField: Hashable {
@@ -49,43 +48,41 @@ struct CashPaymentView: View {
 
     var body: some View {
         if calculatorEnabled {
-            // 完整計算機模式
             calculatorModeView
         } else {
-            // 簡化模式：只顯示總金額
             simpleModeView
         }
     }
 
     // MARK: - 完整計算機模式
     private var calculatorModeView: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 8) {
-                Text("總金額")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+        VStack(spacing: DesignSystem.Spacing.lg) {
+            VStack(spacing: DesignSystem.Spacing.xs) {
+                // 總金額
+                Text("checkoutAmountLabel")
+                    .font(DesignSystem.Typography.body)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
-                HStack(spacing: 4) {
-                    Image(systemName: "tag.fill")
-                        .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money(currency: event.currency))
-                        .font(.largeTitle)
-                        .bold()
-                        .foregroundColor(.black)
-                }
+                Text(viewModel.totalAmount.money(currency: event.currency))
+                    .font(DesignSystem.Typography.display)
+                    .foregroundColor(DesignSystem.ColorToken.ink)
             }
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("支付")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                // 支付
+                Text("checkoutReceivedLabel")
+                    .font(DesignSystem.Typography.body)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
                 TextField(viewModel.currencyPlaceholder, text: $viewModel.receivedAmountText)
                     .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
                     .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                    .background(
+                        RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
+                            .stroke(DesignSystem.ColorToken.muted.opacity(0.3))
+                    )
                     .focused($focusedField, equals: .receivedAmount)
                     .submitLabel(.done)
                     .onChange(of: viewModel.receivedAmountText) {
@@ -99,23 +96,25 @@ struct CashPaymentView: View {
                     }
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("找零")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                // 找零
+                Text("checkoutChangeLabel")
+                    .font(DesignSystem.Typography.body)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(max(viewModel.change, 0).money(currency: event.currency))
-                    .font(.title)
-                    .foregroundColor(.blue)
+                    .font(DesignSystem.Typography.title1)
+                    .foregroundColor(DesignSystem.ColorToken.ink)
                     .bold()
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Group {
                     if !viewModel.isAmountValid {
-                        Label("請輸入等於或大於總額的金額", systemImage: "xmark.octagon.fill")
-                            .foregroundColor(.red)
-                            .font(.footnote)
+                        // 請輸入等於或大於總額的金額
+                        Label("checkoutAmountInvalid", systemImage: "xmark.octagon.fill")
+                            .foregroundColor(DesignSystem.ColorToken.alertRed)
+                            .font(DesignSystem.Typography.caption)
                             .multilineTextAlignment(.leading)
                     } else {
                         Color.clear
@@ -126,17 +125,20 @@ struct CashPaymentView: View {
 
             Spacer()
 
-            VStack(spacing: 12) {
+            VStack(spacing: DesignSystem.Spacing.sm) {
                 Button {
                     completePayment()
                 } label: {
-                    Text("完成付款")
-                        .foregroundColor(.white)
-                        .font(.headline)
+                    // 完成付款
+                    Text("checkoutCompleteButton")
+                        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                        .font(.system(size: 16, weight: .semibold))
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(viewModel.isAmountValid ? Color.blue : Color.gray)
-                        .cornerRadius(12)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(viewModel.isAmountValid
+                                    ? DesignSystem.ColorToken.buttonFilled
+                                    : DesignSystem.ColorToken.muted)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
                 }
                 .disabled(!viewModel.isAmountValid)
             }
@@ -150,41 +152,36 @@ struct CashPaymentView: View {
         .navigationTitle("")
     }
 
-    // MARK: - 簡化模式（關閉計算機功能）
+    // MARK: - 簡化模式
     private var simpleModeView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: DesignSystem.Spacing.lg) {
             Spacer()
 
-            // 總金額置中顯示
-            VStack(spacing: 12) {
-                Text("總金額")
-                    .font(.title3)
-                    .foregroundColor(.gray)
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                // 總金額
+                Text("checkoutAmountLabel")
+                    .font(DesignSystem.Typography.title2)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
-                HStack(spacing: 8) {
-                    Image(systemName: "tag.fill")
-                        .font(.title)
-                        .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money(currency: event.currency))
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.primary)
-                }
+                Text(viewModel.totalAmount.money(currency: event.currency))
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundColor(DesignSystem.ColorToken.ink)
             }
 
             Spacer()
             Spacer()
-            
-            // 完成付款按鈕
+
             Button {
                 completePaymentSimple()
             } label: {
-                Text("完成付款")
-                    .foregroundColor(.white)
-                    .font(.headline)
+                // 完成付款
+                Text("checkoutCompleteButton")
+                    .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                    .font(.system(size: 16, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
+                    .padding(.vertical, DesignSystem.Spacing.md)
+                    .background(DesignSystem.ColorToken.buttonFilled)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
             }
         }
         .padding()
@@ -193,7 +190,6 @@ struct CashPaymentView: View {
 
     // MARK: - Helper Methods
 
-    /// 完整模式：需要驗證金額
     private func completePayment() {
         guard viewModel.isAmountValid else { return }
 
@@ -204,17 +200,13 @@ struct CashPaymentView: View {
         )
         event = updateEvent
 
-        // 先收起鍵盤
         focusedField = nil
 
-        // 等鍵盤收起後再關閉整個 flow
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
           DispatchQueue.main.async {
             closeFlow()
         }
     }
 
-    /// 簡化模式：直接完成交易
     private func completePaymentSimple() {
         let updateEvent = viewModel.performCheckout(
             eventDataManager: eventDataManager,

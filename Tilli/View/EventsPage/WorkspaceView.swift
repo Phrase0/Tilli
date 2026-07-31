@@ -153,7 +153,7 @@ struct WorkspaceView: View {
                 icon: "dollarsign.circle",
                 // 開始收銀
                 titleKey: "workspacePosButton",
-                destination: posPlaceholder
+                destination: POSView(event: event)
             )
 
             workspaceButton(
@@ -208,16 +208,6 @@ struct WorkspaceView: View {
     }
 
     // MARK: - Placeholder Destinations
-
-    private var posPlaceholder: some View {
-        Text("POS - TODO")
-            .font(DesignSystem.Typography.title1)
-            .foregroundColor(DesignSystem.ColorToken.muted)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(DesignSystem.ColorToken.paper)
-            .navigationTitle("workspacePosButton")
-    }
-
 
     private var reportsPlaceholder: some View {
         Text("Reports - TODO")

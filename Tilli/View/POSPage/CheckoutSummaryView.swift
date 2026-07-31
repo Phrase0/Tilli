@@ -22,21 +22,17 @@ struct CheckoutSummaryView: View {
     @State private var showDateWarning = false
     @State private var dateWarningMessage = ""
 
-    // 補記帳狀態
     @State private var isBackdatedMode = false
     @State private var backdatedDate = Date()
     @State private var backdatedDateRange: ClosedRange<Date>?
 
-    /// 計算補記帳日期的有效範圍（只在需要時呼叫）
     private func calculateBackdatedDateRange() -> ClosedRange<Date> {
         let calendar = Calendar.current
         let startOfEventDate = calendar.startOfDay(for: event.startDate)
         let now = Date()
 
-        // 結束日期
         let endDate: Date
         if let eventEndDate = event.endDate {
-            // 取 event.endDate 當天的最後一秒，再與 now 比較
             let endOfEventEndDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: eventEndDate) ?? eventEndDate
             endDate = min(endOfEventEndDate, now)
         } else {
@@ -46,7 +42,6 @@ struct CheckoutSummaryView: View {
         return startOfEventDate...endDate
     }
 
-    /// 補記帳時要傳遞的 occurredAt 值
     private var occurredAtValue: Date? {
         return isBackdatedMode ? backdatedDate : nil
     }
@@ -55,28 +50,29 @@ struct CheckoutSummaryView: View {
         VStack(spacing: 0) {
             // MARK: 商品清單
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: DesignSystem.Spacing.md) {
                     ForEach(selectedItems) { item in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.name)
-                                    .font(.body)
+                                    .font(DesignSystem.Typography.body)
 
-                                HStack(spacing: 8) {
-                                    Text("數量: \(item.quantity)")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                                HStack(spacing: DesignSystem.Spacing.xs) {
+                                    // 數量: %d
+                                    Text("checkoutItemQuantity \(item.quantity)")
+                                        .font(DesignSystem.Typography.caption)
+                                        .foregroundColor(DesignSystem.ColorToken.muted)
 
                                     Text(item.price.money(currency: event.currency))
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .font(DesignSystem.Typography.caption)
+                                        .foregroundColor(DesignSystem.ColorToken.muted)
                                 }
                             }
 
                             Spacer()
 
                             Text(item.total.money(currency: event.currency))
-                                .font(.body)
+                                .font(DesignSystem.Typography.body)
                                 .fontWeight(.semibold)
                         }
                     }
@@ -92,16 +88,13 @@ struct CheckoutSummaryView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isBackdatedMode.toggle()
                         if isBackdatedMode {
-                            // 計算日期範圍（只計算一次）
                             let range = calculateBackdatedDateRange()
                             backdatedDateRange = range
 
-                            // 設定預設日期
                             let now = Date()
                             if range.contains(now) {
                                 backdatedDate = now
                             } else {
-                                // 如果當前時間不在範圍內，使用範圍的最後一個有效時間
                                 backdatedDate = range.upperBound
                             }
                         }
@@ -109,15 +102,16 @@ struct CheckoutSummaryView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: isBackdatedMode ? "clock.badge.checkmark.fill" : "clock.arrow.circlepath")
-                            .foregroundColor(isBackdatedMode ? .orange : .gray)
-                        Text("補記帳")
-                            .font(.subheadline)
-                            .foregroundColor(isBackdatedMode ? .orange : .gray)
+                            .foregroundColor(isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
+                        // 補記帳
+                        Text("checkoutBackdated")
+                            .font(DesignSystem.Typography.body)
+                            .foregroundColor(isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DesignSystem.Spacing.sm)
                     .padding(.vertical, 6)
-                    .background(isBackdatedMode ? Color.orange.opacity(0.1) : Color.clear)
-                    .cornerRadius(8)
+                    .background(isBackdatedMode ? DesignSystem.ColorToken.alertRed.opacity(0.1) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -135,86 +129,91 @@ struct CheckoutSummaryView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, DesignSystem.Spacing.xs)
 
             // MARK: 總金額
             HStack {
-                Text("總計")
-                    .font(.headline)
+                // 總計
+                Text("checkoutTotalLabel")
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.semibold)
                 Spacer()
 
-                // 顯示折扣標籤
                 if let discount = selectedDiscount {
                     Text(discount.displayText(currency: event.currency))
-                        .font(.caption)
-                        .padding(.horizontal, 8)
+                        .font(DesignSystem.Typography.caption)
+                        .padding(.horizontal, DesignSystem.Spacing.xs)
                         .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(4)
+                        .background(DesignSystem.ColorToken.quietFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
 
                 Text(totalAmount.money(currency: event.currency))
-                    .font(.headline)
-                    .bold()
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.bold)
             }
             .padding()
 
             // MARK: 支付方式
-            VStack(spacing: 8) {
+            VStack(spacing: DesignSystem.Spacing.xs) {
                 // 現金付款
                 Button {
-                    // 先驗證日期（補記帳時用 backdatedDate，否則用當前時間）
                     let dateToValidate = isBackdatedMode ? backdatedDate : Date()
                     let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
                     if !validation.isValid {
-                        dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
+                        dateWarningMessage = validation.errorMessage ?? String(localized: "checkoutDateWarningDefault")
                         showDateWarning = true
                         return
                     }
-                    // 日期有效，導航到支付頁面
                     navigateToCashPayment = true
                 } label: {
                     HStack {
                         Image(systemName: "banknote")
+                            .foregroundColor(DesignSystem.ColorToken.ink)
                         VStack(alignment: .leading) {
-                            Text("現金付款")
-                            Text("使用現金付款")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                            // 現金付款
+                            Text("checkoutCashTitle")
+                                .foregroundColor(DesignSystem.ColorToken.ink)
+                            // 使用現金付款
+                            Text("checkoutCashSubtitle")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundColor(DesignSystem.ColorToken.muted)
                         }
                         Spacer()
                     }
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .background(DesignSystem.ColorToken.quietFill)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
                 }
 
                 // 電子支付
                 Button {
-                    // 先驗證日期（補記帳時用 backdatedDate，否則用當前時間）
                     let dateToValidate = isBackdatedMode ? backdatedDate : Date()
                     let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
                     if !validation.isValid {
-                        dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
+                        dateWarningMessage = validation.errorMessage ?? String(localized: "checkoutDateWarningDefault")
                         showDateWarning = true
                         return
                     }
-                    // 日期有效，導航到支付頁面
                     navigateToEPayment = true
                 } label: {
                     HStack {
                         Image(systemName: "creditcard")
+                            .foregroundColor(DesignSystem.ColorToken.ink)
                         VStack(alignment: .leading) {
-                            Text("電子支付")
-                            Text("使用數位錢包付款")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                            // 電子支付
+                            Text("checkoutEPayTitle")
+                                .foregroundColor(DesignSystem.ColorToken.ink)
+                            // 使用數位錢包付款
+                            Text("checkoutEPaySubtitle")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundColor(DesignSystem.ColorToken.muted)
                         }
                         Spacer()
                     }
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .background(DesignSystem.ColorToken.quietFill)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
                 }
             }
             .padding()
@@ -238,12 +237,15 @@ struct CheckoutSummaryView: View {
                 occurredAt: occurredAtValue
             )
         }
-        .alert("無法新增交易", isPresented: $showDateWarning) {
-            Button("確定", role: .cancel) { }
+        // 無法新增交易
+        .alert("checkoutDateWarningTitle", isPresented: $showDateWarning) {
+            // 確定
+            Button("commonConfirm", role: .cancel) { }
         } message: {
             Text(dateWarningMessage)
         }
-        .navigationTitle("訂單摘要")
+        // 訂單摘要
+        .navigationTitle("checkoutSummaryTitle")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -252,7 +254,7 @@ struct CheckoutSummaryView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
-                        .foregroundColor(.gray)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
                 }
             }
         }

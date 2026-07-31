@@ -215,7 +215,7 @@ struct MyView: View {
 
             // 我的收款碼
             NavigationLink {
-                MerchantQRCodeView()
+                QRCodeView()
             } label: {
                 menuRow(icon: "qrcode", titleKey: "myQrCode") {
                     chevron

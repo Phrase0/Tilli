@@ -52,8 +52,11 @@
 			membershipExceptions = (
 				_Deprecated/CalendarView.swift,
 				_Deprecated/ContentView.swift,
+				_Deprecated/EventDetailView.swift,
+				_Deprecated/EventDetailViewModel.swift,
 				_Deprecated/InventoryTabView.swift,
 				_Deprecated/InventoryTabViewModel.swift,
+				_Deprecated/ProductDetailView.swift,
 				_Deprecated/ProfileView.swift,
 				_Deprecated/SessionDetailFromCalendarView.swift,
 				_Deprecated/SessionDetailFromCalendarViewModel.swift,

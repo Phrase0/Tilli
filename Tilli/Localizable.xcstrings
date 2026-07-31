@@ -10,16 +10,6 @@
     "%" : {
 
     },
-    "%@ • %@" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ • %2$@"
-          }
-        }
-      }
-    },
     "%lld" : {
 
     },
@@ -502,6 +492,278 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld年"
+          }
+        }
+      }
+    },
+    "checkoutAmountInvalid" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter an amount equal to or greater than the total"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入等於或大於總額的金額"
+          }
+        }
+      }
+    },
+    "checkoutAmountLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Amount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總金額"
+          }
+        }
+      }
+    },
+    "checkoutBackdated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backdate"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "補記帳"
+          }
+        }
+      }
+    },
+    "checkoutCashSubtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay with cash"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用現金付款"
+          }
+        }
+      }
+    },
+    "checkoutCashTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cash Payment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現金付款"
+          }
+        }
+      }
+    },
+    "checkoutChangeLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找零"
+          }
+        }
+      }
+    },
+    "checkoutCompleteButton" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Complete Payment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成付款"
+          }
+        }
+      }
+    },
+    "checkoutDateWarningDefault" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction date is outside the event range"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易日期不在場次範圍內"
+          }
+        }
+      }
+    },
+    "checkoutDateWarningTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot Add Transaction"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法新增交易"
+          }
+        }
+      }
+    },
+    "checkoutEPaySubtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay with digital wallet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用數位錢包付款"
+          }
+        }
+      }
+    },
+    "checkoutEPayTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Payment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電子支付"
+          }
+        }
+      }
+    },
+    "checkoutItemQuantity %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qty: %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "數量: %lld"
+          }
+        }
+      }
+    },
+    "checkoutNoQRCode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No QR Code Set"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未設定收款碼"
+          }
+        }
+      }
+    },
+    "checkoutNoQRCodeHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set up in My QR Code page"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請至「我的收款碼」頁面新增"
+          }
+        }
+      }
+    },
+    "checkoutReceivedLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Received"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支付"
+          }
+        }
+      }
+    },
+    "checkoutSummaryTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order Summary"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "訂單摘要"
+          }
+        }
+      }
+    },
+    "checkoutTotalLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總計"
           }
         }
       }
@@ -1682,8 +1944,149 @@
     "NT$ %@" : {
 
     },
-    "POS - TODO" : {
-
+    "posCheckoutButton" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checkout"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結帳"
+          }
+        }
+      }
+    },
+    "posDisabledHeader" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled Products"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下架商品"
+          }
+        }
+      }
+    },
+    "posDiscountLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折扣"
+          }
+        }
+      }
+    },
+    "posEmptyMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add products in Inventory first"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先在管理商品中新增商品"
+          }
+        }
+      }
+    },
+    "posEmptyTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Products"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無商品"
+          }
+        }
+      }
+    },
+    "posOutOfStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out of Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無庫存"
+          }
+        }
+      }
+    },
+    "posStockCount %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock: %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存: %lld"
+          }
+        }
+      }
+    },
+    "posTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "POS"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收銀"
+          }
+        }
+      }
+    },
+    "posTotalLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總計"
+          }
+        }
+      }
     },
     "Pro 會員" : {
 
@@ -1864,6 +2267,86 @@
         }
       }
     },
+    "qrCodeAddHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to select a photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點擊選擇照片"
+          }
+        }
+      }
+    },
+    "qrCodeAddTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Payment QR Code"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入收款 QR Code"
+          }
+        }
+      }
+    },
+    "qrCodeDeleteAlert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this QR code?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要刪除此收款碼嗎？"
+          }
+        }
+      }
+    },
+    "qrCodeDeleteMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This action cannot be undone"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除後將無法復原"
+          }
+        }
+      }
+    },
+    "qrCodeNavTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My QR Code"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的收款碼"
+          }
+        }
+      }
+    },
     "Reports - TODO" : {
 
     },
@@ -2033,16 +2516,10 @@
     "上傳圖片" : {
 
     },
-    "下架" : {
-
-    },
     "下架商品" : {
 
     },
     "交易數" : {
-
-    },
-    "交易明細" : {
 
     },
     "交易筆數" : {
@@ -2055,12 +2532,6 @@
 
     },
     "件" : {
-
-    },
-    "使用數位錢包付款" : {
-
-    },
-    "使用現金付款" : {
 
     },
     "價格" : {
@@ -2093,19 +2564,10 @@
     "最高銷售額" : {
 
     },
-    "切換布局" : {
-
-    },
     "刪除" : {
 
     },
-    "刪除後將無法復原" : {
-
-    },
     "到期日：%@" : {
-
-    },
-    "加入收款 QR Code" : {
 
     },
     "匯出成功" : {
@@ -2141,9 +2603,6 @@
     "完成" : {
 
     },
-    "完成付款" : {
-
-    },
     "實收金額" : {
 
     },
@@ -2153,9 +2612,6 @@
     "小計" : {
 
     },
-    "尚未設定收款碼" : {
-
-    },
     "尚無商品" : {
 
     },
@@ -2163,9 +2619,6 @@
 
     },
     "平均客單價" : {
-
-    },
-    "庫存: %lld" : {
 
     },
     "庫存不足" : {
@@ -2193,31 +2646,16 @@
     "庫存總覽" : {
 
     },
-    "復原" : {
-
-    },
     "您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？" : {
 
     },
-    "我的收款碼" : {
-
-    },
     "找不到符合「%@」的商品" : {
-
-    },
-    "找零" : {
-
-    },
-    "折扣" : {
 
     },
     "折扣總額" : {
 
     },
     "提醒" : {
-
-    },
-    "支付" : {
 
     },
     "支付方式" : {
@@ -2227,9 +2665,6 @@
 
     },
     "數量" : {
-
-    },
-    "數量: %lld" : {
 
     },
     "新增產品" : {
@@ -2265,19 +2700,7 @@
     "每月" : {
 
     },
-    "清除" : {
-
-    },
-    "清除所有已選數量" : {
-
-    },
     "測試專用" : {
-
-    },
-    "無庫存" : {
-
-    },
-    "無法新增交易" : {
 
     },
     "熱門商品榜單" : {
@@ -2293,9 +2716,6 @@
 
     },
     "現金" : {
-
-    },
-    "現金付款" : {
 
     },
     "產品名稱" : {
@@ -2322,16 +2742,10 @@
     "確定" : {
 
     },
-    "確定要刪除此收款碼嗎？" : {
-
-    },
     "確定要復原此產品嗎？" : {
 
     },
     "確定要復原此類別嗎？" : {
-
-    },
-    "確定要清除所有已選數量嗎？" : {
 
     },
     "確認" : {
@@ -2352,16 +2766,10 @@
     "視圖" : {
 
     },
-    "結帳" : {
-
-    },
     "結束" : {
 
     },
     "統計範圍：%@" : {
-
-    },
-    "編輯" : {
 
     },
     "編輯產品" : {
@@ -2370,22 +2778,10 @@
     "總交易數" : {
 
     },
-    "總計" : {
-
-    },
-    "總金額" : {
-
-    },
     "總銷售額" : {
 
     },
     "自訂" : {
-
-    },
-    "補記帳" : {
-
-    },
-    "訂單摘要" : {
 
     },
     "詳細資訊" : {
@@ -2397,9 +2793,6 @@
     "請完成所有必填欄位" : {
 
     },
-    "請至「我的收款碼」頁面新增" : {
-
-    },
     "請輸入庫存數量" : {
 
     },
@@ -2407,9 +2800,6 @@
 
     },
     "請輸入產品描述" : {
-
-    },
-    "請輸入等於或大於總額的金額" : {
 
     },
     "請輸入調整原因" : {
@@ -2449,9 +2839,6 @@
 
     },
     "類別銷售彙總" : {
-
-    },
-    "點擊選擇照片" : {
 
     }
   },

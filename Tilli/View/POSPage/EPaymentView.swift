@@ -41,56 +41,57 @@ struct EPaymentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 總金額顯示
-            VStack(spacing: 8) {
-                Text("總金額")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+            VStack(spacing: DesignSystem.Spacing.xs) {
+                // 總金額
+                Text("checkoutAmountLabel")
+                    .font(DesignSystem.Typography.body)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
-                HStack(spacing: 4) {
-                    Image(systemName: "tag.fill")
-                        .foregroundColor(.blue)
-                    Text(viewModel.totalAmount.money(currency: event.currency))
-                        .font(.largeTitle)
-                        .bold()
-                        .foregroundColor(.black)
-                }
+                Text(viewModel.totalAmount.money(currency: event.currency))
+                    .font(DesignSystem.Typography.display)
+                    .foregroundColor(DesignSystem.ColorToken.ink)
             }
-            .padding(.top, 24)
-            .padding(.bottom, 16)
+            .padding(.top, DesignSystem.Spacing.lg)
+            .padding(.bottom, DesignSystem.Spacing.md)
 
             Divider()
 
             // QR Code Section
-            VStack(spacing: 24) {
+            VStack(spacing: DesignSystem.Spacing.lg) {
                 Spacer()
 
-                // QR Code Container
                 ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white)
+                    RoundedRectangle(cornerRadius: DesignSystem.Radius.md)
+                        .fill(DesignSystem.ColorToken.cardSurface)
                         .frame(width: 280, height: 280)
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 6)
+                        .shadow(
+                            color: DesignSystem.Shadow.cardColor,
+                            radius: DesignSystem.Shadow.cardRadius,
+                            x: DesignSystem.Shadow.cardX,
+                            y: DesignSystem.Shadow.cardY
+                        )
 
                     if let qrImage = qrCodeDataManager.qrCodeImage {
                         Image(uiImage: qrImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 260, height: 260)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
                     } else {
-                        VStack(spacing: 16) {
+                        VStack(spacing: DesignSystem.Spacing.md) {
                             Image(systemName: "qrcode")
                                 .font(.system(size: 80))
-                                .foregroundColor(.gray.opacity(0.3))
+                                .foregroundColor(DesignSystem.ColorToken.muted.opacity(0.3))
 
                             VStack(spacing: 6) {
-                                Text("尚未設定收款碼")
+                                // 尚未設定收款碼
+                                Text("checkoutNoQRCode")
                                     .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.gray)
-                                Text("請至「我的收款碼」頁面新增")
+                                    .foregroundColor(DesignSystem.ColorToken.muted)
+                                // 請至「我的收款碼」頁面新增
+                                Text("checkoutNoQRCodeHint")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.gray.opacity(0.7))
+                                    .foregroundColor(DesignSystem.ColorToken.muted.opacity(0.7))
                             }
                         }
                     }
@@ -100,23 +101,26 @@ struct EPaymentView: View {
             }
 
             // 完成付款按鈕
-            VStack(spacing: 12) {
-                Button(action: {
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                Button {
                     completePayment()
-                }) {
-                    Text("完成付款")
-                        .foregroundColor(.white)
-                        .font(.headline)
+                } label: {
+                    // 完成付款
+                    Text("checkoutCompleteButton")
+                        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                        .font(.system(size: 16, weight: .semibold))
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(qrCodeDataManager.qrCodeImage != nil ? Color.blue : Color.gray)
-                        .cornerRadius(12)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(qrCodeDataManager.qrCodeImage != nil
+                                    ? DesignSystem.ColorToken.buttonFilled
+                                    : DesignSystem.ColorToken.muted)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
                 }
                 .disabled(qrCodeDataManager.qrCodeImage == nil)
             }
         }
         .padding()
-        .background(Color(.systemGroupedBackground))
+        .background(DesignSystem.ColorToken.paper)
         .navigationTitle("")
     }
 
@@ -132,7 +136,6 @@ struct EPaymentView: View {
         )
         event = updateEvent
 
-        // 電子支付無鍵盤，直接關閉整個 flow
         closeFlow()
     }
 }
