@@ -24,7 +24,7 @@ struct ProductPerformanceView: View {
         Group {
             if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         EmptyStateView(
                             systemImage: "chart.bar.fill",
                             title: "尚無銷售紀錄",
@@ -34,8 +34,8 @@ struct ProductPerformanceView: View {
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        VStack(spacing: 24) {
+                    LazyVStack(spacing: DesignSystem.Spacing.sm) {
+                        VStack(spacing: DesignSystem.Spacing.lg) {
                             // TOP 5 商品榜單
                             topProductsView
 
@@ -59,7 +59,7 @@ struct ProductPerformanceView: View {
     
     // MARK: - Top Products View
     private var topProductsView: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             // 熱門商品榜單 Header
             HStack {
                 Text("熱門商品榜單")
@@ -68,7 +68,7 @@ struct ProductPerformanceView: View {
                 Spacer()
             }
             
-            VStack(spacing: 16) {
+            VStack(spacing: DesignSystem.Spacing.md) {
                 ForEach(productPerformanceViewModel.topProducts) { product in
                     ProductRankingCard(
                         rank: product.rank,
@@ -96,18 +96,18 @@ struct ProductPerformanceView: View {
     
     // MARK: - Category Analysis View
     private var categoryAnalysisView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             Text("類別銷售彙總")
                 .font(.title2)
                 .fontWeight(.bold)
             
-            VStack(spacing: 16) {
+            VStack(spacing: DesignSystem.Spacing.md) {
                 // Pie Chart
                 PieChartView(categories: productPerformanceViewModel.categoryAnalysis, currency: event.currency)
                     .frame(height: 250)
 
                 // Category Details
-                VStack(spacing: 8) {
+                VStack(spacing: DesignSystem.Spacing.xs) {
                     ForEach(productPerformanceViewModel.categoryAnalysis) { category in
                         CategoryCard(
                             color: category.color,
@@ -127,12 +127,12 @@ struct ProductPerformanceView: View {
     
     // MARK: - Sales Insights View  
     private var salesInsightsView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             Text("銷售洞察")
                 .font(.title2)
                 .fontWeight(.bold)
             
-            VStack(spacing: 12) {
+            VStack(spacing: DesignSystem.Spacing.sm) {
                 InsightCard(
                     icon: "chart.line.uptrend.xyaxis",
                     iconColor: .blue,

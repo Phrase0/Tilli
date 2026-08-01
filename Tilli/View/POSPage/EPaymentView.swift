@@ -83,7 +83,7 @@ struct EPaymentView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(DesignSystem.ColorToken.muted.opacity(0.3))
 
-                            VStack(spacing: 6) {
+                            VStack(spacing: DesignSystem.Spacing.xxs) {
                                 // 尚未設定收款碼
                                 Text("checkoutNoQRCode")
                                     .font(.system(size: 18, weight: .medium))

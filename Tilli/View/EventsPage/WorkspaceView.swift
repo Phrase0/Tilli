@@ -68,7 +68,7 @@ struct WorkspaceView: View {
                 .font(DesignSystem.Typography.caption)
                 .foregroundColor(DesignSystem.ColorToken.marketGreen)
                 .padding(.horizontal, DesignSystem.Spacing.xs)
-                .padding(.vertical, 4)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
                 .background(DesignSystem.ColorToken.marketGreenLight)
                 .clipShape(Capsule())
         } else {
@@ -76,7 +76,7 @@ struct WorkspaceView: View {
                 .font(DesignSystem.Typography.caption)
                 .foregroundColor(DesignSystem.ColorToken.muted)
                 .padding(.horizontal, DesignSystem.Spacing.xs)
-                .padding(.vertical, 4)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
                 .background(DesignSystem.ColorToken.quietFill)
                 .clipShape(Capsule())
         }

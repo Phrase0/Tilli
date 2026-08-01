@@ -208,14 +208,14 @@ struct AddNewProductView: View {
                                             .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
                                             .background(Circle().fill(DesignSystem.ColorToken.buttonFilled))
                                             .font(DesignSystem.Typography.caption)
-                                            .padding(4)
+                                            .padding(DesignSystem.Spacing.xxs)
                                             .padding(.trailing, DesignSystem.Spacing.xs)
                                             .padding(.bottom, DesignSystem.Spacing.xs)
                                     }
                                 }
                             )
                     } else {
-                        VStack(spacing: 4) {
+                        VStack(spacing: DesignSystem.Spacing.xxs) {
                             Image(systemName: "camera")
                                 .font(.title2)
                                 .foregroundColor(DesignSystem.ColorToken.muted)

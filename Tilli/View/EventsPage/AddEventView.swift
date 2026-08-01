@@ -138,7 +138,7 @@ struct AddEventView: View {
 
                         let dateValidation = viewModel.validateDates()
                         if !dateValidation.isValid, let errorMessage = dateValidation.errorMessage {
-                            HStack(spacing: 6) {
+                            HStack(spacing: DesignSystem.Spacing.xxs) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(DesignSystem.ColorToken.alertRed)
                                     .font(DesignSystem.Typography.caption)
@@ -149,7 +149,7 @@ struct AddEventView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DesignSystem.Spacing.xxs)
                 }
             }
 

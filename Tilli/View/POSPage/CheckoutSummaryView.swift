@@ -53,7 +53,7 @@ struct CheckoutSummaryView: View {
                 VStack(spacing: DesignSystem.Spacing.md) {
                     ForEach(selectedItems) { item in
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                                 Text(item.name)
                                     .font(DesignSystem.Typography.body)
 
@@ -100,7 +100,7 @@ struct CheckoutSummaryView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: DesignSystem.Spacing.xxs) {
                         Image(systemName: isBackdatedMode ? "clock.badge.checkmark.fill" : "clock.arrow.circlepath")
                             .foregroundColor(isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                         // 補記帳
@@ -109,7 +109,7 @@ struct CheckoutSummaryView: View {
                             .foregroundColor(isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                     }
                     .padding(.horizontal, DesignSystem.Spacing.sm)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, DesignSystem.Spacing.xxs)
                     .background(isBackdatedMode ? DesignSystem.ColorToken.alertRed.opacity(0.1) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
                 }
@@ -143,7 +143,7 @@ struct CheckoutSummaryView: View {
                     Text(discount.displayText(currency: event.currency))
                         .font(DesignSystem.Typography.caption)
                         .padding(.horizontal, DesignSystem.Spacing.xs)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, DesignSystem.Spacing.xxs)
                         .background(DesignSystem.ColorToken.quietFill)
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                 }

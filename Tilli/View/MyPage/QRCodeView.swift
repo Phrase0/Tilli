@@ -59,7 +59,7 @@ struct QRCodeView: View {
                                                     .foregroundColor(DesignSystem.ColorToken.muted.opacity(0.6))
                                             )
 
-                                        VStack(spacing: 6) {
+                                        VStack(spacing: DesignSystem.Spacing.xxs) {
                                             // 加入收款 QR Code
                                             Text("qrCodeAddTitle")
                                                 .font(.system(size: 18, weight: .medium))

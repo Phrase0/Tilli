@@ -17,7 +17,7 @@ struct TilliProSheetView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: DesignSystem.Spacing.lg) {
                 Spacer()
 
                 Image(systemName: isPro ? "crown.fill" : "crown")
@@ -43,7 +43,7 @@ struct TilliProSheetView: View {
                 Spacer()
 
                 #if DEBUG
-                VStack(spacing: 12) {
+                VStack(spacing: DesignSystem.Spacing.sm) {
                     Divider()
 
                     Text("測試專用")
@@ -58,9 +58,9 @@ struct TilliProSheetView: View {
                             }
                         }
                     ))
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, DesignSystem.Spacing.md)
                 }
-                .padding(.bottom, 16)
+                .padding(.bottom, DesignSystem.Spacing.md)
                 #endif
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

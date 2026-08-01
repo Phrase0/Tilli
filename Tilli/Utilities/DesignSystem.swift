@@ -9,6 +9,7 @@ import SwiftUI
 
 enum DesignSystem {
     enum Spacing {
+        static let xxs: CGFloat = 4
         static let xs: CGFloat = 8
         static let sm: CGFloat = 12
         static let md: CGFloat = 16

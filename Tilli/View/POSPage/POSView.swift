@@ -268,7 +268,7 @@ struct POSView: View {
                                 .foregroundColor(DesignSystem.ColorToken.muted)
                         }
                         .padding(.horizontal, DesignSystem.Spacing.sm)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, DesignSystem.Spacing.sm)
                         .frame(maxWidth: .infinity)
                         .background(DesignSystem.ColorToken.cardSurface)
                         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
@@ -349,7 +349,7 @@ struct POSView: View {
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name)
                         .font(.system(size: 16, weight: .bold))
@@ -375,7 +375,7 @@ struct POSView: View {
                             Text("posOutOfStock")
                                 .font(DesignSystem.Typography.caption)
                                 .foregroundColor(DesignSystem.ColorToken.alertRed)
-                                .padding(.horizontal, 6)
+                                .padding(.horizontal, DesignSystem.Spacing.xxs)
                                 .padding(.vertical, 2)
                                 .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -428,7 +428,7 @@ struct POSView: View {
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(product.name)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
@@ -442,7 +442,7 @@ struct POSView: View {
                     Text("posOutOfStock")
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.alertRed)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, DesignSystem.Spacing.xxs)
                         .padding(.vertical, 2)
                         .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -489,7 +489,7 @@ struct POSView: View {
             .grayscale(1.0)
             .opacity(0.6)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name)
                         .font(.system(size: 16, weight: .bold))
@@ -555,7 +555,7 @@ struct POSView: View {
             .grayscale(1.0)
             .opacity(0.6)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(product.name)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(DesignSystem.ColorToken.muted)

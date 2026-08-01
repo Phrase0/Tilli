@@ -13,7 +13,7 @@ struct ReportTimeRangeSelector: View {
     @Binding var selectedRange: ReportTimeRange
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
 
             // 時間範圍選擇
             rangeSelector
@@ -82,8 +82,8 @@ struct ReportTimeRangeSelector: View {
                             .foregroundColor(.secondary)
                             .font(.caption)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, DesignSystem.Spacing.sm)
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
                 }
@@ -116,8 +116,8 @@ struct ReportTimeRangeSelector: View {
                         .foregroundColor(.secondary)
                         .font(.caption)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, DesignSystem.Spacing.sm)
+                .padding(.vertical, DesignSystem.Spacing.xs)
                 .background(Color(.systemGray6))
                 .cornerRadius(8)
             }
@@ -127,10 +127,10 @@ struct ReportTimeRangeSelector: View {
     // MARK: - 自訂日期選擇器
 
     private var customDatePicker: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            HStack(spacing: DesignSystem.Spacing.md) {
                 // 開始日期
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                     Text("開始")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -149,7 +149,7 @@ struct ReportTimeRangeSelector: View {
                     .foregroundColor(.secondary)
 
                 // 結束日期
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                     Text("結束")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -177,7 +177,7 @@ struct ReportTimeRangeSelector: View {
         let validation = selectedRange.validateCustomRange()
 
         if !validation.isValid, let errorMessage = validation.errorMessage {
-            HStack(spacing: 6) {
+            HStack(spacing: DesignSystem.Spacing.xxs) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
                     .font(.caption)

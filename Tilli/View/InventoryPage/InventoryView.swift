@@ -229,7 +229,7 @@ struct InventoryView: View {
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(product.name)
@@ -261,7 +261,7 @@ struct InventoryView: View {
                             Text("inventoryOutOfStock")
                                 .font(DesignSystem.Typography.caption)
                                 .foregroundColor(DesignSystem.ColorToken.alertRed)
-                                .padding(.horizontal, 6)
+                                .padding(.horizontal, DesignSystem.Spacing.xxs)
                                 .padding(.vertical, 2)
                                 .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -308,7 +308,7 @@ struct InventoryView: View {
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 HStack(alignment: .top) {
                     Text(product.name)
                         .font(.system(size: 16, weight: .bold))
@@ -328,7 +328,7 @@ struct InventoryView: View {
                     Text("inventoryOutOfStock")
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.alertRed)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, DesignSystem.Spacing.xxs)
                         .padding(.vertical, 2)
                         .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -366,7 +366,7 @@ struct InventoryView: View {
             .grayscale(1.0)
             .opacity(0.6)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(product.name)
@@ -393,7 +393,7 @@ struct InventoryView: View {
                         Image(systemName: "ellipsis")
                             .rotationEffect(.degrees(90))
                             .foregroundColor(DesignSystem.ColorToken.muted)
-                            .padding(4)
+                            .padding(DesignSystem.Spacing.xxs)
                     }
                 }
 
@@ -436,7 +436,7 @@ struct InventoryView: View {
             .grayscale(1.0)
             .opacity(0.6)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 HStack(alignment: .top) {
                     Text(product.name)
                         .font(.system(size: 16, weight: .bold))
@@ -454,7 +454,7 @@ struct InventoryView: View {
                             .font(.system(size: 14))
                             .rotationEffect(.degrees(90))
                             .foregroundColor(DesignSystem.ColorToken.muted)
-                            .padding(4)
+                            .padding(DesignSystem.Spacing.xxs)
                     }
                 }
 
@@ -519,7 +519,7 @@ struct InventoryView: View {
             Image(systemName: "ellipsis")
                 .rotationEffect(.degrees(90))
                 .foregroundColor(DesignSystem.ColorToken.muted)
-                .padding(4)
+                .padding(DesignSystem.Spacing.xxs)
         }
     }
 }

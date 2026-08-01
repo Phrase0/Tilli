@@ -165,7 +165,7 @@ struct ProfileEditView: View {
             .fill(DesignSystem.ColorToken.quietFill)
             .frame(width: 120, height: 120)
             .overlay(
-                VStack(spacing: 4) {
+                VStack(spacing: DesignSystem.Spacing.xxs) {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 30))
                         .foregroundColor(DesignSystem.ColorToken.muted)

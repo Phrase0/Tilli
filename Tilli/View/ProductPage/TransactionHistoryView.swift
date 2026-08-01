@@ -25,13 +25,13 @@ struct TransactionHistoryView: View {
             // 排序和篩選工具列
             sortFilterToolbar
                 .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.vertical, DesignSystem.Spacing.xs)
                 .background(Color(.systemGray6))
 
             // 交易列表
             if transactionViewModel.filteredTransactions.isEmpty {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         EmptyStateView(
                             systemImage: "list.clipboard",
                             title: emptyStateMessage.title,
@@ -42,7 +42,7 @@ struct TransactionHistoryView: View {
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 16) {
+                    LazyVStack(spacing: DesignSystem.Spacing.md) {
                         if transactionViewModel.sortType == .time {
                             // 時間排序：按日期分組顯示
                             ForEach(transactionViewModel.filteredGroupedTransactions) { dailyGroup in
@@ -71,7 +71,7 @@ struct TransactionHistoryView: View {
     // MARK: - 排序和篩選工具列
 
     private var sortFilterToolbar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignSystem.Spacing.sm) {
             // 時間排序按鈕
             sortButton(type: .time, label: "時間")
 
@@ -92,7 +92,7 @@ struct TransactionHistoryView: View {
                     transactionViewModel.paymentFilter = .ePayment
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: DesignSystem.Spacing.xxs) {
                     Text(transactionViewModel.paymentFilter.label)
                         .font(.subheadline)
                         .frame(width: 100, alignment: .leading)
@@ -100,8 +100,8 @@ struct TransactionHistoryView: View {
                         .font(.caption)
                 }
                 .foregroundColor(transactionViewModel.hasActiveFilter ? .blue : .primary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, DesignSystem.Spacing.sm)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
                 .background(
                     transactionViewModel.hasActiveFilter
                         ? Color.blue.opacity(0.1)
@@ -119,7 +119,7 @@ struct TransactionHistoryView: View {
         return Button(action: {
             transactionViewModel.toggleSort(type)
         }) {
-            HStack(spacing: 4) {
+            HStack(spacing: DesignSystem.Spacing.xxs) {
                 Text(label)
                     .font(.subheadline)
 
@@ -129,8 +129,8 @@ struct TransactionHistoryView: View {
                 }
             }
             .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, DesignSystem.Spacing.sm)
+            .padding(.vertical, DesignSystem.Spacing.xxs)
             .background(isSelected ? Color.blue : Color(.systemGray5))
             .cornerRadius(8)
         }
@@ -159,7 +159,7 @@ struct TransactionHistoryView: View {
     private func dailyTransactionSection(_ dailyGroup: DailyTransactionGroup) -> some View {
         let isExpanded = transactionViewModel.isDailyGroupExpanded(dailyGroup.date)
         
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             // 日期標題（整個區域可點擊）
             Button(action: {
                 transactionViewModel.toggleDailyGroupExpansion(dailyGroup.date)
@@ -188,8 +188,8 @@ struct TransactionHistoryView: View {
                         .foregroundColor(.gray)
                         .font(.caption)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, DesignSystem.Spacing.md)
+                .padding(.vertical, DesignSystem.Spacing.sm)
                 .background(Color(.systemGray5))
                 .cornerRadius(8)
             }
@@ -197,7 +197,7 @@ struct TransactionHistoryView: View {
             
             // 該日的交易列表（條件顯示）
             if isExpanded {
-                VStack(spacing: 8) {
+                VStack(spacing: DesignSystem.Spacing.xs) {
                     ForEach(dailyGroup.transactions) { transaction in
                         transactionCard(transaction)
                     }
@@ -214,7 +214,7 @@ struct TransactionHistoryView: View {
             Button(action: {
                 transactionViewModel.toggleTransactionExpansion(transaction.id)
             }) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                     // 第一行：交易編號和支付方式
                     HStack {
                         Text(transactionViewModel.formatTransactionId(transaction.id.uuidString))
@@ -225,7 +225,7 @@ struct TransactionHistoryView: View {
                         
                         Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
                             .font(.caption)
-                            .padding(.horizontal, 8)
+                            .padding(.horizontal, DesignSystem.Spacing.xs)
                             .padding(.vertical, 2)
                             .background(transactionViewModel.paymentMethodColor(transaction.paymentMethod))
                             .foregroundColor(.white)
@@ -235,7 +235,7 @@ struct TransactionHistoryView: View {
                     // 第二行：日期時間
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2)  {
-                            HStack(spacing: 4) {
+                            HStack(spacing: DesignSystem.Spacing.xxs) {
                                 Text(DateFormatter.dateTime.string(from: transaction.displayDate))
                                     .font(.caption)
                                     .foregroundColor(.gray)
@@ -256,13 +256,13 @@ struct TransactionHistoryView: View {
                         
                         Spacer()
 
-                        HStack(alignment: .center, spacing: 8)  {
+                        HStack(alignment: .center, spacing: DesignSystem.Spacing.xs)  {
                             // 顯示折扣標籤
                             if let discountType = transaction.discountType,
                                let discountValue = transaction.discountValue {
                                 Text(formatDiscount(type: discountType, value: discountValue))
                                     .font(.caption)
-                                    .padding(.horizontal, 6)
+                                    .padding(.horizontal, DesignSystem.Spacing.xxs)
                                     .padding(.vertical, 2)
                                     .background(Color.blue.opacity(0.2))
                                     .foregroundColor(.blue)
@@ -289,7 +289,7 @@ struct TransactionHistoryView: View {
             if isExpanded {
                 VStack(spacing: 0) {
                     // 表頭
-                    HStack(spacing: 8) {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
                         Text("商品")
                             .font(.caption)
                             .foregroundColor(.gray)
@@ -316,7 +316,7 @@ struct TransactionHistoryView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                     .background(Color(.systemGray5))
 
                     // 商品明細列表
@@ -332,7 +332,7 @@ struct TransactionHistoryView: View {
     }
     
     private func transactionItemRow(_ item: SummaryItemModel) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignSystem.Spacing.xs) {
             // 商品名稱
             Text(item.name)
                 .font(.caption)
@@ -368,7 +368,7 @@ struct TransactionHistoryView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal)
-        .padding(.vertical, 12)
+        .padding(.vertical, DesignSystem.Spacing.sm)
         .background(Color.white)
     }
 

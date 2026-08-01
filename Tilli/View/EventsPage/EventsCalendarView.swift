@@ -202,7 +202,7 @@ struct CalendarDayCell: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 4) {
+            VStack(spacing: DesignSystem.Spacing.xxs) {
                 ZStack {
                     if isSelected {
                         Circle()

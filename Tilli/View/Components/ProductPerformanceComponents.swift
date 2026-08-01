@@ -53,7 +53,7 @@ struct ProductRankingCard: View {
                             .foregroundColor(.white)
                     )
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                     Text(name)
                         .font(.system(size: 16, weight: .medium))
                     Text(category)
@@ -63,7 +63,7 @@ struct ProductRankingCard: View {
                 
                 Spacer()
                 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: DesignSystem.Spacing.xxs) {
                     Text("\(contributionRate)%")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.blue)
@@ -81,7 +81,7 @@ struct ProductRankingCard: View {
             }
             
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                     Text("\(salesCount)")
                         .font(.system(size: 20, weight: .bold))
                     Text("銷售數量")
@@ -91,7 +91,7 @@ struct ProductRankingCard: View {
                 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: DesignSystem.Spacing.xxs) {
                     Text(MoneyHelper.format(revenue, currencyCode: currency))
                         .font(.system(size: 16, weight: .bold))
                     Text("實際金額")
@@ -100,21 +100,21 @@ struct ProductRankingCard: View {
                 }
 
             }
-            .padding(.top, 8)
+            .padding(.top, DesignSystem.Spacing.xs)
             
             // Expanded Details
             if isExpanded {
-                VStack(spacing: 12) {
+                VStack(spacing: DesignSystem.Spacing.sm) {
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
                         .frame(height: 1)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, DesignSystem.Spacing.xs)
                     
                     Text("詳細資訊")
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    VStack(spacing: 8) {
+                    VStack(spacing: DesignSystem.Spacing.xs) {
  
                         if let unitPrice = unitPrice {
                             HStack {
@@ -161,7 +161,7 @@ struct ProductRankingCard: View {
                     .font(.system(size: 13))
                     
                     // Progress Bar
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                         HStack {
                             Text("銷售表現")
                                 .font(.system(size: 11))
@@ -220,7 +220,7 @@ struct PieChartView: View {
             }
             
             // Center total amount
-            VStack(spacing: 4) {
+            VStack(spacing: DesignSystem.Spacing.xxs) {
                 Text("總銷售額")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -275,13 +275,13 @@ struct InsightCard: View {
     let description: String
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DesignSystem.Spacing.sm) {
             Image(systemName: icon)
                 .foregroundColor(iconColor)
                 .font(.system(size: 18))
                 .frame(width: 24)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(title)
                     .font(.system(size: 15, weight: .medium))
                 Text(description)

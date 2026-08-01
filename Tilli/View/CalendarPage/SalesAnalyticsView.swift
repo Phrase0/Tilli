@@ -29,7 +29,7 @@ struct SalesAnalyticsView: View {
         Group {
             if salesAnalyticsViewModel.salesOverview?.totalTransactions == 0 || salesAnalyticsViewModel.salesOverview == nil {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         EmptyStateView(
                             systemImage: "chart.line.uptrend.xyaxis",
                             title: "尚無銷售分析",
@@ -39,8 +39,8 @@ struct SalesAnalyticsView: View {
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        VStack(spacing: 20) {
+                    LazyVStack(spacing: DesignSystem.Spacing.sm) {
+                        VStack(spacing: DesignSystem.Spacing.lg) {
                             // 總銷售額區塊
                             salesSummaryView
                             // 支付方式分布
@@ -70,7 +70,7 @@ struct SalesAnalyticsView: View {
 
     // MARK: - 總銷售額視圖
     private var salesSummaryView: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: DesignSystem.Spacing.md) {
             salesCard
             transactionsCard
         }
@@ -120,7 +120,7 @@ struct SalesAnalyticsView: View {
 
     // MARK: - 支付方式分布
     private var paymentMethodDistribution: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             Text("支付方式分布")
                 .font(.headline)
                 .padding(.horizontal)
@@ -138,7 +138,7 @@ struct SalesAnalyticsView: View {
                 }
                 Spacer()
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, DesignSystem.Spacing.lg)
 
             // 支付方式詳情
             VStack(spacing: 0) {
@@ -163,8 +163,8 @@ struct SalesAnalyticsView: View {
                         .fontWeight(.medium)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 20)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+                .padding(.horizontal, DesignSystem.Spacing.lg)
                 .background(Color(.systemGray6))
 
                 ForEach(salesAnalyticsViewModel.paymentMethodData) { method in
@@ -190,13 +190,13 @@ struct SalesAnalyticsView: View {
                             .font(.system(size: 14))
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 20)
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .padding(.horizontal, DesignSystem.Spacing.lg)
                     .background(Color.white)
 
                     if method.id != salesAnalyticsViewModel.paymentMethodData.last?.id {
                         Divider()
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, DesignSystem.Spacing.lg)
                     }
                 }
             }
@@ -314,8 +314,8 @@ struct SalesAnalyticsView: View {
                         .fontWeight(.medium)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 20)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+                .padding(.horizontal, DesignSystem.Spacing.lg)
                 .background(Color(.systemGray6))
 
                 // 可滾動的數據列表
@@ -340,8 +340,8 @@ struct SalesAnalyticsView: View {
                                         .font(.system(size: 14, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .trailing)
                                 }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 20)
+                                .padding(.vertical, DesignSystem.Spacing.xs)
+                                .padding(.horizontal, DesignSystem.Spacing.lg)
                                 .background(selectedHourData?.hour == data.hour ? Color.blue.opacity(0.1) : Color.white)
                                 .id(data.hourString)
                                 .onTapGesture {
@@ -350,7 +350,7 @@ struct SalesAnalyticsView: View {
 
                                 if data.hour != salesAnalyticsViewModel.hourlyData.last?.hour {
                                     Divider()
-                                        .padding(.horizontal, 20)
+                                        .padding(.horizontal, DesignSystem.Spacing.lg)
                                 }
                             }
                         }
@@ -486,7 +486,7 @@ struct SalesAnalyticsView: View {
 
     /// 營收趨勢視圖
     private var revenueTrendView: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             HStack {
                 Text("營收趨勢")
                     .font(.headline)
@@ -538,13 +538,13 @@ struct SalesAnalyticsView: View {
     private var dailyBarChart: some View {
         let maxAmount = salesAnalyticsViewModel.maxDailyAmount
 
-        return VStack(spacing: 8) {
-            HStack(alignment: .bottom, spacing: 4) {
+        return VStack(spacing: DesignSystem.Spacing.xs) {
+            HStack(alignment: .bottom, spacing: DesignSystem.Spacing.xxs) {
                 ForEach(salesAnalyticsViewModel.dailyRevenue) { data in
                     let isSelected = selectedDailyData?.date == data.date
                     let opacity: Double = selectedDailyData == nil ? 1.0 : (isSelected ? 1.0 : 0.3)
 
-                    VStack(spacing: 4) {
+                    VStack(spacing: DesignSystem.Spacing.xxs) {
                         // 金額標籤（≤7天時顯示）
                         if timeRange.dayCount <= 7 {
                             Text(MoneyHelper.format(data.amount, currencyCode: event.currency))
@@ -663,7 +663,7 @@ struct SalesAnalyticsView: View {
     private var monthlyRevenueChart: some View {
         let maxAmount = salesAnalyticsViewModel.maxMonthlyAmount
 
-        return VStack(spacing: 8) {
+        return VStack(spacing: DesignSystem.Spacing.xs) {
             ForEach(salesAnalyticsViewModel.monthlyRevenue) { data in
                 let isSelected = selectedMonthlyData?.year == data.year && selectedMonthlyData?.month == data.month
                 let opacity: Double = selectedMonthlyData == nil ? 1.0 : (isSelected ? 1.0 : 0.3)
@@ -721,8 +721,8 @@ struct SalesAnalyticsView: View {
                     .fontWeight(.medium)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 20)
+            .padding(.vertical, DesignSystem.Spacing.xs)
+            .padding(.horizontal, DesignSystem.Spacing.lg)
             .background(Color(.systemGray6))
 
             // 數據列表
@@ -743,8 +743,8 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
+                            .padding(.vertical, DesignSystem.Spacing.xs)
+                            .padding(.horizontal, DesignSystem.Spacing.lg)
                             .background(selectedDailyData?.date == data.date ? Color.blue.opacity(0.1) : Color.white)
                             .id(data.fullDateString)
                             .onTapGesture {
@@ -753,7 +753,7 @@ struct SalesAnalyticsView: View {
 
                             if data.id != salesAnalyticsViewModel.dailyRevenue.last?.id {
                                 Divider()
-                                    .padding(.horizontal, 20)
+                                    .padding(.horizontal, DesignSystem.Spacing.lg)
                             }
                         }
                     }
@@ -792,8 +792,8 @@ struct SalesAnalyticsView: View {
                     .fontWeight(.medium)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 20)
+            .padding(.vertical, DesignSystem.Spacing.xs)
+            .padding(.horizontal, DesignSystem.Spacing.lg)
             .background(Color(.systemGray6))
 
             // 數據列表
@@ -816,8 +816,8 @@ struct SalesAnalyticsView: View {
                                     .font(.system(size: 14, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
+                            .padding(.vertical, DesignSystem.Spacing.xs)
+                            .padding(.horizontal, DesignSystem.Spacing.lg)
                             .background(isSelected ? Color.blue.opacity(0.1) : Color.white)
                             .id(data.fullMonthString)
                             .onTapGesture {
@@ -826,7 +826,7 @@ struct SalesAnalyticsView: View {
 
                             if data.id != salesAnalyticsViewModel.monthlyRevenue.last?.id {
                                 Divider()
-                                    .padding(.horizontal, 20)
+                                    .padding(.horizontal, DesignSystem.Spacing.lg)
                             }
                         }
                     }

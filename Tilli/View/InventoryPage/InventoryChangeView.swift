@@ -138,7 +138,7 @@ struct InventoryChangeView: View {
             } else if viewModel.isSearchEmpty {
                 searchEmptyState
             } else {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
                     // 啟用的商品（按類別分組）
                     ForEach(viewModel.sortedCategories, id: \.id) { category in
                         let items = viewModel.getItemsForCategory(category.id)
@@ -153,7 +153,7 @@ struct InventoryChangeView: View {
                     }
                 }
                 .padding(.top)
-                .padding(.bottom, 20)
+                .padding(.bottom, DesignSystem.Spacing.lg)
             }
         }
     }
@@ -161,7 +161,7 @@ struct InventoryChangeView: View {
     // MARK: - 下架商品區（參考 ProductDetailView）
 
     private var disabledProductsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             // 可點擊的標題（展開/收合）
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -201,7 +201,7 @@ struct InventoryChangeView: View {
     // MARK: - 類別區塊（可展開/收起）
 
     private func categorySection(category: CategoryModel, items: [InventoryProductItem]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             // 可點擊的分類標題
             Button(action: {
                 viewModel.toggleCategoryExpansion(category.id)
@@ -239,7 +239,7 @@ struct InventoryChangeView: View {
     // MARK: - 空狀態
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DesignSystem.Spacing.md) {
             Image(systemName: "shippingbox")
                 .font(.system(size: 50))
                 .foregroundColor(.gray.opacity(0.5))
@@ -256,7 +256,7 @@ struct InventoryChangeView: View {
     }
 
     private var searchEmptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DesignSystem.Spacing.md) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 50))
                 .foregroundColor(.gray.opacity(0.5))
@@ -304,12 +304,12 @@ struct InventoryProductCard: View {
     // MARK: - 商品標題區
 
     private var productHeader: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignSystem.Spacing.sm) {
             // 商品圖片
             productImage
 
             // 商品資訊
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(item.product.name)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
@@ -332,7 +332,7 @@ struct InventoryProductCard: View {
                 .foregroundColor(.gray)
                 .font(.caption)
         }
-        .padding(12)
+        .padding(DesignSystem.Spacing.sm)
     }
 
     private var productImage: some View {
@@ -349,7 +349,7 @@ struct InventoryProductCard: View {
     }
 
     private var stockBadge: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignSystem.Spacing.xxs) {
             if item.isLowStock {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
@@ -364,7 +364,7 @@ struct InventoryProductCard: View {
     // MARK: - 展開內容
 
     private var expandedContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             // 現有庫存卡片
             stockCard
 
@@ -377,17 +377,17 @@ struct InventoryProductCard: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(12)
+        .padding(DesignSystem.Spacing.sm)
     }
 
     private var stockCard: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text("現有庫存")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xxs) {
                     Text("\(item.currentStock)")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.primary)
@@ -400,26 +400,26 @@ struct InventoryProductCard: View {
             Spacer()
 
             // 庫存狀態標籤
-            HStack(spacing: 4) {
+            HStack(spacing: DesignSystem.Spacing.xxs) {
                 Image(systemName: item.isLowStock ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                 Text(item.isLowStock ? "庫存不足" : "庫存正常")
             }
             .font(.caption)
             .foregroundColor(item.isLowStock ? .orange : .green)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, DesignSystem.Spacing.sm)
+            .padding(.vertical, DesignSystem.Spacing.xxs)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(item.isLowStock ? Color.orange.opacity(0.1) : Color.green.opacity(0.1))
             )
         }
-        .padding(12)
+        .padding(DesignSystem.Spacing.sm)
         .background(Color(.systemGray6))
         .cornerRadius(10)
     }
 
     private var changesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             Text("異動紀錄")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -437,8 +437,8 @@ struct InventoryProductCard: View {
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, DesignSystem.Spacing.xs)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
                         .fill(change.reason.tagColor)
@@ -457,7 +457,7 @@ struct InventoryProductCard: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DesignSystem.Spacing.xxs)
     }
 }
 
@@ -492,12 +492,12 @@ struct DisabledInventoryProductCard: View {
     // MARK: - 商品標題區
 
     private var productHeader: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DesignSystem.Spacing.sm) {
             // 商品圖片（灰度效果）
             productImage
 
             // 商品資訊
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(item.product.name)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.gray)
@@ -520,7 +520,7 @@ struct DisabledInventoryProductCard: View {
                 .foregroundColor(.gray)
                 .font(.caption)
         }
-        .padding(12)
+        .padding(DesignSystem.Spacing.sm)
     }
 
     private var productImage: some View {
@@ -547,7 +547,7 @@ struct DisabledInventoryProductCard: View {
     // MARK: - 展開內容
 
     private var expandedContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             // 現有庫存卡片
             stockCard
 
@@ -560,17 +560,17 @@ struct DisabledInventoryProductCard: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(12)
+        .padding(DesignSystem.Spacing.sm)
     }
 
     private var stockCard: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text("現有庫存")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xxs) {
                     Text("\(item.currentStock)")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.gray)
@@ -582,13 +582,13 @@ struct DisabledInventoryProductCard: View {
 
             Spacer()
         }
-        .padding(12)
+        .padding(DesignSystem.Spacing.sm)
         .background(Color(.systemGray5))
         .cornerRadius(10)
     }
 
     private var changesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             Text("異動紀錄")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -606,8 +606,8 @@ struct DisabledInventoryProductCard: View {
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, DesignSystem.Spacing.xs)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
                         .fill(change.reason.tagColor)
@@ -626,6 +626,6 @@ struct DisabledInventoryProductCard: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DesignSystem.Spacing.xxs)
     }
 }
