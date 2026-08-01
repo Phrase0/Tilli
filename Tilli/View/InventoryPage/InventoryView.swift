@@ -38,14 +38,21 @@ struct InventoryView: View {
         .navigationTitle("inventoryTitle")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
+                    }
+                } label: {
+                    Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
+                }
+
                 NavigationLink {
                     AddNewProductView(event: event) {
                         viewModel.loadProducts()
                     }
                 } label: {
                     Image(systemName: "plus")
-                        .foregroundColor(DesignSystem.ColorToken.ink)
                 }
             }
         }

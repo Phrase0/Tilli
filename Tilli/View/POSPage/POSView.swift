@@ -43,25 +43,19 @@ struct POSView: View {
         .navigationTitle("posTitle")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: DesignSystem.Spacing.md) {
-                    // 清除所有已選數量
-                    Button {
-                        showClearAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(DesignSystem.ColorToken.ink)
-                    }
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button {
+                    showClearAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                }
 
-                    // 布局切換
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
-                        }
-                    } label: {
-                        Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
-                            .foregroundColor(DesignSystem.ColorToken.ink)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
                     }
+                } label: {
+                    Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
                 }
             }
         }
