@@ -167,7 +167,7 @@ struct WorkspaceView: View {
                 icon: "chart.bar",
                 // 查看分析
                 titleKey: "workspaceReportsButton",
-                destination: reportsPlaceholder
+                destination: ReportsView(event: event)
             )
         }
     }
@@ -207,14 +207,4 @@ struct WorkspaceView: View {
         }
     }
 
-    // MARK: - Placeholder Destinations
-
-    private var reportsPlaceholder: some View {
-        Text("Reports - TODO")
-            .font(DesignSystem.Typography.title1)
-            .foregroundColor(DesignSystem.ColorToken.muted)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(DesignSystem.ColorToken.paper)
-            .navigationTitle("workspaceReportsButton")
-    }
 }

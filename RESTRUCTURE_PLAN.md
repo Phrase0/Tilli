@@ -443,16 +443,16 @@ func testWorkspaceViewInitWithEvent() {
 7. 修改 WorkspaceView 的 POS 按鈕：NavigationLink → `POSView(event: event)`
 
 **測試（手動）：**
-- [ ] POS 頁面顯示商品列表（按分類分組）
-- [ ] 分類可展開/收起
-- [ ] 布局可切換 list/grid
-- [ ] 數量 +/- 正常，庫存上限正確
-- [ ] 無庫存商品灰色顯示，不可加入
-- [ ] 折扣選擇器正常
-- [ ] 結帳按鈕 → 結帳流程 → 現金/電子支付 → 完成
-- [ ] 結帳完成後庫存數量更新
-- [ ] **確認沒有** 編輯/新增/下架/刪除商品的入口
-- [ ] 空狀態（無商品）顯示提示文字，**沒有**「新增產品」按鈕
+- [x] POS 頁面顯示商品列表（按分類分組）
+- [x] 分類可展開/收起
+- [x] 布局可切換 list/grid
+- [x] 數量 +/- 正常，庫存上限正確
+- [x] 無庫存商品灰色顯示，不可加入
+- [x] 折扣選擇器正常
+- [x] 結帳按鈕 → 結帳流程 → 現金/電子支付 → 完成
+- [x] 結帳完成後庫存數量更新
+- [x] **確認沒有** 編輯/新增/下架/刪除商品的入口
+- [x] 空狀態（無商品）顯示提示文字，**沒有**「新增產品」按鈕
 
 **測試（自動）：**
 ```swift
@@ -481,31 +481,34 @@ func testPOSViewHasNoEditCapability() {
 11. 修改 WorkspaceView 的管理商品按鈕：NavigationLink → `InventoryView(event: event)`
 
 **測試（手動）：**
-- [ ] InventoryView 頁顯示所有商品（按分類分組）
-- [ ] toolbar + 按鈕可進入新增商品頁
-- [ ] 新增商品後回到列表，新商品出現
-- [ ] 商品 Menu > 編輯 → 進入編輯頁，修改後回到列表資料更新
-- [ ] 商品 Menu > 下架 → 商品移到下架區
-- [ ] 下架區 > 復原 → 商品回到正常列表
-- [ ] 商品 Menu > 刪除 → 確認對話框 → 刪除
-- [ ] 庫存調整功能正常
-- [ ] 在 InventoryView 新增商品後，返回 WorkspaceView 再進 POS，新商品出現在 POS 列表中（因 POS 的 onAppear 會重新 loadProducts）
+- [x] InventoryView 頁顯示所有商品（按分類分組）
+- [x] toolbar + 按鈕可進入新增商品頁
+- [x] 新增商品後回到列表，新商品出現
+- [x] 商品 Menu > 編輯 → 進入編輯頁，修改後回到列表資料更新
+- [x] 商品 Menu > 下架 → 商品移到下架區
+- [x] 下架區 > 復原 → 商品回到正常列表
+- [x] 商品 Menu > 刪除 → 確認對話框 → 刪除
+- [x] 庫存調整功能正常
+- [x] 在 InventoryView 新增商品後，返回 WorkspaceView 再進 POS，新商品出現在 POS 列表中（因 POS 的 onAppear 會重新 loadProducts）
 
 ---
 
-### 斷點 8：ReportsView（報表整合）
+### ✅ 斷點 8：ReportsView（報表整合）
 **目標：** WorkspaceView > Reports 按鈕進入 ReportsView，顯示交易/產品/銷售報表
 
 **步驟：**
-1. 新建 `ReportsView.swift`
-2. 頂部：`ReportTimeRangeSelector`（時間範圍選擇）
-3. 用 segmented control 切換三個子頁：交易明細 / 產品績效 / 銷售分析
-4. 直接重用：
+- [x] 新建 `ReportsView.swift`（`View/ReportsPage/`）
+- [x] 頂部：`ReportTimeRangeSelector`（時間範圍選擇）
+- [x] 用 segmented control 切換三個子頁：交易明細 / 產品績效 / 銷售分析
+- [x] 直接重用：
    - `TransactionHistoryView`
    - `ProductPerformanceView`
    - `SalesAnalyticsView`
-5. 建立 `ReportsViewModel`（參考 `EventDetailFromCalendarViewModel` 的組合方式）
-6. 修改 WorkspaceView 的 Reports 按鈕：NavigationLink → `ReportsView`
+- [x] 建立 `ReportsViewModel`（參考 `SessionDetailFromCalendarViewModel` 的組合方式）
+- [x] 修改 WorkspaceView 的 Reports 按鈕：NavigationLink → `ReportsView`
+- [x] 報表子頁面移至 `View/ReportsPage/` 資料夾
+- [x] Design System tokens + i18n（14 個新 localization keys）
+- [x] 匯出功能（CSV share sheet）完整移植
 
 **測試（手動）：**
 - [ ] Reports 頁顯示時間範圍選擇器
