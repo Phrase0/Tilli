@@ -149,9 +149,10 @@ struct InventoryView: View {
                     }
                 } else {
                     LazyVGrid(columns: [
-                        GridItem(.flexible()),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
                         GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.md) {
+                    ], spacing: DesignSystem.Spacing.xs) {
                         ForEach(products) { product in
                             inventoryGridCard(product)
                         }
@@ -196,9 +197,10 @@ struct InventoryView: View {
                     }
                 } else {
                     LazyVGrid(columns: [
-                        GridItem(.flexible()),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
                         GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.md) {
+                    ], spacing: DesignSystem.Spacing.xs) {
                         ForEach(viewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
                             disabledGridCard(product)
                         }
@@ -306,23 +308,14 @@ struct InventoryView: View {
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(product.name)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-                            .lineLimit(1)
+                    Text(product.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
+                        .lineLimit(1)
 
-                        if let note = product.note, !note.isEmpty {
-                            Text(note)
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer()
+                    Spacer(minLength: 2)
 
                     productMenu(for: product)
                 }
@@ -331,10 +324,7 @@ struct InventoryView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
 
-                Spacer(minLength: 4)
-
                 if isOutOfStock {
-                    // 無庫存
                     Text("inventoryOutOfStock")
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.alertRed)
@@ -343,13 +333,12 @@ struct InventoryView: View {
                         .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                 } else {
-                    // 庫存: %d
                     Text("inventoryStockCount \(product.stock)")
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.muted)
                 }
             }
-            .padding(10)
+            .padding(DesignSystem.Spacing.xs)
         }
         .background(isOutOfStock ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
@@ -447,26 +436,16 @@ struct InventoryView: View {
             .grayscale(1.0)
             .opacity(0.6)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(product.name)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .lineLimit(1)
+                    Text(product.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                        .lineLimit(1)
 
-                        if let note = product.note, !note.isEmpty {
-                            Text(note)
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer()
+                    Spacer(minLength: 2)
 
                     Menu {
-                        // 復原
                         Button("inventoryRestore") {
                             viewModel.handleRestoreAction(for: product.id)
                         }
@@ -483,14 +462,11 @@ struct InventoryView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(DesignSystem.ColorToken.muted)
 
-                Spacer(minLength: 4)
-
-                // 庫存: %d
                 Text("inventoryStockCount \(product.stock)")
                     .font(DesignSystem.Typography.caption)
                     .foregroundColor(DesignSystem.ColorToken.muted)
             }
-            .padding(10)
+            .padding(DesignSystem.Spacing.xs)
         }
         .background(DesignSystem.ColorToken.quietFill)
         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))

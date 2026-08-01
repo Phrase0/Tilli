@@ -43,13 +43,7 @@ struct POSView: View {
         .navigationTitle("posTitle")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button {
-                    showClearAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
@@ -166,9 +160,10 @@ struct POSView: View {
                     }
                 } else {
                     LazyVGrid(columns: [
-                        GridItem(.flexible()),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
                         GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.md) {
+                    ], spacing: DesignSystem.Spacing.xs) {
                         ForEach(products) { product in
                             posGridCard(product)
                         }
@@ -213,9 +208,10 @@ struct POSView: View {
                     }
                 } else {
                     LazyVGrid(columns: [
-                        GridItem(.flexible()),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
+                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
                         GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.md) {
+                    ], spacing: DesignSystem.Spacing.xs) {
                         ForEach(viewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
                             posDisabledGridCard(product)
                         }
@@ -302,21 +298,34 @@ struct POSView: View {
                     .fontWeight(.bold)
             }
 
-            Button {
-                showCheckoutSheet = true
-            } label: {
-                // 結帳
-                Text("posCheckoutButton")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignSystem.Spacing.md)
-                    .background(viewModel.subtotal() > 0
-                                ? DesignSystem.ColorToken.buttonFilled
-                                : DesignSystem.ColorToken.muted)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Button {
+                    showClearAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16))
+                        .foregroundColor(DesignSystem.ColorToken.ink)
+                        .padding(DesignSystem.Spacing.md)
+                        .background(DesignSystem.ColorToken.quietFill)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+                }
+                .disabled(viewModel.subtotal() == 0)
+
+                Button {
+                    showCheckoutSheet = true
+                } label: {
+                    Text("posCheckoutButton")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(viewModel.subtotal() > 0
+                                    ? DesignSystem.ColorToken.buttonFilled
+                                    : DesignSystem.ColorToken.muted)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+                }
+                .disabled(viewModel.subtotal() == 0)
             }
-            .disabled(viewModel.subtotal() == 0)
         }
         .padding(DesignSystem.Spacing.md)
     }
@@ -419,50 +428,37 @@ struct POSView: View {
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-                        .lineLimit(1)
-
-                    if let note = product.note, !note.isEmpty {
-                        Text(note)
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .lineLimit(1)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(product.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
+                    .lineLimit(1)
 
                 Text(MoneyHelper.format(product.price, currencyCode: event.currency))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
 
-                Spacer(minLength: 4)
+                if isOutOfStock {
+                    Text("posOutOfStock")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.alertRed)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                } else {
+                    Text("posStockCount \(product.stock)")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                }
 
-                HStack(alignment: .center) {
-                    if isOutOfStock {
-                        // 無庫存
-                        Text("posOutOfStock")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.alertRed)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                    } else {
-                        // 庫存: %d
-                        Text("posStockCount \(product.stock)")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                    }
-
+                HStack {
                     Spacer()
-
-                    quantityControls(product: product, isOutOfStock: isOutOfStock, currentQty: currentQty)
+                    quantityControls(product: product, isOutOfStock: isOutOfStock, currentQty: currentQty, compact: true)
+                    Spacer()
                 }
             }
-            .padding(10)
+            .padding(DesignSystem.Spacing.xs)
         }
         .background(isOutOfStock ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
@@ -559,49 +555,37 @@ struct POSView: View {
             .grayscale(1.0)
             .opacity(0.6)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .lineLimit(1)
-
-                    if let note = product.note, !note.isEmpty {
-                        Text(note)
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .lineLimit(1)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(product.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .lineLimit(1)
 
                 Text(MoneyHelper.format(product.price, currencyCode: event.currency))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(DesignSystem.ColorToken.muted)
 
-                Spacer(minLength: 4)
+                Text("posStockCount \(product.stock)")
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
-                HStack(alignment: .center) {
-                    // 庫存: %d
-                    Text("posStockCount \(product.stock)")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-
+                HStack {
                     Spacer()
-
-                    HStack(spacing: 10) {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
                         Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 22))
+                            .font(.system(size: 20))
                             .foregroundColor(DesignSystem.ColorToken.quietFill)
                         Text("0")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(DesignSystem.ColorToken.muted)
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 22))
+                            .font(.system(size: 20))
                             .foregroundColor(DesignSystem.ColorToken.quietFill)
                     }
+                    Spacer()
                 }
             }
-            .padding(10)
+            .padding(DesignSystem.Spacing.xs)
         }
         .background(DesignSystem.ColorToken.quietFill)
         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
@@ -615,13 +599,14 @@ struct POSView: View {
 
     // MARK: - Quantity Controls
 
-    private func quantityControls(product: ProductModel, isOutOfStock: Bool, currentQty: Int) -> some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
+    private func quantityControls(product: ProductModel, isOutOfStock: Bool, currentQty: Int, compact: Bool = false) -> some View {
+        let iconSize: CGFloat = compact ? 20 : 22
+        return HStack(spacing: compact ? DesignSystem.Spacing.xs : DesignSystem.Spacing.sm) {
             Button {
                 viewModel.decreaseQuantity(for: product)
             } label: {
                 Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: iconSize))
                     .foregroundColor(isOutOfStock || currentQty == 0
                                     ? DesignSystem.ColorToken.quietFill
                                     : DesignSystem.ColorToken.ink.opacity(0.6))
@@ -637,7 +622,7 @@ struct POSView: View {
                 viewModel.increaseQuantity(for: product)
             } label: {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: iconSize))
                     .foregroundColor(isOutOfStock || currentQty >= product.stock
                                     ? DesignSystem.ColorToken.quietFill
                                     : DesignSystem.ColorToken.ink.opacity(0.6))
