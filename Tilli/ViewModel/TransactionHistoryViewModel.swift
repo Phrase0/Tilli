@@ -24,9 +24,9 @@ enum PaymentMethodFilter {
 
     var label: String {
         switch self {
-        case .all: return "全部"
-        case .cash: return "現金"
-        case .ePayment: return "電子支付"
+        case .all: return String(localized: "transactionFilterAll")
+        case .cash: return String(localized: "transactionFilterCash")
+        case .ePayment: return String(localized: "transactionFilterEPayment")
         }
     }
 }
@@ -310,9 +310,9 @@ class TransactionViewModel: ObservableObject {
     func paymentMethodText(_ method: PaymentMethod) -> String {
         switch method {
         case .cash:
-            return "現金"
+            return String(localized: "transactionPaymentCash")
         case .ePayment:
-            return "電子支付"
+            return String(localized: "transactionPaymentEPayment")
         }
     }
     

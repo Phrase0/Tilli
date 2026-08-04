@@ -59,6 +59,14 @@ enum DesignSystem {
         })
     }
 
+    // MARK: - 資料視覺化色彩（單色原則例外）
+    enum ChartColor {
+        static let primary = Color.blue
+        static let primaryGradient = Color.cyan
+        static let secondary = Color.purple
+        static let secondaryGradient = Color.pink
+    }
+
     enum Typography {
         static let display = Font.system(size: 34, weight: .bold)
         static let title1 = Font.system(size: 28, weight: .bold)

@@ -14,7 +14,6 @@ struct ReportTimeRangeSelector: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-
             // 時間範圍選擇
             rangeSelector
 
@@ -26,23 +25,25 @@ struct ReportTimeRangeSelector: View {
             // 顯示實際報表範圍
             HStack {
                 Image(systemName: "chart.bar.doc.horizontal")
-                    .foregroundColor(.blue)
-                    .font(.caption)
+                    .foregroundColor(DesignSystem.ColorToken.ink)
+                    .font(DesignSystem.Typography.caption)
 
-                Text("統計範圍：\(selectedRange.displayText)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // 統計範圍：
+                Text("timeRangeStatsLabel \(selectedRange.displayText)")
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
                 Spacer()
 
-                Text("共 \(selectedRange.dayCount) 天")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // 共 N 天
+                Text("timeRangeDayCount \(selectedRange.dayCount)")
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.ColorToken.paper)
+        .cornerRadius(DesignSystem.Radius.sm)
     }
 
     // MARK: - 範圍選擇器
@@ -50,78 +51,80 @@ struct ReportTimeRangeSelector: View {
     @ViewBuilder
     private var rangeSelector: some View {
         switch event.dateType {
+        // 單日場次：不顯示選擇器
         case .single:
-            // 單日場次：不顯示選擇器
             EmptyView()
 
+        // 多日場次：提供全部、今日、（超過7天時）最近7天、自訂選項
         case .multi:
             if let days = event.dayCount {
-                // 多日場次：提供全部、今日、（超過7天時）最近7天、自訂選項
                 Menu {
-                    Button("全部") {
+                    // 全部
+                    Button("timeRangeAll") {
                         selectedRange.type = .all
                     }
-                    Button("今日") {
+                    // 今日
+                    Button("timeRangeToday") {
                         selectedRange.type = .today
                     }
                     // 超過 7 天才顯示「最近7天」
                     if days > 7 {
-                        Button("最近7天") {
+                        // 最近7天
+                        Button("timeRangeRecent7") {
                             selectedRange.type = .recent7
                         }
                     }
-                    Button("自訂") {
+                    // 自訂
+                    Button("timeRangeCustom") {
                         selectedRange.type = .custom
                     }
                 } label: {
-                    HStack {
-                        Text(selectedRangeLabel)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.sm)
-                    .padding(.vertical, DesignSystem.Spacing.xs)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                    rangeSelectorLabel
                 }
             }
 
+        // 無限期場次：提供全部、今日、最近7天、最近30天、自訂選項（自訂最多90天）
         case .permanent:
-            // 無限期場次：提供全部、今日、最近7天、最近30天、自訂選項（自訂最多90天）
             Menu {
-                Button("全部") {
+                // 全部
+                Button("timeRangeAll") {
                     selectedRange.type = .all
                 }
-                Button("今日") {
+                // 今日
+                Button("timeRangeToday") {
                     selectedRange.type = .today
                 }
-                Button("最近7天") {
+                // 最近7天
+                Button("timeRangeRecent7") {
                     selectedRange.type = .recent7
                 }
-                Button("最近30天") {
+                // 最近30天
+                Button("timeRangeRecent30") {
                     selectedRange.type = .recent30
                 }
-                Button("自訂") {
+                // 自訂
+                Button("timeRangeCustom") {
                     selectedRange.type = .custom
                 }
             } label: {
-                HStack {
-                    Text(selectedRangeLabel)
-                        .foregroundColor(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                }
-                .padding(.horizontal, DesignSystem.Spacing.sm)
-                .padding(.vertical, DesignSystem.Spacing.xs)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                rangeSelectorLabel
             }
         }
+    }
+
+    private var rangeSelectorLabel: some View {
+        HStack {
+            Text(selectedRangeLabel)
+                .foregroundColor(DesignSystem.ColorToken.ink)
+            Spacer()
+            Image(systemName: "chevron.down")
+                .foregroundColor(DesignSystem.ColorToken.muted)
+                .font(DesignSystem.Typography.caption)
+        }
+        .padding(.horizontal, DesignSystem.Spacing.sm)
+        .padding(.vertical, DesignSystem.Spacing.xs)
+        .background(DesignSystem.ColorToken.paper)
+        .cornerRadius(DesignSystem.Radius.sm)
     }
 
     // MARK: - 自訂日期選擇器
@@ -131,9 +134,10 @@ struct ReportTimeRangeSelector: View {
             HStack(spacing: DesignSystem.Spacing.md) {
                 // 開始日期
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    Text("開始")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    // 開始
+                    Text("timeRangeStart")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
 
                     DatePicker(
                         "",
@@ -146,13 +150,14 @@ struct ReportTimeRangeSelector: View {
                 }
 
                 Text("～")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
 
                 // 結束日期
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    Text("結束")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    // 結束
+                    Text("timeRangeEnd")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
 
                     DatePicker(
                         "",
@@ -180,10 +185,10 @@ struct ReportTimeRangeSelector: View {
             HStack(spacing: DesignSystem.Spacing.xxs) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
-                    .font(.caption)
+                    .font(DesignSystem.Typography.caption)
 
                 Text(errorMessage)
-                    .font(.caption)
+                    .font(DesignSystem.Typography.caption)
                     .foregroundColor(.orange)
             }
         }
@@ -194,35 +199,15 @@ struct ReportTimeRangeSelector: View {
     private var selectedRangeLabel: String {
         switch selectedRange.type {
         case .all:
-            return "全部"
+            return String(localized: "timeRangeAll")
         case .today:
-            return "今日"
+            return String(localized: "timeRangeToday")
         case .recent7:
-            return "最近7天"
+            return String(localized: "timeRangeRecent7")
         case .recent30:
-            return "最近30天"
+            return String(localized: "timeRangeRecent30")
         case .custom:
-            return "自訂"
-        }
-    }
-
-    private var dateIcon: String {
-        switch event.dateType {
-        case .single:
-            return "calendar"
-        case .multi:
-            return "calendar.badge.clock"
-        case .permanent:
-            return "infinity"
-        }
-    }
-
-    private var iconColor: Color {
-        switch event.dateType {
-        case .single, .multi:
-            return .blue
-        case .permanent:
-            return .purple
+            return String(localized: "timeRangeCustom")
         }
     }
 
@@ -231,10 +216,9 @@ struct ReportTimeRangeSelector: View {
     /// 開始日期的可選範圍
     private var startDateRange: ClosedRange<Date> {
         let calendar = Calendar.current
+        // 開始日期：不可早於場次開始日期，不可晚於結束日期
         let eventStart = calendar.startOfDay(for: event.startDate)
         let customEnd = calendar.startOfDay(for: selectedRange.customEnd)
-
-        // 開始日期：不可早於場次開始日期，不可晚於結束日期
         return eventStart...customEnd
     }
 

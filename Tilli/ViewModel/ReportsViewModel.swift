@@ -64,6 +64,7 @@ class ReportsViewModel: ObservableObject {
         transactionViewModel.loadData(timeRange: timeRange)
         productPerformanceViewModel.loadData(timeRange: timeRange)
         salesAnalyticsViewModel.loadData(timeRange: timeRange)
+        objectWillChange.send()
     }
 
     func isCurrentTabExportDisabled() -> Bool {

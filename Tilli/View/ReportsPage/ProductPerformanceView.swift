@@ -19,7 +19,7 @@ struct ProductPerformanceView: View {
         self._event = event
         self.timeRange = timeRange
     }
-    
+
     var body: some View {
         Group {
             if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
@@ -27,8 +27,8 @@ struct ProductPerformanceView: View {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         EmptyStateView(
                             systemImage: "chart.bar.fill",
-                            title: "尚無銷售紀錄",
-                            message: "完成結帳後，產品績效會顯示在這裡"
+                            title: String(localized: "performanceEmptyTitle"),
+                            message: String(localized: "performanceEmptyMessage")
                         )
                     }
                 }
@@ -38,36 +38,33 @@ struct ProductPerformanceView: View {
                         VStack(spacing: DesignSystem.Spacing.lg) {
                             // TOP 5 商品榜單
                             topProductsView
-
                             // 類別銷售彙總
                             categoryAnalysisView
-
                             // 銷售洞察
                             salesInsightsView
                         }
                     }
-                    .padding()
+                    .padding(DesignSystem.Spacing.md)
                 }
             }
         }
         .refreshable {
             productPerformanceViewModel.loadData(timeRange: timeRange)
         }
-        .background(Color(.systemGray6))
+        .background(DesignSystem.ColorToken.paper)
     }
-    
-    
+
     // MARK: - Top Products View
     private var topProductsView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             // 熱門商品榜單 Header
             HStack {
-                Text("熱門商品榜單")
-                    .font(.title2)
-                    .fontWeight(.bold)
+                // 熱門商品榜單
+                Text("performanceTopProducts")
+                    .font(DesignSystem.Typography.title2)
                 Spacer()
             }
-            
+
             VStack(spacing: DesignSystem.Spacing.md) {
                 ForEach(productPerformanceViewModel.topProducts) { product in
                     ProductRankingCard(
@@ -89,18 +86,18 @@ struct ProductPerformanceView: View {
                 }
             }
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(12)
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
     }
-    
+
     // MARK: - Category Analysis View
     private var categoryAnalysisView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            Text("類別銷售彙總")
-                .font(.title2)
-                .fontWeight(.bold)
-            
+            // 類別銷售彙總
+            Text("performanceCategoryAnalysis")
+                .font(DesignSystem.Typography.title2)
+
             VStack(spacing: DesignSystem.Spacing.md) {
                 // Pie Chart
                 PieChartView(categories: productPerformanceViewModel.categoryAnalysis, currency: event.currency)
@@ -120,22 +117,22 @@ struct ProductPerformanceView: View {
                 }
             }
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(12)
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
     }
-    
-    // MARK: - Sales Insights View  
+
+    // MARK: - Sales Insights View
     private var salesInsightsView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            Text("銷售洞察")
-                .font(.title2)
-                .fontWeight(.bold)
-            
+            // 銷售洞察
+            Text("performanceSalesInsights")
+                .font(DesignSystem.Typography.title2)
+
             VStack(spacing: DesignSystem.Spacing.sm) {
                 InsightCard(
                     icon: "chart.line.uptrend.xyaxis",
-                    iconColor: .blue,
+                    iconColor: DesignSystem.ColorToken.ink,
                     title: productPerformanceViewModel.salesInsights.hotProductTitle,
                     description: productPerformanceViewModel.salesInsights.hotProductDescription
                 )
@@ -145,7 +142,7 @@ struct ProductPerformanceView: View {
                    let discountDescription = productPerformanceViewModel.salesInsights.discountDescription {
                     InsightCard(
                         icon: "percent",
-                        iconColor: .green,
+                        iconColor: DesignSystem.ColorToken.ink,
                         title: discountTitle,
                         description: discountDescription
                     )
@@ -153,17 +150,17 @@ struct ProductPerformanceView: View {
 
                 InsightCard(
                     icon: "lightbulb.fill",
-                    iconColor: .orange,
+                    iconColor: DesignSystem.ColorToken.ink,
                     title: productPerformanceViewModel.salesInsights.suggestionTitle,
                     description: productPerformanceViewModel.salesInsights.suggestionDescription
                 )
             }
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(12)
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
     }
-    
+
     private func toggleExpansion(for rank: Int) {
         withAnimation(.easeInOut(duration: 0.3)) {
             if expandedProducts.contains(rank) {

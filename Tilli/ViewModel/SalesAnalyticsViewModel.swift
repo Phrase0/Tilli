@@ -35,11 +35,11 @@ struct MonthlyRevenueData: Identifiable {
     let count: Int
 
     var monthString: String {
-        return "\(month)月"
+        return String(localized: "analyticsMonthFormat \(month)")
     }
 
     var fullMonthString: String {
-        return "\(year)/\(month)月"
+        return String(localized: "analyticsYearMonthFormat \(year) \(month)")
     }
 }
 
