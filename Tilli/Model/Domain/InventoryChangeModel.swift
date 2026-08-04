@@ -20,14 +20,14 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .salesOut: return "銷售出庫"
-        case .returnIn: return "退貨入庫"
-        case .inventoryLoss: return "盤損調整"
-        case .damaged: return "損壞報廢"
-        case .expired: return "過期銷毀"
-        case .internalUse: return "內部領用"
-        case .purchase: return "進貨入庫"
-        case .adjustment: return "其他調整"
+        case .salesOut: return String.localized("inventoryReasonSalesOut") // 銷售出庫
+        case .returnIn: return String.localized("inventoryReasonReturnIn") // 退貨入庫
+        case .inventoryLoss: return String.localized("inventoryReasonInventoryLoss") // 盤損調整
+        case .damaged: return String.localized("inventoryReasonDamaged") // 損壞報廢
+        case .expired: return String.localized("inventoryReasonExpired") // 過期銷毀
+        case .internalUse: return String.localized("inventoryReasonInternalUse") // 內部領用
+        case .purchase: return String.localized("inventoryReasonPurchase") // 進貨入庫
+        case .adjustment: return String.localized("inventoryReasonAdjustment") // 其他調整
         }
     }
 

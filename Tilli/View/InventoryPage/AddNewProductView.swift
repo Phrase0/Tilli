@@ -159,7 +159,7 @@ struct AddNewProductView: View {
                 }
                 label: {
                     HStack {
-                        Text(viewModel.sortedCategories.first { $0.id == viewModel.selectedCategoryID }?.name ?? String(localized: "addProductCategoryPlaceholder"))
+                        Text(viewModel.sortedCategories.first { $0.id == viewModel.selectedCategoryID }?.name ?? String.localized("addProductCategoryPlaceholder"))
                             .foregroundColor(viewModel.isEditingWithTransaction ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
                         Spacer()
                         Image(systemName: "chevron.up.chevron.down")
@@ -232,8 +232,8 @@ struct AddNewProductView: View {
             }
         }
         .navigationTitle(viewModel.editingProduct == nil
-            ? String(localized: "addProductNavTitleNew")
-            : String(localized: "addProductNavTitleEdit"))
+            ? String.localized("addProductNavTitleNew")
+            : String.localized("addProductNavTitleEdit"))
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 if focusedField == .price || focusedField == .quantity {

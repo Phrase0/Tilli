@@ -43,10 +43,12 @@ struct PaymentMethodAnalysisData: Identifiable {
 
         switch method {
         case .cash:
-            self.name = "現金"
+            // 現金
+            self.name = String.localized("transactionPaymentCash")
             self.color = .pink
         case .ePayment:
-            self.name = "電子支付"
+            // 電子支付
+            self.name = String.localized("transactionPaymentEPayment")
             self.color = .purple
         }
     }

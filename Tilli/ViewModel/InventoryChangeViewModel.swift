@@ -200,16 +200,25 @@ class InventoryChangeViewModel: ObservableObject {
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
-        // 報表標題行
-        csvContent += "庫存總覽_\(event.title), \(selectedTimeRange.csvDateRangeText)\n"
+        // 庫存總覽
+        let csvTitle = String.localized("csvInventorySummaryTitle")
+        csvContent += "\(csvTitle)_\(event.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
-        // 欄位標題（新增「狀態」欄位）
-        csvContent += "商品名稱,類別,單價(\(currencyCode)),現有庫存,庫存狀態,狀態,期間入庫,期間出庫,淨異動\n"
+        // 商品名稱,類別,單價,現有庫存,庫存狀態,狀態,期間入庫,期間出庫,淨異動
+        let h1 = String.localized("csvProductName")
+        let h2 = String.localized("csvCategory")
+        let h3 = String.localized("csvUnitPrice \(currencyCode)")
+        let h4 = String.localized("csvCurrentStock")
+        let h5 = String.localized("csvStockStatus")
+        let h6 = String.localized("csvStatus")
+        let h7 = String.localized("csvPeriodIn")
+        let h8 = String.localized("csvPeriodOut")
+        let h9 = String.localized("csvNetChange")
+        csvContent += "\(h1),\(h2),\(h3),\(h4),\(h5),\(h6),\(h7),\(h8),\(h9)\n"
 
         let dateInterval = selectedTimeRange.dateInterval
 
-        // 合併啟用和下架商品
         let allItems = inventoryItems + disabledInventoryItems
 
         for item in allItems {
@@ -217,8 +226,10 @@ class InventoryChangeViewModel: ObservableObject {
             let categoryName = getCategoryName(for: item.product.categoryId).replacingOccurrences(of: ",", with: "，")
             let unitPrice = MoneyHelper.toDisplayString(item.product.price, currency: currency)
             let currentStock = "\(item.currentStock)"
-            let stockStatus = item.isLowStock ? "庫存不足" : "庫存正常"
-            let productStatus = item.product.isDisabled ? "已下架" : "銷售中"
+            // 庫存不足 / 庫存正常
+            let stockStatus = item.isLowStock ? String.localized("csvLowStock") : String.localized("csvInStock")
+            // 已下架 / 銷售中
+            let productStatus = item.product.isDisabled ? String.localized("csvDisabled") : String.localized("csvActive")
 
             // 計算期間內的入庫和出庫
             let periodChanges = item.changes.filter { dateInterval.contains($0.timestamp) }
@@ -241,12 +252,21 @@ class InventoryChangeViewModel: ObservableObject {
     func generateInventoryDetailCSV() -> String {
         var csvContent = ""
 
-        // 報表標題行
-        csvContent += "庫存異動明細_\(event.title), \(selectedTimeRange.csvDateRangeText)\n"
+        // 庫存異動明細
+        let csvTitle = String.localized("csvInventoryDetailTitle")
+        csvContent += "\(csvTitle)_\(event.title), \(selectedTimeRange.csvDateRangeText)\n"
         csvContent += "\n"
 
-        // 欄位標題（新增「狀態」欄位）
-        csvContent += "交易編號,日期時間,商品名稱,類別,狀態,異動原因,異動數量,變動後庫存\n"
+        // 交易編號,日期時間,商品名稱,類別,狀態,異動原因,異動數量,變動後庫存
+        let h1 = String.localized("csvTransactionId")
+        let h2 = String.localized("csvDateTime")
+        let h3 = String.localized("csvProductName")
+        let h4 = String.localized("csvCategory")
+        let h5 = String.localized("csvStatus")
+        let h6 = String.localized("csvChangeReason")
+        let h7 = String.localized("csvChangeQuantity")
+        let h8 = String.localized("csvAfterStock")
+        csvContent += "\(h1),\(h2),\(h3),\(h4),\(h5),\(h6),\(h7),\(h8)\n"
 
         let dateInterval = selectedTimeRange.dateInterval
 
@@ -303,7 +323,8 @@ class InventoryChangeViewModel: ObservableObject {
             let dateTime = DateFormatter.dateTime.string(from: change.timestamp)
             let productName = product.name.replacingOccurrences(of: ",", with: "，")
             let categoryName = getCategoryName(for: product.categoryId).replacingOccurrences(of: ",", with: "，")
-            let productStatus = product.isDisabled ? "已下架" : "銷售中"
+            // 已下架 / 銷售中
+            let productStatus = product.isDisabled ? String.localized("csvDisabled") : String.localized("csvActive")
             let reasonName = change.displayReasonName.replacingOccurrences(of: ",", with: "，")
             let changeText = change.change >= 0 ? "+\(change.change)" : "\(change.change)"
             let afterStock = afterStockMap[change.id].map { String($0) } ?? "-"
@@ -322,7 +343,9 @@ class InventoryChangeViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "庫存總覽_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 庫存總覽
+        let csvFileLabel = String.localized("csvFileInventorySummary")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -342,7 +365,9 @@ class InventoryChangeViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "庫存異動明細_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 庫存異動明細
+        let csvFileLabel = String.localized("csvFileInventoryDetail")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -357,7 +382,8 @@ class InventoryChangeViewModel: ObservableObject {
 
     /// 取得類別名稱
     private func getCategoryName(for categoryId: UUID) -> String {
-        event.categories.first { $0.id == categoryId }?.name ?? "未分類"
+        // 未分類
+        event.categories.first { $0.id == categoryId }?.name ?? String.localized("inventoryUncategorized")
     }
 
     // MARK: - Export Management

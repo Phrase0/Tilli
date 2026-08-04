@@ -146,9 +146,9 @@ class AddNewProductViewModel: ObservableObject {
     /// 價格提示文字
     var priceHintText: String {
         if supportsDecimal {
-            return String(localized: "addProductPriceHintDecimal")
+            return String.localized("addProductPriceHintDecimal")
         } else {
-            return String(localized: "addProductPriceHintInteger")
+            return String.localized("addProductPriceHintInteger")
         }
     }
 
@@ -166,7 +166,7 @@ class AddNewProductViewModel: ObservableObject {
 
     /// 庫存提示文字
     var stockHintText: String {
-        return String(localized: "addProductStockHint")
+        return String.localized("addProductStockHint")
     }
     
     /// 驗證並格式化價格輸入
@@ -420,7 +420,7 @@ class AddNewProductViewModel: ObservableObject {
         }
         
         if isDuplicate {
-            duplicateNameMessage = String(localized: "addProductDuplicateMessage \(selectedCategory.name) \(trimmedName)")
+            duplicateNameMessage = String.localized("addProductDuplicateMessage \(selectedCategory.name) \(trimmedName)")
             showDuplicateNameAlert = true
         }
         

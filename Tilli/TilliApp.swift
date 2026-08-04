@@ -46,18 +46,21 @@ struct TilliApp: App {
                         SyncManager.shared.startListening()
                     }
                 }
-                .alert("帳號已在其他裝置登入", isPresented: $authenticationManager.showDeviceConflictAlert) {
-                    Button("取消", role: .cancel) {
-                        // 不踢掉其他裝置，登出當前帳號
+                // 帳號已在其他裝置登入
+                .alert("deviceConflictTitle", isPresented: $authenticationManager.showDeviceConflictAlert) {
+                    // 取消
+                    Button("commonCancel", role: .cancel) {
                         authenticationManager.signOut()
                     }
-                    Button("登出其他裝置") {
+                    // 登出其他裝置
+                    Button("deviceConflictKickOther") {
                         Task {
                             await authenticationManager.kickOtherDevice()
                         }
                     }
                 } message: {
-                    Text("您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？")
+                    // 您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？
+                    Text("deviceConflictMessage")
                 }
         }
     }

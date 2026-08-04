@@ -35,11 +35,13 @@ struct MonthlyRevenueData: Identifiable {
     let count: Int
 
     var monthString: String {
-        return String(localized: "analyticsMonthFormat \(month)")
+        // %lld月
+        return String.localized("analyticsMonthFormat \(month)")
     }
 
     var fullMonthString: String {
-        return String(localized: "analyticsYearMonthFormat \(year) \(month)")
+        // %lld年%lld月
+        return String.localized("analyticsYearMonthFormat \(year) \(month)")
     }
 }
 
@@ -112,15 +114,21 @@ class SalesAnalyticsViewModel: ObservableObject {
         let currencyCode = event.currency
         var csvContent = ""
 
-        // 報表標題行
+        // 時段銷售分析
+        let csvTitle = String.localized("csvHourlyAnalysisTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "時段銷售分析_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "時段銷售分析_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "時段,銷售金額(\(currencyCode)),交易筆數,平均客單價(\(currencyCode))\n"
+        // 時段,銷售金額,交易筆數,平均客單價
+        let h1 = String.localized("csvTimePeriod")
+        let h2 = String.localized("csvSalesAmount \(currencyCode)")
+        let h3 = String.localized("csvTransactionCount")
+        let h4 = String.localized("csvAvgOrderValue \(currencyCode)")
+        csvContent += "\(h1),\(h2),\(h3),\(h4)\n"
 
         for hourData in hourlyData {
             let hour = hourData.hourString
@@ -140,15 +148,21 @@ class SalesAnalyticsViewModel: ObservableObject {
         let currencyCode = event.currency
         var csvContent = ""
 
-        // 報表標題行
+        // 支付方式分析
+        let csvTitle = String.localized("csvPaymentMethodTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "支付方式分析_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "支付方式分析_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "支付方式,交易金額(\(currencyCode)),交易筆數,佔比%\n"
+        // 支付方式,交易金額,交易筆數,佔比%
+        let h1 = String.localized("csvPaymentMethod")
+        let h2 = String.localized("csvTransactionAmount \(currencyCode)")
+        let h3 = String.localized("csvTransactionCount")
+        let h4 = String.localized("csvPercentage")
+        csvContent += "\(h1),\(h2),\(h3),\(h4)\n"
 
         for paymentData in paymentMethodData {
             let name = paymentData.name.replacingOccurrences(of: ",", with: "，")
@@ -169,15 +183,20 @@ class SalesAnalyticsViewModel: ObservableObject {
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
-        // 報表標題行
+        // 日營收趨勢
+        let csvTitle = String.localized("csvDailyRevenueTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "日營收趨勢_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "日營收趨勢_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "日期,交易筆數,營收(\(currencyCode))\n"
+        // 日期,交易筆數,營收
+        let h1 = String.localized("csvDate")
+        let h2 = String.localized("csvTransactionCount")
+        let h3 = String.localized("csvRevenue \(currencyCode)")
+        csvContent += "\(h1),\(h2),\(h3)\n"
 
         for data in dailyRevenue {
             let date = data.fullDateString
@@ -196,15 +215,20 @@ class SalesAnalyticsViewModel: ObservableObject {
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
-        // 報表標題行
+        // 月營收趨勢
+        let csvTitle = String.localized("csvMonthlyRevenueTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "月營收趨勢_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "月營收趨勢_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "月份,交易筆數,營收(\(currencyCode))\n"
+        // 月份,交易筆數,營收
+        let h1 = String.localized("csvMonth")
+        let h2 = String.localized("csvTransactionCount")
+        let h3 = String.localized("csvRevenue \(currencyCode)")
+        csvContent += "\(h1),\(h2),\(h3)\n"
 
         for data in monthlyRevenue {
             let month = data.fullMonthString
@@ -221,12 +245,13 @@ class SalesAnalyticsViewModel: ObservableObject {
 
     func createHourlyAnalysisCSVFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        // 過濾檔名中的非法字符
         let safeTitle = event.title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "時段銷售分析_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 時段銷售分析
+        let csvFileLabel = String.localized("csvFileHourlyAnalysis")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -246,7 +271,9 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "支付方式分析_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 支付方式分析
+        let csvFileLabel = String.localized("csvFilePaymentMethod")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -266,7 +293,9 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "日營收趨勢_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 日營收趨勢
+        let csvFileLabel = String.localized("csvFileDailyRevenue")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -286,7 +315,9 @@ class SalesAnalyticsViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "月營收趨勢_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 月營收趨勢
+        let csvFileLabel = String.localized("csvFileMonthlyRevenue")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {

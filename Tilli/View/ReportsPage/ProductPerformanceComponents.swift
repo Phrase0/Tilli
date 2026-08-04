@@ -212,7 +212,8 @@ struct PieChartView: View {
             if #available(iOS 16.0, *) {
                 Chart(categories, id: \.name) { category in
                     SectorMark(
-                        angle: .value("Amount", category.percentage),
+                        // 金額
+                        angle: .value("chartAmount", category.percentage),
                         innerRadius: .ratio(0.6),
                         outerRadius: .ratio(1.0)
                     )

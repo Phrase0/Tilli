@@ -289,8 +289,8 @@ struct AddEventView: View {
         }
         // 新增場次 / 編輯場次
         .navigationTitle(viewModel.editingEvent == nil
-                         ? String(localized: "addEventTitle")
-                         : String(localized: "addEventEditTitle"))
+                         ? String.localized("addEventTitle")
+                         : String.localized("addEventEditTitle"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {

@@ -64,15 +64,26 @@ class ProductPerformanceViewModel: ObservableObject {
         let currencyCode = event.currency
         var csvContent = ""
 
-        // 報表標題行
+        // 熱門商品排行
+        let csvTitle = String.localized("csvTopProductsTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "熱門商品排行_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "熱門商品排行_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "排名,商品名稱,類別,單價(\(currencyCode)),銷售數量,原價(\(currencyCode)),折扣金額(\(currencyCode)),實際營收(\(currencyCode)),貢獻率%\n"
+        // 排名,商品名稱,類別,單價,銷售數量,原價,折扣金額,實際營收,貢獻率%
+        let h1 = String.localized("csvRank")
+        let h2 = String.localized("csvProductName")
+        let h3 = String.localized("csvCategory")
+        let h4 = String.localized("csvUnitPrice \(currencyCode)")
+        let h5 = String.localized("csvSalesCount")
+        let h6 = String.localized("csvOriginalPrice \(currencyCode)")
+        let h7 = String.localized("csvDiscountAmount \(currencyCode)")
+        let h8 = String.localized("csvActualRevenue \(currencyCode)")
+        let h9 = String.localized("csvContributionRate")
+        csvContent += "\(h1),\(h2),\(h3),\(h4),\(h5),\(h6),\(h7),\(h8),\(h9)\n"
 
         for product in topProducts {
             let rank = "\(product.rank)"
@@ -97,15 +108,20 @@ class ProductPerformanceViewModel: ObservableObject {
         let currencyCode = event.currency
         var csvContent = ""
 
-        // 報表標題行
+        // 類別銷售匯總
+        let csvTitle = String.localized("csvCategoryAnalysisTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "類別銷售匯總_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "類別銷售匯總_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "類別名稱,銷售金額(\(currencyCode)),佔比%\n"
+        // 類別名稱,銷售金額,佔比%
+        let h1 = String.localized("csvCategoryName")
+        let h2 = String.localized("csvSalesAmount \(currencyCode)")
+        let h3 = String.localized("csvPercentage")
+        csvContent += "\(h1),\(h2),\(h3)\n"
 
         for category in categoryAnalysis {
             let name = category.name.replacingOccurrences(of: ",", with: "，")
@@ -127,7 +143,9 @@ class ProductPerformanceViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "熱門商品排行_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 熱門商品排行
+        let csvFileLabel = String.localized("csvFileTopProducts")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -147,7 +165,9 @@ class ProductPerformanceViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "類別銷售匯總_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 類別銷售匯總
+        let csvFileLabel = String.localized("csvFileCategoryAnalysis")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
 
         do {
@@ -384,9 +404,9 @@ private extension ProductPerformanceViewModel {
         let lowestCategory = categoryAnalysis.last!
 
         // 熱銷商品
-        let hotProductInsight = String(localized: "insightHotProduct")
+        let hotProductInsight = String.localized("insightHotProduct")
         // {name}表現最佳，佔總銷售額 {rate}%
-        let hotProductDescription = String(localized: "insightHotProductDesc \(bestProduct.name) \(bestProduct.contributionRate)")
+        let hotProductDescription = String.localized("insightHotProductDesc \(bestProduct.name) \(bestProduct.contributionRate)")
 
         // 找出折扣最多的商品（使用相同的時間範圍）
         let highestDiscountProduct = findHighestDiscountProduct(timeRange: timeRange)
@@ -396,18 +416,18 @@ private extension ProductPerformanceViewModel {
         let discountDescription: String?
         if !highestDiscountProduct.isEmpty {
             // 折扣效果
-            discountTitle = String(localized: "insightDiscountEffect")
+            discountTitle = String.localized("insightDiscountEffect")
             // {name}折扣最多，平均折扣達 {rate}%
-            discountDescription = String(localized: "insightDiscountDesc \(highestDiscountProduct.name) \(highestDiscountProduct.averageDiscountRate)")
+            discountDescription = String.localized("insightDiscountDesc \(highestDiscountProduct.name) \(highestDiscountProduct.averageDiscountRate)")
         } else {
             discountTitle = nil
             discountDescription = nil
         }
 
         // 優化建議
-        let suggestionInsight = String(localized: "insightSuggestion")
+        let suggestionInsight = String.localized("insightSuggestion")
         // 可考慮增加{name}類商品的促銷活動
-        let suggestionDescription = String(localized: "insightSuggestionDesc \(lowestCategory.name)")
+        let suggestionDescription = String.localized("insightSuggestionDesc \(lowestCategory.name)")
 
         salesInsights = SalesInsightsData(
             hotProductTitle: hotProductInsight,

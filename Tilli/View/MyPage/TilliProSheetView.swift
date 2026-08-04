@@ -24,18 +24,21 @@ struct TilliProSheetView: View {
                     .font(.system(size: 60))
                     .foregroundColor(.orange)
 
-                Text(isPro ? "Pro 會員" : "免費版")
+                // Pro 會員 / 免費版
+                Text(isPro ? "tilliProMember" : "tilliProFree")
                     .font(.title)
                     .fontWeight(.bold)
 
                 if isPro {
                     if let expiryDate = authManager.currentUser?.expiryDate {
-                        Text("到期日：\(expiryDate.formatted(date: .abbreviated, time: .omitted))")
+                        // 到期日：...
+                        Text("tilliProExpiry \(expiryDate.formatted(date: .abbreviated, time: .omitted))")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    Text("升級 Pro 以啟用多裝置即時同步")
+                    // 升級 Pro 以啟用多裝置即時同步
+                    Text("tilliProUpgradeHint")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -46,11 +49,13 @@ struct TilliProSheetView: View {
                 VStack(spacing: DesignSystem.Spacing.sm) {
                     Divider()
 
-                    Text("測試專用")
+                    // 測試專用
+                    Text("tilliProDebugLabel")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    Toggle(isPro ? "Pro 會員" : "免費版", isOn: Binding(
+                    // Pro 會員 / 免費版
+                    Toggle(isPro ? String.localized("tilliProMember") : String.localized("tilliProFree"), isOn: Binding(
                         get: { isPro },
                         set: { newValue in
                             Task {
@@ -69,7 +74,8 @@ struct TilliProSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("關閉") {
+                    // 關閉
+                    Button("commonClose") {
                         dismiss()
                     }
                 }

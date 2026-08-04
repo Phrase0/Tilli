@@ -18,6 +18,7 @@ struct EventsView: View {
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @StateObject private var eventsVM = EventsViewModel()
     @StateObject private var calendarVM = EventsCalendarViewModel()
+    @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
 
     @State private var searchText = ""
     @State private var isSearching = false
@@ -76,7 +77,7 @@ struct EventsView: View {
                 }
             }
             .background(DesignSystem.ColorToken.paper)
-            .navigationTitle("eventsPageTitle")
+            .navigationTitle(String.localized("eventsPageTitle"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if eventsVM.isSelectionMode {
@@ -168,7 +169,7 @@ struct EventsView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(DesignSystem.ColorToken.muted)
 
-            TextField(String(localized: "eventsSearchPrompt"), text: $searchText)
+            TextField(String.localized("eventsSearchPrompt"), text: $searchText)
                 .font(DesignSystem.Typography.body)
 
             if !searchText.isEmpty {
@@ -229,14 +230,14 @@ struct EventsView: View {
         if searchText.isEmpty {
             EmptyStateView(
                 systemImage: "calendar.badge.plus",
-                title: String(localized: "eventsEmptyTitle"),
-                message: String(localized: "eventsEmptyMessage")
+                title: String.localized("eventsEmptyTitle"),
+                message: String.localized("eventsEmptyMessage")
             )
         } else {
             EmptyStateView(
                 systemImage: "magnifyingglass",
-                title: String(localized: "eventsSearchEmptyTitle"),
-                message: String(localized: "eventsSearchEmptyMessage \(searchText)")
+                title: String.localized("eventsSearchEmptyTitle"),
+                message: String.localized("eventsSearchEmptyMessage \(searchText)")
             )
         }
     }
@@ -305,7 +306,7 @@ struct EventsView: View {
                 }
             } label: {
                 Text(eventsVM.isAllSelected(events: displayedEvents)
-                     ? String(localized: "eventsDeselectAll") : String(localized: "eventsSelectAll"))
+                     ? String.localized("eventsDeselectAll") : String.localized("eventsSelectAll"))
                     .padding(.vertical, DesignSystem.Spacing.xs)
                     .padding(.horizontal, DesignSystem.Spacing.sm)
                     .contentShape(Rectangle())

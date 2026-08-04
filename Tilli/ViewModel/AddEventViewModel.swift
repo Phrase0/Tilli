@@ -192,7 +192,8 @@ class AddEventViewModel: ObservableObject {
             if let original = originalCategoryName {
                 categories[index].name = original
             }
-            return "類別名稱不可為空，如需刪除請左滑"
+            // 類別名稱不可為空，如需刪除請左滑
+            return String.localized("addEventCategoryEmpty")
         }
 
         // 檢查是否與其他類別同名
@@ -204,7 +205,8 @@ class AddEventViewModel: ObservableObject {
             if let original = originalCategoryName {
                 categories[index].name = original
             }
-            return "此類別名稱已存在"
+            // 此類別名稱已存在
+            return String.localized("addEventCategoryDuplicate")
         }
 
         return nil
@@ -237,7 +239,8 @@ class AddEventViewModel: ObservableObject {
         }
 
         guard let value = Decimal(string: trimmed), value > 0 else {
-            return "請輸入有效的數值"
+            // 請輸入有效的數值
+            return String.localized("addEventInvalidValue")
         }
 
         // 驗證必須是整數（使用 NSDecimalNumber）
@@ -251,12 +254,14 @@ class AddEventViewModel: ObservableObject {
             raiseOnDivideByZero: false
         ))
         if nsValue.compare(rounded) != .orderedSame {
-            return "折扣必須是整數"
+            // 折扣必須是整數
+            return String.localized("addEventDiscountInteger")
         }
 
         // 百分比不可超過 100
         if newDiscountType == .percentage && value > 100 {
-            return "折扣百分比不可超過 100"
+            // 折扣百分比不可超過 100
+            return String.localized("addEventDiscountMax")
         }
 
         // 檢查是否重複
@@ -264,7 +269,8 @@ class AddEventViewModel: ObservableObject {
             $0.type == newDiscountType && $0.value == value
         }
         if isDuplicate {
-            return "此折扣已存在"
+            // 此折扣已存在
+            return String.localized("addEventDiscountDuplicate")
         }
 
         return nil
@@ -276,7 +282,8 @@ class AddEventViewModel: ObservableObject {
 
         // 空值檢查
         guard !trimmed.isEmpty else {
-            return "請輸入數值"
+            // 請輸入數值
+            return String.localized("addEventEnterValue")
         }
 
         // 使用 validateDiscountValue() 進行完整驗證（包含重複檢查）
@@ -286,7 +293,8 @@ class AddEventViewModel: ObservableObject {
 
         // 取得驗證過的數值
         guard let value = Decimal(string: trimmed) else {
-            return "請輸入有效的數值"
+            // 請輸入有效的數值
+            return String.localized("addEventInvalidValue")
         }
 
         // 新增折扣
@@ -342,7 +350,8 @@ class AddEventViewModel: ObservableObject {
 
         // 檢查是否重複
         if categories.contains(where: { $0.name == trimmed }) {
-            return "此類別已存在"
+            // 此類別已存在
+            return String.localized("addEventCategoryExists")
         }
 
         return nil
@@ -410,7 +419,8 @@ class AddEventViewModel: ObservableObject {
     
     /// 處理停用操作
     func handleDisableAction(for categoryId: UUID) {
-        alertMessage = "已有交易記錄不可刪除，只能停用"
+        // 已有交易記錄不可刪除，只能停用
+        alertMessage = String.localized("addEventCategoryCannotDelete")
         categoryPendingDeletion = categoryId
         isDisableAction = true
         showAlert = true
@@ -420,7 +430,8 @@ class AddEventViewModel: ObservableObject {
     func handleDeleteAction(for category: CategoryModel) {
         if hasProducts(for: category.id) {
             // 有商品 → 警告後再刪除
-            alertMessage = "此類別仍有產品，確定要刪除嗎？"
+            // 此類別仍有產品，確定要刪除嗎？
+            alertMessage = String.localized("addEventCategoryHasProducts")
             categoryPendingDeletion = category.id
             isDisableAction = false
             showAlert = true
@@ -501,13 +512,15 @@ class AddEventViewModel: ObservableObject {
         }
 
         if categories.filter({ !$0.isDisabled }).isEmpty {
-            return .failure("請至少輸入一個類別")
+            // 請至少輸入一個類別
+            return .failure(String.localized("addEventNeedCategory"))
         }
 
         // 驗證日期邏輯
         let dateValidation = validateDates()
         if !dateValidation.isValid {
-            return .failure(dateValidation.errorMessage ?? "日期設定有誤")
+            // 日期設定有誤
+            return .failure(dateValidation.errorMessage ?? String.localized("addEventDateError"))
         }
 
         return .success
@@ -531,7 +544,8 @@ class AddEventViewModel: ObservableObject {
                     if minDay != eventDay || maxDay != eventDay {
                         let minDateStr = DateFormatter.standardDate.string(from: minDate)
                         let maxDateStr = DateFormatter.standardDate.string(from: maxDate)
-                        return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
+                        // 場次日期必須包含所有交易日期（日期 - 日期）
+                        return (false, String.localized("addEventDateMustCoverTransactions \(minDateStr) \(maxDateStr)"))
                     }
                 }
             }
@@ -543,19 +557,22 @@ class AddEventViewModel: ObservableObject {
             let endDay = calendar.startOfDay(for: endDate)
 
             guard endDay > startDay else {
-                return (false, "結束日期必須晚於開始日期")
+                // 結束日期必須晚於開始日期
+                return (false, String.localized("addEventEndBeforeStart"))
             }
 
             // 檢查至少需要 2 天
             let daysDifference = calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
             guard daysDifference >= 1 else {
-                return (false, "多日場次至少需要 2 天")
+                // 多日場次至少需要 2 天
+                return (false, String.localized("addEventMinDays"))
             }
 
             // 檢查最多 31 天
             let totalDays = daysDifference + 1  // 包含起始和結束日
             guard totalDays <= 31 else {
-                return (false, "多日場次最多 31 天")
+                // 多日場次最多 31 天
+                return (false, String.localized("addEventMaxDays"))
             }
 
             // 檢查是否包含所有交易日期
@@ -568,7 +585,8 @@ class AddEventViewModel: ObservableObject {
                     if startDay > minDay || endDay < maxDay {
                         let minDateStr = DateFormatter.standardDate.string(from: minDate)
                         let maxDateStr = DateFormatter.standardDate.string(from: maxDate)
-                        return (false, "場次日期必須包含所有交易日期（\(minDateStr) - \(maxDateStr)）")
+                        // 場次日期必須包含所有交易日期（日期 - 日期）
+                        return (false, String.localized("addEventDateMustCoverTransactions \(minDateStr) \(maxDateStr)"))
                     }
                 }
             }
@@ -585,7 +603,8 @@ class AddEventViewModel: ObservableObject {
 
                     if startDay > minDay {
                         let minDateStr = DateFormatter.standardDate.string(from: minDate)
-                        return (false, "場次開始日期必須早於或等於最早的交易日期（\(minDateStr)）")
+                        // 場次開始日期必須早於或等於最早的交易日期（日期）
+                        return (false, String.localized("addEventStartDateTooLate \(minDateStr)"))
                     }
                 }
             }
@@ -647,47 +666,51 @@ class AddEventViewModel: ObservableObject {
     func createAlert() -> Alert {
         if categoryPendingRestore != nil {
             // 復原操作的警告
+            // 確認復原 / 確定要復原此類別嗎？ / 確認 / 取消
             return Alert(
-                title: Text("確認復原"),
-                message: Text("確定要復原此類別嗎？"),
-                primaryButton: .default(Text("確認")) { [weak self] in
+                title: Text("addEventConfirmRestoreTitle"),
+                message: Text("addEventConfirmRestoreMessage"),
+                primaryButton: .default(Text("commonConfirm")) { [weak self] in
                     self?.confirmRestoreAction()
                 },
-                secondaryButton: .cancel(Text("取消")) { [weak self] in
+                secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
                     self?.cancelRestoreAction()
                 }
             )
         } else if categoryPendingDeletion != nil {
             if isDisableAction {
                 // 停用操作的警告
+                // 確認停用 / 確認 / 取消
                 return Alert(
-                    title: Text("確認停用"),
+                    title: Text("addEventConfirmDisableTitle"),
                     message: Text(alertMessage),
-                    primaryButton: .default(Text("確認")) { [weak self] in
+                    primaryButton: .default(Text("commonConfirm")) { [weak self] in
                         self?.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel(Text("取消")) { [weak self] in
+                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
                         self?.cancelDeletionAction()
                     }
                 )
             } else {
                 // 刪除操作的警告
+                // 確認刪除 / 刪除 / 取消
                 return Alert(
-                    title: Text("確認刪除"),
+                    title: Text("addEventConfirmDeleteTitle"),
                     message: Text(alertMessage),
-                    primaryButton: .destructive(Text("刪除")) { [weak self] in
+                    primaryButton: .destructive(Text("commonDelete")) { [weak self] in
                         self?.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel(Text("取消")) { [weak self] in
+                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
                         self?.cancelDeletionAction()
                     }
                 )
             }
         } else {
+            // 提醒 / 好
             return Alert(
-                title: Text("提醒"),
+                title: Text("commonReminder"),
                 message: Text(alertMessage),
-                dismissButton: .default(Text("好"))
+                dismissButton: .default(Text("commonOK"))
             )
         }
     }

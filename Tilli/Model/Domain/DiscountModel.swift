@@ -40,7 +40,7 @@ struct DiscountModel: Identifiable, Codable, Hashable {
         case "EUR": return "€"
         case "GBP": return "£"
         case "USD": return "$"
-        default: return "元"
+        default: return String.localized("currencyDefaultSymbol") // 元
         }
     }
 }

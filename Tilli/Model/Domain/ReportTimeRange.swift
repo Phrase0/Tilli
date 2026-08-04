@@ -134,22 +134,28 @@ struct ReportTimeRange: Equatable {
         switch type {
         case .all:
             if event.dateType == .permanent {
-                return "\(DateFormatter.standardDate.string(from: actualStart)) 至今"
+                // yyyy/MM/dd 至今
+                return String.localized("timeRangeDisplayPermanentAll \(DateFormatter.standardDate.string(from: actualStart))")
             } else {
-                return "\(DateFormatter.standardDate.string(from: actualStart)) - \(DateFormatter.standardDate.string(from: actualEnd))"
+                // yyyy/MM/dd - yyyy/MM/dd
+                return String.localized("timeRangeDisplayDateRange \(DateFormatter.standardDate.string(from: actualStart)) \(DateFormatter.standardDate.string(from: actualEnd))")
             }
 
         case .today:
-            return "今日"
+            // 今日
+            return String.localized("timeRangeToday")
 
         case .recent7:
-            return "最近 7 天"
+            // 最近7天
+            return String.localized("timeRangeRecent7")
 
         case .recent30:
-            return "最近 30 天"
+            // 最近30天
+            return String.localized("timeRangeRecent30")
 
         case .custom:
-            return "\(DateFormatter.standardDate.string(from: actualStart)) - \(DateFormatter.standardDate.string(from: actualEnd))"
+            // yyyy/MM/dd - yyyy/MM/dd
+            return String.localized("timeRangeDisplayDateRange \(DateFormatter.standardDate.string(from: actualStart)) \(DateFormatter.standardDate.string(from: actualEnd))")
         }
     }
 
@@ -179,14 +185,16 @@ struct ReportTimeRange: Equatable {
 
         // 結束日期必須 >= 開始日期
         guard end >= start else {
-            return (false, "結束日期必須晚於或等於開始日期")
+            // 結束日期必須晚於或等於開始日期
+            return (false, String.localized("timeRangeErrorEndBeforeStart"))
         }
 
         // 無限期場次：自訂範圍最多90天
         if event.dateType == .permanent {
             let days = calendar.dateComponents([.day], from: start, to: end).day! + 1
             if days > 90 {
-                return (false, "無限期場次的自訂範圍不可超過 90 天")
+                // 無限期場次的自訂範圍不可超過 90 天
+                return (false, String.localized("timeRangeErrorMaxDays"))
             }
         }
 

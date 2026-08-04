@@ -106,7 +106,7 @@ class CustomActivityItemSource: NSObject, UIActivityItemSource {
     let csvFileURL: URL
     let reportTitle: String
     
-    init(csvContent: String, csvFileURL: URL, reportTitle: String = "CSV 報表") {
+    init(csvContent: String, csvFileURL: URL, reportTitle: String = "CSV Report") {
         self.csvContent = csvContent
         self.csvFileURL = csvFileURL
         self.reportTitle = reportTitle

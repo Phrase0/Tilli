@@ -100,9 +100,9 @@ struct POSView: View {
                 EmptyStateView(
                     systemImage: "cube.box",
                     // 尚無商品
-                    title: String(localized: "posEmptyTitle"),
+                    title: String.localized("posEmptyTitle"),
                     // 請先在管理商品中新增商品
-                    message: String(localized: "posEmptyMessage"),
+                    message: String.localized("posEmptyMessage"),
                     topPadding: 90
                 )
             }

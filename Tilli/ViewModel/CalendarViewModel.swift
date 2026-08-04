@@ -123,12 +123,12 @@ class CalendarViewModel: ObservableObject {
     
     /// 格式化月份年份字符串
     func monthYearString(for date: Date) -> String {
-        DateFormatter.chineseYearMonth.string(from: date)
+        DateFormatter.yearMonth.string(from: date)
     }
     
     /// 週日標題
     var weekdays: [String] {
-        ["日", "一", "二", "三", "四", "五", "六"]
+        Calendar.current.veryShortWeekdaySymbols
     }
 
     // MARK: - Virtual Event Management

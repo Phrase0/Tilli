@@ -88,9 +88,9 @@ struct InventoryView: View {
                 EmptyStateView(
                     systemImage: "shippingbox",
                     // 尚無商品
-                    title: String(localized: "inventoryEmptyTitle"),
+                    title: String.localized("inventoryEmptyTitle"),
                     // 點擊右上角 + 新增商品
-                    message: String(localized: "inventoryEmptyMessage"),
+                    message: String.localized("inventoryEmptyMessage"),
                     topPadding: 90
                 )
             }

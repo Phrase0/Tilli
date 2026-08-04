@@ -24,9 +24,15 @@ enum PaymentMethodFilter {
 
     var label: String {
         switch self {
-        case .all: return String(localized: "transactionFilterAll")
-        case .cash: return String(localized: "transactionFilterCash")
-        case .ePayment: return String(localized: "transactionFilterEPayment")
+        case .all:
+            // 全部
+            return String.localized("transactionFilterAll")
+        case .cash:
+            // 現金
+            return String.localized("transactionFilterCash")
+        case .ePayment:
+            // 電子支付
+            return String.localized("transactionFilterEPayment")
         }
     }
 }
@@ -197,15 +203,28 @@ class TransactionViewModel: ObservableObject {
         let currency = Currency(rawValue: currencyCode) ?? .twd
         var csvContent = ""
 
-        // 報表標題行
+        // 交易明細
+        let csvTitle = String.localized("csvTransactionTitle")
         if let timeRange = currentTimeRange {
-            csvContent += "交易明細_\(event.title), \(timeRange.csvDateRangeText)\n"
+            csvContent += "\(csvTitle)_\(event.title), \(timeRange.csvDateRangeText)\n"
         } else {
-            csvContent += "交易明細_\(event.title)\n"
+            csvContent += "\(csvTitle)_\(event.title)\n"
         }
         csvContent += "\n"
 
-        csvContent += "交易編號,日期時間,支付方式,商品名稱,類別,單價(\(currencyCode)),數量,小計(\(currencyCode)),訂單折扣,總金額(\(currencyCode)),補記帳\n"
+        // 交易編號,日期時間,支付方式,商品名稱,類別,單價,數量,小計,整單折扣,總金額,是否補登
+        let h1 = String.localized("csvTransactionId")
+        let h2 = String.localized("csvDateTime")
+        let h3 = String.localized("csvPaymentMethod")
+        let h4 = String.localized("csvProductName")
+        let h5 = String.localized("csvCategory")
+        let h6 = String.localized("csvUnitPrice \(currencyCode)")
+        let h7 = String.localized("csvQuantity")
+        let h8 = String.localized("csvSubtotal \(currencyCode)")
+        let h9 = String.localized("csvOrderDiscount")
+        let h10 = String.localized("csvTotalAmount \(currencyCode)")
+        let h11 = String.localized("csvBackdated")
+        csvContent += "\(h1),\(h2),\(h3),\(h4),\(h5),\(h6),\(h7),\(h8),\(h9),\(h10),\(h11)\n"
 
         for transaction in transactions.sorted(by: { $0.displayDate > $1.displayDate }) {
             let transactionId = formatTransactionId(transaction.id.uuidString)
@@ -213,7 +232,6 @@ class TransactionViewModel: ObservableObject {
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
-            // 訂單級別的折扣
             let transactionDiscount: String = {
                 guard let discountType = transaction.discountType,
                       let discountValue = transaction.discountValue else {
@@ -228,12 +246,13 @@ class TransactionViewModel: ObservableObject {
             }()
 
             for item in transaction.items {
-                let productName = item.name.replacingOccurrences(of: ",", with: "，") // 避免CSV格式問題
+                let productName = item.name.replacingOccurrences(of: ",", with: "，")
                 let category = item.category.replacingOccurrences(of: ",", with: "，")
                 let unitPrice = MoneyHelper.toDisplayString(item.price, currency: currency)
                 let quantity = "\(item.quantity)"
                 let subtotal = MoneyHelper.toDisplayString(item.total, currency: currency)
-                let isBackdated = transaction.isBackdated ? "是" : "-"
+                // 是
+                let isBackdated = transaction.isBackdated ? String.localized("csvYes") : "-"
 
                 let row = "\(transactionId),\(dateTime),\(paymentMethod),\(productName),\(category),\(unitPrice),\(quantity),\(subtotal),\(transactionDiscount),\(totalAmount),\(isBackdated)\n"
                 csvContent += row
@@ -250,7 +269,9 @@ class TransactionViewModel: ObservableObject {
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
-        let fileName = "交易明細_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
+        // 交易明細
+        let csvFileLabel = String.localized("csvFileTransactionDetail")
+        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
         let fileURL = tempDir.appendingPathComponent(fileName)
         
         do {
@@ -310,12 +331,14 @@ class TransactionViewModel: ObservableObject {
     func paymentMethodText(_ method: PaymentMethod) -> String {
         switch method {
         case .cash:
-            return String(localized: "transactionPaymentCash")
+            // 現金
+            return String.localized("transactionPaymentCash")
         case .ePayment:
-            return String(localized: "transactionPaymentEPayment")
+            // 電子支付
+            return String.localized("transactionPaymentEPayment")
         }
     }
-    
+
     func paymentMethodColor(_ method: PaymentMethod) -> Color {
         switch method {
         case .cash:

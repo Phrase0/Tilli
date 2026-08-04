@@ -57,7 +57,8 @@ struct InventoryChangeView: View {
                         viewModel.prepareExport(type: .all)
                         showShareSheet = true
                     } label: {
-                        Label("全部匯出", systemImage: "square.and.arrow.up.on.square")
+                        // 全部匯出
+                        Label("inventoryChangeExportAll", systemImage: "square.and.arrow.up.on.square")
                     }
 
                     Divider()
@@ -66,14 +67,16 @@ struct InventoryChangeView: View {
                         viewModel.prepareExport(type: .summary)
                         showShareSheet = true
                     } label: {
-                        Label("庫存總覽", systemImage: "list.bullet.rectangle")
+                        // 庫存總覽
+                        Label("inventoryChangeExportSummary", systemImage: "list.bullet.rectangle")
                     }
 
                     Button {
                         viewModel.prepareExport(type: .detail)
                         showShareSheet = true
                     } label: {
-                        Label("庫存異動明細", systemImage: "clock.arrow.circlepath")
+                        // 庫存異動明細
+                        Label("inventoryChangeExportDetail", systemImage: "clock.arrow.circlepath")
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -92,10 +95,13 @@ struct InventoryChangeView: View {
                 }
             }
         )
-        .alert("匯出成功", isPresented: $viewModel.showingExportAlert) {
-            Button("確定") { }
+        // 匯出成功
+        .alert("inventoryChangeExportSuccess", isPresented: $viewModel.showingExportAlert) {
+            // 確定
+            Button("commonConfirm") { }
         } message: {
-            Text("報表已成功匯出")
+            // 報表已成功匯出
+            Text("inventoryChangeExportSuccessMessage")
         }
         .onAppear {
             viewModel.updateRepositories(
@@ -169,7 +175,8 @@ struct InventoryChangeView: View {
                 }
             }) {
                 HStack {
-                    Text("下架商品")
+                    // 下架商品
+                    Text("inventoryDisabledHeader")
                         .font(.headline)
                         .foregroundColor(.gray)
                         .padding(.horizontal)
@@ -244,10 +251,12 @@ struct InventoryChangeView: View {
                 .font(.system(size: 50))
                 .foregroundColor(.gray.opacity(0.5))
 
-            Text("尚無商品")
+            // 尚無商品
+            Text("inventoryChangeEmptyTitle")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            Text("請先在場次中新增商品")
+            // 請先在場次中新增商品
+            Text("inventoryChangeEmptyMessage")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -261,10 +270,12 @@ struct InventoryChangeView: View {
                 .font(.system(size: 50))
                 .foregroundColor(.gray.opacity(0.5))
 
-            Text("查無結果")
+            // 查無結果
+            Text("inventoryChangeSearchNoResult")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            Text("找不到符合「\(viewModel.searchText)」的商品")
+            // 找不到符合「%@」的商品
+            Text("inventoryChangeSearchNoResultMessage \(viewModel.searchText)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -355,7 +366,8 @@ struct InventoryProductCard: View {
                     .foregroundColor(.orange)
                     .font(.caption)
             }
-            Text("\(item.currentStock) 件")
+            // %lld 件
+            Text("inventoryChangePieceCount \(item.currentStock)")
                 .font(.caption)
                 .foregroundColor(item.isLowStock ? .orange : .secondary)
         }
@@ -372,7 +384,8 @@ struct InventoryProductCard: View {
             if !filteredChanges.isEmpty {
                 changesSection
             } else {
-                Text("此時間範圍內無異動紀錄")
+                // 此時間範圍內無異動紀錄
+                Text("inventoryChangeNoRecord")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -383,7 +396,8 @@ struct InventoryProductCard: View {
     private var stockCard: some View {
         HStack {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                Text("現有庫存")
+                // 現有庫存
+                Text("inventoryChangeCurrentStock")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
@@ -391,7 +405,8 @@ struct InventoryProductCard: View {
                     Text("\(item.currentStock)")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.primary)
-                    Text("件")
+                    // 件
+                    Text("inventoryChangeUnit")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -402,7 +417,8 @@ struct InventoryProductCard: View {
             // 庫存狀態標籤
             HStack(spacing: DesignSystem.Spacing.xxs) {
                 Image(systemName: item.isLowStock ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                Text(item.isLowStock ? "庫存不足" : "庫存正常")
+                // 庫存不足 / 庫存正常
+                Text(item.isLowStock ? "inventoryChangeLowStock" : "inventoryChangeNormalStock")
             }
             .font(.caption)
             .foregroundColor(item.isLowStock ? .orange : .green)
@@ -420,7 +436,8 @@ struct InventoryProductCard: View {
 
     private var changesSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            Text("異動紀錄")
+            // 異動紀錄
+            Text("inventoryChangeRecords")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
@@ -539,7 +556,8 @@ struct DisabledInventoryProductCard: View {
     }
 
     private var stockBadge: some View {
-        Text("\(item.currentStock) 件")
+        // %lld 件
+        Text("inventoryChangePieceCount \(item.currentStock)")
             .font(.caption)
             .foregroundColor(.gray)
     }
@@ -555,7 +573,8 @@ struct DisabledInventoryProductCard: View {
             if !filteredChanges.isEmpty {
                 changesSection
             } else {
-                Text("此時間範圍內無異動紀錄")
+                // 此時間範圍內無異動紀錄
+                Text("inventoryChangeNoRecord")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -566,7 +585,8 @@ struct DisabledInventoryProductCard: View {
     private var stockCard: some View {
         HStack {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                Text("現有庫存")
+                // 現有庫存
+                Text("inventoryChangeCurrentStock")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
@@ -574,7 +594,8 @@ struct DisabledInventoryProductCard: View {
                     Text("\(item.currentStock)")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.gray)
-                    Text("件")
+                    // 件
+                    Text("inventoryChangeUnit")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -589,7 +610,8 @@ struct DisabledInventoryProductCard: View {
 
     private var changesSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            Text("異動紀錄")
+            // 異動紀錄
+            Text("inventoryChangeRecords")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 

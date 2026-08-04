@@ -34,9 +34,9 @@ struct SalesAnalyticsView: View {
                         EmptyStateView(
                             systemImage: "chart.line.uptrend.xyaxis",
                             // 尚無銷售分析
-                            title: String(localized: "analyticsEmptyTitle"),
+                            title: String.localized("analyticsEmptyTitle"),
                             // 完成結帳後，銷售分析會顯示在這裡
-                            message: String(localized: "analyticsEmptyMessage")
+                            message: String.localized("analyticsEmptyMessage")
                         )
                     }
                 }
@@ -218,7 +218,7 @@ struct SalesAnalyticsView: View {
         Chart {
             ForEach(salesAnalyticsViewModel.paymentMethodData) { method in
                 SectorMark(
-                    angle: .value("交易數", method.transactions),
+                    angle: .value("chartTransactions", method.transactions),
                     innerRadius: .ratio(0.5),
                     angularInset: 2
                 )
@@ -395,8 +395,8 @@ struct SalesAnalyticsView: View {
         Chart {
             ForEach(salesAnalyticsViewModel.hourlyData) { data in
                 BarMark(
-                    x: .value("時間", data.hourString),
-                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
+                    x: .value("chartTime", data.hourString),
+                    y: .value("chartAmount", MoneyHelper.toUIDouble(data.amount))
                 )
                 .foregroundStyle(
                     selectedHourData?.hour == data.hour
@@ -407,7 +407,7 @@ struct SalesAnalyticsView: View {
 
             // 選中時顯示標記線
             if let selected = selectedHourData {
-                RuleMark(x: .value("選中", selected.hourString))
+                RuleMark(x: .value("chartSelected", selected.hourString))
                     .foregroundStyle(DesignSystem.ColorToken.muted.opacity(0.3))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
             }
@@ -608,14 +608,14 @@ struct SalesAnalyticsView: View {
         Chart {
             ForEach(salesAnalyticsViewModel.dailyRevenue) { data in
                 LineMark(
-                    x: .value("日期", data.date),
-                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
+                    x: .value("chartDate", data.date),
+                    y: .value("chartAmount", MoneyHelper.toUIDouble(data.amount))
                 )
                 .foregroundStyle(DesignSystem.ChartColor.primary)
 
                 AreaMark(
-                    x: .value("日期", data.date),
-                    y: .value("金額", MoneyHelper.toUIDouble(data.amount))
+                    x: .value("chartDate", data.date),
+                    y: .value("chartAmount", MoneyHelper.toUIDouble(data.amount))
                 )
                 .foregroundStyle(DesignSystem.ChartColor.primary.opacity(0.1))
             }
@@ -623,14 +623,14 @@ struct SalesAnalyticsView: View {
             // 選中時顯示圓點標記
             if let selected = selectedDailyData {
                 PointMark(
-                    x: .value("日期", selected.date),
-                    y: .value("金額", MoneyHelper.toUIDouble(selected.amount))
+                    x: .value("chartDate", selected.date),
+                    y: .value("chartAmount", MoneyHelper.toUIDouble(selected.amount))
                 )
                 .foregroundStyle(DesignSystem.ChartColor.primary)
                 .symbolSize(100)
 
                 // 垂直標記線
-                RuleMark(x: .value("選中", selected.date))
+                RuleMark(x: .value("chartSelected", selected.date))
                     .foregroundStyle(DesignSystem.ColorToken.muted.opacity(0.3))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
             }

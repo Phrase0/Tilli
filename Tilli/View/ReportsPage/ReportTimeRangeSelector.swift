@@ -199,15 +199,15 @@ struct ReportTimeRangeSelector: View {
     private var selectedRangeLabel: String {
         switch selectedRange.type {
         case .all:
-            return String(localized: "timeRangeAll")
+            return String.localized("timeRangeAll")
         case .today:
-            return String(localized: "timeRangeToday")
+            return String.localized("timeRangeToday")
         case .recent7:
-            return String(localized: "timeRangeRecent7")
+            return String.localized("timeRangeRecent7")
         case .recent30:
-            return String(localized: "timeRangeRecent30")
+            return String.localized("timeRangeRecent30")
         case .custom:
-            return String(localized: "timeRangeCustom")
+            return String.localized("timeRangeCustom")
         }
     }
 

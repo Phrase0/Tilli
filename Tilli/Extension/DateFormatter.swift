@@ -34,11 +34,10 @@ extension DateFormatter {
 
     // MARK: - 帶星期的日期格式
 
-    /// 日期帶星期：yyyy/MM/dd（E）（例：2026/01/04（週日））
+    /// 日期帶星期（根據系統語言）
     static let dateWithWeekday: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        formatter.dateFormat = "yyyy/MM/dd（E）"
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "yyyy/MM/dd EEEE", options: 0, locale: formatter.locale)
         return formatter
     }()
 
@@ -58,13 +57,12 @@ extension DateFormatter {
         return formatter
     }()
 
-    // MARK: - 中文格式
+    // MARK: - 年月格式
 
-    /// 中文年月：yyyy年 M月（例：2026年 1月）- 用於日曆
-    static let chineseYearMonth: DateFormatter = {
+    /// 年月（根據系統語言）- 用於日曆
+    static let yearMonth: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        formatter.dateFormat = "yyyy年 M月"
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "yyyy MMMM", options: 0, locale: formatter.locale)
         return formatter
     }()
 }

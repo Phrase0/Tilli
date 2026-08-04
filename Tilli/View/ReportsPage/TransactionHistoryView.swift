@@ -145,13 +145,13 @@ struct TransactionHistoryView: View {
     private var emptyStateMessage: (title: String, message: String) {
         if let timeRange = timeRange {
             return (
-                title: String(localized: "transactionEmptyRangeTitle"),
-                message: String(localized: "transactionEmptyRangeMessage \(timeRange.displayText)")
+                title: String.localized("transactionEmptyRangeTitle"),
+                message: String.localized("transactionEmptyRangeMessage \(timeRange.displayText)")
             )
         } else {
             return (
-                title: String(localized: "transactionEmptyTitle"),
-                message: String(localized: "transactionEmptyMessage")
+                title: String.localized("transactionEmptyTitle"),
+                message: String.localized("transactionEmptyMessage")
             )
         }
     }

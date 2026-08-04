@@ -63,7 +63,8 @@ struct UserProfile: Identifiable, Codable, Equatable {
 
     // MARK: - 取得 email @ 前面的文字作為預設名稱
     private func emailPrefix(from email: String) -> String {
-        return email.components(separatedBy: "@").first ?? "使用者"
+        // 使用者
+        return email.components(separatedBy: "@").first ?? String.localized("commonUser")
     }
 
     // MARK: - 檢查 Pro 會員是否過期

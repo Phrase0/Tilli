@@ -27,8 +27,8 @@ struct ProductPerformanceView: View {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         EmptyStateView(
                             systemImage: "chart.bar.fill",
-                            title: String(localized: "performanceEmptyTitle"),
-                            message: String(localized: "performanceEmptyMessage")
+                            title: String.localized("performanceEmptyTitle"),
+                            message: String.localized("performanceEmptyMessage")
                         )
                     }
                 }

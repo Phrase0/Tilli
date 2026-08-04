@@ -39,12 +39,16 @@ struct SalesInsightsData {
     let suggestionDescription: String
 
     init() {
-        self.hotProductTitle = "熱銷商品"
-        self.hotProductDescription = "暫無資料"
+        // 熱銷商品
+        self.hotProductTitle = String.localized("insightHotProduct")
+        // 暫無資料
+        self.hotProductDescription = String.localized("insightNoData")
         self.discountTitle = nil
         self.discountDescription = nil
-        self.suggestionTitle = "優化建議"
-        self.suggestionDescription = "暫無資料"
+        // 優化建議
+        self.suggestionTitle = String.localized("insightSuggestion")
+        // 暫無資料
+        self.suggestionDescription = String.localized("insightNoData")
     }
 
     init(

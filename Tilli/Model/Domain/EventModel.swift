@@ -24,16 +24,14 @@ struct EventModel: Identifiable, Codable, Hashable {
     }
 
     var displayTimeInfo: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd(E)"
         switch dateType {
         case .single:
-            return formatter.string(from: startDate)
+            return DateFormatter.dateWithWeekday.string(from: startDate)
         case .multi:
-            guard let endDate = endDate else { return formatter.string(from: startDate) }
-            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
+            guard let endDate = endDate else { return DateFormatter.dateWithWeekday.string(from: startDate) }
+            return "\(DateFormatter.dateWithWeekday.string(from: startDate)) - \(DateFormatter.dateWithWeekday.string(from: endDate))"
         case .permanent:
-            return "\(formatter.string(from: startDate)) ∞"
+            return "\(DateFormatter.dateWithWeekday.string(from: startDate)) ∞"
         }
     }
 
@@ -46,7 +44,8 @@ struct EventModel: Identifiable, Codable, Hashable {
             guard let endDate = endDate else { return DateFormatter.standardDate.string(from: startDate) }
             return "\(DateFormatter.standardDate.string(from: startDate)) - \(DateFormatter.standardDate.string(from: endDate))"
         case .permanent:
-            return "\(DateFormatter.standardDate.string(from: startDate)) 起"
+            // yyyy/MM/dd 起
+            return String.localized("eventDisplayDateSince \(DateFormatter.standardDate.string(from: startDate))")
         }
     }
 
@@ -132,9 +131,15 @@ enum EventStatus: String, Codable {
 
     var localizedDescription: String {
         switch self {
-        case .ongoing: return String(localized: "eventStatusOngoing")
-        case .completed: return String(localized: "eventStatusCompleted")
-        case .upcoming: return String(localized: "eventStatusUpcoming")
+        case .ongoing:
+            // 進行中
+            return String.localized("eventStatusOngoing")
+        case .completed:
+            // 已結束
+            return String.localized("eventStatusCompleted")
+        case .upcoming:
+            // 未開始
+            return String.localized("eventStatusUpcoming")
         }
     }
 }

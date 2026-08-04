@@ -5,15 +5,38 @@
 
     },
     "- -" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "- -"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "- -"
+          }
+        }
+      }
     },
     "%" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%"
+          }
+        }
+      }
     },
     "%lld" : {
-
-    },
-    "%lld 件" : {
 
     },
     "%lld/%lld" : {
@@ -33,10 +56,68 @@
 
     },
     "～" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "～"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "～"
+          }
+        }
+      }
     },
     "0" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0"
+          }
+        }
+      }
+    },
+    "addEventCategoryCannotDelete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot delete — this category has transaction records. It can only be disabled."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已有交易記錄不可刪除，只能停用"
+          }
+        }
+      }
+    },
+    "addEventCategoryDuplicate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category name already exists"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此類別名稱已存在"
+          }
+        }
+      }
     },
     "addEventCategoryEditWarning" : {
       "localizations" : {
@@ -50,6 +131,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此類別已有交易紀錄，無法更改名稱"
+          }
+        }
+      }
+    },
+    "addEventCategoryEmpty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category name cannot be empty. Swipe left to delete."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別名稱不可為空，如需刪除請左滑"
+          }
+        }
+      }
+    },
+    "addEventCategoryExists" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category already exists"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此類別已存在"
+          }
+        }
+      }
+    },
+    "addEventCategoryHasProducts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category still has products. Are you sure you want to delete it?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此類別仍有產品，確定要刪除嗎？"
           }
         }
       }
@@ -86,6 +215,70 @@
         }
       }
     },
+    "addEventConfirmDeleteTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Delete"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認刪除"
+          }
+        }
+      }
+    },
+    "addEventConfirmDisableTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Disable"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認停用"
+          }
+        }
+      }
+    },
+    "addEventConfirmRestoreMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to restore this category?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要復原此類別嗎？"
+          }
+        }
+      }
+    },
+    "addEventConfirmRestoreTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Restore"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認復原"
+          }
+        }
+      }
+    },
     "addEventCurrencyLabel" : {
       "localizations" : {
         "en" : {
@@ -114,6 +307,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此場次已有交易記錄，無法更改幣別"
+          }
+        }
+      }
+    },
+    "addEventDateError" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid date settings"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期設定有誤"
+          }
+        }
+      }
+    },
+    "addEventDateMustCoverTransactions %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Event dates must cover all transaction dates (%1$@ - %2$@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場次日期必須包含所有交易日期（%1$@ - %2$@）"
           }
         }
       }
@@ -166,6 +391,22 @@
         }
       }
     },
+    "addEventDiscountDuplicate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This discount already exists"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此折扣已存在"
+          }
+        }
+      }
+    },
     "addEventDiscountHeader" : {
       "localizations" : {
         "en" : {
@@ -178,6 +419,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "折扣"
+          }
+        }
+      }
+    },
+    "addEventDiscountInteger" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discount must be a whole number"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折扣必須是整數"
+          }
+        }
+      }
+    },
+    "addEventDiscountMax" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discount percentage cannot exceed 100"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折扣百分比不可超過 100"
           }
         }
       }
@@ -230,6 +503,86 @@
         }
       }
     },
+    "addEventEndBeforeStart" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End date must be after the start date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結束日期必須晚於開始日期"
+          }
+        }
+      }
+    },
+    "addEventEnterValue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a value"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入數值"
+          }
+        }
+      }
+    },
+    "addEventInvalidValue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a valid value"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入有效的數值"
+          }
+        }
+      }
+    },
+    "addEventMaxDays" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-day events can be at most 31 days"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多日場次最多 31 天"
+          }
+        }
+      }
+    },
+    "addEventMinDays" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-day events require at least 2 days"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多日場次至少需要 2 天"
+          }
+        }
+      }
+    },
     "addEventNameHeader" : {
       "localizations" : {
         "en" : {
@@ -258,6 +611,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請輸入場次名稱"
+          }
+        }
+      }
+    },
+    "addEventNeedCategory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter at least one category"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請至少輸入一個類別"
           }
         }
       }
@@ -306,6 +675,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "儲存"
+          }
+        }
+      }
+    },
+    "addEventStartDateTooLate %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Event start date must be on or before the earliest transaction date (%1$@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場次開始日期必須早於或等於最早的交易日期（%1$@）"
           }
         }
       }
@@ -726,9 +1111,6 @@
         }
       }
     },
-    "Amount" : {
-
-    },
     "analyticsAvgOrderValue" : {
       "localizations" : {
         "en" : {
@@ -1113,40 +1495,6 @@
         }
       }
     },
-    "calendarDayProgress %lld %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Day %1$lld of %2$lld"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "第 %1$lld 天/共 %2$lld 天"
-          }
-        }
-      }
-    },
-    "calendarDaysSinceStart %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Day %lld since start"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "開始至今第 %lld 天"
-          }
-        }
-      }
-    },
     "calendarMonthSuffix %lld" : {
       "localizations" : {
         "en" : {
@@ -1211,40 +1559,6 @@
         }
       }
     },
-    "calendarTotalDays %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld days total"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共 %lld 天"
-          }
-        }
-      }
-    },
-    "calendarTransactionCount %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld transactions"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 筆交易"
-          }
-        }
-      }
-    },
     "calendarYearSuffix %lld" : {
       "localizations" : {
         "en" : {
@@ -1257,6 +1571,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld年"
+          }
+        }
+      }
+    },
+    "chartAmount" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金額"
+          }
+        }
+      }
+    },
+    "chartDate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期"
+          }
+        }
+      }
+    },
+    "chartSelected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選中"
+          }
+        }
+      }
+    },
+    "chartTime" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間"
+          }
+        }
+      }
+    },
+    "chartTransactions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transactions"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易數"
           }
         }
       }
@@ -1549,6 +1943,22 @@
         }
       }
     },
+    "commonClose" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉"
+          }
+        }
+      }
+    },
     "commonConfirm" : {
       "localizations" : {
         "en" : {
@@ -1597,36 +2007,1218 @@
         }
       }
     },
-    "commonEdit" : {
-      "extractionState" : "stale",
+    "commonOK" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Edit"
+            "value" : "OK"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "編輯"
+            "value" : "好"
           }
         }
       }
     },
-    "eventsCalendarPlaceholder" : {
-      "extractionState" : "stale",
+    "commonReminder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Calendar mode (coming next)"
+            "value" : "Reminder"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日曆模式（下個斷點實作）"
+            "value" : "提醒"
+          }
+        }
+      }
+    },
+    "commonUser" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用者"
+          }
+        }
+      }
+    },
+    "csvActive" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "銷售中"
+          }
+        }
+      }
+    },
+    "csvActualRevenue %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual Revenue(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "實際營收(%@)"
+          }
+        }
+      }
+    },
+    "csvAfterStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "變動後庫存"
+          }
+        }
+      }
+    },
+    "csvAvgOrderValue %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg Order Value(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均客單價(%@)"
+          }
+        }
+      }
+    },
+    "csvBackdated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backdated"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "補記帳"
+          }
+        }
+      }
+    },
+    "csvCategory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別"
+          }
+        }
+      }
+    },
+    "csvCategoryAnalysisTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category Sales Summary"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別銷售匯總"
+          }
+        }
+      }
+    },
+    "csvCategoryName" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category Name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別名稱"
+          }
+        }
+      }
+    },
+    "csvChangeQuantity" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Qty"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "異動數量"
+          }
+        }
+      }
+    },
+    "csvChangeReason" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "異動原因"
+          }
+        }
+      }
+    },
+    "csvContributionRate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contribution%"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貢獻率%"
+          }
+        }
+      }
+    },
+    "csvCurrentStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現有庫存"
+          }
+        }
+      }
+    },
+    "csvDailyRevenueTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily Revenue Trend"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日營收趨勢"
+          }
+        }
+      }
+    },
+    "csvDate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期"
+          }
+        }
+      }
+    },
+    "csvDateTime" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date & Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期時間"
+          }
+        }
+      }
+    },
+    "csvDisabled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已下架"
+          }
+        }
+      }
+    },
+    "csvDiscountAmount %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discount Amount(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折扣金額(%@)"
+          }
+        }
+      }
+    },
+    "csvFileCategoryAnalysis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CategorySalesSummary"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類別銷售匯總"
+          }
+        }
+      }
+    },
+    "csvFileDailyRevenue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DailyRevenueTrend"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日營收趨勢"
+          }
+        }
+      }
+    },
+    "csvFileHourlyAnalysis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HourlySalesAnalysis"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時段銷售分析"
+          }
+        }
+      }
+    },
+    "csvFileInventoryDetail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "InventoryChangeDetails"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存異動明細"
+          }
+        }
+      }
+    },
+    "csvFileInventorySummary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "InventorySummary"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存總覽"
+          }
+        }
+      }
+    },
+    "csvFileMonthlyRevenue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MonthlyRevenueTrend"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月營收趨勢"
+          }
+        }
+      }
+    },
+    "csvFilePaymentMethod" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PaymentMethodAnalysis"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支付方式分析"
+          }
+        }
+      }
+    },
+    "csvFileTopProducts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TopProducts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "熱門商品排行"
+          }
+        }
+      }
+    },
+    "csvFileTransactionDetail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TransactionDetails"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易明細"
+          }
+        }
+      }
+    },
+    "csvHourlyAnalysisTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hourly Sales Analysis"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時段銷售分析"
+          }
+        }
+      }
+    },
+    "csvInStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存正常"
+          }
+        }
+      }
+    },
+    "csvInventoryDetailTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inventory Change Details"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存異動明細"
+          }
+        }
+      }
+    },
+    "csvInventorySummaryTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inventory Summary"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存總覽"
+          }
+        }
+      }
+    },
+    "csvLowStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存不足"
+          }
+        }
+      }
+    },
+    "csvMonth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月份"
+          }
+        }
+      }
+    },
+    "csvMonthlyRevenueTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly Revenue Trend"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月營收趨勢"
+          }
+        }
+      }
+    },
+    "csvNetChange" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net Change"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "淨異動"
+          }
+        }
+      }
+    },
+    "csvOrderDiscount" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order Discount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "訂單折扣"
+          }
+        }
+      }
+    },
+    "csvOriginalPrice %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original Price(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原價(%@)"
+          }
+        }
+      }
+    },
+    "csvPaymentMethod" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment Method"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支付方式"
+          }
+        }
+      }
+    },
+    "csvPaymentMethodTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment Method Analysis"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支付方式分析"
+          }
+        }
+      }
+    },
+    "csvPercentage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share%"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "佔比%"
+          }
+        }
+      }
+    },
+    "csvPeriodIn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period In"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期間入庫"
+          }
+        }
+      }
+    },
+    "csvPeriodOut" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period Out"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期間出庫"
+          }
+        }
+      }
+    },
+    "csvProductName" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product Name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品名稱"
+          }
+        }
+      }
+    },
+    "csvQuantity" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quantity"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "數量"
+          }
+        }
+      }
+    },
+    "csvRank" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rank"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排名"
+          }
+        }
+      }
+    },
+    "csvRevenue %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenue(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "營收(%@)"
+          }
+        }
+      }
+    },
+    "csvSalesAmount %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales Amount(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "銷售金額(%@)"
+          }
+        }
+      }
+    },
+    "csvSalesCount" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales Count"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "銷售數量"
+          }
+        }
+      }
+    },
+    "csvStatus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "狀態"
+          }
+        }
+      }
+    },
+    "csvStockStatus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock Status"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存狀態"
+          }
+        }
+      }
+    },
+    "csvSubtotal %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtotal(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小計(%@)"
+          }
+        }
+      }
+    },
+    "csvTimePeriod" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Period"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時段"
+          }
+        }
+      }
+    },
+    "csvTopProductsTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Products"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "熱門商品排行"
+          }
+        }
+      }
+    },
+    "csvTotalAmount %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Amount(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總金額(%@)"
+          }
+        }
+      }
+    },
+    "csvTransactionAmount %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction Amount(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易金額(%@)"
+          }
+        }
+      }
+    },
+    "csvTransactionCount" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction Count"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易筆數"
+          }
+        }
+      }
+    },
+    "csvTransactionId" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction ID"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易編號"
+          }
+        }
+      }
+    },
+    "csvTransactionTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction Details"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易明細"
+          }
+        }
+      }
+    },
+    "csvUnitPrice %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unit Price(%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單價(%@)"
+          }
+        }
+      }
+    },
+    "csvYes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是"
+          }
+        }
+      }
+    },
+    "currencyDefaultSymbol" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "$"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元"
+          }
+        }
+      }
+    },
+    "currencyEUR" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Euro"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歐元"
+          }
+        }
+      }
+    },
+    "currencyGBP" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "British Pound"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "英鎊"
+          }
+        }
+      }
+    },
+    "currencyJPY" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japanese Yen"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日幣"
+          }
+        }
+      }
+    },
+    "currencyTWD" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Taiwan Dollar"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新台幣"
+          }
+        }
+      }
+    },
+    "currencyUSD" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "US Dollar"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "美金"
+          }
+        }
+      }
+    },
+    "dateValidationMultiDay %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a multi-day event (%1$@). Transactions can only be added within the event's date range."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此為多日場次（%1$@），只能在場次日期範圍內新增交易。"
+          }
+        }
+      }
+    },
+    "dateValidationMultiError" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-day event data error"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多日場次數據異常"
+          }
+        }
+      }
+    },
+    "dateValidationPermanent %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is an ongoing event (%1$@). Transactions can only be added after the event's start date."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此為無限期場次（%1$@），只能在場次開始日期之後新增交易。"
+          }
+        }
+      }
+    },
+    "dateValidationSingleDay %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a single-day event (%1$@). Transactions can only be added on the event's date."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此為單日場次（%1$@），只能在場次日期內新增交易。"
+          }
+        }
+      }
+    },
+    "deviceConflictKickOther" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Out Other Device"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登出其他裝置"
+          }
+        }
+      }
+    },
+    "deviceConflictMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your account is already signed in on another device. Log out the other device and continue?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？"
+          }
+        }
+      }
+    },
+    "deviceConflictTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account Signed In on Another Device"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "帳號已在其他裝置登入"
+          }
+        }
+      }
+    },
+    "eventDisplayDateSince %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 起"
           }
         }
       }
@@ -2079,23 +3671,6 @@
         }
       }
     },
-    "eventsSelect" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選取"
-          }
-        }
-      }
-    },
     "eventsSelectAll" : {
       "localizations" : {
         "en" : {
@@ -2108,23 +3683,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全選"
-          }
-        }
-      }
-    },
-    "eventsTabPlaceholder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Events"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "場次"
           }
         }
       }
@@ -2273,6 +3831,22 @@
         }
       }
     },
+    "insightNoData" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data available"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無資料"
+          }
+        }
+      }
+    },
     "insightSuggestion" : {
       "localizations" : {
         "en" : {
@@ -2305,12 +3879,268 @@
         }
       }
     },
+    "inventoryChangeCurrentStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現有庫存"
+          }
+        }
+      }
+    },
+    "inventoryChangeEmptyMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please add products to the event first"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先在場次中新增商品"
+          }
+        }
+      }
+    },
+    "inventoryChangeEmptyTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Products Yet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無商品"
+          }
+        }
+      }
+    },
+    "inventoryChangeExportAll" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export All"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部匯出"
+          }
+        }
+      }
+    },
+    "inventoryChangeExportDetail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inventory Change Details"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存異動明細"
+          }
+        }
+      }
+    },
+    "inventoryChangeExportSuccess" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Successful"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯出成功"
+          }
+        }
+      }
+    },
+    "inventoryChangeExportSuccessMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The report has been exported successfully"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "報表已成功匯出"
+          }
+        }
+      }
+    },
+    "inventoryChangeExportSummary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inventory Summary"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存總覽"
+          }
+        }
+      }
+    },
+    "inventoryChangeLowStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存不足"
+          }
+        }
+      }
+    },
+    "inventoryChangeNoRecord" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No change records in this time range"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此時間範圍內無異動紀錄"
+          }
+        }
+      }
+    },
+    "inventoryChangeNormalStock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock Normal"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存正常"
+          }
+        }
+      }
+    },
+    "inventoryChangePieceCount %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld pcs"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld 件"
+          }
+        }
+      }
+    },
+    "inventoryChangeRecords" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Records"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "異動紀錄"
+          }
+        }
+      }
+    },
+    "inventoryChangeSearchNoResult" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Results Found"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查無結果"
+          }
+        }
+      }
+    },
+    "inventoryChangeSearchNoResultMessage %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No products found matching \"%1$@\""
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到符合「%1$@」的商品"
+          }
+        }
+      }
+    },
+    "inventoryChangeUnit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pcs"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "件"
+          }
+        }
+      }
+    },
     "inventoryDisabledHeader" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disabled Products"
+            "value" : "Delisted Products"
           }
         },
         "zh-Hant" : {
@@ -2433,6 +4263,134 @@
         }
       }
     },
+    "inventoryReasonAdjustment" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjustment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他調整"
+          }
+        }
+      }
+    },
+    "inventoryReasonDamaged" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Damaged"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "損壞報廢"
+          }
+        }
+      }
+    },
+    "inventoryReasonExpired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expired"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過期銷毀"
+          }
+        }
+      }
+    },
+    "inventoryReasonInternalUse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Internal Use"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "內部領用"
+          }
+        }
+      }
+    },
+    "inventoryReasonInventoryLoss" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inventory Loss"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "盤損調整"
+          }
+        }
+      }
+    },
+    "inventoryReasonPurchase" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進貨入庫"
+          }
+        }
+      }
+    },
+    "inventoryReasonReturnIn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退貨入庫"
+          }
+        }
+      }
+    },
+    "inventoryReasonSalesOut" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "銷售出庫"
+          }
+        }
+      }
+    },
     "inventoryRestore" : {
       "localizations" : {
         "en" : {
@@ -2477,6 +4435,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "管理商品"
+          }
+        }
+      }
+    },
+    "inventoryUncategorized" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uncategorized"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未分類"
           }
         }
       }
@@ -2769,23 +4743,6 @@
         }
       }
     },
-    "myTabPlaceholder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我的"
-          }
-        }
-      }
-    },
     "myTabTitle" : {
       "localizations" : {
         "en" : {
@@ -2803,7 +4760,36 @@
       }
     },
     "NT$ %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NT$ %1$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NT$ %1$@"
+          }
+        }
+      }
+    },
+    "paymentDateOutOfRange" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction date is outside the event's date range"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易日期不在場次範圍內"
+          }
+        }
+      }
     },
     "performanceActualAmount" : {
       "localizations" : {
@@ -3238,7 +5224,149 @@
       }
     },
     "Pro 會員" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Member"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 會員"
+          }
+        }
+      }
+    },
+    "productDetailCannotDelete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot delete — this product has transaction records. It can only be delisted."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已有交易記錄不可刪除，只能下架"
+          }
+        }
+      }
+    },
+    "productDetailConfirmDelete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to delete this product?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要刪除此產品嗎？"
+          }
+        }
+      }
+    },
+    "productDetailConfirmDeleteTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Delete"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認刪除"
+          }
+        }
+      }
+    },
+    "productDetailConfirmDisableTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Delist"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認下架"
+          }
+        }
+      }
+    },
+    "productDetailConfirmRestoreMessage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to restore this product?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要復原此產品嗎？"
+          }
+        }
+      }
+    },
+    "productDetailConfirmRestoreTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Restore"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認復原"
+          }
+        }
+      }
+    },
+    "productDetailDiscountExceed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discount cannot exceed the product price and has been automatically adjusted"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折扣不可超過商品金額，已自動調整"
+          }
+        }
+      }
+    },
+    "productDetailNoStock %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%1$@\" is currently out of stock and cannot be added to the order. Please restock first."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」目前無庫存，無法加入訂單。請先進貨補充庫存。"
+          }
+        }
+      }
     },
     "profileEditAddPhoto" : {
       "localizations" : {
@@ -3801,7 +5929,100 @@
       }
     },
     "Tilli Pro" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilli Pro"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilli Pro"
+          }
+        }
+      }
+    },
+    "tilliProDebugLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debug Only"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "測試專用"
+          }
+        }
+      }
+    },
+    "tilliProExpiry %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiry Date: %1$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到期日：%1$@"
+          }
+        }
+      }
+    },
+    "tilliProFree" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免費版"
+          }
+        }
+      }
+    },
+    "tilliProMember" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Member"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 會員"
+          }
+        }
+      }
+    },
+    "tilliProUpgradeHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade to Pro to enable real-time multi-device sync"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "升級 Pro 以啟用多裝置即時同步"
+          }
+        }
+      }
     },
     "timeRangeAll" : {
       "localizations" : {
@@ -3851,6 +6072,38 @@
         }
       }
     },
+    "timeRangeDisplayDateRange %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@"
+          }
+        }
+      }
+    },
+    "timeRangeDisplayPermanentAll %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to present"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 至今"
+          }
+        }
+      }
+    },
     "timeRangeEnd" : {
       "localizations" : {
         "en" : {
@@ -3863,6 +6116,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "結束"
+          }
+        }
+      }
+    },
+    "timeRangeErrorEndBeforeStart" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End date must be on or after start date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結束日期必須晚於或等於開始日期"
+          }
+        }
+      }
+    },
+    "timeRangeErrorMaxDays" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom range cannot exceed 90 days for permanent events"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無限期場次的自訂範圍不可超過 90 天"
           }
         }
       }
@@ -4314,129 +6599,6 @@
           }
         }
       }
-    },
-    "下架商品" : {
-
-    },
-    "交易數" : {
-
-    },
-    "件" : {
-
-    },
-    "免費版" : {
-
-    },
-    "全部匯出" : {
-
-    },
-    "刪除" : {
-
-    },
-    "到期日：%@" : {
-
-    },
-    "匯出成功" : {
-
-    },
-    "升級 Pro 以啟用多裝置即時同步" : {
-
-    },
-    "取消" : {
-
-    },
-    "報表已成功匯出" : {
-
-    },
-    "好" : {
-
-    },
-    "尚無商品" : {
-
-    },
-    "帳號已在其他裝置登入" : {
-
-    },
-    "庫存不足" : {
-
-    },
-    "庫存正常" : {
-
-    },
-    "庫存異動明細" : {
-
-    },
-    "庫存總覽" : {
-
-    },
-    "您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？" : {
-
-    },
-    "找不到符合「%@」的商品" : {
-
-    },
-    "提醒" : {
-
-    },
-    "日期" : {
-
-    },
-    "時間" : {
-
-    },
-    "查無結果" : {
-
-    },
-    "此時間範圍內無異動紀錄" : {
-
-    },
-    "測試專用" : {
-
-    },
-    "現有庫存" : {
-
-    },
-    "異動紀錄" : {
-
-    },
-    "登出其他裝置" : {
-
-    },
-    "確定" : {
-
-    },
-    "確定要復原此產品嗎？" : {
-
-    },
-    "確定要復原此類別嗎？" : {
-
-    },
-    "確認" : {
-
-    },
-    "確認下架" : {
-
-    },
-    "確認停用" : {
-
-    },
-    "確認刪除" : {
-
-    },
-    "確認復原" : {
-
-    },
-    "請先在場次中新增商品" : {
-
-    },
-    "選中" : {
-
-    },
-    "金額" : {
-
-    },
-    "關閉" : {
-
     }
   },
   "version" : "1.0"

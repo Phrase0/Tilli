@@ -10,6 +10,7 @@ import SwiftUI
 struct RootTabView: View {
     @State private var selectedTab: Int = 0
     @EnvironmentObject var authManager: AuthenticationManager
+    @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
 
     private var needsProfileSetup: Bool {
         authManager.authState == .needsSetup
@@ -49,7 +50,7 @@ struct RootTabView: View {
                 .tabItem {
                     Image(systemName: "list.bullet")
                     // 場次
-                    Text("eventsTabTitle")
+                    Text(String.localized("eventsTabTitle"))
                 }
                 .tag(0)
 
@@ -58,7 +59,7 @@ struct RootTabView: View {
                 .tabItem {
                     Image(systemName: "person.crop.circle")
                     // 我的
-                    Text("myTabTitle")
+                    Text(String.localized("myTabTitle"))
                 }
                 .tag(1)
         }

@@ -83,7 +83,7 @@ struct ProfileEditView: View {
                             .font(DesignSystem.Typography.caption)
                             .foregroundColor(DesignSystem.ColorToken.muted)
 
-                        TextField(String(localized: "profileEditNamePlaceholder"), text: $name)
+                        TextField(String.localized("profileEditNamePlaceholder"), text: $name)
                             .font(DesignSystem.Typography.body)
                             .padding(DesignSystem.Spacing.md)
                             .background(DesignSystem.ColorToken.cardSurface)
@@ -118,8 +118,8 @@ struct ProfileEditView: View {
                                     .tint(DesignSystem.ColorToken.onButtonFilled)
                             }
                             Text(isNewUser
-                                 ? String(localized: "profileEditDone")
-                                 : String(localized: "profileEditSave"))
+                                 ? String.localized("profileEditDone")
+                                 : String.localized("profileEditSave"))
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity)
@@ -135,8 +135,8 @@ struct ProfileEditView: View {
             }
         }
         .navigationTitle(isNewUser
-                         ? String(localized: "profileEditCreateTitle")
-                         : String(localized: "profileEditEditTitle"))
+                         ? String.localized("profileEditCreateTitle")
+                         : String.localized("profileEditEditTitle"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -199,7 +199,7 @@ struct ProfileEditView: View {
 
         } catch {
             isSaving = false
-            errorMessage = String(localized: "profileEditSaveError \(error.localizedDescription)")
+            errorMessage = String.localized("profileEditSaveError \(error.localizedDescription)")
             print("Save profile error: \(error)")
         }
     }

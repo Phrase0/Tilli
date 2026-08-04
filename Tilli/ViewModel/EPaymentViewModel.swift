@@ -31,7 +31,8 @@ class EPaymentViewModel: ObservableObject {
     func validateTransactionDate() -> Bool {
         let validation = DateValidationHelper.validateTransactionDate(for: event)
         if !validation.isValid {
-            dateWarningMessage = validation.errorMessage ?? "交易日期不在場次範圍內"
+            // 交易日期不在場次範圍內
+            dateWarningMessage = validation.errorMessage ?? String.localized("paymentDateOutOfRange")
             showDateWarning = true
             return false
         }

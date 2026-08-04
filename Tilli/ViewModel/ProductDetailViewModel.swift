@@ -139,7 +139,8 @@ class ProductViewModel: ObservableObject {
     
     /// 顯示無庫存商品點擊提醒
     func showOutOfStockAlert(for productName: String) {
-        alertMessage = "「\(productName)」目前無庫存，無法加入訂單。請先進貨補充庫存。"
+        // 「商品名」目前無庫存，無法加入訂單。請先進貨補充庫存。
+        alertMessage = String.localized("productDetailNoStock \(productName)")
         showAlert = true
     }
     
@@ -265,7 +266,8 @@ class ProductViewModel: ObservableObject {
     /// 折扣超過上限的提示訊息
     var discountWarningMessage: String? {
         guard isDiscountExceedsLimit else { return nil }
-        return "折扣不可超過商品金額，已自動調整"
+        // 折扣不可超過商品金額，已自動調整
+        return String.localized("productDetailDiscountExceed")
     }
 
     /// 產生 SummaryItemModel 列表（不含折扣，折扣存在 Transaction 層級）
@@ -339,7 +341,8 @@ class ProductViewModel: ObservableObject {
     
     /// 處理下架操作
     func handleDisableAction(for productId: UUID) {
-        alertMessage = "已有交易記錄不可刪除，只能下架"
+        // 已有交易記錄不可刪除，只能下架
+        alertMessage = String.localized("productDetailCannotDelete")
         productPendingDeletion = productId
         isDisableAction = true
         showAlert = true
@@ -347,7 +350,8 @@ class ProductViewModel: ObservableObject {
     
     /// 處理刪除操作
     func handleDeleteAction(for productId: UUID) {
-        alertMessage = "確定要刪除此產品嗎？"
+        // 確定要刪除此產品嗎？
+        alertMessage = String.localized("productDetailConfirmDelete")
         productPendingDeletion = productId
         isDisableAction = false
         showAlert = true
@@ -412,47 +416,51 @@ class ProductViewModel: ObservableObject {
     func createAlert() -> Alert {
         if productPendingRestore != nil {
             // 復原操作的警告
+            // 確認復原 / 確定要復原此產品嗎？ / 確認 / 取消
             return Alert(
-                title: Text("確認復原"),
-                message: Text("確定要復原此產品嗎？"),
-                primaryButton: .default(Text("確認")) { [weak self] in
+                title: Text("productDetailConfirmRestoreTitle"),
+                message: Text("productDetailConfirmRestoreMessage"),
+                primaryButton: .default(Text("commonConfirm")) { [weak self] in
                     self?.confirmRestoreAction()
                 },
-                secondaryButton: .cancel(Text("取消")) { [weak self] in
+                secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
                     self?.cancelRestoreAction()
                 }
             )
         } else if productPendingDeletion != nil {
             if isDisableAction {
                 // 下架操作的警告
+                // 確認下架 / 確認 / 取消
                 return Alert(
-                    title: Text("確認下架"),
+                    title: Text("productDetailConfirmDisableTitle"),
                     message: Text(alertMessage),
-                    primaryButton: .default(Text("確認")) { [weak self] in
+                    primaryButton: .default(Text("commonConfirm")) { [weak self] in
                         self?.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel(Text("取消")) { [weak self] in
+                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
                         self?.cancelDeletionAction()
                     }
                 )
             } else {
                 // 刪除操作的警告
+                // 確認刪除 / 刪除 / 取消
                 return Alert(
-                    title: Text("確認刪除"),
+                    title: Text("productDetailConfirmDeleteTitle"),
                     message: Text(alertMessage),
-                    primaryButton: .destructive(Text("刪除")) { [weak self] in
+                    primaryButton: .destructive(Text("commonDelete")) { [weak self] in
                         self?.confirmDeletionAction()
                     },
-                    secondaryButton: .cancel(Text("取消")) { [weak self] in
+                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
                         self?.cancelDeletionAction()
                     }
                 )
             }
         } else {
+            // 提醒 / 好
             return Alert(
-                title: Text("提醒"),
+                title: Text("commonReminder"),
                 message: Text(alertMessage),
-                dismissButton: .default(Text("好"))
+                dismissButton: .default(Text("commonOK"))
             )
         }
     }

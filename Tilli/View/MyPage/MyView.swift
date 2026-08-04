@@ -47,7 +47,7 @@ struct MyView: View {
             }
             .background(DesignSystem.ColorToken.paper)
             // 我的
-            .navigationTitle("myPageTitle")
+            .navigationTitle(String.localized("myPageTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -92,7 +92,7 @@ struct MyView: View {
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs / 2) {
                 if let user = authManager.currentUser {
-                    Text(user.name.isEmpty ? String(localized: "myNoName") : user.name)
+                    Text(user.name.isEmpty ? String.localized("myNoName") : user.name)
                         .font(DesignSystem.Typography.title2)
                         .foregroundColor(DesignSystem.ColorToken.ink)
 

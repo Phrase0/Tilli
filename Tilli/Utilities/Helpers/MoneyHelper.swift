@@ -43,11 +43,11 @@ enum Currency: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .twd: return "新台幣"
-        case .usd: return "美金"
-        case .eur: return "歐元"
-        case .gbp: return "英鎊"
-        case .jpy: return "日幣"
+        case .twd: return String.localized("currencyTWD") // 新台幣
+        case .usd: return String.localized("currencyUSD") // 美金
+        case .eur: return String.localized("currencyEUR") // 歐元
+        case .gbp: return String.localized("currencyGBP") // 英鎊
+        case .jpy: return String.localized("currencyJPY") // 日幣
         }
     }
 

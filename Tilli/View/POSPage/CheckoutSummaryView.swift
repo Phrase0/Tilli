@@ -161,7 +161,7 @@ struct CheckoutSummaryView: View {
                     let dateToValidate = isBackdatedMode ? backdatedDate : Date()
                     let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
                     if !validation.isValid {
-                        dateWarningMessage = validation.errorMessage ?? String(localized: "checkoutDateWarningDefault")
+                        dateWarningMessage = validation.errorMessage ?? String.localized("checkoutDateWarningDefault")
                         showDateWarning = true
                         return
                     }
@@ -191,7 +191,7 @@ struct CheckoutSummaryView: View {
                     let dateToValidate = isBackdatedMode ? backdatedDate : Date()
                     let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
                     if !validation.isValid {
-                        dateWarningMessage = validation.errorMessage ?? String(localized: "checkoutDateWarningDefault")
+                        dateWarningMessage = validation.errorMessage ?? String.localized("checkoutDateWarningDefault")
                         showDateWarning = true
                         return
                     }
