@@ -1,5 +1,5 @@
 //
-//  ProductViewModel.swift
+//  POSViewModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/9/4.
@@ -13,7 +13,7 @@ enum ProductLayoutMode: String, Codable {
     case grid
 }
 
-class ProductViewModel: ObservableObject {
+class POSViewModel: ObservableObject {
 
     @Binding var event: EventModel
     @Published var categories: [CategoryModel] = []
@@ -21,12 +21,9 @@ class ProductViewModel: ObservableObject {
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscountId: UUID?  // 當前選擇的折扣 ID（整筆訂單）
 
-    // Alert 相關狀態
+    // Alert 相關狀態（僅無庫存提醒使用）
     @Published var showAlert = false
     @Published var alertMessage = ""
-    @Published var productPendingDeletion: UUID?
-    @Published var productPendingRestore: UUID?
-    @Published var isDisableAction = false
 
     // Product Detail 相關狀態
     @Published var expandedCategories: Set<UUID> = []
@@ -40,8 +37,6 @@ class ProductViewModel: ObservableObject {
     }
     
     // 用於獲取最新狀態的 DataManager
-    private var transactionDataManager: TransactionRepository?
-    private var eventDataManager: EventRepository?
     private var productRepository: ProductRepository?
     
     // 計算屬性：可顯示的產品（Product.isDisabled == false && Category.isDisabled == false）
@@ -99,13 +94,7 @@ class ProductViewModel: ObservableObject {
     // MARK: - DataManager 管理
     
     /// 更新 DataManager 引用
-    func updateDataManagers(
-        transactionDataManager: TransactionRepository,
-        eventDataManager: EventRepository,
-        productRepository: ProductRepository
-    ) {
-        self.transactionDataManager = transactionDataManager
-        self.eventDataManager = eventDataManager
+    func updateDataManagers(productRepository: ProductRepository) {
         self.productRepository = productRepository
     }
     
@@ -288,187 +277,13 @@ class ProductViewModel: ObservableObject {
         }
     }
     
-    // MARK: - 共用方法
-    
-    /// 檢查產品是否有交易記錄
-    func hasTransaction(for productId: UUID) -> Bool {
-        guard let eventId = event.id as UUID? else { return false }
-        
-        // 優先使用 TransactionDataManager 獲取最新的交易數據
-        if let transactionManager = transactionDataManager {
-            let transactions = transactionManager.fetchTransactions(forEventId: eventId)
-            for transaction in transactions {
-                for item in transaction.items {
-                    if item.productId == productId {
-                        return true
-                    }
-                }
-            }
-            return false
-        }
-        
-        // 如果沒有 TransactionDataManager，無法檢查交易記錄
-        return false
-    }
-    
-    func removeProduct(byId productId: UUID) {
-        guard let productRepo = productRepository else { return }
-        let result = productRepo.deleteProduct(productId)
-        
-        switch result {
-        case .deleted(let message):
-            print(message)
-        case .disabledInstead(let message):
-            alertMessage = message
-            showAlert = true
-        case .failed(let message):
-            alertMessage = message
-            showAlert = true
-        }
-    }
-    
-    func disableProduct(byId productId: UUID) {
-        guard let productRepo = productRepository else { return }
-        productRepo.disableProduct(productId)
-    }
-    
-    func restoreProduct(byId productId: UUID) {
-        guard let productRepo = productRepository else { return }
-        productRepo.enableProduct(productId)
-    }
-    
-    // MARK: - Alert 處理邏輯
-    
-    /// 處理下架操作
-    func handleDisableAction(for productId: UUID) {
-        // 已有交易記錄不可刪除，只能下架
-        alertMessage = String.localized("productDetailCannotDelete")
-        productPendingDeletion = productId
-        isDisableAction = true
-        showAlert = true
-    }
-    
-    /// 處理刪除操作
-    func handleDeleteAction(for productId: UUID) {
-        // 確定要刪除此產品嗎？
-        alertMessage = String.localized("productDetailConfirmDelete")
-        productPendingDeletion = productId
-        isDisableAction = false
-        showAlert = true
-    }
-    
-    /// 處理復原操作
-    func handleRestoreAction(for productId: UUID) {
-        productPendingRestore = productId
-        showAlert = true
-    }
-    
-    /// 確認刪除/下架操作
-    func confirmDeletionAction() {
-        guard let productId = productPendingDeletion else { return }
-
-        if isDisableAction {
-            disableProduct(byId: productId)
-        } else {
-            removeProduct(byId: productId)
-            // 清除該產品的選擇狀態
-            quantities.removeValue(forKey: productId)
-        }
-
-        loadProducts()
-        resetDeletionState()
-    }
-    
-    /// 確認復原操作
-    func confirmRestoreAction() {
-        guard let productId = productPendingRestore else { return }
-        restoreProduct(byId: productId)
-        loadProducts()
-        productPendingRestore = nil
-    }
-    
-    /// 取消刪除/下架操作
-    func cancelDeletionAction() {
-        resetDeletionState()
-    }
-    
-    /// 取消復原操作
-    func cancelRestoreAction() {
-        productPendingRestore = nil
-    }
-    
-    /// 重置刪除狀態
-    private func resetDeletionState() {
-        productPendingDeletion = nil
-        isDisableAction = false
-    }
-    
-    /// 處理 Actions（參考 AddEventViewModel）
-    func getActionType(for productId: UUID) -> ProductActionType {
-        if hasTransaction(for: productId) {
-            return .disable
-        } else {
-            return .delete
-        }
-    }
-    
-    // MARK: - Alert 創建方法
+    // MARK: - Alert 創建方法（無庫存提醒）
     func createAlert() -> Alert {
-        if productPendingRestore != nil {
-            // 復原操作的警告
-            // 確認復原 / 確定要復原此產品嗎？ / 確認 / 取消
-            return Alert(
-                title: Text("productDetailConfirmRestoreTitle"),
-                message: Text("productDetailConfirmRestoreMessage"),
-                primaryButton: .default(Text("commonConfirm")) { [weak self] in
-                    self?.confirmRestoreAction()
-                },
-                secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
-                    self?.cancelRestoreAction()
-                }
-            )
-        } else if productPendingDeletion != nil {
-            if isDisableAction {
-                // 下架操作的警告
-                // 確認下架 / 確認 / 取消
-                return Alert(
-                    title: Text("productDetailConfirmDisableTitle"),
-                    message: Text(alertMessage),
-                    primaryButton: .default(Text("commonConfirm")) { [weak self] in
-                        self?.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
-                        self?.cancelDeletionAction()
-                    }
-                )
-            } else {
-                // 刪除操作的警告
-                // 確認刪除 / 刪除 / 取消
-                return Alert(
-                    title: Text("productDetailConfirmDeleteTitle"),
-                    message: Text(alertMessage),
-                    primaryButton: .destructive(Text("commonDelete")) { [weak self] in
-                        self?.confirmDeletionAction()
-                    },
-                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
-                        self?.cancelDeletionAction()
-                    }
-                )
-            }
-        } else {
-            // 提醒 / 好
-            return Alert(
-                title: Text("commonReminder"),
-                message: Text(alertMessage),
-                dismissButton: .default(Text("commonOK"))
-            )
-        }
+        // 提醒 / 好
+        Alert(
+            title: Text("commonReminder"),
+            message: Text(alertMessage),
+            dismissButton: .default(Text("commonOK"))
+        )
     }
-}
-
-// MARK: - Helper Enums
-
-enum ProductActionType {
-    case delete
-    case disable
 }

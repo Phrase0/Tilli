@@ -11,10 +11,8 @@ struct POSView: View {
 
     let event: EventModel
 
-    @StateObject private var viewModel: ProductViewModel
+    @StateObject private var viewModel: POSViewModel
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var transactionDataManager: TransactionRepository
-    @EnvironmentObject var eventDataManager: EventRepository
 
     @State private var showCheckoutSheet = false
     @State private var checkoutCompleted = false
@@ -23,7 +21,7 @@ struct POSView: View {
 
     init(event: EventModel) {
         self.event = event
-        _viewModel = StateObject(wrappedValue: ProductViewModel(event: .constant(event)))
+        _viewModel = StateObject(wrappedValue: POSViewModel(event: .constant(event)))
         _eventState = State(initialValue: event)
     }
 
@@ -83,11 +81,7 @@ struct POSView: View {
             }
         }
         .onAppear {
-            viewModel.updateDataManagers(
-                transactionDataManager: transactionDataManager,
-                eventDataManager: eventDataManager,
-                productRepository: productRepository
-            )
+            viewModel.updateDataManagers(productRepository: productRepository)
             viewModel.loadProducts()
         }
     }

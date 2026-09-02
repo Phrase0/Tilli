@@ -34,7 +34,7 @@ enum InventoryExportType {
 }
 
 @MainActor
-class InventoryChangeViewModel: ObservableObject {
+class InventoryViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var searchText: String = ""
     @Published var selectedTimeRange: ReportTimeRange
@@ -47,6 +47,13 @@ class InventoryChangeViewModel: ObservableObject {
     @Published var selectedExportType: InventoryExportType = .all
     @Published var showingExportAlert = false
     @Published var currentShareItems: [Any] = []
+
+    // MARK: - Product Management Properties
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+    @Published var productPendingDeletion: UUID?
+    @Published var productPendingRestore: UUID?
+    @Published var isDisableAction = false
 
     // MARK: - Dependencies
     let event: EventModel
@@ -418,4 +425,174 @@ class InventoryChangeViewModel: ObservableObject {
     var isExportDisabled: Bool {
         inventoryItems.isEmpty && disabledInventoryItems.isEmpty
     }
+
+    // MARK: - 商品管理（編輯／下架／刪除／復原）
+
+    /// 檢查產品是否有交易記錄
+    func hasTransaction(for productId: UUID) -> Bool {
+        guard let transactionManager = transactionDataManager else { return false }
+
+        let transactions = transactionManager.fetchTransactions(forEventId: event.id)
+        for transaction in transactions {
+            for item in transaction.items {
+                if item.productId == productId {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    func removeProduct(byId productId: UUID) {
+        guard let productRepo = productRepository else { return }
+        let result = productRepo.deleteProduct(productId)
+
+        switch result {
+        case .deleted(let message):
+            print(message)
+        case .disabledInstead(let message):
+            alertMessage = message
+            showAlert = true
+        case .failed(let message):
+            alertMessage = message
+            showAlert = true
+        }
+    }
+
+    func disableProduct(byId productId: UUID) {
+        guard let productRepo = productRepository else { return }
+        productRepo.disableProduct(productId)
+    }
+
+    func restoreProduct(byId productId: UUID) {
+        guard let productRepo = productRepository else { return }
+        productRepo.enableProduct(productId)
+    }
+
+    /// 處理下架操作
+    func handleDisableAction(for productId: UUID) {
+        // 已有交易記錄不可刪除，只能下架
+        alertMessage = String.localized("productDetailCannotDelete")
+        productPendingDeletion = productId
+        isDisableAction = true
+        showAlert = true
+    }
+
+    /// 處理刪除操作
+    func handleDeleteAction(for productId: UUID) {
+        // 確定要刪除此產品嗎？
+        alertMessage = String.localized("productDetailConfirmDelete")
+        productPendingDeletion = productId
+        isDisableAction = false
+        showAlert = true
+    }
+
+    /// 處理復原操作
+    func handleRestoreAction(for productId: UUID) {
+        productPendingRestore = productId
+        showAlert = true
+    }
+
+    /// 確認刪除/下架操作
+    func confirmDeletionAction() {
+        guard let productId = productPendingDeletion else { return }
+
+        if isDisableAction {
+            disableProduct(byId: productId)
+        } else {
+            removeProduct(byId: productId)
+        }
+
+        loadData()
+        resetDeletionState()
+    }
+
+    /// 確認復原操作
+    func confirmRestoreAction() {
+        guard let productId = productPendingRestore else { return }
+        restoreProduct(byId: productId)
+        loadData()
+        productPendingRestore = nil
+    }
+
+    /// 取消刪除/下架操作
+    func cancelDeletionAction() {
+        resetDeletionState()
+    }
+
+    /// 取消復原操作
+    func cancelRestoreAction() {
+        productPendingRestore = nil
+    }
+
+    /// 重置刪除狀態
+    private func resetDeletionState() {
+        productPendingDeletion = nil
+        isDisableAction = false
+    }
+
+    /// 判斷商品動作類型（有交易記錄只能下架，否則可直接刪除）
+    func getActionType(for productId: UUID) -> ProductActionType {
+        hasTransaction(for: productId) ? .disable : .delete
+    }
+
+    /// 建立商品管理相關的 Alert
+    func createAlert() -> Alert {
+        if productPendingRestore != nil {
+            // 復原操作的警告
+            // 確認復原 / 確定要復原此產品嗎？ / 確認 / 取消
+            return Alert(
+                title: Text("productDetailConfirmRestoreTitle"),
+                message: Text("productDetailConfirmRestoreMessage"),
+                primaryButton: .default(Text("commonConfirm")) { [weak self] in
+                    self?.confirmRestoreAction()
+                },
+                secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
+                    self?.cancelRestoreAction()
+                }
+            )
+        } else if productPendingDeletion != nil {
+            if isDisableAction {
+                // 下架操作的警告
+                // 確認下架 / 確認 / 取消
+                return Alert(
+                    title: Text("productDetailConfirmDisableTitle"),
+                    message: Text(alertMessage),
+                    primaryButton: .default(Text("commonConfirm")) { [weak self] in
+                        self?.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
+                        self?.cancelDeletionAction()
+                    }
+                )
+            } else {
+                // 刪除操作的警告
+                // 確認刪除 / 刪除 / 取消
+                return Alert(
+                    title: Text("productDetailConfirmDeleteTitle"),
+                    message: Text(alertMessage),
+                    primaryButton: .destructive(Text("commonDelete")) { [weak self] in
+                        self?.confirmDeletionAction()
+                    },
+                    secondaryButton: .cancel(Text("commonCancel")) { [weak self] in
+                        self?.cancelDeletionAction()
+                    }
+                )
+            }
+        } else {
+            // 提醒 / 好
+            return Alert(
+                title: Text("commonReminder"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("commonOK"))
+            )
+        }
+    }
+}
+
+// MARK: - Helper Enums
+
+enum ProductActionType {
+    case delete
+    case disable
 }

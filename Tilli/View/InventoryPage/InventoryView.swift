@@ -2,59 +2,119 @@
 //  InventoryView.swift
 //  Tilli
 //
-//  Created by Peiyun on 2026/7/30.
+//  Created by Peiyun on 2025/1/12.
 //
 
 import SwiftUI
 
 struct InventoryView: View {
-
     let event: EventModel
 
-    @StateObject private var viewModel: ProductViewModel
+    @StateObject private var viewModel: InventoryViewModel
     @EnvironmentObject var productRepository: ProductRepository
+    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @EnvironmentObject var eventDataManager: EventRepository
+    @Environment(\.dismiss) private var dismiss
 
+    @State private var timeRange: ReportTimeRange
+    @State private var searchText = ""
+    @State private var showShareSheet = false
     @State private var editingProduct: ProductModel?
     @State private var showAddProduct = false
-    @State private var showInventoryChange = false
 
     init(event: EventModel) {
         self.event = event
-        _viewModel = StateObject(wrappedValue: ProductViewModel(event: .constant(event)))
+        self._viewModel = StateObject(wrappedValue: InventoryViewModel(event: event))
+        self._timeRange = State(initialValue: ReportTimeRange(event: event))
     }
 
     var body: some View {
-        Group {
-            if viewModel.shouldShowEmptyState {
-                emptyState
-            } else {
-                productList
-            }
+        VStack(spacing: 0) {
+            // 時間範圍選擇器
+            ReportTimeRangeSelector(event: viewModel.event, selectedRange: $timeRange)
+                .padding(.horizontal)
+            // 商品列表（按類別分組）
+            productList
         }
-        .background(DesignSystem.ColorToken.paper)
-        // 管理商品
-        .navigationTitle("inventoryTitle")
+        .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+//        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋商品")
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.gray)
+                }
+            }
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text(viewModel.event.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                }
+            }
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
+                Menu {
+                    Button {
+                        viewModel.prepareExport(type: .all)
+                        showShareSheet = true
+                    } label: {
+                        // 全部匯出
+                        Label("inventoryChangeExportAll", systemImage: "square.and.arrow.up.on.square")
+                    }
+
+                    Divider()
+
+                    Button {
+                        viewModel.prepareExport(type: .summary)
+                        showShareSheet = true
+                    } label: {
+                        // 庫存總覽
+                        Label("inventoryChangeExportSummary", systemImage: "list.bullet.rectangle")
+                    }
+
+                    Button {
+                        viewModel.prepareExport(type: .detail)
+                        showShareSheet = true
+                    } label: {
+                        // 庫存異動明細
+                        Label("inventoryChangeExportDetail", systemImage: "clock.arrow.circlepath")
                     }
                 } label: {
-                    Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundColor(viewModel.isExportDisabled ? .gray : .primary)
                 }
+                .disabled(viewModel.isExportDisabled)
 
                 NavigationLink {
                     AddNewProductView(event: event) {
-                        viewModel.loadProducts()
+                        viewModel.loadData()
                     }
                 } label: {
                     Image(systemName: "plus")
                 }
             }
+        }
+        .shareSheet(
+            isPresented: $showShareSheet,
+            activityItems: { viewModel.currentShareItems },
+            excludedTypes: UIActivity.ActivityType.defaultExcludedTypes,
+            onComplete: { completed in
+                if completed {
+                    viewModel.handleExportSuccess()
+                }
+            }
+        )
+        // 匯出成功
+        .alert("inventoryChangeExportSuccess", isPresented: $viewModel.showingExportAlert) {
+            // 確定
+            Button("commonConfirm") { }
+        } message: {
+            // 報表已成功匯出
+            Text("inventoryChangeExportSuccessMessage")
         }
         .alert(isPresented: $viewModel.showAlert) {
             viewModel.createAlert()
@@ -62,454 +122,291 @@ struct InventoryView: View {
         .navigationDestination(isPresented: $showAddProduct) {
             if let product = editingProduct {
                 AddNewProductView(event: event, productToEdit: product) {
-                    viewModel.loadProducts()
+                    viewModel.loadData()
                     editingProduct = nil
                 }
             }
         }
-        .navigationDestination(isPresented: $showInventoryChange) {
-            InventoryChangeView(event: event)
-        }
         .onAppear {
-            viewModel.updateDataManagers(
-                transactionDataManager: transactionDataManager,
-                eventDataManager: eventDataManager,
-                productRepository: productRepository
+            viewModel.updateRepositories(
+                productRepository: productRepository,
+                inventoryChangeRepository: inventoryChangeRepository,
+                transactionDataManager: transactionDataManager
             )
-            viewModel.loadProducts()
         }
-    }
-
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        ScrollView {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                EmptyStateView(
-                    systemImage: "shippingbox",
-                    // 尚無商品
-                    title: String.localized("inventoryEmptyTitle"),
-                    // 點擊右上角 + 新增商品
-                    message: String.localized("inventoryEmptyMessage"),
-                    topPadding: 90
-                )
+        .onChange(of: searchText) {
+            viewModel.searchText = searchText
+        }
+        .onChange(of: timeRange.type) {
+            viewModel.selectedTimeRange = timeRange
+        }
+        .onChange(of: timeRange.customStart) {
+            if timeRange.type == .custom {
+                viewModel.selectedTimeRange = timeRange
+            }
+        }
+        .onChange(of: timeRange.customEnd) {
+            if timeRange.type == .custom {
+                viewModel.selectedTimeRange = timeRange
+            }
+        }
+        .onChange(of: eventDataManager.events) {
+            // 檢查當前場次是否還存在，若已被刪除則返回上一頁
+            let eventExists = eventDataManager.events.contains { $0.id == viewModel.event.id }
+            if !eventExists {
+                dismiss()
             }
         }
     }
 
-    // MARK: - Product List
+    // MARK: - 商品列表（按類別分組，參考 ProductDetailView）
 
     private var productList: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                ForEach(event.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.id) { category in
-                    let items = viewModel.getSortedProductsForCategory(category.id)
-                    if !items.isEmpty {
-                        categorySection(category: category, products: items)
-                    }
-                }
-
-                if !viewModel.disabledProducts.isEmpty {
-                    disabledSection
-                }
-            }
-            .padding(.top, DesignSystem.Spacing.md)
-            .padding(.bottom, DesignSystem.Spacing.lg)
-        }
-    }
-
-    // MARK: - Category Section
-
-    private func categorySection(category: CategoryModel, products: [ProductModel]) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Button {
-                viewModel.toggleCategoryExpansion(category.id)
-            } label: {
-                HStack {
-                    Text(category.name)
-                        .font(DesignSystem.Typography.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-
-                    Spacer()
-
-                    Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            if viewModel.isCategoryExpanded(category.id) {
-                if viewModel.layoutMode == .list {
-                    ForEach(products) { product in
-                        inventoryProductCard(product)
-                    }
-                } else {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.xs) {
-                        ForEach(products) { product in
-                            inventoryGridCard(product)
+            if viewModel.hasNoProducts {
+                emptyState
+            } else if viewModel.isSearchEmpty {
+                searchEmptyState
+            } else {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    // 啟用的商品（按類別分組）
+                    ForEach(viewModel.sortedCategories, id: \.id) { category in
+                        let items = viewModel.getItemsForCategory(category.id)
+                        if !items.isEmpty {
+                            categorySection(category: category, items: items)
                         }
                     }
-                    .padding(.horizontal, DesignSystem.Spacing.md)
+
+                    // 下架商品區
+                    if !viewModel.filteredDisabledItems.isEmpty {
+                        disabledProductsSection
+                    }
                 }
+                .padding(.top)
+                .padding(.bottom, DesignSystem.Spacing.lg)
             }
         }
     }
 
-    // MARK: - Disabled Products Section
+    // MARK: - 下架商品區（參考 ProductDetailView）
 
-    private var disabledSection: some View {
+    private var disabledProductsSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Button {
+            // 可點擊的標題（展開/收合）
+            Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     viewModel.showDisabledProducts.toggle()
                 }
-            } label: {
+            }) {
                 HStack {
                     // 下架商品
                     Text("inventoryDisabledHeader")
-                        .font(DesignSystem.Typography.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
 
                     Spacer()
 
                     Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                        .padding(.horizontal)
                 }
             }
             .buttonStyle(PlainButtonStyle())
 
+            // 下架商品列表（展開時顯示）
             if viewModel.showDisabledProducts {
-                if viewModel.layoutMode == .list {
-                    ForEach(viewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
-                        disabledProductCard(product)
-                    }
-                } else {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.xs) {
-                        ForEach(viewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
-                            disabledGridCard(product)
-                        }
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.md)
+                ForEach(viewModel.filteredDisabledItems) { item in
+                    DisabledInventoryProductCard(
+                        item: item,
+                        filteredChanges: viewModel.filteredChanges(for: item),
+                        onToggle: { viewModel.toggleDisabledExpanded(for: item.id) },
+                        onRestore: { viewModel.handleRestoreAction(for: item.id) }
+                    )
+                    .padding(.horizontal)
                 }
             }
         }
     }
 
-    // MARK: - List Product Card (No quantity +/-)
+    // MARK: - 類別區塊（可展開/收起）
 
-    private func inventoryProductCard(_ product: ProductModel) -> some View {
-        let isOutOfStock = viewModel.isOutOfStock(product)
+    private func categorySection(category: CategoryModel, items: [InventoryProductItem]) -> some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // 可點擊的分類標題
+            Button(action: {
+                viewModel.toggleCategoryExpansion(category.id)
+            }) {
+                HStack {
+                    Text(category.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal)
 
-        return HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
-            SyncableImageView(
-                imageData: product.imageData,
-                imageURL: product.imageURL,
-                entityId: product.id,
-                entityType: .product,
-                contentMode: .fill
-            )
-            .frame(width: 70, height: 70)
-            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-            .grayscale(isOutOfStock ? 1.0 : 0.0)
-            .opacity(isOutOfStock ? 0.6 : 1.0)
+                    Spacer()
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(product.name)
+                    Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                        .padding(.horizontal)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 商品列表（可展開/收起）
+            if viewModel.isCategoryExpanded(category.id) {
+                ForEach(items) { item in
+                    InventoryProductCard(
+                        item: item,
+                        filteredChanges: viewModel.filteredChanges(for: item),
+                        onToggle: { viewModel.toggleExpanded(for: item.id) },
+                        actionType: viewModel.getActionType(for: item.id),
+                        onEdit: {
+                            editingProduct = item.product
+                            showAddProduct = true
+                        },
+                        onDisableOrDelete: {
+                            switch viewModel.getActionType(for: item.id) {
+                            case .disable:
+                                viewModel.handleDisableAction(for: item.id)
+                            case .delete:
+                                viewModel.handleDeleteAction(for: item.id)
+                            }
+                        }
+                    )
+                    .padding(.horizontal)
+                }
+            }
+        }
+    }
+
+    // MARK: - 空狀態
+
+    private var emptyState: some View {
+        VStack(spacing: DesignSystem.Spacing.md) {
+            Image(systemName: "shippingbox")
+                .font(.system(size: 50))
+                .foregroundColor(.gray.opacity(0.5))
+
+            // 尚無商品
+            Text("inventoryChangeEmptyTitle")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            // 請先在場次中新增商品
+            Text("inventoryChangeEmptyMessage")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+
+    private var searchEmptyState: some View {
+        VStack(spacing: DesignSystem.Spacing.md) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 50))
+                .foregroundColor(.gray.opacity(0.5))
+
+            // 查無結果
+            Text("inventoryChangeSearchNoResult")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            // 找不到符合「%@」的商品
+            Text("inventoryChangeSearchNoResultMessage \(viewModel.searchText)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+}
+
+// MARK: - 商品卡片
+
+struct InventoryProductCard: View {
+    let item: InventoryProductItem
+    let filteredChanges: [InventoryChangeModel]
+    let onToggle: () -> Void
+    let actionType: ProductActionType
+    let onEdit: () -> Void
+    let onDisableOrDelete: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 商品基本資訊（可點擊展開）
+            productHeader
+
+            // 展開內容
+            if item.isExpanded {
+                Divider()
+                    .padding(.horizontal)
+
+                expandedContent
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+    }
+
+    // MARK: - 商品標題區
+
+    private var productHeader: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Button(action: onToggle) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    // 商品圖片
+                    productImage
+
+                    // 商品資訊
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                        Text(item.product.name)
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
+                            .foregroundColor(.primary)
                             .lineLimit(1)
 
-                        if let note = product.note, !note.isEmpty {
-                            Text(note)
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                                .lineLimit(1)
-                        }
+                        Text("NT$ \(item.product.price.formatted())")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
                     }
 
                     Spacer()
 
-                    productMenu(for: product)
-                }
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(MoneyHelper.format(product.price, currencyCode: event.currency))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-
-                        if isOutOfStock {
-                            // 無庫存
-                            Text("inventoryOutOfStock")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.alertRed)
-                                .padding(.horizontal, DesignSystem.Spacing.xxs)
-                                .padding(.vertical, 2)
-                                .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                        } else {
-                            // 庫存: %d
-                            Text("inventoryStockCount \(product.stock)")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                        }
+                    // 庫存狀態（收起時顯示）
+                    if !item.isExpanded {
+                        stockBadge
                     }
-
-                    Spacer()
                 }
             }
+            .buttonStyle(.plain)
+
+            // 編輯／下架／刪除選單
+            productMenu
         }
         .padding(DesignSystem.Spacing.sm)
-        .background(isOutOfStock ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-        .shadow(
-            color: DesignSystem.Shadow.cardColor,
-            radius: DesignSystem.Shadow.cardRadius,
-            x: DesignSystem.Shadow.cardX,
-            y: DesignSystem.Shadow.cardY
-        )
-        .padding(.horizontal, DesignSystem.Spacing.md)
     }
 
-    // MARK: - Grid Product Card (No quantity +/-)
-
-    private func inventoryGridCard(_ product: ProductModel) -> some View {
-        let isOutOfStock = viewModel.isOutOfStock(product)
-
-        return VStack(alignment: .leading, spacing: 0) {
-            SyncableImageView(
-                imageData: product.imageData,
-                imageURL: product.imageURL,
-                entityId: product.id,
-                entityType: .product,
-                contentMode: .fill
-            )
-            .aspectRatio(1, contentMode: .fill)
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .clipped()
-            .grayscale(isOutOfStock ? 1.0 : 0.0)
-            .opacity(isOutOfStock ? 0.6 : 1.0)
-
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                HStack(alignment: .top) {
-                    Text(product.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-                        .lineLimit(1)
-
-                    Spacer(minLength: 2)
-
-                    productMenu(for: product)
-                }
-
-                Text(MoneyHelper.format(product.price, currencyCode: event.currency))
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-
-                if isOutOfStock {
-                    Text("inventoryOutOfStock")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.alertRed)
-                        .padding(.horizontal, DesignSystem.Spacing.xxs)
-                        .padding(.vertical, 2)
-                        .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                } else {
-                    Text("inventoryStockCount \(product.stock)")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                }
-            }
-            .padding(DesignSystem.Spacing.xs)
-        }
-        .background(isOutOfStock ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-        .shadow(
-            color: DesignSystem.Shadow.cardColor,
-            radius: DesignSystem.Shadow.cardRadius,
-            x: DesignSystem.Shadow.cardX,
-            y: DesignSystem.Shadow.cardY
-        )
-    }
-
-    // MARK: - Disabled Product Card (List)
-
-    private func disabledProductCard(_ product: ProductModel) -> some View {
-        HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
-            SyncableImageView(
-                imageData: product.imageData,
-                imageURL: product.imageURL,
-                entityId: product.id,
-                entityType: .product,
-                contentMode: .fill
-            )
-            .frame(width: 70, height: 70)
-            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-            .grayscale(1.0)
-            .opacity(0.6)
-
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(product.name)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .lineLimit(1)
-
-                        if let note = product.note, !note.isEmpty {
-                            Text(note)
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer()
-
-                    Menu {
-                        // 復原
-                        Button("inventoryRestore") {
-                            viewModel.handleRestoreAction(for: product.id)
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .rotationEffect(.degrees(90))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .padding(DesignSystem.Spacing.xxs)
-                    }
-                }
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(MoneyHelper.format(product.price, currencyCode: event.currency))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-
-                        // 庫存: %d
-                        Text("inventoryStockCount \(product.stock)")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                    }
-
-                    Spacer()
-                }
-            }
-        }
-        .padding(DesignSystem.Spacing.sm)
-        .background(DesignSystem.ColorToken.quietFill)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-        .padding(.horizontal, DesignSystem.Spacing.md)
-    }
-
-    // MARK: - Disabled Product Card (Grid)
-
-    private func disabledGridCard(_ product: ProductModel) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SyncableImageView(
-                imageData: product.imageData,
-                imageURL: product.imageURL,
-                entityId: product.id,
-                entityType: .product,
-                contentMode: .fill
-            )
-            .aspectRatio(1, contentMode: .fill)
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .clipped()
-            .grayscale(1.0)
-            .opacity(0.6)
-
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                HStack(alignment: .top) {
-                    Text(product.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .lineLimit(1)
-
-                    Spacer(minLength: 2)
-
-                    Menu {
-                        Button("inventoryRestore") {
-                            viewModel.handleRestoreAction(for: product.id)
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 14))
-                            .rotationEffect(.degrees(90))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .padding(DesignSystem.Spacing.xxs)
-                    }
-                }
-
-                Text(MoneyHelper.format(product.price, currencyCode: event.currency))
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-
-                Text("inventoryStockCount \(product.stock)")
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-            }
-            .padding(DesignSystem.Spacing.xs)
-        }
-        .background(DesignSystem.ColorToken.quietFill)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-        .shadow(
-            color: DesignSystem.Shadow.cardColor,
-            radius: DesignSystem.Shadow.cardRadius,
-            x: DesignSystem.Shadow.cardX,
-            y: DesignSystem.Shadow.cardY
-        )
-    }
-
-    // MARK: - Product Menu
-
-    @ViewBuilder
-    private func productMenu(for product: ProductModel) -> some View {
+    private var productMenu: some View {
         Menu {
             // 編輯
             Button {
-                editingProduct = product
-                showAddProduct = true
+                onEdit()
             } label: {
-                // 編輯
                 Label("inventoryMenuEdit", systemImage: "pencil")
             }
 
-            Button {
-                showInventoryChange = true
-            } label: {
-                // 庫存異動
-                Label("inventoryMenuStockChange", systemImage: "arrow.up.arrow.down")
-            }
-
-            switch viewModel.getActionType(for: product.id) {
+            switch actionType {
             case .disable:
                 Button {
-                    viewModel.handleDisableAction(for: product.id)
+                    onDisableOrDelete()
                 } label: {
                     // 下架
                     Label("inventoryMenuDisable", systemImage: "minus.circle")
                 }
             case .delete:
                 Button(role: .destructive) {
-                    viewModel.handleDeleteAction(for: product.id)
+                    onDisableOrDelete()
                 } label: {
                     // 刪除
                     Label("inventoryMenuDelete", systemImage: "trash")
@@ -518,8 +415,326 @@ struct InventoryView: View {
         } label: {
             Image(systemName: "ellipsis")
                 .rotationEffect(.degrees(90))
-                .foregroundColor(DesignSystem.ColorToken.muted)
+                .foregroundColor(.gray)
                 .padding(DesignSystem.Spacing.xxs)
         }
+    }
+
+    private var productImage: some View {
+        SyncableImageView(
+            imageData: item.product.imageData,
+            imageURL: item.product.imageURL,
+            entityId: item.product.id,
+            entityType: .product,
+            contentMode: .fill
+        )
+        .frame(width: 70, height: 70)
+        .cornerRadius(8)
+        .clipped()
+    }
+
+    private var stockBadge: some View {
+        HStack(spacing: DesignSystem.Spacing.xxs) {
+            if item.isLowStock {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+            }
+            // %lld 件
+            Text("inventoryChangePieceCount \(item.currentStock)")
+                .font(.caption)
+                .foregroundColor(item.isLowStock ? .orange : .secondary)
+        }
+    }
+
+    // MARK: - 展開內容
+
+    private var expandedContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            // 現有庫存卡片
+            stockCard
+
+            // 異動紀錄
+            if !filteredChanges.isEmpty {
+                changesSection
+            } else {
+                // 此時間範圍內無異動紀錄
+                Text("inventoryChangeNoRecord")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(DesignSystem.Spacing.sm)
+    }
+
+    private var stockCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                // 現有庫存
+                Text("inventoryChangeCurrentStock")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xxs) {
+                    Text("\(item.currentStock)")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.primary)
+                    // 件
+                    Text("inventoryChangeUnit")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // 庫存狀態標籤
+            HStack(spacing: DesignSystem.Spacing.xxs) {
+                Image(systemName: item.isLowStock ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                // 庫存不足 / 庫存正常
+                Text(item.isLowStock ? "inventoryChangeLowStock" : "inventoryChangeNormalStock")
+            }
+            .font(.caption)
+            .foregroundColor(item.isLowStock ? .orange : .green)
+            .padding(.horizontal, DesignSystem.Spacing.sm)
+            .padding(.vertical, DesignSystem.Spacing.xxs)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(item.isLowStock ? Color.orange.opacity(0.1) : Color.green.opacity(0.1))
+            )
+        }
+        .padding(DesignSystem.Spacing.sm)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+
+    private var changesSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // 異動紀錄
+            Text("inventoryChangeRecords")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            ForEach(filteredChanges) { change in
+                changeRow(change)
+            }
+        }
+    }
+
+    private func changeRow(_ change: InventoryChangeModel) -> some View {
+        HStack {
+            // 原因標籤（顯示自定義原因或預設名稱）
+            Text(change.displayReasonName)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .padding(.horizontal, DesignSystem.Spacing.xs)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(change.reason.tagColor)
+                )
+
+            // 變化量
+            Text(change.changeText)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(change.changeColor)
+
+            Spacer()
+
+            // 時間
+            Text(DateFormatter.dateTime.string(from: change.timestamp))
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, DesignSystem.Spacing.xxs)
+    }
+}
+
+// MARK: - 下架商品卡片（灰度樣式）
+
+struct DisabledInventoryProductCard: View {
+    let item: InventoryProductItem
+    let filteredChanges: [InventoryChangeModel]
+    let onToggle: () -> Void
+    let onRestore: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 商品基本資訊（可點擊展開）
+            productHeader
+
+            // 展開內容
+            if item.isExpanded {
+                Divider()
+                    .padding(.horizontal)
+
+                expandedContent
+            }
+        }
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+    }
+
+    // MARK: - 商品標題區
+
+    private var productHeader: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Button(action: onToggle) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    // 商品圖片（灰度效果）
+                    productImage
+
+                    // 商品資訊
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                        Text(item.product.name)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+
+                        Text("NT$ \(item.product.price.formatted())")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+
+                    Spacer()
+
+                    // 庫存狀態（收起時顯示）
+                    if !item.isExpanded {
+                        stockBadge
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            // 復原選單
+            Menu {
+                Button {
+                    onRestore()
+                } label: {
+                    // 復原
+                    Label("inventoryRestore", systemImage: "arrow.uturn.backward")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .rotationEffect(.degrees(90))
+                    .foregroundColor(.gray)
+                    .padding(DesignSystem.Spacing.xxs)
+            }
+        }
+        .padding(DesignSystem.Spacing.sm)
+    }
+
+    private var productImage: some View {
+        SyncableImageView(
+            imageData: item.product.imageData,
+            imageURL: item.product.imageURL,
+            entityId: item.product.id,
+            entityType: .product,
+            contentMode: .fill
+        )
+        .frame(width: 70, height: 70)
+        .cornerRadius(8)
+        .clipped()
+        .grayscale(1.0)
+        .opacity(0.6)
+    }
+
+    private var stockBadge: some View {
+        // %lld 件
+        Text("inventoryChangePieceCount \(item.currentStock)")
+            .font(.caption)
+            .foregroundColor(.gray)
+    }
+
+    // MARK: - 展開內容
+
+    private var expandedContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            // 現有庫存卡片
+            stockCard
+
+            // 異動紀錄
+            if !filteredChanges.isEmpty {
+                changesSection
+            } else {
+                // 此時間範圍內無異動紀錄
+                Text("inventoryChangeNoRecord")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(DesignSystem.Spacing.sm)
+    }
+
+    private var stockCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                // 現有庫存
+                Text("inventoryChangeCurrentStock")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xxs) {
+                    Text("\(item.currentStock)")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.gray)
+                    // 件
+                    Text("inventoryChangeUnit")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(DesignSystem.Spacing.sm)
+        .background(Color(.systemGray5))
+        .cornerRadius(10)
+    }
+
+    private var changesSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // 異動紀錄
+            Text("inventoryChangeRecords")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            ForEach(filteredChanges) { change in
+                changeRow(change)
+            }
+        }
+    }
+
+    private func changeRow(_ change: InventoryChangeModel) -> some View {
+        HStack {
+            // 原因標籤（顯示自定義原因或預設名稱）
+            Text(change.displayReasonName)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .padding(.horizontal, DesignSystem.Spacing.xs)
+                .padding(.vertical, DesignSystem.Spacing.xxs)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(change.reason.tagColor)
+                )
+
+            // 變化量
+            Text(change.changeText)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(change.changeColor)
+
+            Spacer()
+
+            // 時間
+            Text(DateFormatter.dateTime.string(from: change.timestamp))
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, DesignSystem.Spacing.xxs)
     }
 }

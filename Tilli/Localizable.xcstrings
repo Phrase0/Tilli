@@ -4152,6 +4152,7 @@
       }
     },
     "inventoryEmptyMessage" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4168,6 +4169,7 @@
       }
     },
     "inventoryEmptyTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4232,6 +4234,7 @@
       }
     },
     "inventoryMenuStockChange" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4248,6 +4251,7 @@
       }
     },
     "inventoryOutOfStock" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4408,6 +4412,7 @@
       }
     },
     "inventoryStockCount %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4424,6 +4429,7 @@
       }
     },
     "inventoryTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
