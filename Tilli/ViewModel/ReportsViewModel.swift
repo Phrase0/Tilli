@@ -29,7 +29,7 @@ class ReportsViewModel: ObservableObject {
 
     let event: EventModel
 
-    let transactionViewModel: TransactionViewModel
+    let transactionViewModel: TransactionHistoryViewModel
     let productPerformanceViewModel: ProductPerformanceViewModel
     let salesAnalyticsViewModel: SalesAnalyticsViewModel
 
@@ -39,7 +39,7 @@ class ReportsViewModel: ObservableObject {
 
     init(event: EventModel) {
         self.event = event
-        self.transactionViewModel = TransactionViewModel(event: .constant(event))
+        self.transactionViewModel = TransactionHistoryViewModel(event: .constant(event))
         self.productPerformanceViewModel = ProductPerformanceViewModel(event: .constant(event))
         self.salesAnalyticsViewModel = SalesAnalyticsViewModel(event: .constant(event))
     }

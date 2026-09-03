@@ -51,6 +51,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				_Deprecated/CalendarView.swift,
+				_Deprecated/CalendarViewModel.swift,
 				_Deprecated/ContentView.swift,
 				_Deprecated/EventDetailView.swift,
 				_Deprecated/EventDetailViewModel.swift,

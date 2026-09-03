@@ -4151,40 +4151,6 @@
         }
       }
     },
-    "inventoryEmptyMessage" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap + to add a product"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "點擊右上角 + 新增商品"
-          }
-        }
-      }
-    },
-    "inventoryEmptyTitle" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Products"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚無商品"
-          }
-        }
-      }
-    },
     "inventoryMenuDelete" : {
       "localizations" : {
         "en" : {
@@ -4229,40 +4195,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯"
-          }
-        }
-      }
-    },
-    "inventoryMenuStockChange" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stock Changes"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "庫存異動"
-          }
-        }
-      }
-    },
-    "inventoryOutOfStock" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Out of Stock"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無庫存"
           }
         }
       }
@@ -4407,40 +4339,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "復原"
-          }
-        }
-      }
-    },
-    "inventoryStockCount %lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stock: %lld"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "庫存: %lld"
-          }
-        }
-      }
-    },
-    "inventoryTitle" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inventory"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理商品"
           }
         }
       }
@@ -4766,6 +4664,7 @@
       }
     },
     "NT$ %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

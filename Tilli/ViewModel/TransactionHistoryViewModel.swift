@@ -37,7 +37,7 @@ enum PaymentMethodFilter {
     }
 }
 
-class TransactionViewModel: ObservableObject {
+class TransactionHistoryViewModel: ObservableObject {
 
     @Binding var event: EventModel
 

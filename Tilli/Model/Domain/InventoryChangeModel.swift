@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2025/7/23.
 //
-import SwiftUI
+import Foundation
 
 // MARK: - 庫存異動原因
 enum InventoryChangeReason: String, Codable, CaseIterable {
@@ -28,19 +28,6 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
         case .internalUse: return String.localized("inventoryReasonInternalUse") // 內部領用
         case .purchase: return String.localized("inventoryReasonPurchase") // 進貨入庫
         case .adjustment: return String.localized("inventoryReasonAdjustment") // 其他調整
-        }
-    }
-
-    var tagColor: Color {
-        switch self {
-        case .salesOut: return .blue
-        case .returnIn: return .green
-        case .inventoryLoss: return .orange
-        case .damaged: return .red
-        case .expired: return .purple
-        case .internalUse: return .gray
-        case .purchase: return .teal
-        case .adjustment: return .secondary
         }
     }
 
@@ -104,17 +91,6 @@ struct InventoryChangeModel: Identifiable, Codable {
             return "+\(change)"
         } else {
             return "\(change)"
-        }
-    }
-
-    /// 變化量顏色
-    var changeColor: Color {
-        if change > 0 {
-            return .green
-        } else if change < 0 {
-            return .red
-        } else {
-            return .secondary
         }
     }
 

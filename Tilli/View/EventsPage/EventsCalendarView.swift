@@ -97,14 +97,12 @@ struct EventsCalendarView: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
             ForEach(calendarVM.daysInMonth(), id: \.self) { date in
                 let eventsForDate = calendarVM.eventsForDate(date, from: eventDataManager.events)
-                let hasTransactions = calendarVM.hasTransactions(on: date)
 
                 CalendarDayCell(
                     date: date,
                     isSelected: calendar.isDate(date, inSameDayAs: calendarVM.selectedDate),
                     isToday: calendar.isDateInToday(date),
                     events: eventsForDate,
-                    hasOrphanTransactions: hasTransactions && eventsForDate.isEmpty,
                     currentMonth: calendarVM.currentDate,
                     onTap: { calendarVM.selectedDate = date }
                 )
@@ -140,12 +138,12 @@ struct EventsCalendarView: View {
     // MARK: - Event List
 
     private var calendarEventList: some View {
-        let (realEvents, virtualEvents) = calendarVM.getAllEventsForDate(from: eventDataManager.events)
+        let realEvents = calendarVM.getAllEventsForDate(from: eventDataManager.events)
         let permanentEvents = calendarVM.getPermanentEvents(from: eventDataManager.events)
         let sortByCreatedAt: (EventModel, EventModel) -> Bool = { $0.createdAt < $1.createdAt }
 
         return Group {
-            if !realEvents.isEmpty || !virtualEvents.isEmpty || !permanentEvents.isEmpty {
+            if !realEvents.isEmpty || !permanentEvents.isEmpty {
                 ScrollView {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         if !permanentEvents.isEmpty {
@@ -157,12 +155,6 @@ struct EventsCalendarView: View {
 
                         ForEach(realEvents.sorted(by: sortByCreatedAt)) { event in
                             calendarEventCard(event)
-                                .onTapGesture { onSelectEvent(event) }
-                        }
-
-                        ForEach(virtualEvents.sorted(by: sortByCreatedAt)) { event in
-                            calendarEventCard(event)
-                                .opacity(0.7)
                                 .onTapGesture { onSelectEvent(event) }
                         }
                     }
@@ -194,7 +186,6 @@ struct CalendarDayCell: View {
     let isSelected: Bool
     let isToday: Bool
     let events: [EventModel]
-    let hasOrphanTransactions: Bool
     let currentMonth: Date
     let onTap: () -> Void
 
@@ -242,11 +233,6 @@ struct CalendarDayCell: View {
                     }
                 }
                 .frame(height: 8)
-            } else if hasOrphanTransactions {
-                Circle()
-                    .fill(DesignSystem.ColorToken.muted.opacity(0.5))
-                    .frame(width: 4, height: 4)
-                    .frame(height: 8)
             } else {
                 Spacer().frame(height: 8)
             }

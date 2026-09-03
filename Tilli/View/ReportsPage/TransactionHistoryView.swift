@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct TransactionHistoryView: View {
-    @ObservedObject var transactionViewModel: TransactionViewModel
+    @ObservedObject var transactionViewModel: TransactionHistoryViewModel
     @Binding var event: EventModel
     let timeRange: ReportTimeRange?
 
-    init(transactionViewModel: TransactionViewModel,
+    init(transactionViewModel: TransactionHistoryViewModel,
          event: Binding<EventModel>,
          timeRange: ReportTimeRange? = nil) {
         self.transactionViewModel = transactionViewModel

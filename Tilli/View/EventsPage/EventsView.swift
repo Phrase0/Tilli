@@ -116,10 +116,7 @@ struct EventsView: View {
         }
         .onAppear {
             eventsVM.updateDataManagers(transactionDataManager: transactionDataManager)
-            calendarVM.updateDataManagers(
-                transactionDataManager: transactionDataManager,
-                eventDataManager: eventDataManager
-            )
+            calendarVM.updateDataManagers(transactionDataManager: transactionDataManager)
         }
         .sheet(isPresented: $showAddEventSheet) {
             NavigationStack {
