@@ -1,5 +1,5 @@
 //
-//  MerchantQRCodeView.swift
+//  QRCodeView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/9/17.
@@ -11,9 +11,7 @@ struct QRCodeView: View {
 
     @EnvironmentObject var qrCodeDataManager: QRCodeRepository
     @EnvironmentObject var authManager: AuthenticationManager
-    @State private var showingImagePicker = false
-    @State private var tempSelectedImage: UIImage?
-    @State private var showDeleteAlert = false
+    @StateObject private var viewModel = QRCodeViewModel()
 
     var body: some View {
         NavigationView {
@@ -23,7 +21,7 @@ struct QRCodeView: View {
 
                     ZStack(alignment: .topTrailing) {
                         Button {
-                            showingImagePicker = true
+                            viewModel.showingImagePicker = true
                         } label: {
                             ZStack {
                                 RoundedRectangle(cornerRadius: DesignSystem.Radius.md)
@@ -77,7 +75,7 @@ struct QRCodeView: View {
 
                         if qrCodeDataManager.qrCode != nil {
                             Button {
-                                showDeleteAlert = true
+                                viewModel.showDeleteAlert = true
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 30))
@@ -101,43 +99,21 @@ struct QRCodeView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .background(DesignSystem.ColorToken.paper)
-        .sheet(isPresented: $showingImagePicker) {
-            CustomImagePicker(image: $tempSelectedImage, isPresented: $showingImagePicker)
+        .sheet(isPresented: $viewModel.showingImagePicker) {
+            CustomImagePicker(image: $viewModel.tempSelectedImage, isPresented: $viewModel.showingImagePicker)
         }
-        .onChange(of: tempSelectedImage) {
-            if let image = tempSelectedImage {
-                var model = QRCodeModel(
-                    id: qrCodeDataManager.qrCode?.id ?? UUID(),
-                    imageData: nil,
-                    imageURL: nil,
-                    createdAt: qrCodeDataManager.qrCode?.createdAt ?? Date()
-                )
-                model.image = image
-                qrCodeDataManager.saveQRCode(model)
-                tempSelectedImage = nil
-
-                if authManager.isLoggedIn {
-                    Task {
-                        do {
-                            let imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image)
-                            guard authManager.isLoggedIn else { return }
-                            await MainActor.run {
-                                qrCodeDataManager.updateQRCodeImageURL(imageURL)
-                            }
-                        } catch {
-                            print("QRCode image upload failed: \(error)")
-                        }
-                    }
-                }
+        .onChange(of: viewModel.tempSelectedImage) {
+            if let image = viewModel.tempSelectedImage {
+                viewModel.handleSelectedImage(image, qrCodeDataManager: qrCodeDataManager, authManager: authManager)
             }
         }
         // 確定要刪除此收款碼嗎？
-        .alert("qrCodeDeleteAlert", isPresented: $showDeleteAlert) {
+        .alert("qrCodeDeleteAlert", isPresented: $viewModel.showDeleteAlert) {
             // 取消
             Button("commonCancel", role: .cancel) { }
             // 刪除
             Button("commonDelete", role: .destructive) {
-                qrCodeDataManager.deleteQRCode()
+                viewModel.deleteQRCode(qrCodeDataManager: qrCodeDataManager)
             }
         } message: {
             // 刪除後將無法復原

@@ -17,34 +17,7 @@ struct CheckoutSummaryView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var navigateToCashPayment = false
-    @State private var navigateToEPayment = false
-    @State private var showDateWarning = false
-    @State private var dateWarningMessage = ""
-
-    @State private var isBackdatedMode = false
-    @State private var backdatedDate = Date()
-    @State private var backdatedDateRange: ClosedRange<Date>?
-
-    private func calculateBackdatedDateRange() -> ClosedRange<Date> {
-        let calendar = Calendar.current
-        let startOfEventDate = calendar.startOfDay(for: event.startDate)
-        let now = Date()
-
-        let endDate: Date
-        if let eventEndDate = event.endDate {
-            let endOfEventEndDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: eventEndDate) ?? eventEndDate
-            endDate = min(endOfEventEndDate, now)
-        } else {
-            endDate = now
-        }
-
-        return startOfEventDate...endDate
-    }
-
-    private var occurredAtValue: Date? {
-        return isBackdatedMode ? backdatedDate : nil
-    }
+    @StateObject private var viewModel = CheckoutSummaryViewModel()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -86,41 +59,30 @@ struct CheckoutSummaryView: View {
             HStack {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        isBackdatedMode.toggle()
-                        if isBackdatedMode {
-                            let range = calculateBackdatedDateRange()
-                            backdatedDateRange = range
-
-                            let now = Date()
-                            if range.contains(now) {
-                                backdatedDate = now
-                            } else {
-                                backdatedDate = range.upperBound
-                            }
-                        }
+                        viewModel.toggleBackdatedMode(for: event)
                     }
                 } label: {
                     HStack(spacing: DesignSystem.Spacing.xxs) {
-                        Image(systemName: isBackdatedMode ? "clock.badge.checkmark.fill" : "clock.arrow.circlepath")
-                            .foregroundColor(isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
+                        Image(systemName: viewModel.isBackdatedMode ? "clock.badge.checkmark.fill" : "clock.arrow.circlepath")
+                            .foregroundColor(viewModel.isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                         // 補記帳
                         Text("checkoutBackdated")
                             .font(DesignSystem.Typography.body)
-                            .foregroundColor(isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
+                            .foregroundColor(viewModel.isBackdatedMode ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                     }
                     .padding(.horizontal, DesignSystem.Spacing.sm)
                     .padding(.vertical, DesignSystem.Spacing.xxs)
-                    .background(isBackdatedMode ? DesignSystem.ColorToken.alertRed.opacity(0.1) : Color.clear)
+                    .background(viewModel.isBackdatedMode ? DesignSystem.ColorToken.alertRed.opacity(0.1) : Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
                 }
                 .buttonStyle(PlainButtonStyle())
 
                 Spacer()
 
-                if isBackdatedMode, let range = backdatedDateRange {
+                if viewModel.isBackdatedMode, let range = viewModel.backdatedDateRange {
                     DatePicker(
                         "",
-                        selection: $backdatedDate,
+                        selection: $viewModel.backdatedDate,
                         in: range,
                         displayedComponents: [.date, .hourAndMinute]
                     )
@@ -158,14 +120,7 @@ struct CheckoutSummaryView: View {
             VStack(spacing: DesignSystem.Spacing.xs) {
                 // 現金付款
                 Button {
-                    let dateToValidate = isBackdatedMode ? backdatedDate : Date()
-                    let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
-                    if !validation.isValid {
-                        dateWarningMessage = validation.errorMessage ?? String.localized("checkoutDateWarningDefault")
-                        showDateWarning = true
-                        return
-                    }
-                    navigateToCashPayment = true
+                    viewModel.attemptCheckout(for: event, destination: .cash)
                 } label: {
                     HStack {
                         Image(systemName: "banknote")
@@ -188,14 +143,7 @@ struct CheckoutSummaryView: View {
 
                 // 電子支付
                 Button {
-                    let dateToValidate = isBackdatedMode ? backdatedDate : Date()
-                    let validation = DateValidationHelper.validateTransactionDate(for: event, transactionDate: dateToValidate)
-                    if !validation.isValid {
-                        dateWarningMessage = validation.errorMessage ?? String.localized("checkoutDateWarningDefault")
-                        showDateWarning = true
-                        return
-                    }
-                    navigateToEPayment = true
+                    viewModel.attemptCheckout(for: event, destination: .ePayment)
                 } label: {
                     HStack {
                         Image(systemName: "creditcard")
@@ -219,30 +167,30 @@ struct CheckoutSummaryView: View {
             .padding()
         }
         // MARK: - Navigation Destinations
-        .navigationDestination(isPresented: $navigateToCashPayment) {
+        .navigationDestination(isPresented: $viewModel.navigateToCashPayment) {
             CashPaymentView(
                 totalAmount: totalAmount,
                 event: $event,
                 summaryItems: selectedItems,
                 selectedDiscount: selectedDiscount,
-                occurredAt: occurredAtValue
+                occurredAt: viewModel.occurredAtValue
             )
         }
-        .navigationDestination(isPresented: $navigateToEPayment) {
+        .navigationDestination(isPresented: $viewModel.navigateToEPayment) {
             EPaymentView(
                 totalAmount: totalAmount,
                 event: $event,
                 summaryItems: selectedItems,
                 selectedDiscount: selectedDiscount,
-                occurredAt: occurredAtValue
+                occurredAt: viewModel.occurredAtValue
             )
         }
         // 無法新增交易
-        .alert("checkoutDateWarningTitle", isPresented: $showDateWarning) {
+        .alert("checkoutDateWarningTitle", isPresented: $viewModel.showDateWarning) {
             // 確定
             Button("commonConfirm", role: .cancel) { }
         } message: {
-            Text(dateWarningMessage)
+            Text(viewModel.dateWarningMessage)
         }
         // 訂單摘要
         .navigationTitle("checkoutSummaryTitle")

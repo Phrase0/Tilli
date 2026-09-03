@@ -14,19 +14,8 @@ struct ProfileEditView: View {
 
     let isNewUser: Bool
 
-    @State private var name: String = ""
-    @State private var selectedImage: UIImage?
+    @StateObject private var viewModel = ProfileEditViewModel()
     @State private var showingImagePicker = false
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-
-    private var isNameValid: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    private var canSave: Bool {
-        isNameValid && !isSaving
-    }
 
     var body: some View {
         ZStack {
@@ -51,7 +40,7 @@ struct ProfileEditView: View {
                         showingImagePicker = true
                     } label: {
                         ZStack {
-                            if let image = selectedImage {
+                            if let image = viewModel.selectedImage {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill()
@@ -83,13 +72,13 @@ struct ProfileEditView: View {
                             .font(DesignSystem.Typography.caption)
                             .foregroundColor(DesignSystem.ColorToken.muted)
 
-                        TextField(String.localized("profileEditNamePlaceholder"), text: $name)
+                        TextField(String.localized("profileEditNamePlaceholder"), text: $viewModel.name)
                             .font(DesignSystem.Typography.body)
                             .padding(DesignSystem.Spacing.md)
                             .background(DesignSystem.ColorToken.cardSurface)
                             .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
 
-                        if !isNameValid && !name.isEmpty {
+                        if !viewModel.isNameValid && !viewModel.name.isEmpty {
                             Text("profileEditNameEmpty")
                                 .font(DesignSystem.Typography.caption)
                                 .foregroundColor(DesignSystem.ColorToken.alertRed)
@@ -97,7 +86,7 @@ struct ProfileEditView: View {
                     }
                     .padding(.horizontal, DesignSystem.Spacing.lg)
 
-                    if let error = errorMessage {
+                    if let error = viewModel.errorMessage {
                         Text(error)
                             .font(DesignSystem.Typography.caption)
                             .foregroundColor(DesignSystem.ColorToken.alertRed)
@@ -109,11 +98,13 @@ struct ProfileEditView: View {
 
                     Button {
                         Task {
-                            await saveProfile()
+                            if await viewModel.saveProfile(authManager: authManager) {
+                                dismiss()
+                            }
                         }
                     } label: {
                         HStack {
-                            if isSaving {
+                            if viewModel.isSaving {
                                 ProgressView()
                                     .tint(DesignSystem.ColorToken.onButtonFilled)
                             }
@@ -124,11 +115,11 @@ struct ProfileEditView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, DesignSystem.Spacing.md)
-                        .background(canSave ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.muted)
-                        .foregroundColor(canSave ? DesignSystem.ColorToken.onButtonFilled : DesignSystem.ColorToken.cardSurface)
+                        .background(viewModel.canSave ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.muted)
+                        .foregroundColor(viewModel.canSave ? DesignSystem.ColorToken.onButtonFilled : DesignSystem.ColorToken.cardSurface)
                         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
                     }
-                    .disabled(!canSave)
+                    .disabled(!viewModel.canSave)
                     .padding(.horizontal, DesignSystem.Spacing.lg)
                     .padding(.bottom, DesignSystem.Spacing.lg)
                 }
@@ -145,19 +136,19 @@ struct ProfileEditView: View {
                     Button("commonCancel") {
                         dismiss()
                     }
-                    .disabled(isSaving)
+                    .disabled(viewModel.isSaving)
                 }
             }
         }
         .sheet(isPresented: $showingImagePicker) {
-            CustomImagePicker(image: $selectedImage, isPresented: $showingImagePicker)
+            CustomImagePicker(image: $viewModel.selectedImage, isPresented: $showingImagePicker)
         }
         .onAppear {
             if !isNewUser, let user = authManager.currentUser {
-                name = user.name
+                viewModel.loadExistingName(from: user)
             }
         }
-        .interactiveDismissDisabled(isSaving || isNewUser)
+        .interactiveDismissDisabled(viewModel.isSaving || isNewUser)
     }
 
     private var placeholderWithCamera: some View {
@@ -174,33 +165,5 @@ struct ProfileEditView: View {
                         .foregroundColor(DesignSystem.ColorToken.muted)
                 }
             )
-    }
-
-    private func saveProfile() async {
-        guard isNameValid else { return }
-
-        isSaving = true
-        errorMessage = nil
-
-        do {
-            var photoURL: String? = nil
-
-            if let image = selectedImage,
-               let uid = authManager.currentUser?.uid {
-                photoURL = try await ImageSyncService.shared.uploadProfileImage(image, uid: uid)
-            }
-
-            let trimmedName = name.trimmingCharacters(in: .whitespaces)
-            let processedImage = selectedImage.map { ImageSyncService.shared.processImage($0, type: .thumbnail) }
-            await authManager.updateProfile(name: trimmedName, photoURL: photoURL, localImage: processedImage)
-
-            isSaving = false
-            dismiss()
-
-        } catch {
-            isSaving = false
-            errorMessage = String.localized("profileEditSaveError \(error.localizedDescription)")
-            print("Save profile error: \(error)")
-        }
     }
 }
