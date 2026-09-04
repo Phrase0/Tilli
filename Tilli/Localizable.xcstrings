@@ -3531,14 +3531,14 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tap \"+\" to create your first event"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "點擊右上角「+」按鈕新增第一個場次"
+            "value" : "點擊右下角「+」按鈕新增第一個場次"
           }
         }
       }
@@ -3688,6 +3688,7 @@
       }
     },
     "eventsTabTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4648,6 +4649,7 @@
       }
     },
     "myTabTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

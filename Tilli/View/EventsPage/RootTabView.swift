@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct RootTabView: View {
-    @State private var selectedTab: Int = 0
     @EnvironmentObject var authManager: AuthenticationManager
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
 
     private var needsProfileSetup: Bool {
         authManager.authState == .needsSetup
@@ -33,6 +33,7 @@ struct RootTabView: View {
                     .tint(.white)
             }
         }
+        .preferredColorScheme(darkModeEnabled ? .dark : .light)
     }
 
     private var loadingView: some View {
@@ -44,24 +45,8 @@ struct RootTabView: View {
     }
 
     private var mainView: some View {
-        TabView(selection: $selectedTab) {
-            // 場次
+        NavigationStack {
             EventsView()
-                .tabItem {
-                    Image(systemName: "list.bullet")
-                    // 場次
-                    Text(String.localized("eventsTabTitle"))
-                }
-                .tag(0)
-
-            // 我的
-            MyView()
-                .tabItem {
-                    Image(systemName: "person.crop.circle")
-                    // 我的
-                    Text(String.localized("myTabTitle"))
-                }
-                .tag(1)
         }
         .id(authManager.authState)
         .fullScreenCover(isPresented: Binding(

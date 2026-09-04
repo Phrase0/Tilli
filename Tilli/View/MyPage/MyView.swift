@@ -25,48 +25,45 @@ struct MyView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: DesignSystem.Spacing.lg) {
-                        userInfoCard
-                        menuCard
-                        settingsCard
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.md)
-                    .padding(.top, DesignSystem.Spacing.md)
-                    .padding(.bottom, DesignSystem.Spacing.lg)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: DesignSystem.Spacing.lg) {
+                    userInfoCard
+                    menuCard
+                    settingsCard
                 }
+                .padding(.horizontal, DesignSystem.Spacing.md)
+                .padding(.top, DesignSystem.Spacing.md)
+                .padding(.bottom, DesignSystem.Spacing.lg)
+            }
 
-                if authManager.isLoggedIn {
-                    signOutSection
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                        .padding(.vertical, DesignSystem.Spacing.md)
-                        .background(DesignSystem.ColorToken.paper)
-                }
-            }
-            .background(DesignSystem.ColorToken.paper)
-            // 我的
-            .navigationTitle(String.localized("myPageTitle"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if authManager.isLoggedIn {
-                        NavigationLink {
-                            ProfileEditView(isNewUser: false)
-                                .environmentObject(authManager)
-                        } label: {
-                            Image(systemName: "pencil")
-                                .foregroundColor(DesignSystem.ColorToken.ink)
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $showTilliProSheet) {
-                TilliProSheetView()
+            if authManager.isLoggedIn {
+                signOutSection
+                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    .padding(.vertical, DesignSystem.Spacing.md)
+                    .background(DesignSystem.ColorToken.paper)
             }
         }
-        .preferredColorScheme(darkModeEnabled ? .dark : .light)
+        .background(DesignSystem.ColorToken.paper)
+        // 我的
+        .navigationTitle(String.localized("myPageTitle"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if authManager.isLoggedIn {
+                    NavigationLink {
+                        ProfileEditView(isNewUser: false)
+                            .environmentObject(authManager)
+                    } label: {
+                        Image(systemName: "pencil")
+                            .foregroundColor(DesignSystem.ColorToken.ink)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showTilliProSheet) {
+            TilliProSheetView()
+        }
     }
 
     // MARK: - 用戶資訊卡片

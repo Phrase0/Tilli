@@ -21,7 +21,7 @@ struct EventsView: View {
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
 
     @State private var searchText = ""
-    @State private var isSearching = false
+    @FocusState private var isSearchFocused: Bool
     @State private var showAddEventSheet = false
     @State private var editingEvent: EventModel? = nil
     @State private var eventToDelete: EventModel? = nil
@@ -46,12 +46,8 @@ struct EventsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                if isSearching {
-                    searchBar
-                }
-
                 segmentedControl
 
                 switch eventsVM.displayMode {
@@ -76,45 +72,48 @@ struct EventsView: View {
                     )
                 }
             }
-            .background(DesignSystem.ColorToken.paper)
-            .navigationTitle(String.localized("eventsPageTitle"))
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if eventsVM.isSelectionMode {
-                        Button("commonCancel") {
-                            eventsVM.exitSelectionMode()
-                        }
-                    }
-                }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isSearchFocused = false
+            }
 
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    if eventsVM.isSelectionMode {
-                        EmptyView()
-                    } else {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isSearching.toggle()
-                            }
-                            if !isSearching { searchText = "" }
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-
-                        Button {
-                            showAddEventSheet = true
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                    }
+            if !eventsVM.isSelectionMode && !isSearchFocused {
+                FloatingActionButton(systemImage: "plus") {
+                    showAddEventSheet = true
                 }
             }
-            .navigationDestination(item: $selectedEvent) { event in
-                WorkspaceView(event: event)
-            }
-            .toolbar(eventsVM.isSelectionMode ? .hidden : .visible, for: .tabBar)
-            .animation(.easeInOut(duration: 0.3), value: eventsVM.isSelectionMode)
         }
+        .background(DesignSystem.ColorToken.paper)
+        .navigationTitle(String.localized("eventsPageTitle"))
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if eventsVM.isSelectionMode {
+                    Button("commonCancel") {
+                        eventsVM.exitSelectionMode()
+                    }
+                }
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if !eventsVM.isSelectionMode {
+                    NavigationLink {
+                        MyView()
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        isSearchFocused = false
+                    })
+                }
+            }
+        }
+        .navigationDestination(item: $selectedEvent) { event in
+            WorkspaceView(event: event)
+        }
+        .animation(.easeInOut(duration: 0.3), value: eventsVM.isSelectionMode)
         .onAppear {
+            // 從場次頁以外的頁面返回時（下一頁、設定頁等），一律收起鍵盤
+            isSearchFocused = false
             eventsVM.updateDataManagers(transactionDataManager: transactionDataManager)
             calendarVM.updateDataManagers(transactionDataManager: transactionDataManager)
         }
@@ -168,6 +167,7 @@ struct EventsView: View {
 
             TextField(String.localized("eventsSearchPrompt"), text: $searchText)
                 .font(DesignSystem.Typography.body)
+                .focused($isSearchFocused)
 
             if !searchText.isEmpty {
                 Button {
@@ -201,21 +201,26 @@ struct EventsView: View {
     // MARK: - List Content
 
     private var listContent: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    if displayedEvents.isEmpty {
-                        emptyStateContent
-                    } else {
-                        eventSections
-                    }
-                }
-                .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.bottom, eventsVM.isSelectionMode ? 70 : DesignSystem.Spacing.md)
-            }
+        VStack(spacing: 0) {
+            searchBar
 
-            if eventsVM.isSelectionMode {
-                selectionActionBar
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if displayedEvents.isEmpty {
+                            emptyStateContent
+                        } else {
+                            eventSections
+                        }
+                    }
+                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    // 底部留白：選取模式下避開動作列，一般模式下避開右下角 FAB
+                    .padding(.bottom, eventsVM.isSelectionMode ? 70 : DesignSystem.Spacing.lg * 3)
+                }
+
+                if eventsVM.isSelectionMode {
+                    selectionActionBar
+                }
             }
         }
     }
@@ -275,6 +280,7 @@ struct EventsView: View {
                     eventCard(event, style: eventsVM.isSelectionMode ? .simple : .standard)
                 }
                 .onTapGesture {
+                    isSearchFocused = false
                     if eventsVM.isSelectionMode {
                         eventsVM.toggleSelection(eventId: event.id)
                     } else {
@@ -283,6 +289,7 @@ struct EventsView: View {
                 }
                 .onLongPressGesture {
                     if !eventsVM.isSelectionMode {
+                        isSearchFocused = false
                         eventsVM.enterSelectionMode()
                         eventsVM.toggleSelection(eventId: event.id)
                     }
@@ -343,9 +350,16 @@ struct EventsView: View {
                 style: .standard,
                 transactionCount: summary.count,
                 transactionTotal: summary.total,
-                onDuplicate: { eventsVM.startDuplicateEvent(event) },
-                onEdit: { editingEvent = event },
+                onDuplicate: {
+                    isSearchFocused = false
+                    eventsVM.startDuplicateEvent(event)
+                },
+                onEdit: {
+                    isSearchFocused = false
+                    editingEvent = event
+                },
                 onDelete: {
+                    isSearchFocused = false
                     eventToDelete = event
                     showDeleteConfirmation = true
                 }

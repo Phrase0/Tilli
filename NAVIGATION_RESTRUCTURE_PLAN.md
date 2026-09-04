@@ -215,19 +215,19 @@ func loadProducts() {
 
 **測試（手動）：**
 
-- [ ] App 啟動直接顯示場次頁，底部無 tab bar
-- [ ] 列表模式：搜尋列常駐於 segmented control 下方，輸入可過濾
-- [ ] 日曆模式：不顯示搜尋列；切回列表，搜尋文字保持
-- [ ] 右下 FAB 可新增場次，sheet 正常
-- [ ] 長按進選取模式：FAB 消失，底部動作列正常，不重疊
-- [ ] 取消選取模式：FAB 回來
-- [ ] 右上設定 → 進入 MyView，返回鍵回場次頁
-- [ ] MyView 內 QRCode / 個人資料編輯 / 登入 / Tilli Pro 全部可正常進出
-- [ ] 深色模式 toggle 仍套用到整個 App（切回場次頁確認）
-- [ ] 未登入 → 登入流程正常
-- [ ] 新用戶 `ProfileEditView` 的 `fullScreenCover` 仍正常觸發
-- [ ] auth loading spinner 正常
-- [ ] 點場次仍能進入 WorkspaceView（本斷點不動）
+- [X] App 啟動直接顯示場次頁，底部無 tab bar
+- [X] 列表模式：搜尋列常駐於 segmented control 下方，輸入可過濾
+- [X] 日曆模式：不顯示搜尋列；切回列表，搜尋文字保持
+- [X] 右下 FAB 可新增場次，sheet 正常
+- [X] 長按進選取模式：FAB 消失，底部動作列正常，不重疊
+- [X] 取消選取模式：FAB 回來
+- [X] 右上設定 → 進入 MyView，返回鍵回場次頁
+- [X] MyView 內 QRCode / 個人資料編輯 / 登入 / Tilli Pro 全部可正常進出
+- [X] 深色模式 toggle 仍套用到整個 App（切回場次頁確認）
+- [X] 未登入 → 登入流程正常
+- [X] 新用戶 `ProfileEditView` 的 `fullScreenCover` 仍正常觸發
+- [X] auth loading spinner 正常
+- [X] 點場次仍能進入 WorkspaceView（本斷點不動）
 
 **測試（自動）：**
 
