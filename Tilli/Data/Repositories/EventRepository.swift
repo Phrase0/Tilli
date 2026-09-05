@@ -473,6 +473,7 @@ class EventRepository: ObservableObject {
                             newProductEntity.note = originalProduct.note
                             newProductEntity.imageData = originalProduct.imageData
                             newProductEntity.isDisabled = originalProduct.isDisabled
+                            newProductEntity.sortOrder = originalProduct.sortOrder
                             newProductEntity.userId = copyUserId
                             newProductEntity.syncStatus = "pending"
                             newProductEntity.updatedAt = Date()

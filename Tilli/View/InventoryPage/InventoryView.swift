@@ -7,6 +7,22 @@
 
 import SwiftUI
 
+private extension View {
+    /// 讓 List 裡的自訂卡片列（商品卡片、類別標題）不要有系統預設的分隔線/灰底/邊界留白，
+    /// 樣式維持跟原本卡片式清單一致，只保留卡片之間的垂直間距。
+    func productListRow(bottomSpacing: CGFloat) -> some View {
+        self
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(
+                top: 0,
+                leading: DesignSystem.Spacing.md,
+                bottom: bottomSpacing,
+                trailing: DesignSystem.Spacing.md
+            ))
+    }
+}
+
 /// 商品新增/編輯表單要顯示哪個內容，由容器（EventWorkspaceView）持有並決定何時 push。
 enum InventoryFormTarget: Identifiable, Hashable {
     case new
@@ -120,129 +136,136 @@ struct InventoryView: View {
         }
     }
 
-    // MARK: - 商品列表（按類別分組，參考 ProductDetailView）
+    // MARK: - 商品列表（按類別分組；用 List 承載才能長按拖曳排序，樣式調成跟卡片式清單一致）
 
     private var productList: some View {
-        ScrollView {
+        Group {
             if viewModel.hasNoProducts {
                 emptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else if viewModel.isSearchEmpty {
                 searchEmptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                    // 啟用的商品（按類別分組）
+                List {
+                    // 啟用的商品（按類別分組，類別內沒有商品時整個類別隱藏，同類別內可長按拖曳排序）
                     ForEach(viewModel.sortedCategories, id: \.id) { category in
                         let items = viewModel.getItemsForCategory(category.id)
                         if !items.isEmpty {
-                            categorySection(category: category, items: items)
-                        }
-                    }
-
-                    // 下架商品區
-                    if !viewModel.filteredDisabledItems.isEmpty {
-                        disabledProductsSection
-                    }
-                }
-                .padding(.top, DesignSystem.Spacing.md)
-                // 底部留白，避免最後一張卡片被右下角 FAB 蓋住
-                .padding(.bottom, DesignSystem.Spacing.lg * 3)
-            }
-        }
-    }
-
-    // MARK: - 下架商品區（參考 ProductDetailView）
-
-    private var disabledProductsSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            // 可點擊的標題（展開/收合）
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    viewModel.showDisabledProducts.toggle()
-                }
-            }) {
-                HStack {
-                    // 下架商品
-                    Text("inventoryDisabledHeader")
-                        .font(DesignSystem.Typography.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-
-                    Spacer()
-
-                    Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // 下架商品列表（展開時顯示）
-            if viewModel.showDisabledProducts {
-                ForEach(viewModel.filteredDisabledItems) { item in
-                    DisabledInventoryProductCard(
-                        item: item,
-                        filteredChanges: viewModel.filteredChanges(for: item),
-                        currency: event.currency,
-                        onToggle: { viewModel.toggleDisabledExpanded(for: item.id) },
-                        onRestore: { viewModel.handleRestoreAction(for: item.id) }
-                    )
-                    .padding(.horizontal, DesignSystem.Spacing.md)
-                }
-            }
-        }
-    }
-
-    // MARK: - 類別區塊（可展開/收起）
-
-    private func categorySection(category: CategoryModel, items: [InventoryProductItem]) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            // 可點擊的分類標題
-            Button(action: {
-                viewModel.toggleCategoryExpansion(category.id)
-            }) {
-                HStack {
-                    Text(category.name)
-                        .font(DesignSystem.Typography.title2)
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-
-                    Spacer()
-
-                    Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // 商品列表（可展開/收起）
-            if viewModel.isCategoryExpanded(category.id) {
-                ForEach(items) { item in
-                    InventoryProductCard(
-                        item: item,
-                        filteredChanges: viewModel.filteredChanges(for: item),
-                        currency: event.currency,
-                        onToggle: { viewModel.toggleExpanded(for: item.id) },
-                        actionType: viewModel.getActionType(for: item.id),
-                        onEdit: {
-                            formTarget = .edit(item.product)
-                        },
-                        onDisableOrDelete: {
-                            switch viewModel.getActionType(for: item.id) {
-                            case .disable:
-                                viewModel.handleDisableAction(for: item.id)
-                            case .delete:
-                                viewModel.handleDeleteAction(for: item.id)
+                            Section {
+                                if viewModel.isCategoryExpanded(category.id) {
+                                    ForEach(items) { item in
+                                        InventoryProductCard(
+                                            item: item,
+                                            filteredChanges: viewModel.filteredChanges(for: item),
+                                            currency: event.currency,
+                                            onToggle: { viewModel.toggleExpanded(for: item.id) },
+                                            actionType: viewModel.getActionType(for: item.id),
+                                            onEdit: {
+                                                formTarget = .edit(item.product)
+                                            },
+                                            onDisableOrDelete: {
+                                                switch viewModel.getActionType(for: item.id) {
+                                                case .disable:
+                                                    viewModel.handleDisableAction(for: item.id)
+                                                case .delete:
+                                                    viewModel.handleDeleteAction(for: item.id)
+                                                }
+                                            }
+                                        )
+                                        .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
+                                    }
+                                    .onMove { from, to in
+                                        viewModel.moveProduct(in: category.id, from: from, to: to)
+                                    }
+                                    // 搜尋中不允許拖曳，避免搬動的是過濾後的子集
+                                    .moveDisabled(!searchText.isEmpty)
+                                }
+                            } header: {
+                                categoryHeader(category)
                             }
                         }
-                    )
-                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    }
+
+                    // 下架商品區（不可拖曳）
+                    if !viewModel.filteredDisabledItems.isEmpty {
+                        Section {
+                            if viewModel.showDisabledProducts {
+                                ForEach(viewModel.filteredDisabledItems) { item in
+                                    DisabledInventoryProductCard(
+                                        item: item,
+                                        filteredChanges: viewModel.filteredChanges(for: item),
+                                        currency: event.currency,
+                                        onToggle: { viewModel.toggleDisabledExpanded(for: item.id) },
+                                        onRestore: { viewModel.handleRestoreAction(for: item.id) }
+                                    )
+                                    .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
+                                }
+                            }
+                        } header: {
+                            disabledProductsHeader
+                        }
+                    }
+
+                    // 底部留白，避免最後一張卡片被右下角 FAB 蓋住
+                    Color.clear
+                        .frame(height: DesignSystem.Spacing.lg * 2)
+                        .productListRow(bottomSpacing: 0)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
+    }
+
+    // MARK: - 下架商品區標題（可展開/收合）
+
+    private var disabledProductsHeader: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                viewModel.showDisabledProducts.toggle()
+            }
+        }) {
+            HStack {
+                // 下架商品
+                Text("inventoryDisabledHeader")
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+
+                Spacer()
+
+                Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .font(DesignSystem.Typography.caption)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .textCase(nil)
+        .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
+    }
+
+    // MARK: - 類別標題（可展開/收合，內容展開時同類別內可拖曳排序）
+
+    private func categoryHeader(_ category: CategoryModel) -> some View {
+        Button(action: {
+            viewModel.toggleCategoryExpansion(category.id)
+        }) {
+            HStack {
+                Text(category.name)
+                    .font(DesignSystem.Typography.title2)
+                    .foregroundColor(DesignSystem.ColorToken.ink)
+
+                Spacer()
+
+                Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .font(DesignSystem.Typography.caption)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .textCase(nil)
+        .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
     }
 
     // MARK: - 空狀態

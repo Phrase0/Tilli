@@ -20,6 +20,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var isDisabled: Bool
     var imageURL: String?            // Firebase Storage URL（雲端圖片）
     var createdAt: Date = Date()     // 產品建立時間
+    var sortOrder: Int = 0           // 同類別內的手動排序（管理商品頁長按拖曳）
     
     var image: UIImage? {
         get {
@@ -52,6 +53,7 @@ extension ProductModel {
         self.isDisabled = entity.isDisabled
         self.imageURL = entity.imageURL
         self.createdAt = entity.createdAt ?? Date()
+        self.sortOrder = Int(entity.sortOrder)
     }
 }
 

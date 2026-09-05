@@ -100,10 +100,6 @@ struct POSView: View {
                         categorySection(category: category, products: items)
                     }
                 }
-
-                if !viewModel.disabledProducts.isEmpty {
-                    disabledSection
-                }
             }
             .padding(.top, DesignSystem.Spacing.md)
         }
@@ -146,54 +142,6 @@ struct POSView: View {
                     ], spacing: DesignSystem.Spacing.xs) {
                         ForEach(products) { product in
                             posGridCard(product)
-                        }
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.md)
-                }
-            }
-        }
-    }
-
-    // MARK: - Disabled Products Section
-
-    private var disabledSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    viewModel.showDisabledProducts.toggle()
-                }
-            } label: {
-                HStack {
-                    // 下架商品
-                    Text("posDisabledHeader")
-                        .font(DesignSystem.Typography.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-
-                    Spacer()
-
-                    Image(systemName: viewModel.showDisabledProducts ? "chevron.up" : "chevron.down")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            if viewModel.showDisabledProducts {
-                if viewModel.layoutMode == .list {
-                    ForEach(viewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
-                        posDisabledCard(product)
-                    }
-                } else {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.xs) {
-                        ForEach(viewModel.disabledProducts.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { product in
-                            posDisabledGridCard(product)
                         }
                     }
                     .padding(.horizontal, DesignSystem.Spacing.md)
@@ -451,130 +399,6 @@ struct POSView: View {
         .onTapGesture {
             if isOutOfStock { viewModel.showOutOfStockAlert(for: product.name) }
         }
-    }
-
-    // MARK: - Disabled Product Card (List)
-
-    private func posDisabledCard(_ product: ProductModel) -> some View {
-        HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
-            SyncableImageView(
-                imageData: product.imageData,
-                imageURL: product.imageURL,
-                entityId: product.id,
-                entityType: .product,
-                contentMode: .fill
-            )
-            .frame(width: 70, height: 70)
-            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-            .grayscale(1.0)
-            .opacity(0.6)
-
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .lineLimit(1)
-
-                    if let note = product.note, !note.isEmpty {
-                        Text(note)
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .lineLimit(1)
-                    }
-                }
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(MoneyHelper.format(product.price, currencyCode: event.currency))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-
-                        // 庫存: %d
-                        Text("posStockCount \(product.stock)")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                    }
-
-                    Spacer()
-
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(DesignSystem.ColorToken.quietFill)
-                        Text("0")
-                            .font(.system(size: 14))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(DesignSystem.ColorToken.quietFill)
-                    }
-                }
-            }
-        }
-        .padding(DesignSystem.Spacing.sm)
-        .background(DesignSystem.ColorToken.quietFill)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-        .padding(.horizontal, DesignSystem.Spacing.md)
-    }
-
-    // MARK: - Disabled Product Card (Grid)
-
-    private func posDisabledGridCard(_ product: ProductModel) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SyncableImageView(
-                imageData: product.imageData,
-                imageURL: product.imageURL,
-                entityId: product.id,
-                entityType: .product,
-                contentMode: .fill
-            )
-            .aspectRatio(1, contentMode: .fill)
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .clipped()
-            .grayscale(1.0)
-            .opacity(0.6)
-
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                Text(product.name)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-                    .lineLimit(1)
-
-                Text(MoneyHelper.format(product.price, currencyCode: event.currency))
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-
-                Text("posStockCount \(product.stock)")
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-
-                HStack {
-                    Spacer()
-                    HStack(spacing: DesignSystem.Spacing.xs) {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(DesignSystem.ColorToken.quietFill)
-                        Text("0")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(DesignSystem.ColorToken.quietFill)
-                    }
-                    Spacer()
-                }
-            }
-            .padding(DesignSystem.Spacing.xs)
-        }
-        .background(DesignSystem.ColorToken.quietFill)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-        .shadow(
-            color: DesignSystem.Shadow.cardColor,
-            radius: DesignSystem.Shadow.cardRadius,
-            x: DesignSystem.Shadow.cardX,
-            y: DesignSystem.Shadow.cardY
-        )
     }
 
     // MARK: - Quantity Controls

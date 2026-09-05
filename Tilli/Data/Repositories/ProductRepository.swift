@@ -35,18 +35,71 @@ class ProductRepository: ObservableObject {
 
             let productEntity = CDProductEntity(context: context)
             productEntity.update(from: productModel, context: context)
+            productEntity.sortOrder = Int16(nextProductSortOrder(forCategoryId: categoryId))
             productEntity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
             productEntity.syncStatus = "pending"
             productEntity.updatedAt = Date()
             productEntity.category = categoryEntity
 
             saveContext()
-            // 同步到 Firestore
+            // 同步到 Firestore（用剛存好的 entity 轉回 model，確保 sortOrder 等 repository 算出來的值一起同步，而不是呼叫端傳進來的舊值）
+            let savedModel = productEntity.toModel()
             Task { @MainActor in
-                SyncManager.shared.syncProduct(productModel, operation: .create, imageChanged: imageChanged)
+                SyncManager.shared.syncProduct(savedModel, operation: .create, imageChanged: imageChanged)
             }
         } catch {
             print("加入 product 失敗:", error)
+        }
+    }
+
+    /// 取得同類別內下一個可用的 sortOrder（目前最大值 + 1，該類別尚無商品則為 0）
+    private func nextProductSortOrder(forCategoryId categoryId: UUID) -> Int {
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "categoryId == %@", categoryId as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: false)]
+        request.fetchLimit = 1
+
+        do {
+            if let maxEntity = try context.fetch(request).first {
+                return Int(maxEntity.sortOrder) + 1
+            }
+            return 0
+        } catch {
+            print("取得 sortOrder 失敗:", error)
+            return 0
+        }
+    }
+
+    /// 依拖曳後的新順序，重新寫入同一類別內商品的 sortOrder（管理商品頁長按拖曳排序用）
+    /// `orderedProductIds` 必須是「同一個類別」內、拖曳後的完整順序。
+    func updateProductOrder(_ orderedProductIds: [UUID]) {
+        guard !orderedProductIds.isEmpty else { return }
+
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id IN %@", orderedProductIds)
+
+        do {
+            let entities = try context.fetch(request)
+            let entityDict = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0) })
+
+            var updatedModels: [ProductModel] = []
+            for (index, productId) in orderedProductIds.enumerated() {
+                guard let entity = entityDict[productId] else { continue }
+                entity.sortOrder = Int16(index)
+                entity.syncStatus = "pending"
+                entity.updatedAt = Date()
+                updatedModels.append(entity.toModel())
+            }
+
+            saveContext()
+
+            Task { @MainActor in
+                for model in updatedModels {
+                    SyncManager.shared.syncProduct(model, operation: .update)
+                }
+            }
+        } catch {
+            print("更新商品排序失敗:", error)
         }
     }
 
@@ -79,9 +132,11 @@ class ProductRepository: ObservableObject {
                 entity.updatedAt = Date()
 
                 saveContext()
-                // 同步到 Firestore
+                // 同步到 Firestore（用 entity 轉回 model，而非呼叫端傳進來的 productModel——
+                // sortOrder 這裡不會被更新，若直接同步 productModel 會把它預設值 0 誤傳上雲端）
+                let savedModel = entity.toModel()
                 Task { @MainActor in
-                    SyncManager.shared.syncProduct(productModel, operation: .update, imageChanged: imageChanged)
+                    SyncManager.shared.syncProduct(savedModel, operation: .update, imageChanged: imageChanged)
                 }
             }
         } catch {
@@ -213,7 +268,7 @@ class ProductRepository: ObservableObject {
     func fetchProducts(forCategoryId categoryId: UUID) -> [ProductModel] {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+        request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: true)]
 
         do {
             let result = try context.fetch(request)
@@ -229,8 +284,7 @@ class ProductRepository: ObservableObject {
     func fetchProducts(forEventId eventId: UUID) -> [ProductModel] {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(key: "category.name", ascending: true), 
-                                   NSSortDescriptor(key: "name", ascending: true)]
+        request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: true)]
 
         do {
             let result = try context.fetch(request)

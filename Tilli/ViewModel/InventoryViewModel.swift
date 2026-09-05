@@ -11,7 +11,7 @@ import Combine
 /// 庫存商品展示模型（包含商品資訊與異動紀錄）
 struct InventoryProductItem: Identifiable {
     let id: UUID
-    let product: ProductModel
+    var product: ProductModel
     var changes: [InventoryChangeModel]
     var isExpanded: Bool = false
 
@@ -41,7 +41,7 @@ class InventoryViewModel: ObservableObject {
     @Published var inventoryItems: [InventoryProductItem] = []
     @Published var disabledInventoryItems: [InventoryProductItem] = []  // 已下架商品
     @Published var expandedCategoryIds: Set<UUID> = []
-    @Published var showDisabledProducts: Bool = false  // 下架商品區展開/收合狀態（預設收合）
+    @Published var showDisabledProducts: Bool = true  // 下架商品區展開/收合狀態（預設展開）
 
     // MARK: - Export Properties
     @Published var selectedExportType: InventoryExportType = .all
@@ -185,7 +185,7 @@ class InventoryViewModel: ObservableObject {
         expandedCategoryIds.contains(categoryId)
     }
 
-    /// 取得特定類別的商品列表（套用搜尋篩選）
+    /// 取得特定類別的商品列表（有庫存在前、無庫存在後，組內依 sortOrder 排序，跟收銀頁一致；套用搜尋篩選）
     func getItemsForCategory(_ categoryId: UUID) -> [InventoryProductItem] {
         var items = inventoryItems.filter { $0.product.categoryId == categoryId }
 
@@ -196,7 +196,29 @@ class InventoryViewModel: ObservableObject {
             }
         }
 
-        return items
+        let inStock = items.filter { $0.currentStock > 0 }.sorted { $0.product.sortOrder < $1.product.sortOrder }
+        let outOfStock = items.filter { $0.currentStock <= 0 }.sorted { $0.product.sortOrder < $1.product.sortOrder }
+
+        return inStock + outOfStock
+    }
+
+    // MARK: - 商品排序（長按拖曳，僅限同一類別內）
+
+    /// 拖曳排序後呼叫：把同類別商品依新順序重新編號並寫回 Repository
+    func moveProduct(in categoryId: UUID, from source: IndexSet, to destination: Int) {
+        guard let productRepo = productRepository else { return }
+
+        var items = getItemsForCategory(categoryId)
+        items.move(fromOffsets: source, toOffset: destination)
+
+        // 依新順序重新編號 0...n-1，並同步更新畫面上的 inventoryItems（避免等下次 loadData 才刷新）
+        for (index, item) in items.enumerated() {
+            if let itemIndex = inventoryItems.firstIndex(where: { $0.id == item.id }) {
+                inventoryItems[itemIndex].product.sortOrder = index
+            }
+        }
+
+        productRepo.updateProductOrder(items.map { $0.id })
     }
 
     // MARK: - CSV 匯出

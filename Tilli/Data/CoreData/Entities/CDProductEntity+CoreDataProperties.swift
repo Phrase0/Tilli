@@ -26,6 +26,7 @@ extension CDProductEntity {
     @NSManaged public var imageData: Data?
     @NSManaged public var category: CDCategoryEntity
     @NSManaged public var isDisabled: Bool
+    @NSManaged public var sortOrder: Int16
 
     // MARK: - Sync 相關欄位
     @NSManaged public var userId: String?        // 所屬用戶 ID
@@ -53,6 +54,7 @@ extension CDProductEntity {
         self.isDisabled = model.isDisabled
         self.imageURL = model.imageURL
         self.createdAt = model.createdAt
+        self.sortOrder = Int16(model.sortOrder)
     }
 
     func toModel() -> ProductModel {

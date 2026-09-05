@@ -72,6 +72,7 @@
       }
     },
     "0" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3901,13 +3902,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please add products to the event first"
+            "value" : "Tap \"+\" to create your first product"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請先在場次中新增商品"
+            "value" : "點擊右下角「+」按鈕新增第一個商品"
           }
         }
       }
@@ -5003,6 +5004,7 @@
       }
     },
     "posDisabledHeader" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

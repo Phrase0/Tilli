@@ -365,8 +365,8 @@ class AddNewProductViewModel: ObservableObject {
                     categoryName: editing.categoryName, // 保持原類別名稱
                     note: description,                 // 允許更新描述
                     imageData: processedImageData,     // 允許更新圖片
-                    isDisabled: editing.isDisabled
-
+                    isDisabled: editing.isDisabled,
+                    sortOrder: editing.sortOrder       // 保持原排序（編輯不影響排序）
                 )
             } else {
                 // 無交易記錄時，允許更新所有欄位
@@ -380,7 +380,8 @@ class AddNewProductViewModel: ObservableObject {
                     categoryName: category.name,       // 允許更新類別名稱
                     note: description,                 // 允許更新描述
                     imageData: processedImageData,     // 允許更新圖片
-                    isDisabled: editing.isDisabled
+                    isDisabled: editing.isDisabled,
+                    sortOrder: editing.sortOrder       // 保持原排序（編輯不影響排序）
                 )
             }
         } else {

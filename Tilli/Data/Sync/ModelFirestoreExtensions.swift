@@ -125,6 +125,7 @@ extension ProductModel {
             "name": name,
             "price": decimalToCents(price),  // Decimal → Integer（分）
             "stock": stock,
+            "sortOrder": sortOrder,
             "isDisabled": isDisabled,
             "createdAt": Timestamp(date: createdAt),
             "updatedAt": Timestamp(date: Date())
@@ -164,6 +165,7 @@ extension ProductModel {
         self.name = name
         self.price = centsToDecimal(priceCents)  // Integer（分）→ Decimal
         self.stock = stock
+        self.sortOrder = document["sortOrder"] as? Int ?? 0
         self.note = document["note"] as? String
         self.isDisabled = document["isDisabled"] as? Bool ?? false
         self.imageData = nil  // 圖片從 URL 下載後再填入

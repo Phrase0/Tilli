@@ -27,7 +27,6 @@ class POSViewModel: ObservableObject {
 
     // Product Detail 相關狀態
     @Published var expandedCategories: Set<UUID> = []
-    @Published var showDisabledProducts = false
 
     // 布局模式（保存到 UserDefaults）
     @Published var layoutMode: ProductLayoutMode {
@@ -48,16 +47,6 @@ class POSViewModel: ObservableObject {
         }
     }
     
-    // 計算屬性：已停用且 Category 未停用的產品（只顯示在下架區的產品）
-    var disabledProducts: [ProductModel] {
-        products.filter { product in
-            let isProductDisabled = product.isDisabled
-            let isCategoryEnabled = categories.first(where: { $0.id == product.categoryId })?.isDisabled == false
-            // 只顯示：Product 停用 且 Category 未停用 的產品
-            return isProductDisabled && isCategoryEnabled
-        }
-    }
-
     // MARK: - 商品狀態邏輯
 
     /// 檢查是否有任何可用商品（用於判斷是否顯示空狀態）
@@ -68,9 +57,9 @@ class POSViewModel: ObservableObject {
         }
     }
 
-    /// 是否應該顯示空狀態（沒有任何商品包括下架商品）
+    /// 是否應該顯示空狀態（下架商品不顯示在收銀頁，只看啟用商品）
     var shouldShowEmptyState: Bool {
-        return !hasAnyProducts && disabledProducts.isEmpty
+        return !hasAnyProducts
     }
 
     /// 取得選中的折扣 Model
@@ -133,22 +122,18 @@ class POSViewModel: ObservableObject {
         showAlert = true
     }
     
-    /// 取得分類下已排序的商品（有庫存在前，無庫存在後）
+    /// 取得分類下已排序的商品（有庫存在前，無庫存在後；組內依 sortOrder 排序，跟管理商品頁一致）
     func getSortedProductsForCategory(_ categoryId: UUID) -> [ProductModel] {
         let categoryProducts = activeProducts.filter { $0.categoryId == categoryId }
-        
+
         // 將商品分為有庫存和無庫存兩組
         let inStockProducts = categoryProducts.filter { !isOutOfStock($0) }
         let outOfStockProducts = categoryProducts.filter { isOutOfStock($0) }
-        
-        // 各組內部按名稱排序（使用語言環境排序），然後合併（有庫存在前）
-        let sortedInStock = inStockProducts.sorted {
-            $0.name.localizedStandardCompare($1.name) == .orderedAscending
-        }
-        let sortedOutOfStock = outOfStockProducts.sorted {
-            $0.name.localizedStandardCompare($1.name) == .orderedAscending
-        }
-        
+
+        // 各組內部依 sortOrder 排序，然後合併（有庫存在前）
+        let sortedInStock = inStockProducts.sorted { $0.sortOrder < $1.sortOrder }
+        let sortedOutOfStock = outOfStockProducts.sorted { $0.sortOrder < $1.sortOrder }
+
         return sortedInStock + sortedOutOfStock
     }
     
