@@ -11,7 +11,7 @@ struct POSView: View {
 
     let event: EventModel
 
-    @StateObject private var viewModel: POSViewModel
+    @ObservedObject var viewModel: POSViewModel
     @EnvironmentObject var productRepository: ProductRepository
 
     @State private var showCheckoutSheet = false
@@ -19,9 +19,9 @@ struct POSView: View {
     @State private var showClearAlert = false
     @State private var eventState: EventModel
 
-    init(event: EventModel) {
+    init(event: EventModel, viewModel: POSViewModel) {
         self.event = event
-        _viewModel = StateObject(wrappedValue: POSViewModel(event: .constant(event)))
+        self.viewModel = viewModel
         _eventState = State(initialValue: event)
     }
 
@@ -37,20 +37,6 @@ struct POSView: View {
             }
         }
         .background(DesignSystem.ColorToken.paper)
-        // 收銀
-        .navigationTitle("posTitle")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.layoutMode = viewModel.layoutMode == .list ? .grid : .list
-                    }
-                } label: {
-                    Image(systemName: viewModel.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
-                }
-            }
-        }
         .alert(isPresented: $viewModel.showAlert) {
             viewModel.createAlert()
         }

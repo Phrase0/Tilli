@@ -7,10 +7,28 @@
 
 import SwiftUI
 
+/// 商品新增/編輯表單要顯示哪個內容，由容器（EventWorkspaceView）持有並決定何時 push。
+enum InventoryFormTarget: Identifiable, Hashable {
+    case new
+    case edit(ProductModel)
+
+    var id: String {
+        switch self {
+        case .new:
+            return "new"
+        case .edit(let product):
+            return product.id.uuidString
+        }
+    }
+}
+
 struct InventoryView: View {
     let event: EventModel
 
-    @StateObject private var viewModel: InventoryViewModel
+    @ObservedObject var viewModel: InventoryViewModel
+    @Binding var showShareSheet: Bool
+    @Binding var formTarget: InventoryFormTarget?
+
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
@@ -19,85 +37,36 @@ struct InventoryView: View {
 
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
-    @State private var showShareSheet = false
-    @State private var editingProduct: ProductModel?
-    @State private var showAddProduct = false
 
-    init(event: EventModel) {
+    init(
+        event: EventModel,
+        viewModel: InventoryViewModel,
+        showShareSheet: Binding<Bool>,
+        formTarget: Binding<InventoryFormTarget?>
+    ) {
         self.event = event
-        self._viewModel = StateObject(wrappedValue: InventoryViewModel(event: event))
+        self.viewModel = viewModel
+        self._showShareSheet = showShareSheet
+        self._formTarget = formTarget
         self._timeRange = State(initialValue: ReportTimeRange(event: event))
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 時間範圍選擇器
-            ReportTimeRangeSelector(event: viewModel.event, selectedRange: $timeRange)
-                .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.top, DesignSystem.Spacing.xs)
-            // 商品列表（按類別分組）
-            productList
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 0) {
+                // 時間範圍選擇器
+                ReportTimeRangeSelector(event: viewModel.event, selectedRange: $timeRange)
+                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    .padding(.top, DesignSystem.Spacing.xs)
+                // 商品列表（按類別分組）
+                productList
+            }
+
+            FloatingActionButton(systemImage: "plus") {
+                formTarget = .new
+            }
         }
         .background(DesignSystem.ColorToken.paper)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-//        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜尋商品")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                }
-            }
-            ToolbarItem(placement: .principal) {
-                Text(viewModel.event.title)
-                    .font(.headline)
-                    .foregroundColor(DesignSystem.ColorToken.ink)
-                    .lineLimit(1)
-            }
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Menu {
-                    Button {
-                        viewModel.prepareExport(type: .all)
-                        showShareSheet = true
-                    } label: {
-                        // 全部匯出
-                        Label("inventoryChangeExportAll", systemImage: "square.and.arrow.up.on.square")
-                    }
-
-                    Divider()
-
-                    Button {
-                        viewModel.prepareExport(type: .summary)
-                        showShareSheet = true
-                    } label: {
-                        // 庫存總覽
-                        Label("inventoryChangeExportSummary", systemImage: "list.bullet.rectangle")
-                    }
-
-                    Button {
-                        viewModel.prepareExport(type: .detail)
-                        showShareSheet = true
-                    } label: {
-                        // 庫存異動明細
-                        Label("inventoryChangeExportDetail", systemImage: "clock.arrow.circlepath")
-                    }
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .foregroundColor(viewModel.isExportDisabled ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-                }
-                .disabled(viewModel.isExportDisabled)
-
-                NavigationLink {
-                    AddNewProductView(event: event) {
-                        viewModel.loadData()
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                }
-            }
-        }
         .shareSheet(
             isPresented: $showShareSheet,
             activityItems: { viewModel.currentShareItems },
@@ -118,14 +87,6 @@ struct InventoryView: View {
         }
         .alert(isPresented: $viewModel.showAlert) {
             viewModel.createAlert()
-        }
-        .navigationDestination(isPresented: $showAddProduct) {
-            if let product = editingProduct {
-                AddNewProductView(event: event, productToEdit: product) {
-                    viewModel.loadData()
-                    editingProduct = nil
-                }
-            }
         }
         .onAppear {
             viewModel.updateRepositories(
@@ -183,7 +144,8 @@ struct InventoryView: View {
                     }
                 }
                 .padding(.top, DesignSystem.Spacing.md)
-                .padding(.bottom, DesignSystem.Spacing.lg)
+                // 底部留白，避免最後一張卡片被右下角 FAB 蓋住
+                .padding(.bottom, DesignSystem.Spacing.lg * 3)
             }
         }
     }
@@ -266,8 +228,7 @@ struct InventoryView: View {
                         onToggle: { viewModel.toggleExpanded(for: item.id) },
                         actionType: viewModel.getActionType(for: item.id),
                         onEdit: {
-                            editingProduct = item.product
-                            showAddProduct = true
+                            formTarget = .edit(item.product)
                         },
                         onDisableOrDelete: {
                             switch viewModel.getActionType(for: item.id) {

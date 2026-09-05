@@ -5099,6 +5099,7 @@
       }
     },
     "posTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5708,6 +5709,7 @@
       }
     },
     "reportsNavTitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6476,6 +6478,7 @@
       }
     },
     "workspaceTotalOrders" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6492,6 +6495,7 @@
       }
     },
     "workspaceTotalRevenue" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

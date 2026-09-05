@@ -11,17 +11,18 @@ struct ReportsView: View {
 
     let event: EventModel
 
-    @StateObject private var viewModel: ReportsViewModel
+    @ObservedObject var viewModel: ReportsViewModel
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @EnvironmentObject var eventDataManager: EventRepository
 
     @State private var timeRange: ReportTimeRange
-    @State private var showingShareSheet = false
+    @Binding var showingShareSheet: Bool
 
-    init(event: EventModel) {
+    init(event: EventModel, viewModel: ReportsViewModel, showingShareSheet: Binding<Bool>) {
         self.event = event
-        self._viewModel = StateObject(wrappedValue: ReportsViewModel(event: event))
+        self.viewModel = viewModel
         self._timeRange = State(initialValue: ReportTimeRange(event: event))
+        self._showingShareSheet = showingShareSheet
     }
 
     var body: some View {
@@ -57,13 +58,6 @@ struct ReportsView: View {
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
         .background(DesignSystem.ColorToken.paper)
-        .navigationTitle("reportsNavTitle")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                exportMenu
-            }
-        }
         .onAppear {
             viewModel.updateDataManagers(
                 transactionDataManager: transactionDataManager,
@@ -115,103 +109,5 @@ struct ReportsView: View {
         .pickerStyle(.segmented)
         .padding(.horizontal, DesignSystem.Spacing.md)
         .padding(.vertical, DesignSystem.Spacing.sm)
-    }
-
-    // MARK: - Export Menu
-
-    @ViewBuilder
-    private var exportMenu: some View {
-        Menu {
-            switch viewModel.selectedTab {
-            case .transactions:
-                Button {
-                    viewModel.prepareExport(type: .transactionDetail)
-                    showingShareSheet = true
-                } label: {
-                    // 交易明細
-                    Label("reportsExportTransactionDetail", systemImage: "list.clipboard")
-                }
-
-            case .performance:
-                Button {
-                    viewModel.prepareExport(type: .productPerformanceAll)
-                    showingShareSheet = true
-                } label: {
-                    // 全部匯出
-                    Label("reportsExportAll", systemImage: "square.and.arrow.up.on.square")
-                }
-
-                Divider()
-
-                Button {
-                    viewModel.prepareExport(type: .topProducts)
-                    showingShareSheet = true
-                } label: {
-                    // 熱門商品排行
-                    Label("reportsExportTopProducts", systemImage: "chart.bar")
-                }
-
-                Button {
-                    viewModel.prepareExport(type: .categoryAnalysis)
-                    showingShareSheet = true
-                } label: {
-                    // 類別銷售匯總
-                    Label("reportsExportCategoryAnalysis", systemImage: "folder")
-                }
-
-            case .analytics:
-                Button {
-                    viewModel.prepareExport(type: .salesAnalyticsAll)
-                    showingShareSheet = true
-                } label: {
-                    // 全部匯出
-                    Label("reportsExportAll", systemImage: "square.and.arrow.up.on.square")
-                }
-
-                Divider()
-
-                Button {
-                    viewModel.prepareExport(type: .hourlyAnalysis)
-                    showingShareSheet = true
-                } label: {
-                    // 時段銷售分析
-                    Label("reportsExportHourlyAnalysis", systemImage: "clock")
-                }
-
-                Button {
-                    viewModel.prepareExport(type: .paymentMethod)
-                    showingShareSheet = true
-                } label: {
-                    // 支付方式分析
-                    Label("reportsExportPaymentMethod", systemImage: "creditcard")
-                }
-
-                Button {
-                    viewModel.prepareExport(type: .dailyRevenueTrend)
-                    showingShareSheet = true
-                } label: {
-                    // 日營收趨勢
-                    Label("reportsExportDailyRevenue", systemImage: "chart.line.uptrend.xyaxis")
-                }
-
-                if event.dateType == .permanent {
-                    Button {
-                        viewModel.prepareExport(type: .monthlyRevenueTrend)
-                        showingShareSheet = true
-                    } label: {
-                        // 月營收趨勢
-                        Label("reportsExportMonthlyRevenue", systemImage: "calendar")
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "square.and.arrow.up")
-                .foregroundColor(
-                    viewModel.isCurrentTabExportDisabled()
-                        ? DesignSystem.ColorToken.muted
-                        : DesignSystem.ColorToken.ink
-                )
-        }
-        .disabled(viewModel.isCurrentTabExportDisabled())
     }
 }

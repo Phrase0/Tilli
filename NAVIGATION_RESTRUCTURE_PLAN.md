@@ -62,6 +62,12 @@ RootTabView（更名保留，不再是 TabView）
 
 子頁的動作透過各自的 ViewModel 或 binding 往上接。
 
+**實作補充（斷點 2 落地時定案）：** 「往上接」具體做法是三個子頁的 ViewModel（`InventoryViewModel` / `POSViewModel` / `ReportsViewModel`）由 `EventWorkspaceView` 以 `@StateObject` 持有，透過建構子參數傳給子頁；子頁用 `@ObservedObject` 接收同一個實例，容器的 toolbar 才能直接讀寫它們的狀態（如 `inventoryVM.isExportDisabled`、`posVM.layoutMode`、`reportsVM.selectedTab`）。
+
+連帶影響：兩個匯出用的 `showShareSheet` / `showingShareSheet` 呈現狀態，因為觸發匯出的 Menu 在容器的 toolbar 上，也一併改由容器持有、以 `Binding<Bool>` 傳回子頁（`EventWorkspaceView` 的 `inventoryShowShareSheet` / `reportsShowingShareSheet`）。子頁其餘的頁面內狀態（如搜尋文字、時間範圍選擇）維持私有。
+
+同一條規則也適用於 `navigationDestination`——見 D8。
+
 ### D3: 進入場次的預設 tab 依場次狀態自動判斷
 
 **決策：**
@@ -81,7 +87,9 @@ RootTabView（更名保留，不再是 TabView）
 
 **決策：整頁刪除，不搬移。**
 
-這兩個數字在「查看分析」內已有更完整的呈現。連同 `workspaceTotalRevenue`、`workspaceTotalOrders`、`workspacePosButton`、`workspaceInventoryButton`、`workspaceReportsButton` 等 localization key 一併清除。
+這兩個數字在「查看分析」內已有更完整的呈現。連同 `workspaceTotalRevenue`、`workspaceTotalOrders` 兩個 localization key 一併清除。
+
+**實作補充：** `workspacePosButton`、`workspaceInventoryButton`、`workspaceReportsButton` 這三個 key 原本是 WorkspaceView 三顆大按鈕的文字，內容剛好就是「管理商品」「開始收銀」「查看分析」——與 `EventWorkspaceView` 三個 tabItem 需要的文字完全一致，斷點 2 直接重用，不刪除、不新增 key。
 
 ### D5: `loadProducts()` 之後必須 clamp `quantities`
 
@@ -100,6 +108,29 @@ RootTabView（更名保留，不再是 TabView）
 **決策：搜尋列位於 segmented control 之下、場次列表之上，只在列表模式渲染。**
 
 理由：搜尋目前只過濾列表（`EventsViewModel.sortedFilteredEvents`），日曆模式吃不到。若常駐於標題下方，切到日曆時會變成一個點了沒反應的死框。放進列表模式內，日曆模式自然不出現，不必額外寫隱藏邏輯，也不必為了對稱去改 `EventsCalendarViewModel`。
+
+### D8: `navigationDestination` 統一由 `EventWorkspaceView` 宣告，不放在任何一個 tab 的內容裡
+
+**決策：三個子頁都不自己宣告 `navigationDestination`。要 push 到哪個畫面，一律由子頁把「觸發用的狀態」透過 `Binding` 往上丟給容器，容器統一宣告 `navigationDestination` 並決定 push 什麼。**
+
+以 `InventoryView` 為例：容器持有 `@State private var inventoryFormTarget: InventoryFormTarget?`（`InventoryFormTarget` 是 `.new` / `.edit(ProductModel)` 兩種情況的列舉），並在 `TabView` 外層宣告：
+
+```swift
+.navigationDestination(item: $inventoryFormTarget) { target in
+    switch target {
+    case .new:
+        AddNewProductView(event: event) { inventoryVM.loadData() }
+    case .edit(let product):
+        AddNewProductView(event: event, productToEdit: product) { inventoryVM.loadData() }
+    }
+}
+```
+
+`InventoryView` 只拿到 `@Binding var formTarget: InventoryFormTarget?`，右下角 FAB 按下設 `formTarget = .new`，商品 Menu 按編輯設 `formTarget = .edit(product)`，其餘什麼都不用做——`AddNewProductView` 存檔後呼叫自己的 `dismiss()`，`NavigationStack` 會自動把 `inventoryFormTarget` 收回 `nil`。
+
+理由：`TabView` 只會建立目前選中那一頁的內容，沒被選過的分頁還沒被建立。如果 `navigationDestination` 宣告在某個分頁的內容裡，而那個分頁還沒被建立過，`NavigationStack` 就看不到這個 destination。宣告放在 `TabView` 外層的容器上，不管使用者切到哪個分頁，這個宣告永遠存在，`NavigationStack` 隨時看得到。
+
+目前只有 `InventoryView` 有 push 導航（新增/編輯商品）。`POSView` 的結帳走 `.sheet`，不受這條規則影響；`ReportsView` 沒有子頁面可以 push。這條規則是給以後任何一個 tab 若需要新增 push 導航時的統一做法，不是三個檔案都要長出一模一樣的程式碼。
 
 ---
 
@@ -171,6 +202,14 @@ func loadProducts() {
 
 **解法：** 移除 `MyView` 的 `NavigationStack`，同時把第 69 行的 `.preferredColorScheme(darkModeEnabled ? .dark : .light)` 上移到 `RootTabView` —— 深色模式必須套用到整個 App，不能掛在一個子頁上。（`_Deprecated/ProfileView.swift:75` 有同樣一行，該檔已棄用，不處理。）
 
+### 難點 6: `InventoryView` 的 `navigationDestination` 被 SwiftUI 警告「放在懶容器裡」
+
+**現狀：** `InventoryView` 新增/編輯商品分別用 `showNewProductForm` / `showEditProductForm` 兩個 `@State` 搭配各自的 `.navigationDestination(isPresented:)`，宣告在 `InventoryView` 自己身上。
+
+**問題：** App 執行時 Xcode 主控台印出警告：`navigationDestination` 不該放在 `List` 或 `LazyVStack` 這類懶容器裡，會被忽略。`InventoryView` 本身沒有這類容器，但它現在是 `TabView(selection:)` 裡的其中一頁——`TabView` 對還沒切換過去的分頁不會建立內容，跟 `List`／`LazyVStack` 是同一種「懶」的行為，所以 `navigationDestination` 掛在 `InventoryView` 上會被同一條警告抓到。
+
+**解法：** 見 D8。把觸發用的狀態改成一個列舉 `InventoryFormTarget`（`.new` / `.edit(ProductModel)`），由 `EventWorkspaceView` 持有，`navigationDestination(item:)` 也宣告在 `EventWorkspaceView` 身上（`TabView` 外層，不在任何一頁的內容裡）。`InventoryView` 只拿 `@Binding var formTarget: InventoryFormTarget?`。
+
 ---
 
 ## 要動的檔案
@@ -180,12 +219,12 @@ func loadProducts() {
 | `View/EventsPage/RootTabView.swift` | 拆掉 `TabView`，body 改為 `NavigationStack { EventsView() }`；auth loading 與新用戶 `fullScreenCover` 邏輯原封不動；接手 `preferredColorScheme` |
 | `View/EventsPage/EventsView.swift` | 移除自帶 `NavigationStack`（改由 RootTabView 持有）；搜尋列移入 `listContent` 常駐；移除 `isSearching` 與放大鏡按鈕；右上改為設定入口；「+」改 FAB；刪 `.toolbar(..., for: .tabBar)` |
 | `View/MyPage/MyView.swift` | 移除 `NavigationStack`；`preferredColorScheme` 上移 |
-| **新增** `View/EventsPage/EventWorkspaceView.swift` | 三 tab 容器；持有 `selectedTab`、`navigationTitle`、`toolbar` |
-| `View/InventoryPage/InventoryView.swift` | 「+」改 FAB；移除自訂返回鍵與 `principal` 標題；匯出 Menu 上移至容器 |
-| `View/POSPage/POSView.swift` | layout 切換按鈕上移至容器 |
-| `View/ReportsPage/ReportsView.swift` | 匯出 Menu 上移至容器 |
-| `ViewModel/POSViewModel.swift` | 新增 `clampQuantitiesToStock()`，於 `loadProducts()` 尾端呼叫 |
-| **刪除** `View/EventsPage/WorkspaceView.swift` | 連同 5 個 `workspace*` localization key |
+| **新增** `View/EventsPage/EventWorkspaceView.swift` | 三 tab 容器；持有 `selectedTab`、三個子頁 ViewModel、`navigationTitle`、`toolbar`、`navigationDestination`（見 D8） |
+| `View/InventoryPage/InventoryView.swift` | `@StateObject` 改 `@ObservedObject`（VM 改由容器傳入）；「+」改 FAB；移除自訂返回鍵與 `principal` 標題；匯出 Menu 上移至容器，`showShareSheet` 改 `@Binding`；新增/編輯商品的 `navigationDestination` 上移至容器，改用 `InventoryFormTarget` 列舉 + `formTarget` `@Binding`（見難點 6、D8） |
+| `View/POSPage/POSView.swift` | `@StateObject` 改 `@ObservedObject`（VM 改由容器傳入）；layout 切換按鈕上移至容器 |
+| `View/ReportsPage/ReportsView.swift` | `@StateObject` 改 `@ObservedObject`（VM 改由容器傳入）；匯出 Menu 上移至容器，`showingShareSheet` 改 `@Binding` |
+| `ViewModel/POSViewModel.swift` | 新增 `clampQuantitiesToStock()`，於 `loadProducts()` 尾端呼叫（斷點 3） |
+| **刪除**（斷點 2 提前執行）`View/EventsPage/WorkspaceView.swift` | 它呼叫的 `InventoryView(event:)` / `POSView(event:)` / `ReportsView(event:)` 舊式建構子在斷點 2 就不存在了，留著會讓斷點 2 編譯失敗——「留到斷點 4 清理」的原始安排不成立，故提前刪除。連同 `workspaceTotalRevenue`、`workspaceTotalOrders` 兩個 key（`workspacePosButton`/`workspaceInventoryButton`/`workspaceReportsButton` 三個 key 被 `EventWorkspaceView` 的 tabItem 重用，不刪除，見 D4） |
 
 **命名說明：** `RootTabView` 已不是 TabView，但改名會牽動 `TilliApp.swift:30` 與測試，且會讓斷點 1 的 diff 混雜重新命名雜訊。本次先保留原名，待斷點 1–4 穩定後在斷點 5 統一更名為 `RootView`。
 
@@ -245,29 +284,31 @@ func testRootTabViewInit() {
 
 **步驟：**
 
-1. 新建 `EventWorkspaceView.swift`，接收 `let event: EventModel`
-2. `@State selectedTab`，初始值依「是否有商品」優先、其次 `event.status` 決定（D3）
-3. body：`TabView(selection:)` 包三頁，tabItem 用 `shippingbox` / `dollarsign.circle` / `chart.bar`
-4. 容器層宣告 `navigationTitle(event.title)` + `navigationBarTitleDisplayMode(.inline)`
-5. 容器層宣告 `toolbar`，依 `selectedTab` switch 出三種右上內容（D2）
-6. `InventoryView`：移除 `navigationBarBackButtonHidden` 與自訂返回鍵、`principal` 標題、匯出 Menu
-7. `POSView`：移除 layout 切換 toolbar
-8. `ReportsView`：移除匯出 toolbar
-9. `EventsView`：`navigationDestination` 目標改為 `EventWorkspaceView`
+1. 新建 `EventWorkspaceView.swift`，接收 `let event: EventModel` + `initialTab: WorkspaceTab`
+2. `defaultWorkspaceTab(for:productRepository:)` 自由函式：「是否有商品」優先、其次 `event.status` 決定（D3）；由 `EventsView` 在 `navigationDestination` 閉包裡呼叫並傳入（`EventsView` 已在環境中拿得到 `productRepository`，避免在 `EventWorkspaceView.init()` 裡用 `@EnvironmentObject`——SwiftUI 的 `init()` 還讀不到環境）
+3. 容器改為持有三個子頁的 `@StateObject` ViewModel（`InventoryViewModel` / `POSViewModel` / `ReportsViewModel`），以建構子參數傳給子頁；子頁改用 `@ObservedObject` 接收（見 D2 實作補充）
+4. body：`TabView(selection:)` 包三頁，tabItem 用 `shippingbox` / `dollarsign.circle` / `chart.bar`，文字重用 `workspaceInventoryButton` / `workspacePosButton` / `workspaceReportsButton`（見 D4 實作補充）
+5. 容器層宣告 `navigationTitle(event.title)` + `navigationBarTitleDisplayMode(.inline)`
+6. 容器層宣告 `toolbar`，依 `selectedTab` switch 出三種右上內容（D2）
+7. `InventoryView`：移除 `navigationBarBackButtonHidden` 與自訂返回鍵、`principal` 標題、匯出 Menu；`showShareSheet` 改 `@Binding`；新增「+」FAB 與對應的 `showNewProductForm` 導航 state（原本 toolbar 的「+」是直接 `NavigationLink`，FAB 改用 `.navigationDestination(isPresented:)`）
+8. `POSView`：移除 layout 切換 toolbar
+9. `ReportsView`：移除匯出 toolbar 與 `exportMenu`（邏輯搬進容器的 `reportsExportMenu`）；`showingShareSheet` 改 `@Binding`
+10. `EventsView`：`navigationDestination` 目標改為 `EventWorkspaceView`，新增 `@EnvironmentObject var productRepository`
+11. 刪除 `WorkspaceView.swift`（原計畫留到斷點 4，提前執行的原因見「要動的檔案」表）
 
 **測試（手動）：**
 
-- [ ] 列表模式點場次 → 進入三 tab 頁；日曆模式點場次 → 同上
-- [ ] 進行中場次落在「開始收銀」；未開始落在「管理商品」；已結束落在「查看分析」
-- [ ] **場次尚無任何商品時**，不論狀態為何（含進行中、已結束），一律落在「管理商品」
-- [ ] nav bar 顯示場次名稱，返回鍵回場次頁
-- [ ] 三個 tab 都能點，切換流暢
-- [ ] 切到「管理商品」：右上是匯出 Menu，三種匯出都正常
-- [ ] 切到「開始收銀」：右上是 list/grid 切換，切換正常
-- [ ] 切到「查看分析」：右上是匯出 Menu
-- [ ] **反覆快速切換三個 tab**，右上按鈕每次都正確更新，無殘留、無消失（難點 2 的核心驗證）
-- [ ] 「查看分析」內左右滑動切換三個報表子頁正常，不會誤觸發外層 tab 切換（難點 2）
-- [ ] 各頁原有功能全數正常：商品新增/編輯/下架/刪除/庫存調整、收銀結帳全流程、三張報表
+- [X] 列表模式點場次 → 進入三 tab 頁；日曆模式點場次 → 同上
+- [X] 進行中場次落在「開始收銀」；未開始落在「管理商品」；已結束落在「查看分析」
+- [X] **場次尚無任何商品時**，不論狀態為何（含進行中、已結束），一律落在「管理商品」
+- [X] nav bar 顯示場次名稱，返回鍵回場次頁
+- [X] 三個 tab 都能點，切換流暢
+- [X] 切到「管理商品」：右上是匯出 Menu，三種匯出都正常
+- [X] 切到「開始收銀」：右上是 list/grid 切換，切換正常
+- [X] 切到「查看分析」：右上是匯出 Menu
+- [X] **反覆快速切換三個 tab**，右上按鈕每次都正確更新，無殘留、無消失（難點 2 的核心驗證）
+- [X] 「查看分析」內左右滑動切換三個報表子頁正常，不會誤觸發外層 tab 切換（難點 2）
+- [X] 各頁原有功能全數正常：商品新增/編輯/下架/刪除/庫存調整、收銀結帳全流程、三張報表
 
 ---
 
@@ -309,8 +350,8 @@ func testClampQuantitiesToStock() {
 
 **步驟：**
 
-1. 刪除 `View/EventsPage/WorkspaceView.swift`
-2. 從 `Localizable.xcstrings` 移除 5 個 `workspace*` key
+1. ~~刪除 `View/EventsPage/WorkspaceView.swift`~~（已於斷點 2 提前執行）
+2. 從 `Localizable.xcstrings` 移除：`workspaceTotalRevenue`、`workspaceTotalOrders`（D4）、`posTitle`、`reportsNavTitle`（`POSView`／`ReportsView` 的 `navigationTitle` 都已移除，斷點 2 起未使用——xcodebuild 已自動把這 4 個 key 標記為 `extractionState: stale`，可用它確認清單有沒有漏）
 3. 確認編譯無 warning
 4. 全流程走一遍
 

@@ -16,6 +16,7 @@ struct EventsView: View {
 
     @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
+    @EnvironmentObject var productRepository: ProductRepository
     @StateObject private var eventsVM = EventsViewModel()
     @StateObject private var calendarVM = EventsCalendarViewModel()
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
@@ -108,7 +109,10 @@ struct EventsView: View {
             }
         }
         .navigationDestination(item: $selectedEvent) { event in
-            WorkspaceView(event: event)
+            EventWorkspaceView(
+                event: event,
+                initialTab: defaultWorkspaceTab(for: event, productRepository: productRepository)
+            )
         }
         .animation(.easeInOut(duration: 0.3), value: eventsVM.isSelectionMode)
         .onAppear {
