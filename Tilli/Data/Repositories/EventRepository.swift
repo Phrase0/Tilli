@@ -102,7 +102,7 @@ class EventRepository: ObservableObject {
 
         let entity = CDEventEntity(context: context)
         entity.update(from: model, context: context)
-        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         entity.userId = currentUserId
         entity.syncStatus = "pending"
         entity.updatedAt = Date()
@@ -281,7 +281,7 @@ class EventRepository: ObservableObject {
         }
 
         // 新增新的 categories
-        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         for categoryModel in categoriesToAdd {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
@@ -393,7 +393,7 @@ class EventRepository: ObservableObject {
 
             let entity = CDTransactionEntity(context: context)
             entity.update(from: model, context: context)
-            entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+            entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
             entity.syncStatus = "pending"
             eventEntity.addToTransactions(entity)
 
@@ -428,7 +428,7 @@ class EventRepository: ObservableObject {
             }
 
             // 創建新的 Event 實體
-            let copyUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+            let copyUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
             let newEventEntity = CDEventEntity(context: context)
             newEventEntity.id = UUID()
             newEventEntity.title = newTitle

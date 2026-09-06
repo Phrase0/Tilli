@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Kingfisher
 
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
@@ -52,15 +51,18 @@ struct ProfileEditView: View {
                                     .scaledToFill()
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
-                            } else if let photoURL = authManager.currentUser?.photoURL,
-                                      let url = URL(string: photoURL) {
-                                KFImage(url)
-                                    .placeholder { placeholderWithCamera }
-                                    .onFailure { _ in }
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 120, height: 120)
-                                    .clipShape(Circle())
+                            } else if authManager.currentUser?.imageData != nil || !(authManager.currentUser?.photoURL ?? "").isEmpty {
+                                // 本機持久化的頭貼快取 or 遠端圖（跟 Product／QRCode 同一套 SyncableImageView）
+                                SyncableImageView(
+                                    imageData: authManager.currentUser?.imageData,
+                                    imageURL: authManager.currentUser?.photoURL,
+                                    entityId: UUID(),
+                                    entityType: .profile,
+                                    contentMode: .fill,
+                                    profileUid: authManager.currentUser?.uid
+                                )
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
                             } else {
                                 placeholderWithCamera
                             }

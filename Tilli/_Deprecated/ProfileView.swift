@@ -469,7 +469,7 @@ struct TilliProSheetView: View {
     #if DEBUG
     private func toggleMembership(toPro: Bool) async {
         guard let user = authManager.currentUser else { return }
-        let newMembership: UserProfile.Membership = toPro ? .pro : .free
+        let newMembership: UserProfileModel.Membership = toPro ? .pro : .free
         let expiryDate: Date? = toPro ? Calendar.current.date(byAdding: .year, value: 1, to: Date()) : nil
 
         do {

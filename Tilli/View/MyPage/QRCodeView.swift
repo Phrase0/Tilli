@@ -10,7 +10,6 @@ import SwiftUI
 struct QRCodeView: View {
 
     @EnvironmentObject var qrCodeDataManager: QRCodeRepository
-    @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var viewModel = QRCodeViewModel()
 
     var body: some View {
@@ -104,7 +103,7 @@ struct QRCodeView: View {
         }
         .onChange(of: viewModel.tempSelectedImage) {
             if let image = viewModel.tempSelectedImage {
-                viewModel.handleSelectedImage(image, qrCodeDataManager: qrCodeDataManager, authManager: authManager)
+                viewModel.handleSelectedImage(image, qrCodeDataManager: qrCodeDataManager)
             }
         }
         // 確定要刪除此收款碼嗎？

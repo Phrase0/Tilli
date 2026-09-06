@@ -462,6 +462,7 @@ class FirestoreDownloader {
         case .transaction: collectionName = Collection.transactions
         case .inventoryChange: collectionName = Collection.inventoryChanges
         case .qrCode: collectionName = Collection.qrCodes
+        case .userProfile: collectionName = "users"  // UserProfile 不走這條 Pro 即時監聽路徑，這裡只是滿足 switch 窮舉
         }
 
         let doc: DocumentSnapshot
@@ -537,6 +538,9 @@ class FirestoreDownloader {
             await MainActor.run {
                 saveQRCode(model, remoteUpdatedAt: remoteUpdatedAt, userId: userId)
             }
+
+        case .userProfile:
+            break  // UserProfile 不走這條 Pro 即時監聽路徑，同步邏輯在 SyncManager.syncUserProfile
         }
 
         return true
@@ -553,6 +557,8 @@ class FirestoreDownloader {
         case .transaction: entityName = "CDTransactionEntity"
         case .inventoryChange: entityName = "CDInventoryChangeEntity"
         case .qrCode: entityName = "CDQRCodeEntity"
+        // UserProfile 用 uid（字串）識別，不適用這裡以 UUID 查找的邏輯，也不會走這條 Pro 即時監聽路徑
+        case .userProfile: return
         }
 
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)

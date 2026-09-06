@@ -64,6 +64,21 @@
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="userId" optional="YES" attributeType="String"/>
     </entity>
+    <entity name="CDUserProfileEntity" representedClassName="CDUserProfileEntity" syncable="YES">
+        <attribute name="uid" attributeType="String"/>
+        <attribute name="email" attributeType="String" defaultValueString=""/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="photoURL" optional="YES" attributeType="String"/>
+        <attribute name="imageData" optional="YES" attributeType="Binary"/>
+        <attribute name="provider" attributeType="String"/>
+        <attribute name="accountStatus" attributeType="String"/>
+        <attribute name="membership" attributeType="String"/>
+        <attribute name="expiryDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="currentDeviceId" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="syncStatus" attributeType="String" defaultValueString="synced"/>
+    </entity>
     <entity name="CDEventEntity" representedClassName="CDEventEntity" syncable="YES">
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="currency" attributeType="String"/>

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RootTabView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @ObservedObject private var syncManager = SyncManager.shared
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
 
@@ -24,7 +25,9 @@ struct RootTabView: View {
                 mainView
             }
 
-            if authManager.isLoading {
+            // 全量下載完成前顯示轉圈圈，避免中途看到「尚無資料」的空畫面
+            // （例如刪除 App 重裝後，本機資料還沒補回來的那段時間）
+            if authManager.isLoading || syncManager.isDownloading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .allowsHitTesting(true)

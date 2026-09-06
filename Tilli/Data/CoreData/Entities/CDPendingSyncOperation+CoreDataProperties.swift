@@ -48,6 +48,7 @@ enum SyncEntityType: String {
     case transaction = "transaction"
     case inventoryChange = "inventoryChange"
     case qrCode = "qrCode"
+    case userProfile = "userProfile"
 }
 
 // MARK: - 同步狀態

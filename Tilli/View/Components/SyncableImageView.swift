@@ -14,11 +14,13 @@ import CoreData
 enum ImageEntityType {
     case product  // 200x200 JPEG 壓縮
     case qrCode   // 512x512 PNG 無損
+    case profile  // 200x200 JPEG 壓縮
 
     var imageType: ImageType {
         switch self {
         case .product: return .thumbnail
         case .qrCode: return .qrCode
+        case .profile: return .thumbnail
         }
     }
 
@@ -26,6 +28,7 @@ enum ImageEntityType {
         switch self {
         case .product: return "CDProductEntity"
         case .qrCode: return "CDQRCodeEntity"
+        case .profile: return "CDUserProfileEntity"
         }
     }
 }
@@ -40,6 +43,8 @@ struct SyncableImageView: View {
     let entityId: UUID
     let entityType: ImageEntityType
     let contentMode: SwiftUI.ContentMode
+    /// 只有 entityType == .profile 才需要：CDUserProfileEntity 是用 uid（字串）識別，不是 UUID
+    var profileUid: String? = nil
 
     var body: some View {
         if let data = imageData, let uiImage = UIImage(data: data) {
@@ -55,7 +60,7 @@ struct SyncableImageView: View {
                 }
                 .onSuccess { result in
                     // 回寫 CoreData
-                    saveImageLocally(result.image, entityId: entityId, entityType: entityType)
+                    saveImageLocally(result.image, entityId: entityId, entityType: entityType, profileUid: profileUid)
                 }
                 .onFailure { _ in }
                 .resizable()
@@ -72,14 +77,18 @@ struct SyncableImageView: View {
     }
 
     /// 將下載的圖片處理後存入 CoreData
-    private func saveImageLocally(_ image: UIImage, entityId: UUID, entityType: ImageEntityType) {
+    private func saveImageLocally(_ image: UIImage, entityId: UUID, entityType: ImageEntityType, profileUid: String?) {
         guard let processedData = ImageSyncService.shared.processImageForLocal(image, type: entityType.imageType) else { return }
 
         let context = PersistenceController.shared.container.viewContext
 
         Task { @MainActor in
             let request = NSFetchRequest<NSManagedObject>(entityName: entityType.entityName)
-            request.predicate = NSPredicate(format: "id == %@", entityId as CVarArg)
+            if entityType == .profile, let uid = profileUid {
+                request.predicate = NSPredicate(format: "uid == %@", uid)
+            } else {
+                request.predicate = NSPredicate(format: "id == %@", entityId as CVarArg)
+            }
 
             do {
                 if let entity = try context.fetch(request).first {

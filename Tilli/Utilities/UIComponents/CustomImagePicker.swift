@@ -37,12 +37,23 @@ struct CustomImagePicker: UIViewControllerRepresentable {
         }
 
         private func cropToSquare(image: UIImage) -> UIImage {
-            let size = min(image.size.width, image.size.height)
-            let origin = CGPoint(x: (image.size.width - size) / 2, y: (image.size.height - size) / 2)
+            // 先正規化方向，理由同 ImageSyncService.resizeImageToSquare：image.size 是校正過的顯示尺寸，
+            // .cgImage 是未校正的原始像素，直接用前者的座標裁後者，非 .up 方向的照片會裁到錯的位置。
+            let normalized = normalizedOrientation(image)
+            let size = min(normalized.size.width, normalized.size.height)
+            let origin = CGPoint(x: (normalized.size.width - size) / 2, y: (normalized.size.height - size) / 2)
             let cropRect = CGRect(origin: origin, size: CGSize(width: size, height: size))
 
-            guard let cgImage = image.cgImage?.cropping(to: cropRect) else { return image }
-            return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+            guard let cgImage = normalized.cgImage?.cropping(to: cropRect) else { return normalized }
+            return UIImage(cgImage: cgImage, scale: normalized.scale, orientation: .up)
+        }
+
+        private func normalizedOrientation(_ image: UIImage) -> UIImage {
+            guard image.imageOrientation != .up else { return image }
+            let renderer = UIGraphicsImageRenderer(size: image.size)
+            return renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: image.size))
+            }
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Kingfisher
 
 struct MyView: View {
 
@@ -153,19 +152,19 @@ struct MyView: View {
                     .scaledToFill()
                     .frame(width: 60, height: 60)
                     .clipShape(Circle())
-            } else if let photoURL = user.photoURL, !photoURL.isEmpty, let url = URL(string: photoURL) {
-                KFImage(url)
-                    .placeholder {
-                        ProgressView()
-                            .frame(width: 60, height: 60)
-                            .background(DesignSystem.ColorToken.quietFill)
-                            .clipShape(Circle())
-                    }
-                    .onFailure { _ in }
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 60, height: 60)
-                    .clipShape(Circle())
+            } else if user.imageData != nil || !(user.photoURL ?? "").isEmpty {
+                // 本機持久化的頭貼快取 or 遠端圖（跟 Product／QRCode 同一套 SyncableImageView：
+                // 下載成功會回寫 CoreData，離線也看得到，不用只靠 Kingfisher 自己的快取）
+                SyncableImageView(
+                    imageData: user.imageData,
+                    imageURL: user.photoURL,
+                    entityId: UUID(),
+                    entityType: .profile,
+                    contentMode: .fill,
+                    profileUid: user.uid
+                )
+                .frame(width: 60, height: 60)
+                .clipShape(Circle())
             } else {
                 nameInitialsView(name: user.name)
             }
@@ -283,7 +282,7 @@ struct MyView: View {
     private var signOutSection: some View {
         VStack(spacing: DesignSystem.Spacing.sm) {
             // 登出
-            Button(action: { authManager.signOut() }) {
+            Button(action: { Task { await authManager.requestSignOut() } }) {
                 HStack(spacing: DesignSystem.Spacing.xs) {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                     // 登出
@@ -297,9 +296,15 @@ struct MyView: View {
                 .background(DesignSystem.ColorToken.quietFill)
                 .cornerRadius(DesignSystem.Radius.md)
             }
+            .disabled(authManager.isLoading)
 
             // 刪除帳號
-            Button(action: { showDeleteAccountAlert = true }) {
+            Button(action: {
+                // 離線時不進入確認流程，直接跳網路提示
+                if authManager.canAttemptDeleteAccount() {
+                    showDeleteAccountAlert = true
+                }
+            }) {
                 // 刪除帳號
                 Text("myDeleteAccount")
                     .font(DesignSystem.Typography.caption)
@@ -317,6 +322,28 @@ struct MyView: View {
         } message: {
             // 帳號刪除後所有資料將永久消失，且無法復原。
             Text("myDeleteAccountMessage")
+        }
+        // 離線時無法刪除帳號的通知
+        .alert("commonReminder", isPresented: Binding(
+            get: { authManager.deleteAccountBlockedMessage != nil },
+            set: { isPresented in
+                if !isPresented { authManager.deleteAccountBlockedMessage = nil }
+            }
+        )) {
+            Button("commonOK") { }
+        } message: {
+            Text(authManager.deleteAccountBlockedMessage ?? "")
+        }
+        // 有資料尚未同步，登出前的警告
+        .alert("mySignOutDataLossTitle", isPresented: $authManager.showSignOutDataLossWarning) {
+            // 取消
+            Button("commonCancel", role: .cancel) { }
+            // 仍要登出
+            Button("mySignOutAnyway", role: .destructive) {
+                authManager.signOut()
+            }
+        } message: {
+            Text("mySignOutDataLossMessage \(authManager.pendingUnsyncedCount)")
         }
     }
 

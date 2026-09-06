@@ -28,11 +28,17 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Published Properties
     @Published var authState: AuthState = .loading
-    @Published var currentUser: UserProfile?
+    @Published var currentUser: UserProfileModel?
     @Published var localProfileImage: UIImage?  // 暫存本地圖片，優先顯示
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showDeviceConflictAlert = false
+    @Published var kickOtherDeviceErrorMessage: String?
+    @Published var deleteAccountBlockedMessage: String?
+
+    // 登出前檢查「是否有資料尚未同步」用
+    @Published var showSignOutDataLossWarning = false
+    @Published var pendingUnsyncedCount = 0
 
     // MARK: - Dependencies
     private let userRepository = UserRepository()
@@ -42,6 +48,10 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // 標記正在執行登入流程，防止 authStateListener 提前干擾
     private var isSigningIn = false
+
+    // 標記正在執行登出流程，防止使用者連點登出按鈕時 requestSignOut() 被重入
+    // （重入會讓第二次呼叫跳過同步、直接清空本機資料，跟第一次呼叫還沒跑完的佇列處理互撞）
+    private var isSigningOut = false
 
     // MARK: - Device ID
     var currentDeviceId: String {
@@ -80,7 +90,7 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - 設定本機 Guest 狀態
     private func setupLocalGuest() {
-        currentUser = UserProfile.createLocal()
+        currentUser = UserProfileModel.createLocal()
         authState = .guest
     }
 
@@ -99,23 +109,50 @@ class AuthenticationManager: NSObject, ObservableObject {
 
         // 只有在沒有本地資料時才從 Firestore 讀取（例如 App 啟動時）
         do {
-            if let userProfile = try await userRepository.getUser(uid: user.uid) {
-                // 檢查 Pro 會員是否過期
-                var profile = userProfile
-                if profile.isProExpired {
-                    profile.membership = .free
-                    try await userRepository.updateMembership(uid: profile.uid, membership: .free, expiryDate: nil)
-                }
-                self.currentUser = profile
-                updateAuthState()
-
-                // App 啟動時，如果是 member 就設定會員等級 + 初始化同步環境
-                if profile.accountStatus == .member {
-                    SyncManager.shared.setMembership(profile.membership)
-                    await SyncManager.shared.initializeSync()
-                }
-            } else {
+            guard let userProfile = try await userRepository.getUser(uid: user.uid) else {
                 setupLocalGuest()
+                return
+            }
+
+            // 檢查 Pro 會員是否過期
+            var profile = userProfile
+            if profile.isProExpired {
+                profile.membership = .free
+                try await userRepository.updateMembership(uid: profile.uid, membership: .free, expiryDate: nil)
+            }
+
+            // LWW：本地如果有還沒上傳成功的個人資料編輯，姓名/大頭貼用本地版本，
+            // 不要被剛從 Firestore 抓回來的舊資料蓋掉（跟 FirestoreDownloader.saveProduct 同一套比較方式）
+            let hasNewerLocalEdit: Bool
+            if let local = userRepository.loadLocalUserProfile(uid: user.uid), local.updatedAt > profile.updatedAt {
+                profile.name = local.name
+                profile.photoURL = local.photoURL
+                profile.updatedAt = local.updatedAt
+                hasNewerLocalEdit = true
+            } else {
+                hasNewerLocalEdit = false
+            }
+
+            self.currentUser = profile
+            userRepository.saveUserProfileLocally(profile, syncStatus: hasNewerLocalEdit ? .pending : .synced)
+            updateAuthState()
+
+            // App 啟動時，如果是 member 就設定會員等級 + 初始化同步環境
+            if profile.accountStatus == .member {
+                SyncManager.shared.setMembership(profile.membership)
+                await SyncManager.shared.initializeSync()
+
+                // 本機沒有這個帳號的資料、但雲端帳號存在 → 大機率是刪除 App 重裝，補一次全量下載
+                if !SyncManager.shared.hasLocalData(for: user.uid) {
+                    await SyncManager.shared.performFullSync()
+                }
+
+                // 本地個人資料還有沒上傳成功的編輯，順便重試一次
+                // imageChanged 給 true：這裡是在補救一筆已知還沒同步成功的舊編輯，
+                // 如果那次編輯有換頭貼，就該連頭貼一起重新嘗試上傳
+                if hasNewerLocalEdit {
+                    SyncManager.shared.syncUserProfile(profile, imageChanged: true)
+                }
             }
         } catch {
             print("Error fetching user profile: \(error)")
@@ -141,6 +178,11 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Google 登入
     func signInWithGoogle() async {
+        guard NetworkMonitor.shared.isConnected else {
+            errorMessage = String.localized("authNetworkRequiredForSignIn")
+            return
+        }
+
         isSigningIn = true
         isLoading = true
         errorMessage = nil
@@ -166,6 +208,11 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Apple 登入
     func signInWithApple() {
+        guard NetworkMonitor.shared.isConnected else {
+            errorMessage = String.localized("authNetworkRequiredForSignIn")
+            return
+        }
+
         isSigningIn = true
         isLoading = true
         errorMessage = nil
@@ -293,15 +340,15 @@ class AuthenticationManager: NSObject, ObservableObject {
     }
 
     // MARK: - 處理登入成功
-    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfile.AuthProvider) async {
+    private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfileModel.AuthProvider) async {
         do {
             // 1. 檢查本地是否有 LocalUser 資料
-            let localHasData = SyncManager.shared.hasLocalData(for: UserProfile.guestUserId)
+            let localHasData = SyncManager.shared.hasLocalData(for: UserProfileModel.guestUserId)
 
             // 2. 檢查雲端是否有資料
             let cloudHasData = await SyncManager.shared.hasCloudData(userId: user.uid)
 
-            // 3. 建立 / 更新 UserProfile
+            // 3. 建立 / 更新 UserProfileModel
             if let profile = try await userRepository.getUser(uid: user.uid) {
                 self.currentUser = profile
                 // Pro 會員允許多裝置同時登入，不覆蓋 deviceId
@@ -310,7 +357,7 @@ class AuthenticationManager: NSObject, ObservableObject {
                 }
             } else {
                 let email = user.email ?? ""
-                let newProfile = UserProfile(
+                let newProfile = UserProfileModel(
                     uid: user.uid,
                     email: email,
                     name: "",
@@ -326,9 +373,15 @@ class AuthenticationManager: NSObject, ObservableObject {
                 self.currentUser = newProfile
             }
 
+            // 登入成功後立刻補寫本地快取，跟其他寫入 currentUser 的路徑（handleAuthStateChanged／updateProfile）一致，
+            // 避免登出後 clearAllLocalData() 清空快取、下次登入這個 uid 在本機是空的
+            if let user = currentUser {
+                userRepository.saveUserProfileLocally(user, syncStatus: .synced)
+            }
+
             // 4. 如果本地有 LocalUser 資料，遷移 userId
             if localHasData {
-                SyncManager.shared.updateAllUserIds(from: UserProfile.guestUserId, to: user.uid)
+                SyncManager.shared.updateAllUserIds(from: UserProfileModel.guestUserId, to: user.uid)
             }
 
             // 5. 設定會員等級到 SyncManager
@@ -359,9 +412,20 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - 刪除帳號前檢查網路（給 UI 在跳出確認對話框之前呼叫）
+    /// 離線時不可以刪除帳號；回傳 false 時 `deleteAccountBlockedMessage` 已經設定好通知內容。
+    func canAttemptDeleteAccount() -> Bool {
+        guard NetworkMonitor.shared.isConnected else {
+            deleteAccountBlockedMessage = String.localized("authNetworkRequiredForDeleteAccount")
+            return false
+        }
+        return true
+    }
+
     // MARK: - 刪除帳號
     func deleteAccount() async {
         guard Auth.auth().currentUser != nil else { return }
+        guard canAttemptDeleteAccount() else { return }
         isLoading = true
         errorMessage = nil
 
@@ -386,6 +450,44 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
 
         isLoading = false
+    }
+
+    // MARK: - 登出前檢查（離線且有殘留資料時跳警告，仍可選擇登出；有網路則同步完直接登出，不跳警告）
+    /// 給 UI 呼叫的登出入口。有網路時先同步（轉圈），同步完直接登出；
+    /// 沒網路才需要使用者決定是否仍要冒著資料遺失的風險登出（`signOut()` 才是真的執行登出）。
+    func requestSignOut() async {
+        guard !isSigningOut else { return }
+        isSigningOut = true
+        defer { isSigningOut = false }
+
+        guard NetworkMonitor.shared.isConnected else {
+            // 未同步資料 = 已經失敗排進佇列的（pendingOperationCount）+ 還在飛、還不知道成功失敗的（inFlightSyncCount）。
+            // 少算後者的話，剛存檔就立刻登出會因為 Task 還沒跑完而誤判成「沒有未同步資料」。
+            let count = SyncManager.shared.pendingOperationCount() + SyncManager.shared.inFlightSyncCount
+            guard count > 0 else {
+                signOut()
+                return
+            }
+            pendingUnsyncedCount = count
+            showSignOutDataLossWarning = true
+            return
+        }
+
+        isLoading = true
+        await SyncManager.shared.processPendingQueue()
+        // 有網路就真的等到還在飛的同步全部跑完再登出，不設逾時放棄——
+        // 逾時放棄等於讓本機資料清除、Firebase 登出跟這些還沒寫完的同步請求並行，
+        // 圖片可能傳到 Storage 卻沒機會把新 URL 寫回 Firestore，下次登入讀到的就是舊版。
+        await waitForInFlightSyncToFinish()
+        isLoading = false
+        signOut()
+    }
+
+    /// 等待還在飛的同步 Task 自然完成（通常就一兩個網路請求，很快）
+    private func waitForInFlightSyncToFinish() async {
+        while SyncManager.shared.inFlightSyncCount > 0 {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
     }
 
     // MARK: - 登出
@@ -429,38 +531,47 @@ class AuthenticationManager: NSObject, ObservableObject {
     // MARK: - 踢掉其他裝置（更新 Device ID）
     func kickOtherDevice() async {
         guard let user = currentUser else { return }
+        kickOtherDeviceErrorMessage = nil
+
+        // 原本的衝突 alert 一按按鈕就會關閉，這裡的錯誤要另外顯示，不能沿用同一個 alert
+        guard NetworkMonitor.shared.isConnected else {
+            kickOtherDeviceErrorMessage = String.localized("authKickOtherDeviceNoNetwork")
+            showDeviceConflictAlert = true
+            return
+        }
 
         do {
             try await userRepository.updateDeviceId(uid: user.uid, deviceId: currentDeviceId)
             showDeviceConflictAlert = false
         } catch {
             print("Error kicking other device: \(error)")
+            kickOtherDeviceErrorMessage = String.localized("authKickOtherDeviceFailed")
+            showDeviceConflictAlert = true
         }
     }
 
-    // MARK: - 更新個人資料
-    func updateProfile(name: String?, photoURL: String?, localImage: UIImage? = nil) async {
+    // MARK: - 更新個人資料（本地優先：一定成功，不管有沒有網路；頭貼的實際上傳交給 SyncManager 背景處理）
+    func updateProfile(name: String?, image: UIImage? = nil) async {
         guard var user = currentUser else { return }
 
-        do {
-            try await userRepository.updateProfile(uid: user.uid, name: name, photoURL: photoURL)
+        // 只有這次真的換了新頭貼才需要重新上傳，跟商品的 imageChanged 邏輯一致，
+        // 避免每次只改名字，也把同一張沒變過的頭貼重新上傳一次
+        let imageChanged = image != nil
 
-            if let name = name {
-                user.name = name
-            }
-            if let photoURL = photoURL {
-                user.photoURL = photoURL
-            }
-            self.currentUser = user
-
-            if let localImage = localImage {
-                self.localProfileImage = localImage
-            }
-
-            updateAuthState()
-        } catch {
-            print("Error updating profile: \(error)")
+        if let name = name {
+            user.name = name
         }
+        if let image = image {
+            user.image = image
+            self.localProfileImage = image
+        }
+        user.updatedAt = Date()
+
+        self.currentUser = user
+        userRepository.saveUserProfileLocally(user, syncStatus: .pending)
+        updateAuthState()
+
+        SyncManager.shared.syncUserProfile(user, imageChanged: imageChanged)
     }
 
     // MARK: - 錯誤訊息轉換

@@ -81,14 +81,6 @@ struct SignInView: View {
                 }
                 .padding(.horizontal, DesignSystem.Spacing.lg)
 
-                if let errorMessage = authManager.errorMessage, !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.alertRed)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, DesignSystem.Spacing.lg)
-                }
-
                 Spacer()
             }
         }
@@ -99,6 +91,17 @@ struct SignInView: View {
             if newState == .needsSetup || newState == .ready {
                 dismiss()
             }
+        }
+        // 登入失敗（含離線）跳 alert，不在畫面下方顯示文字
+        .alert("commonReminder", isPresented: Binding(
+            get: { !(authManager.errorMessage ?? "").isEmpty },
+            set: { isPresented in
+                if !isPresented { authManager.errorMessage = nil }
+            }
+        )) {
+            Button("commonOK") { }
+        } message: {
+            Text(authManager.errorMessage ?? "")
         }
     }
 }

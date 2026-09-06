@@ -13,12 +13,12 @@ class QRCodeViewModel: ObservableObject {
     @Published var tempSelectedImage: UIImage?
     @Published var showDeleteAlert = false
 
-    /// 將選好的圖片存成 QRCodeModel，並非同步上傳、回填圖片 URL
+    /// 將選好的圖片存成 QRCodeModel。本地優先：一定成功；實際上傳交給 SyncManager 背景處理
+    /// （跟商品、個人資料同一套模式，離線或失敗會自動排進佇列重試，不會像之前那樣失敗了也沒人知道）
     @MainActor
     func handleSelectedImage(
         _ image: UIImage,
-        qrCodeDataManager: QRCodeRepository,
-        authManager: AuthenticationManager
+        qrCodeDataManager: QRCodeRepository
     ) {
         var model = QRCodeModel(
             id: qrCodeDataManager.qrCode?.id ?? UUID(),
@@ -29,20 +29,6 @@ class QRCodeViewModel: ObservableObject {
         model.image = image
         qrCodeDataManager.saveQRCode(model)
         tempSelectedImage = nil
-
-        guard authManager.isLoggedIn else { return }
-
-        Task {
-            do {
-                let imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image)
-                guard authManager.isLoggedIn else { return }
-                await MainActor.run {
-                    qrCodeDataManager.updateQRCodeImageURL(imageURL)
-                }
-            } catch {
-                print("QRCode image upload failed: \(error)")
-            }
-        }
     }
 
     func deleteQRCode(qrCodeDataManager: QRCodeRepository) {

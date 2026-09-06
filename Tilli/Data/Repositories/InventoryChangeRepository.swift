@@ -28,7 +28,7 @@ class InventoryChangeRepository: ObservableObject {
         }
         let entity = CDInventoryChangeEntity(context: context)
         entity.update(from: change, context: context)
-        entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+        entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         entity.syncStatus = "pending"
         entity.event = eventEntity
         entity.eventId = eventId
@@ -45,7 +45,7 @@ class InventoryChangeRepository: ObservableObject {
             print("Event not found for id: \(eventId)")
             return
         }
-        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+        let currentUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         for change in changes {
             let entity = CDInventoryChangeEntity(context: context)
             entity.update(from: change, context: context)

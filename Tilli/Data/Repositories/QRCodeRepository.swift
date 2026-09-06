@@ -67,7 +67,7 @@ class QRCodeRepository: ObservableObject {
 
         let entity = CDQRCodeEntity(context: context)
         entity.update(from: model, context: context)
-        entity.userId = Auth.auth().currentUser?.uid ?? UserProfile.guestUserId
+        entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         entity.updatedAt = Date()
         entity.syncStatus = "pending"
 
@@ -82,33 +82,6 @@ class QRCodeRepository: ObservableObject {
         }
     }
 
-    /// 圖片上傳 Storage 成功後，更新 imageURL
-    func updateQRCodeImageURL(_ imageURL: String) {
-        guard var model = qrCode else { return }
-
-        let request: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", model.id as CVarArg)
-
-        do {
-            let results = try context.fetch(request)
-            if let entity = results.first {
-                entity.imageURL = imageURL
-                entity.updatedAt = Date()
-                saveContext()
-
-                model.imageURL = imageURL
-                DispatchQueue.main.async {
-                    self.qrCode = model
-                }
-
-                Task { @MainActor in
-                    SyncManager.shared.syncQRCode(model, imageURL: imageURL)
-                }
-            }
-        } catch {
-            print("Update QR Code imageURL failed:", error)
-        }
-    }
 
     /// 刪除 QR Code
     func deleteQRCode() {

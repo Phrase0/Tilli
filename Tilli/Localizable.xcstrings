@@ -1496,6 +1496,70 @@
         }
       }
     },
+    "authKickOtherDeviceFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to sign out the other device. Please try again later."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登出其他裝置失敗，請稍後再試一次"
+          }
+        }
+      }
+    },
+    "authKickOtherDeviceNoNetwork" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No network connection. Please check your connection and try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前沒有網路連線，請確認網路狀態後再試一次"
+          }
+        }
+      }
+    },
+    "authNetworkRequiredForDeleteAccount" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleting your account requires a network connection. Please check your connection and try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除帳號需要網路連線，請確認網路狀態後再試一次"
+          }
+        }
+      }
+    },
+    "authNetworkRequiredForSignIn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in requires a network connection. Please check your connection and try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入需要網路連線，請確認網路狀態後再試一次"
+          }
+        }
+      }
+    },
     "calendarMonthSuffix %lld" : {
       "localizations" : {
         "en" : {
@@ -1768,22 +1832,6 @@
         }
       }
     },
-    "checkoutExactAmountButton" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exact Amount"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "免找零"
-          }
-        }
-      }
-    },
     "checkoutDateWarningDefault" : {
       "localizations" : {
         "en" : {
@@ -1844,6 +1892,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "電子支付"
+          }
+        }
+      }
+    },
+    "checkoutExactAmountButton" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exact Amount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免找零"
           }
         }
       }
@@ -4665,6 +4729,54 @@
         }
       }
     },
+    "mySignOutAnyway" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Out Anyway"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍要登出"
+          }
+        }
+      }
+    },
+    "mySignOutDataLossMessage %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No network connection, or %lld change(s) failed to sync. Signing out will clear local data and these changes will be permanently lost."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前無網路連線，或有 %lld 筆資料同步失敗。登出將清除本機資料，這些尚未上傳的異動會遺失且無法復原。"
+          }
+        }
+      }
+    },
+    "mySignOutDataLossTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unsynced Data"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚有資料未同步"
+          }
+        }
+      }
+    },
     "myTabTitle" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5423,6 +5535,7 @@
       }
     },
     "profileEditSaveError %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

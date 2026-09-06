@@ -114,15 +114,6 @@ class ImageSyncService {
         }
     }
 
-    /// 處理圖片並返回 UIImage（供 View 使用）
-    /// - Parameters:
-    ///   - image: 原始圖片
-    ///   - type: 圖片類型
-    /// - Returns: 處理後的 UIImage
-    func processImage(_ image: UIImage, type: ImageType) -> UIImage {
-        return resizeImageToSquare(image, targetSize: type.targetSize)
-    }
-
     // MARK: - Upload Product Image
 
     /// 上傳產品圖片
@@ -249,53 +240,6 @@ class ImageSyncService {
         }
     }
 
-    /// 刪除頭貼圖片
-    func deleteProfileImage(uid: String) async throws {
-        let path = profileImagePath(uid: uid)
-        let ref = storage.reference().child(path)
-
-        do {
-            try await ref.delete()
-        } catch {
-            let nsError = error as NSError
-            if nsError.domain == StorageErrorDomain &&
-                nsError.code == StorageErrorCode.objectNotFound.rawValue {
-                return
-            }
-            throw error
-        }
-    }
-
-    /// 根據 URL 刪除圖片
-    func deleteImageByURL(_ urlString: String) async throws {
-        guard !urlString.isEmpty else { return }
-
-        do {
-            let ref = storage.reference(forURL: urlString)
-            try await ref.delete()
-        } catch {
-            // 如果檔案不存在，不視為錯誤
-            let nsError = error as NSError
-            if nsError.domain == StorageErrorDomain &&
-                nsError.code == StorageErrorCode.objectNotFound.rawValue {
-                return
-            }
-            throw error
-        }
-    }
-
-    /// 批次刪除多個圖片
-    func deleteImages(urls: [String]) async {
-        for url in urls where !url.isEmpty {
-            do {
-                try await deleteImageByURL(url)
-            } catch {
-                // 記錄錯誤但繼續刪除其他圖片
-                print("刪除圖片失敗: \(url), error: \(error)")
-            }
-        }
-    }
-
     // MARK: - Image Processing
 
     /// 調整圖片為正方形並縮放到指定尺寸
@@ -304,7 +248,11 @@ class ImageSyncService {
     ///   - targetSize: 目標尺寸（寬高相同）
     /// - Returns: 調整後的正方形圖片
     private func resizeImageToSquare(_ image: UIImage, targetSize: CGFloat) -> UIImage {
-        let size = image.size
+        // 先把 imageOrientation 烘進實際像素資料。image.size 是照 imageOrientation 校正過的「顯示」尺寸，
+        // 但 .cgImage 是原始像素資料、不認得 imageOrientation；直接拿校正過的座標去裁未校正的像素，
+        // 遇到非 .up 方向的照片（例如直式拍攝的相機照片）就會裁到錯的位置。這裡先正規化，讓兩邊座標系統一致。
+        let normalized = normalizedOrientation(image)
+        let size = normalized.size
 
         // 1. 先裁切為正方形
         let squareSize = min(size.width, size.height)
@@ -314,11 +262,11 @@ class ImageSyncService {
         )
         let cropRect = CGRect(origin: origin, size: CGSize(width: squareSize, height: squareSize))
 
-        guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
-            return image
+        guard let cgImage = normalized.cgImage?.cropping(to: cropRect) else {
+            return normalized
         }
 
-        let croppedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        let croppedImage = UIImage(cgImage: cgImage, scale: normalized.scale, orientation: .up)
 
         // 2. 縮放到目標尺寸
         let newSize = CGSize(width: targetSize, height: targetSize)
@@ -331,64 +279,14 @@ class ImageSyncService {
         return resized
     }
 
-    // MARK: - Download Image
-
-    /// 從 URL 下載圖片
-    /// - Parameter urlString: 圖片 URL
-    /// - Returns: 下載的圖片，如果失敗則返回 nil
-    func downloadImage(from urlString: String) async -> UIImage? {
-        guard let url = URL(string: urlString) else { return nil }
-
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            return UIImage(data: data)
-        } catch {
-            print("下載圖片失敗: \(error)")
-            return nil
+    /// 把 imageOrientation 烘進實際像素資料（重新畫一次），讓 .cgImage 的座標系統跟 .size 一致
+    private func normalizedOrientation(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up else { return image }
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
         }
     }
 
-    /// 從 Storage 路徑下載圖片資料
-    /// - Parameter path: Storage 路徑
-    /// - Returns: 圖片資料
-    func downloadImageData(from path: String) async throws -> Data {
-        let ref = storage.reference().child(path)
-
-        // 最大下載 5MB
-        let maxSize: Int64 = 5 * 1024 * 1024
-        return try await ref.data(maxSize: maxSize)
-    }
-
-    // MARK: - Check Image Exists
-
-    /// 檢查產品圖片是否存在於 Storage
-    func productImageExists(productId: UUID) async -> Bool {
-        guard currentUserId != nil else { return false }
-
-        let path = productImagePath(productId: productId)
-        let ref = storage.reference().child(path)
-
-        do {
-            _ = try await ref.getMetadata()
-            return true
-        } catch {
-            return false
-        }
-    }
-
-    /// 檢查 QR Code 圖片是否存在於 Storage（固定路徑）
-    func qrCodeImageExists() async -> Bool {
-        guard currentUserId != nil else { return false }
-
-        let path = qrCodeImagePath()
-        let ref = storage.reference().child(path)
-
-        do {
-            _ = try await ref.getMetadata()
-            return true
-        } catch {
-            return false
-        }
-    }
 }
 

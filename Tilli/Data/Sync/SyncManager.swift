@@ -24,6 +24,7 @@ class SyncManager: ObservableObject {
     private let db = Firestore.firestore()
     private let uploader = FirestoreUploader.shared
     private let downloader = FirestoreDownloader.shared
+    private let userRepository = UserRepository()
 
     // MARK: - Published Properties
     @Published var isSyncing = false
@@ -31,9 +32,13 @@ class SyncManager: ObservableObject {
     @Published var downloadProgress: FirestoreDownloader.SyncProgress?
     @Published var lastSyncDate: Date?
     @Published var syncError: SyncError?
+    /// 正在執行中、尚未成功也還沒失敗的同步 Task 數量。
+    /// pendingOperationCount() 只看「已經失敗、排進佇列」的資料，這裡補上「還在飛」的資料，
+    /// 兩者相加才是「登出當下有沒有資料尚未確定送達雲端」的完整判斷。
+    @Published private(set) var inFlightSyncCount = 0
 
     // MARK: - Membership State
-    private var currentMembership: UserProfile.Membership = .free
+    private var currentMembership: UserProfileModel.Membership = .free
 
     // MARK: - Private State
     private var isProcessingQueue = false
@@ -55,7 +60,7 @@ class SyncManager: ObservableObject {
     // MARK: - Membership Control
 
     /// 設定會員等級（由 AuthenticationManager 呼叫）
-    func setMembership(_ membership: UserProfile.Membership) {
+    func setMembership(_ membership: UserProfileModel.Membership) {
         currentMembership = membership
         print("✅ SyncManager: 會員等級設定為 \(membership.rawValue)")
     }
@@ -102,6 +107,13 @@ class SyncManager: ObservableObject {
             if isConnected {
                 Task { @MainActor in
                     await SyncManager.shared.processPendingQueue()
+
+                    // 本機沒有這個帳號的資料、但帳號存在 → 補一次全量下載
+                    // （涵蓋「刪除 App 重裝時剛好離線」的情況：等網路一恢復就自動補齊，不用使用者做任何事）
+                    if let userId = SyncManager.shared.currentUserId,
+                       !SyncManager.shared.hasLocalData(for: userId) {
+                        await SyncManager.shared.performFullSync()
+                    }
                 }
             }
         }
@@ -135,6 +147,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     switch operation {
@@ -161,6 +175,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     if withChildren {
@@ -185,6 +201,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     try await uploader.uploadEventWithChildren(event)
@@ -207,6 +225,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     switch operation {
@@ -233,6 +253,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     if withProducts {
@@ -258,6 +280,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     // 若圖片有變更，先上傳到 Storage 取得新 URL
@@ -305,6 +329,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteProduct(productId)
@@ -325,6 +351,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteProductWithInventoryChanges(productId)
@@ -355,6 +383,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     try await uploader.uploadTransaction(transaction)
@@ -376,6 +406,8 @@ class SyncManager: ObservableObject {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     try await uploader.uploadInventoryChange(change, eventId: eventId)
@@ -393,12 +425,21 @@ class SyncManager: ObservableObject {
     // MARK: - QRCode Sync
 
     /// 同步 QRCode（統一用 setData upsert，不區分 create/update）
-    func syncQRCode(_ qrCode: QRCodeModel, imageURL: String? = nil) {
+    /// 圖片上傳的責任統一在這裡處理，跟 syncProduct／syncUserProfile 同一套模式：
+    /// 有本機還沒上傳的圖片就先上傳取得 URL，不假設呼叫端已經上傳好。
+    func syncQRCode(_ qrCode: QRCodeModel) {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
+                    var imageURL: String? = qrCode.imageURL
+                    if let image = qrCode.image {
+                        imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image)
+                        updateQRCodeImageURL(qrCodeId: qrCode.id, imageURL: imageURL)
+                    }
                     try await uploader.uploadQRCode(qrCode, imageURL: imageURL)
                     updateEntitySyncStatus(entityType: SyncEntityType.qrCode.rawValue, entityId: qrCode.id, status: .synced)
                     print("✅ QRCode 同步成功: \(qrCode.id)")
@@ -411,11 +452,28 @@ class SyncManager: ObservableObject {
         }
     }
 
+    /// 更新本機 CoreData 快取的 QRCode imageURL（上傳成功後呼叫，不動 imageData——本機圖繼續留著供離線顯示）
+    private func updateQRCodeImageURL(qrCodeId: UUID, imageURL: String?) {
+        let request: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", qrCodeId as CVarArg)
+
+        do {
+            if let entity = try context.fetch(request).first {
+                entity.imageURL = imageURL
+                try context.save()
+            }
+        } catch {
+            print("❌ updateQRCodeImageURL 失敗: \(error)")
+        }
+    }
+
     /// 同步刪除 QRCode（同時刪除 Storage 固定路徑圖片）
     func syncDeleteQRCode(_ qrCodeId: UUID) {
         guard isUserLoggedIn else { return }
 
         Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
             if isNetworkAvailable {
                 do {
                     try await uploader.deleteQRCode(qrCodeId)
@@ -427,6 +485,37 @@ class SyncManager: ObservableObject {
                 }
             } else {
                 enqueueOperation(entityType: .qrCode, entityId: qrCodeId, operationType: .delete, payload: nil)
+            }
+        }
+    }
+
+    // MARK: - UserProfile Sync
+
+    /// 同步使用者資料（本地優先：呼叫端已經先寫入本機，這裡只負責背景同步到 Firestore）
+    func syncUserProfile(_ profile: UserProfileModel, imageChanged: Bool = false) {
+        guard isUserLoggedIn else { return }
+
+        Task {
+            inFlightSyncCount += 1
+            defer { inFlightSyncCount -= 1 }
+            if isNetworkAvailable {
+                do {
+                    // 只有這次真的換了頭貼才重新上傳，跟 syncProduct 的 imageChanged 邏輯一致，
+                    // 避免只改名字也把同一張沒變過的頭貼重新上傳一次
+                    var photoURL: String? = profile.photoURL
+                    if imageChanged, let image = profile.image {
+                        photoURL = try await ImageSyncService.shared.uploadProfileImage(image, uid: profile.uid)
+                        userRepository.updateLocalUserProfilePhotoURL(uid: profile.uid, photoURL: photoURL)
+                    }
+                    try await userRepository.updateProfile(uid: profile.uid, name: profile.name, photoURL: photoURL)
+                    userRepository.updateLocalUserProfileSyncStatus(uid: profile.uid, status: .synced)
+                    print("✅ UserProfile 同步成功: \(profile.uid)")
+                } catch {
+                    print("❌ UserProfile 同步失敗: \(error)")
+                    enqueueUserProfileOperation(profile)
+                }
+            } else {
+                enqueueUserProfileOperation(profile)
             }
         }
     }
@@ -502,7 +591,22 @@ class SyncManager: ObservableObject {
         updateEntitySyncStatus(entityType: SyncEntityType.qrCode.rawValue, entityId: qrCode.id, status: .pending)
     }
 
+    /// UserProfile 用 uid（字串）識別，不是 entityId 那個 UUID，這裡的 entityId 只是佇列項目本身的識別碼，
+    /// 沒有語意上的用途——實際要同步的內容都在 payload 裡（含真正的 uid）。
+    private func enqueueUserProfileOperation(_ profile: UserProfileModel) {
+        if let payload = try? JSONEncoder().encode(profile) {
+            enqueueOperation(entityType: .userProfile, entityId: UUID(), operationType: .update, payload: payload)
+        }
+        userRepository.updateLocalUserProfileSyncStatus(uid: profile.uid, status: .pending)
+    }
+
     // MARK: - Pending Queue Operations
+
+    /// 待同步佇列筆數（登出前檢查「是否有資料尚未同步」用）
+    func pendingOperationCount() -> Int {
+        let request: NSFetchRequest<CDPendingSyncOperation> = CDPendingSyncOperation.fetchRequest()
+        return (try? context.count(for: request)) ?? 0
+    }
 
     /// 處理所有待同步的操作（網路恢復時呼叫）
     func processPendingQueue() async {
@@ -523,6 +627,10 @@ class SyncManager: ObservableObject {
                 do {
                     try await processOperation(op)
 
+                    // await 期間 MainActor 可能被別的地方（例如登出清空本機資料）搶走，
+                    // 把這筆 op 刪掉了——這裡先確認它還在 context 裡，才能繼續動它
+                    guard !op.isDeleted, op.managedObjectContext != nil else { continue }
+
                     // 成功：刪除這筆 pending operation
                     context.delete(op)
 
@@ -533,6 +641,8 @@ class SyncManager: ObservableObject {
                         status: .synced
                     )
                 } catch {
+                    guard !op.isDeleted, op.managedObjectContext != nil else { continue }
+
                     // 失敗：增加 retryCount，記錄 error
                     op.retryCount += 1
                     op.lastError = error.localizedDescription
@@ -609,7 +719,22 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.qrCode.rawValue:
             let model = try decoder.decode(QRCodeModel.self, from: payload)
-            try await uploader.uploadQRCode(model)
+            var imageURL: String? = model.imageURL
+            if let image = model.image {
+                imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image)
+                updateQRCodeImageURL(qrCodeId: model.id, imageURL: imageURL)
+            }
+            try await uploader.uploadQRCode(model, imageURL: imageURL)
+
+        case SyncEntityType.userProfile.rawValue:
+            let model = try decoder.decode(UserProfileModel.self, from: payload)
+            var photoURL: String? = model.photoURL
+            if let image = model.image {
+                photoURL = try await ImageSyncService.shared.uploadProfileImage(image, uid: model.uid)
+                userRepository.updateLocalUserProfilePhotoURL(uid: model.uid, photoURL: photoURL)
+            }
+            try await userRepository.updateProfile(uid: model.uid, name: model.name, photoURL: photoURL)
+            userRepository.updateLocalUserProfileSyncStatus(uid: model.uid, status: .synced)
 
         default:
             break
@@ -645,7 +770,22 @@ class SyncManager: ObservableObject {
 
         case SyncEntityType.qrCode.rawValue:
             let model = try decoder.decode(QRCodeModel.self, from: payload)
-            try await uploader.uploadQRCode(model)
+            var imageURL: String? = model.imageURL
+            if let image = model.image {
+                imageURL = try await ImageSyncService.shared.uploadQRCodeImage(image)
+                updateQRCodeImageURL(qrCodeId: model.id, imageURL: imageURL)
+            }
+            try await uploader.uploadQRCode(model, imageURL: imageURL)
+
+        case SyncEntityType.userProfile.rawValue:
+            let model = try decoder.decode(UserProfileModel.self, from: payload)
+            var photoURL: String? = model.photoURL
+            if let image = model.image {
+                photoURL = try await ImageSyncService.shared.uploadProfileImage(image, uid: model.uid)
+                userRepository.updateLocalUserProfilePhotoURL(uid: model.uid, photoURL: photoURL)
+            }
+            try await userRepository.updateProfile(uid: model.uid, name: model.name, photoURL: photoURL)
+            userRepository.updateLocalUserProfileSyncStatus(uid: model.uid, status: .synced)
 
         default:
             break
@@ -707,21 +847,12 @@ class SyncManager: ObservableObject {
 
     // MARK: - Helper Methods
 
-    /// 根據 entityType 取得 Firestore collection 名稱
-    private func getCollectionName(for entityType: String) -> String {
-        switch entityType {
-        case "event": return "events"
-        case "category": return "categories"
-        case "product": return "products"
-        case "transaction": return "transactions"
-        case "inventoryChange": return "inventoryChanges"
-        case "qrCode": return "qrCodes"
-        default: return entityType
-        }
-    }
-
     /// 更新實體的 syncStatus
     private func updateEntitySyncStatus(entityType: String, entityId: UUID, status: SyncStatus) {
+        // UserProfile 用 uid（字串）識別，這裡的 entityId 對它沒有語意，同步狀態
+        // 已經在 uploadEntity/updateEntity 的 userProfile 分支用 uid 直接處理過了
+        guard entityType != SyncEntityType.userProfile.rawValue else { return }
+
         let entityName = getEntityName(for: entityType)
 
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
@@ -773,11 +904,18 @@ class SyncManager: ObservableObject {
     /// 檢查 Firestore 是否有該用戶的資料（用於登入情境判斷）
     func hasCloudData(userId: String) async -> Bool {
         do {
-            let snapshot = try await db.collection("users").document(userId)
+            let eventsSnapshot = try await db.collection("users").document(userId)
                 .collection("events")
                 .limit(to: 1)
                 .getDocuments()
-            return !snapshot.documents.isEmpty
+            if !eventsSnapshot.documents.isEmpty { return true }
+
+            // 使用者可能只設定了收款 QRCode、還沒建立任何場次（跟 hasLocalData(for:) 的判斷對稱）
+            let qrCodesSnapshot = try await db.collection("users").document(userId)
+                .collection("qrCodes")
+                .limit(to: 1)
+                .getDocuments()
+            return !qrCodesSnapshot.documents.isEmpty
         } catch {
             print("❌ hasCloudData 查詢失敗: \(error)")
             return false
@@ -957,6 +1095,11 @@ class SyncManager: ObservableObject {
             let qrCodes = try context.fetch(qrRequest)
             qrCodes.forEach { context.delete($0) }
 
+            // 5. 刪除 CDUserProfileEntity（本機使用者資料快取，避免下次同一裝置換帳號登入時被舊快取誤導）
+            let profileRequest: NSFetchRequest<CDUserProfileEntity> = CDUserProfileEntity.fetchRequest()
+            let profiles = try context.fetch(profileRequest)
+            profiles.forEach { context.delete($0) }
+
             try context.save()
         } catch {
             print("❌ clearAllLocalData 失敗: \(error)")
@@ -1059,27 +1202,6 @@ class SyncManager: ObservableObject {
         }
     }
 
-    // MARK: - Sync with Retry
-
-    /// 帶重試機制的同步操作
-    func syncWithRetry(operation: () async throws -> Void, maxRetries: Int = 3) async throws {
-        var lastError: Error?
-
-        for attempt in 1...maxRetries {
-            do {
-                try await operation()
-                return // 成功
-            } catch {
-                lastError = error
-
-                // 指數退避
-                let delay = pow(2.0, Double(attempt)) // 2, 4, 8 秒
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            }
-        }
-
-        throw lastError ?? SyncError.unknown(NSError())
-    }
 }
 
 // MARK: - Notification Names

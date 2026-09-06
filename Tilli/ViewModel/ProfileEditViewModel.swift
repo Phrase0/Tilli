@@ -22,11 +22,11 @@ class ProfileEditViewModel: ObservableObject {
         isNameValid && !isSaving
     }
 
-    func loadExistingName(from user: UserProfile) {
+    func loadExistingName(from user: UserProfileModel) {
         name = user.name
     }
 
-    /// 上傳圖片並更新使用者資料，回傳是否成功
+    /// 更新使用者資料（本地優先：一定成功，不管有沒有網路；頭貼上傳交給 AuthenticationManager 背景處理）
     @discardableResult
     @MainActor
     func saveProfile(authManager: AuthenticationManager) async -> Bool {
@@ -35,26 +35,12 @@ class ProfileEditViewModel: ObservableObject {
         isSaving = true
         errorMessage = nil
 
-        do {
-            var photoURL: String? = nil
+        // 直接把選好的圖傳下去，只在 UserProfileModel.image 的 setter 裡處理一次，
+        // 不要在這裡先處理一次——商品、QRCode 都只處理一次，這裡也要一致，處理兩次會放大裁切誤差。
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        await authManager.updateProfile(name: trimmedName, image: selectedImage)
 
-            if let image = selectedImage,
-               let uid = authManager.currentUser?.uid {
-                photoURL = try await ImageSyncService.shared.uploadProfileImage(image, uid: uid)
-            }
-
-            let trimmedName = name.trimmingCharacters(in: .whitespaces)
-            let processedImage = selectedImage.map { ImageSyncService.shared.processImage($0, type: .thumbnail) }
-            await authManager.updateProfile(name: trimmedName, photoURL: photoURL, localImage: processedImage)
-
-            isSaving = false
-            return true
-
-        } catch {
-            isSaving = false
-            errorMessage = String.localized("profileEditSaveError \(error.localizedDescription)")
-            print("Save profile error: \(error)")
-            return false
-        }
+        isSaving = false
+        return true
     }
 }

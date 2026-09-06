@@ -1,26 +1,43 @@
 //
-//  UserProfile.swift
+//  UserProfileModel.swift
 //  Tilli
 //
 //  Created by Peiyun on 2025/1/20.
 //
 
-import Foundation
+import SwiftUI
 import FirebaseFirestore
 
-struct UserProfile: Identifiable, Codable, Equatable {
+struct UserProfileModel: Identifiable, Codable, Equatable {
     var id: String { uid }
 
     let uid: String
     var email: String
     var name: String
-    var photoURL: String?
+    var photoURL: String?            // 已上傳成功的雲端頭貼網址
+    var imageData: Data? = nil       // 本機頭貼資料（離線時先存這裡，等有網路再上傳取得 photoURL）
     let provider: AuthProvider
     var accountStatus: AccountStatus
     var membership: Membership
     var expiryDate: Date?
     let createdAt: Date
     var currentDeviceId: String?
+    var updatedAt: Date = Date()     // 供本地/雲端資料的 LWW（Last-Write-Wins）比較用
+
+    /// 本機頭貼（離線優先：編輯個人資料時先寫這裡，不管有沒有網路都會成功）
+    var image: UIImage? {
+        get {
+            guard let data = imageData else { return nil }
+            return UIImage(data: data)
+        }
+        set {
+            guard let newImage = newValue else {
+                imageData = nil
+                return
+            }
+            imageData = ImageSyncService.shared.processImageForLocal(newImage, type: .thumbnail)
+        }
+    }
 
     // MARK: - 認證提供者
     enum AuthProvider: String, Codable {
@@ -46,8 +63,8 @@ struct UserProfile: Identifiable, Codable, Equatable {
     static let guestUserId = "LocalUser"
 
     // MARK: - 建立本機 Guest 使用者
-    static func createLocal() -> UserProfile {
-        return UserProfile(
+    static func createLocal() -> UserProfileModel {
+        return UserProfileModel(
             uid: guestUserId,
             email: "",
             name: "",
@@ -82,7 +99,7 @@ struct UserProfile: Identifiable, Codable, Equatable {
 }
 
 // MARK: - Firestore 轉換
-extension UserProfile {
+extension UserProfileModel {
 
     // 從 Firestore Document 轉換
     init?(document: DocumentSnapshot) {
@@ -108,6 +125,7 @@ extension UserProfile {
         self.expiryDate = (data["expiryDate"] as? Timestamp)?.dateValue()
         self.createdAt = createdAtTimestamp.dateValue()
         self.currentDeviceId = data["currentDeviceId"] as? String
+        self.updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? createdAtTimestamp.dateValue()
     }
 
     // 轉換為 Firestore Dictionary
@@ -119,7 +137,8 @@ extension UserProfile {
             "provider": provider.rawValue,
             "accountStatus": accountStatus.rawValue,
             "membership": membership.rawValue,
-            "createdAt": Timestamp(date: createdAt)
+            "createdAt": Timestamp(date: createdAt),
+            "updatedAt": Timestamp(date: updatedAt)
         ]
 
         if let photoURL = photoURL {
