@@ -122,28 +122,32 @@ struct CashPaymentView: View {
                     }
                 }
             }
-
-            Spacer()
-
-            VStack(spacing: DesignSystem.Spacing.sm) {
-                Button {
-                    completePayment()
-                } label: {
-                    // 完成付款
-                    Text("checkoutCompleteButton")
-                        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignSystem.Spacing.md)
-                        .background(viewModel.isAmountValid
-                                    ? DesignSystem.ColorToken.buttonFilled
-                                    : DesignSystem.ColorToken.muted)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
-                }
-                .disabled(!viewModel.isAmountValid)
-            }
         }
         .padding()
+        .frame(maxHeight: .infinity, alignment: .top)
+        // 完成付款按鈕固定在畫面底部的安全區內，跟鍵盤/Home Indicator 的避讓是結構性的，
+        // 不依賴 VStack + Spacer 的隱式重算，第一次跳出鍵盤時位置就是穩的。
+        // 上面的內容改成靠上排列、不再用 Spacer 自己搶一份鍵盤避讓，
+        // 避免兩套避讓機制疊加，把按鈕位置多擠出一點點。
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                completePayment()
+            } label: {
+                // 完成付款
+                Text("checkoutCompleteButton")
+                    .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignSystem.Spacing.md)
+                    .background(viewModel.isAmountValid
+                                ? DesignSystem.ColorToken.buttonFilled
+                                : DesignSystem.ColorToken.muted)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+            }
+            .disabled(!viewModel.isAmountValid)
+            .padding(.horizontal)
+            .padding(.top, DesignSystem.Spacing.sm)
+        }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.focusedField = .receivedAmount

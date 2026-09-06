@@ -23,6 +23,13 @@ struct TilliApp: App {
 
     init() {
         FirebaseApp.configure()
+
+        // List/Form 底層是 UITableView，拖曳排序時「被搬走留下的空位」那一格
+        // 系統會用 UITableView/UITableViewCell 預設的白色背景畫，不吃
+        // .listRowBackground(Color.clear)。這裡把底層背景全域設透明，
+        // 讓 .scrollContentBackground(.hidden) 搭配的自訂背景在拖曳中也能正確透出。
+        UITableView.appearance().backgroundColor = .clear
+        UITableViewCell.appearance().backgroundColor = .clear
     }
 
     var body: some Scene {
