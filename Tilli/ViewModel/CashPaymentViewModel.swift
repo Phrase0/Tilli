@@ -107,6 +107,24 @@ class CashPaymentViewModel: ObservableObject {
         return filtered
     }
 
+    // MARK: - 自訂數字鍵盤輸入
+
+    /// 附加一個字元（數字或小數點），套用跟原本輸入框一致的驗證規則
+    func appendToReceivedAmount(_ character: String) {
+        receivedAmountText = validateAndFormatAmount(receivedAmountText + character)
+    }
+
+    /// 退格
+    func deleteLastDigit() {
+        guard !receivedAmountText.isEmpty else { return }
+        receivedAmountText.removeLast()
+    }
+
+    /// 免找零：直接把收到金額設為應付總額（四捨五入後），找零會是 0
+    func setExactAmount() {
+        receivedAmountText = MoneyHelper.toEditableString(roundedTotalAmount, currency: currentCurrency)
+    }
+
     init(totalAmount: Decimal, event: EventModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil, occurredAt: Date? = nil) {
         self.totalAmount = totalAmount
         self.event = event

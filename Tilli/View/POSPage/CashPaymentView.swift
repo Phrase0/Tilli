@@ -23,12 +23,6 @@ struct CashPaymentView: View {
 
     @AppStorage("calculatorEnabled") private var calculatorEnabled = true
 
-    enum FocusField: Hashable {
-        case receivedAmount
-    }
-
-    @FocusState private var focusedField: FocusField?
-
     init(
         totalAmount: Decimal,
         event: Binding<EventModel>,
@@ -54,9 +48,9 @@ struct CashPaymentView: View {
         }
     }
 
-    // MARK: - 完整計算機模式
+    // MARK: - 完整計算機模式（自訂數字鍵盤，不使用系統鍵盤，不需要處理彈出/收起的避讓）
     private var calculatorModeView: some View {
-        VStack(spacing: DesignSystem.Spacing.lg) {
+        VStack(spacing: DesignSystem.Spacing.md) {
             VStack(spacing: DesignSystem.Spacing.xs) {
                 // 總金額
                 Text("checkoutAmountLabel")
@@ -76,24 +70,17 @@ struct CashPaymentView: View {
                     .font(DesignSystem.Typography.body)
                     .foregroundColor(DesignSystem.ColorToken.muted)
 
-                TextField(viewModel.currencyPlaceholder, text: $viewModel.receivedAmountText)
-                    .keyboardType(viewModel.supportsDecimal ? .decimalPad : .numberPad)
+                // 純顯示用，實際輸入來自下方的自訂數字鍵盤
+                Text(viewModel.receivedAmountText.isEmpty ? viewModel.currencyPlaceholder : viewModel.receivedAmountText)
+                    .foregroundColor(viewModel.receivedAmountText.isEmpty
+                                     ? DesignSystem.ColorToken.muted
+                                     : DesignSystem.ColorToken.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
                             .stroke(DesignSystem.ColorToken.muted.opacity(0.3))
                     )
-                    .focused($focusedField, equals: .receivedAmount)
-                    .submitLabel(.done)
-                    .onChange(of: viewModel.receivedAmountText) {
-                        let validatedAmount = viewModel.validateAndFormatAmount(viewModel.receivedAmountText)
-                        if validatedAmount != viewModel.receivedAmountText {
-                            viewModel.receivedAmountText = validatedAmount
-                        }
-                    }
-                    .onSubmit {
-                        completePayment()
-                    }
             }
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
@@ -122,14 +109,27 @@ struct CashPaymentView: View {
                     }
                 }
             }
-        }
-        .padding()
-        .frame(maxHeight: .infinity, alignment: .top)
-        // 完成付款按鈕固定在畫面底部的安全區內，跟鍵盤/Home Indicator 的避讓是結構性的，
-        // 不依賴 VStack + Spacer 的隱式重算，第一次跳出鍵盤時位置就是穩的。
-        // 上面的內容改成靠上排列、不再用 Spacer 自己搶一份鍵盤避讓，
-        // 避免兩套避讓機制疊加，把按鈕位置多擠出一點點。
-        .safeAreaInset(edge: .bottom) {
+
+            // 免找零
+            Button {
+                viewModel.setExactAmount()
+            } label: {
+                Text("checkoutExactAmountButton")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(DesignSystem.ColorToken.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignSystem.Spacing.sm)
+                    .background(DesignSystem.ColorToken.quietFill)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
+            }
+
+            NumericKeypad(
+                showsDecimalPoint: viewModel.supportsDecimal,
+                onDigit: { viewModel.appendToReceivedAmount($0) },
+                onDecimalPoint: { viewModel.appendToReceivedAmount(".") },
+                onDelete: { viewModel.deleteLastDigit() }
+            )
+
             Button {
                 completePayment()
             } label: {
@@ -145,14 +145,8 @@ struct CashPaymentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
             }
             .disabled(!viewModel.isAmountValid)
-            .padding(.horizontal)
-            .padding(.top, DesignSystem.Spacing.sm)
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.focusedField = .receivedAmount
-            }
-        }
+        .padding()
         .navigationTitle("")
     }
 
@@ -204,9 +198,7 @@ struct CashPaymentView: View {
         )
         event = updateEvent
 
-        focusedField = nil
-
-          DispatchQueue.main.async {
+        DispatchQueue.main.async {
             closeFlow()
         }
     }
@@ -219,5 +211,66 @@ struct CashPaymentView: View {
         )
         event = updateEvent
         closeFlow()
+    }
+}
+
+// MARK: - 自訂數字鍵盤
+
+private struct NumericKeypad: View {
+    let showsDecimalPoint: Bool
+    let onDigit: (String) -> Void
+    let onDecimalPoint: () -> Void
+    let onDelete: () -> Void
+
+    private let digitRows: [[String]] = [
+        ["1", "2", "3"],
+        ["4", "5", "6"],
+        ["7", "8", "9"]
+    ]
+
+    var body: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            ForEach(digitRows, id: \.self) { row in
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    ForEach(row, id: \.self) { digit in
+                        keyButton(label: digit) { onDigit(digit) }
+                    }
+                }
+            }
+
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                if showsDecimalPoint {
+                    keyButton(label: ".") { onDecimalPoint() }
+                } else {
+                    Color.clear
+                }
+                keyButton(label: "0") { onDigit("0") }
+                keyButton(systemImage: "delete.left") { onDelete() }
+            }
+        }
+    }
+
+    private func keyButton(label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 22, weight: .medium))
+                .foregroundColor(DesignSystem.ColorToken.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(DesignSystem.ColorToken.quietFill)
+                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
+        }
+    }
+
+    private func keyButton(systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(DesignSystem.ColorToken.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(DesignSystem.ColorToken.quietFill)
+                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
+        }
     }
 }
