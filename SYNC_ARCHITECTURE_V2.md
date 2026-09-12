@@ -4,7 +4,18 @@
 > 取代對象：`SYNC_IMPLEMENTATION_PLAN.md`（設計）、`PRO_SYNC_BUGS.md`（見附錄 A）
 > 狀態：規劃完成，待實作
 >
+> 📐 **資料結構以 `ARCHITECTURE.md` 為準。**
+> 任何欄位的分類（即時值／快照／推導／純本機）、以及同步時怎麼處理，都看那份。
+> 本文件與它衝突時，以 `ARCHITECTURE.md` 為準。
+
 > **前提：App 尚未上架、沒有真實使用者，可以全部打掉重寫。**
+>
+> ## 🚨 開工前必讀
+>
+> **先看 `FEATURE_PLAN_V1.md` §14「待接同步清單」。**
+> 功能開發期間新增的資料結構刻意沒有接同步，全部登記在那張表。
+> 同時執行 `grep -rn "SYNC-PENDING" Tilli/` 撈出 code 內的標記，兩者交叉比對，
+> 確認沒有任何欄位被遺漏在雲端之外。
 > 因此本文件不追求「相容既有程式碼」，只追求「正確且沒有多餘的設計」。
 
 ---
@@ -329,6 +340,29 @@ users/{uid}
 
 > **重大變更**：現況 `ModelFirestoreExtensions.swift` 的 `updatedAt` 全部是 `Timestamp(date: Date())`（本機時鐘），必須全部改成 `FieldValue.serverTimestamp()`。裝置時鐘倒退會導致 cursor 漏抓資料。
 > 若需要顯示「使用者編輯的時間」，另存 `clientUpdatedAt`，不參與同步判斷。
+
+#### ⚠️ 流水帳也必須有 `updatedAt`（2026-09-12 補正）
+
+查核發現 **`Transaction` / `InventoryChange` 目前完全沒有 `updatedAt`** ——
+CoreData entity 沒有這個欄位，`ModelFirestoreExtensions.swift:187 / :271`
+的 `toFirestoreData` 也沒有寫入。
+
+這對**現況**是正確的（流水帳 append-only，下載用 skip-if-exists，不需要 LWW），
+但對 **pull-by-cursor 是致命的** —— 沒有 server-side 時間欄位就無法做增量下載，
+只能每次全抓，成本與正確性都會出問題。
+
+**修正**：
+
+| 項目 | 規則 |
+|------|------|
+| 欄位名 | **統一叫 `updatedAt`**（不要另外叫 `createdAt`），讓 `SyncableEntity.updatedAt` 對六個 collection 都成立，pull 不需要分支 |
+| 值 | 建立當下的 `FieldValue.serverTimestamp()` |
+| 之後 | **永不改變**（append-only 的語意：建立時間 = 最後更新時間） |
+| CoreData | `CDTransactionEntity` / `CDInventoryChangeEntity` 新增 `updatedAt: Date?`<br>✅ **已排入功能開發期處理**（`FEATURE_PLAN_V1.md` §14.3 第 1 項、執行順序 1.11），同步重構時欄位應該已經存在 |
+| LWW | 流水帳仍然**不參與 LWW**，`updatedAt` 純粹當 cursor 用 |
+
+> 連帶：`FEATURE_PLAN_V1.md` §2.7 的 `PendingSyncStamp` 會自動涵蓋這兩個 entity
+> （它會偵測 entity 有沒有 `updatedAt` 欄位），補上欄位後就會自動被設定。
 
 ### 6.3 `private/activeDevice`
 
@@ -1548,6 +1582,17 @@ iOS 購買 → StoreKit 2 簽名交易 → Cloud Function 向 Apple 驗證
 > **不做 Phase 0 止血。** App 未上架、沒有使用者要保護，而原本規劃的 9 項止血有約一半是白工（會被刪除的程式碼）。
 > 其中 4 項確實是新架構的基礎設施，已併入 Phase 1。
 
+### Phase 0 — 盤點（動手前先做，半天）
+
+| # | 項目 |
+|---|------|
+| 0.1 | 讀 `FEATURE_PLAN_V1.md` §14.2 登記表，列出所有「⬜ 未接」的項目 |
+| 0.2 | `grep -rn "SYNC-PENDING" Tilli/`，與登記表交叉比對，補上漏記的 |
+| 0.3 | 依 §3 三分類，替每一項決定合併策略（流水帳／文件／推導） |
+| 0.4 | 把結果併入 Phase 1.3 的 CoreData model 變更與 §6.2 的 Firestore schema |
+
+> 漏掉這一步的後果：某個欄位永遠只存在本機，使用者換裝置就消失，而且**沒有任何錯誤訊息**。
+
 ### Phase 1 — 基礎建設與資料模型
 
 | # | 項目 |
@@ -1907,4 +1952,6 @@ print("🔒 isHiddenEmail: \(result.user.email?.contains("privaterelay.appleid.c
 | 日期 | 變更 |
 |------|------|
 | 2026-09-10 | 初版 |
+| 2026-09-12 | 新增 Phase 0 盤點步驟與開工前必讀提示，交叉參照 `FEATURE_PLAN_V1.md` §14 |
+| 2026-09-12 | 補正：流水帳（Transaction / InventoryChange）也必須有 serverTimestamp 的 `updatedAt` 供 pull cursor 使用（見 §6.2）；新增與 `FEATURE_PLAN_V1.md` 的交互參照 |
 | 2026-09-11 | 大幅改寫：移除 Phase 0 止血（改為直接重寫）；新增 `SyncableEntity` 抽象與 `ImageAsset` 統一規格；新增多張收款 QR 卡片設計；新增完整 Account Linking；`physicalCount` 降級為未來項目；新增反正規化欄位的更新風暴處置；新增 `deletedAt` 過濾規則分場景；`isDisabled` 語意分離並取消「有交易紀錄不能刪」；附錄 A 從 bug 清單改寫為設計陷阱清單 |
