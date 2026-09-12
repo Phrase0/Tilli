@@ -1,16 +1,15 @@
 //
-//  SyncableImageView.swift
+//  EntityImageView.swift
 //  Tilli
 //
 //  Created by Peiyun on 2026/2/6.
-//  可重用圖片元件：本地優先 → KFImage fallback → 回寫 CoreData
+//  可重用圖片元件：本地優先 → 遠端 fallback → 交給 ImageCacheStore 快取
 //
 
 import SwiftUI
 import Kingfisher
-import CoreData
 
-/// 圖片 Entity 類型（決定圖片處理方式）
+/// 圖片 Entity 類型（決定壓縮規格與目標 entity）
 enum ImageEntityType {
     case product  // 200x200 JPEG 壓縮
     case qrCode   // 512x512 PNG 無損
@@ -33,11 +32,14 @@ enum ImageEntityType {
     }
 }
 
-/// 可同步的圖片元件
-/// 1. imageData 有值 → 顯示本地圖片
-/// 2. imageData 為 nil 但 imageURL 有值 → KFImage 顯示遠端，成功後回寫 CoreData
+/// 圖片元件
+/// 1. `imageData` 有值 → 顯示本地圖片
+/// 2. `imageData` 為 nil 但 `imageURL` 有值 → 下載遠端圖，成功後交給 `ImageCacheStore` 快取
 /// 3. 都沒有 → 灰色 placeholder
-struct SyncableImageView: View {
+///
+/// 註：同步層移除後 `imageURL` 目前一律為 nil，情況 2 暫時不會發生；
+/// 保留是因為重建同步後會再用到（見 ARCHITECTURE.md §4）。
+struct EntityImageView: View {
     let imageData: Data?
     let imageURL: String?
     let entityId: UUID
@@ -53,15 +55,23 @@ struct SyncableImageView: View {
                 .resizable()
                 .aspectRatio(contentMode: contentMode)
         } else if let urlString = imageURL, !urlString.isEmpty, let url = URL(string: urlString) {
-            // 2. 遠端圖片（KFImage）
+            // 2. 遠端圖片
             KFImage(url)
                 .placeholder {
                     ProgressView()
                 }
                 .onSuccess { result in
-                    // 回寫 CoreData
-                    saveImageLocally(result.image, entityId: entityId, entityType: entityType, profileUid: profileUid)
+                    Task { @MainActor in
+                        ImageCacheStore.shared.store(
+                            result.image,
+                            kind: entityType,
+                            id: entityId,
+                            profileUid: profileUid
+                        )
+                    }
                 }
+                // TODO: [SYNC-PENDING] 下載失敗目前沒有 fallback，會永遠停在 ProgressView。
+                // 重建同步後要補重試鍵或 placeholder（見 FEATURE_PLAN_V1.md 附錄 A.2 B2）
                 .onFailure { _ in }
                 .resizable()
                 .aspectRatio(contentMode: contentMode)
@@ -73,31 +83,6 @@ struct SyncableImageView: View {
                     Image(systemName: "photo")
                         .foregroundColor(.gray)
                 )
-        }
-    }
-
-    /// 將下載的圖片處理後存入 CoreData
-    private func saveImageLocally(_ image: UIImage, entityId: UUID, entityType: ImageEntityType, profileUid: String?) {
-        guard let processedData = ImageProcessor.processForLocal(image, type: entityType.imageType) else { return }
-
-        let context = PersistenceController.shared.container.viewContext
-
-        Task { @MainActor in
-            let request = NSFetchRequest<NSManagedObject>(entityName: entityType.entityName)
-            if entityType == .profile, let uid = profileUid {
-                request.predicate = NSPredicate(format: "uid == %@", uid)
-            } else {
-                request.predicate = NSPredicate(format: "id == %@", entityId as CVarArg)
-            }
-
-            do {
-                if let entity = try context.fetch(request).first {
-                    entity.setValue(processedData, forKey: "imageData")
-                    try context.save()
-                }
-            } catch {
-                print("❌ SyncableImageView 回寫圖片失敗: \(error)")
-            }
         }
     }
 }

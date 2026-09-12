@@ -111,14 +111,17 @@ struct EventsView: View {
         .navigationDestination(item: $selectedEvent) { event in
             EventWorkspaceView(
                 event: event,
-                initialTab: defaultWorkspaceTab(for: event, productRepository: productRepository)
+                initialTab: eventsVM.defaultWorkspaceTab(for: event)
             )
         }
         .animation(.easeInOut(duration: 0.3), value: eventsVM.isSelectionMode)
         .onAppear {
             // 從場次頁以外的頁面返回時（下一頁、設定頁等），一律收起鍵盤
             isSearchFocused = false
-            eventsVM.updateDataManagers(transactionDataManager: transactionDataManager)
+            eventsVM.updateDataManagers(
+                transactionDataManager: transactionDataManager,
+                productRepository: productRepository
+            )
             calendarVM.updateDataManagers(transactionDataManager: transactionDataManager)
         }
         .sheet(isPresented: $showAddEventSheet) {

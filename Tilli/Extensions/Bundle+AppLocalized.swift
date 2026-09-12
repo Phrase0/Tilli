@@ -1,3 +1,10 @@
+//
+//  Bundle+AppLocalized.swift
+//  Tilli
+//
+//  Created by Peiyun on 2025/9/16.
+//
+
 import Foundation
 
 extension Bundle {

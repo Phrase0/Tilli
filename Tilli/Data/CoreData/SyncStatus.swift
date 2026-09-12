@@ -2,6 +2,8 @@
 //  SyncStatus.swift
 //  Tilli
 //
+//  Created by Peiyun on 2026/9/12.
+//
 //  本機同步狀態標記。
 //  （由原 CDPendingSyncOperation+CoreDataProperties.swift 抽出）
 //

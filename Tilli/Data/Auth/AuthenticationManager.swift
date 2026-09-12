@@ -525,6 +525,30 @@ class AuthenticationManager: NSObject, ObservableObject {
         _ = imageChanged
     }
 
+    #if DEBUG
+    // MARK: - 開發用：切換會員等級
+    /// 只在 Debug build 存在，供 TilliProSheetView 的隱藏開關使用。
+    func toggleMembershipForDebug(toPro: Bool) async {
+        guard let user = currentUser else { return }
+        let newMembership: UserProfileModel.Membership = toPro ? .pro : .free
+        let expiryDate: Date? = toPro ? Calendar.current.date(byAdding: .year, value: 1, to: Date()) : nil
+
+        do {
+            try await userRepository.updateMembership(
+                uid: user.uid,
+                membership: newMembership,
+                expiryDate: expiryDate
+            )
+            currentUser?.membership = newMembership
+            currentUser?.expiryDate = expiryDate
+
+            // TODO: [SYNC-PENDING] 重建同步後，會員等級變更要連動 entitlement 與同步啟停
+        } catch {
+            print("❌ 切換會員等級失敗: \(error)")
+        }
+    }
+    #endif
+
     // MARK: - 錯誤訊息轉換
     private func getErrorMessage(from error: Error) -> String {
         let nsError = error as NSError

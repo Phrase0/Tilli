@@ -35,7 +35,7 @@ struct QRCodeView: View {
 
                                 if let qrCode = qrCodeDataManager.qrCode,
                                    (qrCode.imageData != nil || qrCode.imageURL != nil) {
-                                    SyncableImageView(
+                                    EntityImageView(
                                         imageData: qrCode.imageData,
                                         imageURL: qrCode.imageURL,
                                         entityId: qrCode.id,

@@ -29,9 +29,14 @@
 | **`ARCHITECTURE.md`**（本文件） | **資料結構的唯一真相**：每個欄位是什麼、同步時怎麼處理 | **任何時候要動資料結構** |
 | `FEATURE_PLAN_V1.md` | 本機功能階段的細節：24 項查核、7 個共用元件、折扣／組合套餐、測試 | 寫本機功能時 |
 | `SYNC_ARCHITECTURE_V2.md` | 同步階段的細節：Outbox、Pull-by-cursor、Device Handoff、訂閱 | 重建同步時 |
+| `CONVENTIONS.md` | **程式碼慣例的唯一真相**：資料夾結構、MVVM 規則、命名、檔案標頭、多語言 | 新增檔案、決定東西放哪 |
+| `DESIGN.md` | UI 視覺規範 | 做畫面時 |
 | `_archive:/` | 已被取代的舊規劃（SYNC_IMPLEMENTATION_PLAN、PRO_SYNC_BUGS、DISCOUNT_REFACTOR_PLAN、NAVIGATION_RESTRUCTURE_PLAN） | 不要看 |
 
-**規則：三份文件如果對同一件事有不同說法，以本文件為準。**
+**規則：**
+- **資料結構**（欄位怎麼分類、同步時怎麼處理）→ 以本文件為準
+- **程式碼位置與慣例**（放哪個資料夾、怎麼命名、MVVM 分界）→ 以 `CONVENTIONS.md` 為準
+- 其餘文件與這兩份衝突時，以這兩份為準
 
 ---
 
@@ -475,4 +480,5 @@ grep -rn "SYNC-PENDING" Tilli/
 | 日期 | 變更 |
 |------|------|
 | 2026-09-12 | 初版。全專案掃描：8 entity / 87 屬性 / 8 關聯，建立六種分類與完整分類表、驗證腳本、刪除同步層的執行清單 |
+| 2026-09-12 | 專案結構整理：26 個檔案搬移（ViewModel 依頁面分組、`Extension`→`Extensions`、`AuthenticationManager`→`Data/Auth/`、`LocalDataManager`→`Data/Local/`、`NetworkMonitor`→`Utilities/Helpers/`、`RootTabView`→`View/Root/`、合併兩個 UI 元件資料夾）；`SyncableImageView` 改名 `EntityImageView`；修正 3 處 MVVM 違規；補齊 5 個檔案標頭。詳見 `CONVENTIONS.md` |
 | 2026-09-12 | **執行 §8 刪除同步層**：刪 4,181 行、新增 3 個檔案、build 通過。補上初版漏掉的 `LocalDataManager`（三個純本機函式）。移除 `CDPendingSyncOperation` 段落。新增 §8.5 重建起點（20 處 SYNC-PENDING） |

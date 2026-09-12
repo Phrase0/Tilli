@@ -52,8 +52,8 @@ struct ProfileEditView: View {
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                             } else if authManager.currentUser?.imageData != nil || !(authManager.currentUser?.photoURL ?? "").isEmpty {
-                                // 本機持久化的頭貼快取 or 遠端圖（跟 Product／QRCode 同一套 SyncableImageView）
-                                SyncableImageView(
+                                // 本機持久化的頭貼快取 or 遠端圖（跟 Product／QRCode 同一套 EntityImageView）
+                                EntityImageView(
                                     imageData: authManager.currentUser?.imageData,
                                     imageURL: authManager.currentUser?.photoURL,
                                     entityId: UUID(),

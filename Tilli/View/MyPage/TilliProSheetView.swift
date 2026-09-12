@@ -59,7 +59,7 @@ struct TilliProSheetView: View {
                         get: { isPro },
                         set: { newValue in
                             Task {
-                                await toggleMembership(toPro: newValue)
+                                await authManager.toggleMembershipForDebug(toPro: newValue)
                             }
                         }
                     ))
@@ -83,23 +83,4 @@ struct TilliProSheetView: View {
         }
     }
 
-    #if DEBUG
-    private func toggleMembership(toPro: Bool) async {
-        guard let user = authManager.currentUser else { return }
-        let newMembership: UserProfileModel.Membership = toPro ? .pro : .free
-        let expiryDate: Date? = toPro ? Calendar.current.date(byAdding: .year, value: 1, to: Date()) : nil
-
-        do {
-            let userRepository = UserRepository()
-            try await userRepository.updateMembership(uid: user.uid, membership: newMembership, expiryDate: expiryDate)
-
-            authManager.currentUser?.membership = newMembership
-            authManager.currentUser?.expiryDate = expiryDate
-
-            // TODO: [SYNC-PENDING] 重建同步後，會員等級變更要連動 entitlement 與同步啟停
-        } catch {
-            print("❌ 切換會員等級失敗: \(error)")
-        }
-    }
-    #endif
 }

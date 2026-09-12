@@ -265,7 +265,7 @@ struct POSView: View {
         let currentQty = viewModel.quantity(for: product)
 
         return HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
-            SyncableImageView(
+            EntityImageView(
                 imageData: product.imageData,
                 imageURL: product.imageURL,
                 entityId: product.id,
@@ -343,7 +343,7 @@ struct POSView: View {
         let currentQty = viewModel.quantity(for: product)
 
         return VStack(alignment: .leading, spacing: 0) {
-            SyncableImageView(
+            EntityImageView(
                 imageData: product.imageData,
                 imageURL: product.imageURL,
                 entityId: product.id,

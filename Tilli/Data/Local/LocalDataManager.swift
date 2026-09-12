@@ -2,6 +2,8 @@
 //  LocalDataManager.swift
 //  Tilli
 //
+//  Created by Peiyun on 2026/9/12.
+//
 //  純本機的資料管理：歸戶、清除、存在性判斷。
 //  （由原 Data/Sync/SyncManager.swift 抽出 —— 這些是 CoreData 操作，跟雲端同步無關）
 //

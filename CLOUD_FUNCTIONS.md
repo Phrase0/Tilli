@@ -443,5 +443,5 @@ firebase functions:secrets:access APPLE_BUNDLE_ID     # 應只顯示一次 bundl
 | 檔案 | 說明 |
 |------|------|
 | `functions/src/index.ts` | Cloud Function 實作 |
-| `Tilli/Data/Repositories/AuthenticationManager.swift` | iOS 端呼叫邏輯 |
+| `Tilli/Data/Auth/AuthenticationManager.swift` | iOS 端呼叫邏輯 |
 | `Tilli/View/ProfilePage/ProfileView.swift` | 刪除帳號 UI 觸發點 |

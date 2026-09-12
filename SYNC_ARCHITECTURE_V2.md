@@ -1616,7 +1616,7 @@ iOS 購買 → StoreKit 2 簽名交易 → Cloud Function 向 Apple 驗證
 | 2.4 | **啟動時 reconcile**：掃描 `syncStatus != synced` 補進 outbox |
 | 2.5 | `push<T>()` 統一方法，刪除 uploader 的成對函式 |
 | 2.6 | 登出流程改寫（§9.6） |
-| 2.7 | `SyncableImageView` 下載失敗的 fallback（重試鍵 / placeholder） |
+| 2.7 | `EntityImageView` 下載失敗的 fallback（重試鍵 / placeholder） |
 
 ### Phase 3 — Pull（下載）
 
@@ -1866,7 +1866,7 @@ iOS 購買 → StoreKit 2 簽名交易 → Cloud Function 向 Apple 驗證
 | # | 問題 | 位置 | 排入 |
 |---|------|------|------|
 | B1 | `addChange` 找不到 Event 就靜默 `return`，初始庫存整筆遺失（本機＋雲端） | `InventoryChangeRepository.swift:25` | Phase 6.6 |
-| B2 | `SyncableImageView` 下載失敗永遠停在 `ProgressView`（`onFailure` 空實作） | `SyncableImageView.swift:62` | Phase 2.7 |
+| B2 | `EntityImageView` 下載失敗永遠停在 `ProgressView`（`onFailure` 空實作） | `View/Components/EntityImageView.swift` | Phase 2.7 |
 | B3 | `getErrorMessage` 未處理 `accountExistsWithDifferentCredential` | `AuthenticationManager.swift:578` | Phase 8.1 |
 | B4 | `CDQRCodeEntity.imageData` 非 optional，空值變 `Data()` 而非 nil | `CDQRCodeEntity+CoreDataProperties.swift:18` | Phase 7.1 |
 | B5 | `POSViewModel:45` 找不到 category 時商品被靜默隱藏（`nil == false`） | `POSViewModel.swift:45` | Phase 4.4 |

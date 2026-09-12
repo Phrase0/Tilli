@@ -24,9 +24,30 @@ class EventsViewModel: ObservableObject {
     @Published var hasEditedEventName = false
 
     private var transactionDataManager: TransactionRepository?
+    private var productRepository: ProductRepository?
 
-    func updateDataManagers(transactionDataManager: TransactionRepository) {
+    func updateDataManagers(
+        transactionDataManager: TransactionRepository,
+        productRepository: ProductRepository
+    ) {
         self.transactionDataManager = transactionDataManager
+        self.productRepository = productRepository
+    }
+
+    /// 依場次目前的狀態，決定進入工作區時預設停在哪個分頁。
+    ///
+    /// 場次尚未有任何商品時，不論狀態為何一律先進「管理商品」（沒東西可收銀、沒東西可分析）；
+    /// 否則依場次狀態：尚未開始 → 管理商品，進行中 → 開始收銀，已結束 → 查看分析。
+    func defaultWorkspaceTab(for event: EventModel) -> WorkspaceTab {
+        let hasProducts = productRepository
+            .map { !$0.fetchProducts(forEventId: event.id).isEmpty } ?? false
+        guard hasProducts else { return .inventory }
+
+        switch event.status {
+        case .upcoming:  return .inventory
+        case .ongoing:   return .pos
+        case .completed: return .reports
+        }
     }
 
     func transactionSummary(for event: EventModel) -> (count: Int, total: Decimal) {

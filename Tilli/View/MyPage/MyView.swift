@@ -153,9 +153,9 @@ struct MyView: View {
                     .frame(width: 60, height: 60)
                     .clipShape(Circle())
             } else if user.imageData != nil || !(user.photoURL ?? "").isEmpty {
-                // 本機持久化的頭貼快取 or 遠端圖（跟 Product／QRCode 同一套 SyncableImageView：
+                // 本機持久化的頭貼快取 or 遠端圖（跟 Product／QRCode 同一套 EntityImageView：
                 // 下載成功會回寫 CoreData，離線也看得到，不用只靠 Kingfisher 自己的快取）
-                SyncableImageView(
+                EntityImageView(
                     imageData: user.imageData,
                     imageURL: user.photoURL,
                     entityId: UUID(),

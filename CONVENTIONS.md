@@ -31,7 +31,17 @@ struct POSView: View {
 }
 ```
 
-**例外：** 子元件（非獨立頁面）可以用 `@ObservedObject` 接收父層的 ViewModel。判斷標準：如果這個 View 有自己的 NavigationStack push（是獨立頁面），就用 `@StateObject`；如果只是頁面內的一個元件，就用 `@ObservedObject`。
+**例外 1：** 子元件（非獨立頁面）可以用 `@ObservedObject` 接收父層的 ViewModel。判斷標準：如果這個 View 有自己的 NavigationStack push（是獨立頁面），就用 `@StateObject`；如果只是頁面內的一個元件，就用 `@ObservedObject`。
+
+**例外 2（場次工作區的共用資料源）：** 同一個場次底下的多個分頁（POS／庫存／報表）可以共用一個
+`EventDataSource`（`ObservableObject`），由場次工作區建立後往下傳，各分頁的 ViewModel 從它取資料。
+
+- **適用範圍僅限場次工作區內**，其他頁面一律遵守規則 1 與規則 2。
+- **理由**：這些分頁看的是同一份資料，各自 `onAppear` 重載會造成三個實際問題 ——
+  ① 商品每次現查、類別卻來自傳入的 `event` 快照，一新一舊；
+  ② 報表三個方法各自查一次 DB；
+  ③ `event` 的新鮮度機制不一致（POS 用 `@Binding`、庫存用值複製 + View 層 `onChange` 補救）。
+- 詳見 `FEATURE_PLAN_V1.md` §1.1（A2／A3／A5）與 §2.2。
 
 #### 規則 2：跨頁面資料同步一律走 `onAppear` + Repository 重新載入
 
@@ -104,17 +114,6 @@ struct POSView: View {
 
 - **放棄即時跨頁同步：** 例如在 POS 結帳後，WorkspaceView header 的營收數字不會即時更新，要等 pop 回去 `onAppear` 才更新。但因為 NavigationStack 一次只看一頁，用戶感知不到差異。
 - **每次進頁面都會重新載入：** 效能影響極小，因為都是 CoreData 本地查詢（毫秒級）。
-
----
-
-## 要移除的舊 pattern（重構時處理）
-
-| 舊 pattern | 所在檔案 | 替代方式 | 處理斷點 |
-|-----------|---------|---------|---------|
-| `EventDetailViewModel` 的 Combine `sink` 轉發 | `EventDetailViewModel.swift` | POSView/InventoryView 各自有獨立 VM | 斷點 6、7 |
-| `CalendarView` 的 `refreshID = UUID()` | `CalendarView.swift` | `onAppear` 重新載入 | 斷點 4 |
-| `@Binding var event` 層層傳遞 | `EventDetailView`, `ProductViewModel` | `let event` + Repository 直接更新 | 斷點 5 |
-| `onChange(of: transactionUpdateTrigger)` | `CalendarView.swift` | `onAppear` 重新載入 | 斷點 4 |
 
 ---
 
@@ -212,14 +211,22 @@ Text(viewModel.totalAmountText)
 
 ## ViewModel 命名規範
 
-| 頁面 | ViewModel | 檔案名 |
-|------|-----------|--------|
-| EventsView | EventsViewModel | EventsViewModel.swift |
-| POSView | ProductViewModel (沿用) | ProductDetailViewModel.swift (沿用) |
-| InventoryView | ProductViewModel (沿用，獨立 instance) | ProductDetailViewModel.swift (沿用) |
-| ReportsView | ReportsViewModel (新建) | ReportsViewModel.swift |
-| WorkspaceView | 無 ViewModel | — |
-| MyView | 無 ViewModel | — |
+**規則：`XxxView` ↔ `XxxViewModel`，檔案與 View 放在同名的頁面資料夾。**
+
+目前 15 個 View 與 15 個 ViewModel 完全一對一（2026-09-12 核對）：
+
+| 頁面資料夾 | View | ViewModel |
+|-----------|------|-----------|
+| `EventsPage/` | EventsView、AddEventView、EventsCalendarView | EventsViewModel、AddEventViewModel、EventsCalendarViewModel |
+| | EventWorkspaceView | 無（純導覽容器） |
+| `POSPage/` | POSView、CashPaymentView、EPaymentView、CheckoutSummaryView | POSViewModel、CashPaymentViewModel、EPaymentViewModel、CheckoutSummaryViewModel |
+| | CheckoutFlowView | 無（純流程容器） |
+| `InventoryPage/` | InventoryView、AddNewProductView | InventoryViewModel、AddNewProductViewModel |
+| `ReportsPage/` | ReportsView、ProductPerformanceView、SalesAnalyticsView、TransactionHistoryView | ReportsViewModel、ProductPerformanceViewModel、SalesAnalyticsViewModel、TransactionHistoryViewModel |
+| | ReportTimeRangeSelector、ProductPerformanceComponents | 無（子元件） |
+| `MyPage/` | ProfileEditView、QRCodeView | ProfileEditViewModel、QRCodeViewModel |
+| | MyView、SignInView、TilliProSheetView | 無 |
+| `Root/` | RootTabView | 無 |
 
 ---
 
@@ -243,29 +250,83 @@ Text(viewModel.totalAmountText)
 
 ## 檔案組織規範
 
-新建檔案放在以下目錄：
+> 2026-09-12 全面整理過，以下是**實際結構**，新建檔案請照這裡放。
 
 ```
-Tilli/View/
-├── EventsPage/
-│   ├── EventsView.swift
-│   └── WorkspaceView.swift
-├── POSPage/
-│   └── POSView.swift
-├── InventoryPage/          ← 沿用現有目錄
-│   ├── InventoryView.swift ← 新建
-│   ├── InventoryChangeView.swift  ← 沿用
-│   └── InventoryChangeViewModel.swift
-├── ReportsPage/
-│   └── ReportsView.swift
-├── MyPage/
-│   └── MyView.swift
-├── EventPage/            ← 保留，斷點 9 確認後可清理
-├── CalendarPage/           ← 保留，斷點 9 確認後可清理
-└── ...
-
-Tilli/ViewModel/
-├── EventsViewModel.swift   ← 新建
-├── ReportsViewModel.swift  ← 新建
-└── ...                     ← 其他沿用
+Tilli/
+├── TilliApp.swift
+│
+├── Data/                       資料層
+│   ├── CoreData/               Persistence、SyncStatus
+│   │   └── Entities/           CDxxxEntity+CoreDataClass / +CoreDataProperties
+│   ├── Repositories/           單一 entity 的 CRUD（Event / Product / InventoryChange /
+│   │                           Transaction / QRCode / User）
+│   ├── Local/                  跨 entity 的本機批次操作（LocalDataManager）
+│   └── Auth/                   AuthenticationManager
+│
+├── Model/
+│   ├── Domain/                 業務模型（EventModel、ProductModel…）
+│   └── Analytics/              報表的【輸出】結構（ProductPerformanceData…）
+│
+├── Service/                    無狀態的計算單元
+│   └── Analytics/              報表的【計算】累加器（ProductSalesStats…）
+│
+├── Utilities/
+│   ├── Helpers/                MoneyHelper、TextHelper、DateValidationHelper、
+│   │                           ImageProcessor、NetworkMonitor
+│   ├── DesignSystem.swift
+│   └── TestDataGenerator.swift
+│
+├── Extensions/                 Bundle / DateFormatter / JSONEncoder / UIApplication
+│
+├── View/
+│   ├── Root/                   RootTabView（App 根視圖）
+│   ├── Components/             跨頁面可重用元件（EntityImageView、EmptyStateView、
+│   │                           EventCardView、FloatingActionButton、CustomImagePicker、
+│   │                           ActivityViewController）
+│   ├── EventsPage/  POSPage/  InventoryPage/  ReportsPage/  MyPage/
+│
+└── ViewModel/                  ⭐ 比照 View 分組，同名資料夾
+    └── EventsPage/  POSPage/  InventoryPage/  ReportsPage/  MyPage/
 ```
+
+### 放置判斷
+
+| 要放什麼 | 放哪 |
+|---------|------|
+| 某個 entity 的 CRUD | `Data/Repositories/` |
+| 跨 entity 的本機操作（清除、歸戶） | `Data/Local/` |
+| 無狀態的計算（折扣、攤提、索引） | `Service/` |
+| 報表的輸入／輸出結構 | `Model/Analytics/` |
+| 純函式工具（金額、文字、圖片、日期） | `Utilities/Helpers/` |
+| 只有一個頁面用的 View | `View/<該頁>Page/` |
+| 兩個以上頁面用的 View | `View/Components/` |
+| ViewModel | `ViewModel/<對應頁>Page/` |
+
+### 命名
+
+- Repository 管單一 entity，命名 `XxxRepository`；跨 entity 或非 CRUD 的用 `XxxManager`，且**不要放在 `Repositories/`**
+- View ↔ ViewModel 同名：`XxxView` ↔ `XxxViewModel`
+- ⚠️ **不要用實作細節當名字。** 例：原 `SyncableImageView` 在同步層移除後名稱就失效了，已改名 `EntityImageView`
+
+### ⚠️ 判斷「檔案是否可刪」的注意事項
+
+不能只 grep 型別名稱 —— **一個檔案可能匯出不帶自己名字的 API**。
+
+實例：`ActivityViewController.swift` 用型別名搜尋看起來零使用，但它同時定義了
+`extension View { func shareSheet(...) }` 與 `extension UIActivity.ActivityType { defaultExcludedTypes }`，
+`ReportsView` 正在用。刪掉會直接編譯失敗。
+
+**刪檔前請列出該檔所有頂層宣告，逐一確認：**
+
+```bash
+grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
+```
+
+---
+
+## 版本記錄
+
+| 日期 | 變更 |
+|------|------|
+| 2026-09-12 | 全面對照實際程式碼更新：<br>① 規則 1 新增「例外 2：場次工作區的共用資料源」（`EventDataSource`）<br>② 刪除「要移除的舊 pattern」表（4 個項目指向的檔案都已在 `_Deprecated/`）<br>③ ViewModel 命名規範改為實際的 15 組 View↔ViewModel 對應<br>④ 檔案組織規範改寫為實際結構，新增放置判斷表、命名規則、「判斷檔案是否可刪」的注意事項 |

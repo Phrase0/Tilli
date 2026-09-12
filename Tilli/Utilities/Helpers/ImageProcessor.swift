@@ -2,6 +2,8 @@
 //  ImageProcessor.swift
 //  Tilli
 //
+//  Created by Peiyun on 2026/9/12.
+//
 //  本機圖片處理：尺寸正規化、裁切為正方形、壓縮編碼。
 //  （由原 Data/Sync/ImageSyncService.swift 抽出，移除所有雲端上傳/下載邏輯）
 //

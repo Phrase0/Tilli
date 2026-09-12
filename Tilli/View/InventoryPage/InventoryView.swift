@@ -402,7 +402,7 @@ struct InventoryProductCard: View {
     }
 
     private var productImage: some View {
-        SyncableImageView(
+        EntityImageView(
             imageData: item.product.imageData,
             imageURL: item.product.imageURL,
             entityId: item.product.id,
@@ -617,7 +617,7 @@ struct DisabledInventoryProductCard: View {
     }
 
     private var productImage: some View {
-        SyncableImageView(
+        EntityImageView(
             imageData: item.product.imageData,
             imageURL: item.product.imageURL,
             entityId: item.product.id,
