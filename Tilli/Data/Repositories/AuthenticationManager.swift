@@ -137,23 +137,11 @@ class AuthenticationManager: NSObject, ObservableObject {
             userRepository.saveUserProfileLocally(profile, syncStatus: hasNewerLocalEdit ? .pending : .synced)
             updateAuthState()
 
-            // App 啟動時，如果是 member 就設定會員等級 + 初始化同步環境
-            if profile.accountStatus == .member {
-                SyncManager.shared.setMembership(profile.membership)
-                await SyncManager.shared.initializeSync()
-
-                // 本機沒有這個帳號的資料、但雲端帳號存在 → 大機率是刪除 App 重裝，補一次全量下載
-                if !SyncManager.shared.hasLocalData(for: user.uid) {
-                    await SyncManager.shared.performFullSync()
-                }
-
-                // 本地個人資料還有沒上傳成功的編輯，順便重試一次
-                // imageChanged 給 true：這裡是在補救一筆已知還沒同步成功的舊編輯，
-                // 如果那次編輯有換頭貼，就該連頭貼一起重新嘗試上傳
-                if hasNewerLocalEdit {
-                    SyncManager.shared.syncUserProfile(profile, imageChanged: true)
-                }
-            }
+            // TODO: [SYNC-PENDING] App 啟動且為 member 時：初始化同步、必要時補全量下載、
+            // 重試本機未上傳的個人資料編輯（hasNewerLocalEdit）。
+            // ⚠️ 重建時注意：離線時 getUser 失敗【不可】降級成 Guest，
+            //    要讀本機 CDUserProfileEntity 快取維持登入狀態。見 SYNC_ARCHITECTURE_V2.md §9.1
+            _ = hasNewerLocalEdit
         } catch {
             print("Error fetching user profile: \(error)")
             setupLocalGuest()
@@ -342,11 +330,12 @@ class AuthenticationManager: NSObject, ObservableObject {
     // MARK: - 處理登入成功
     private func handleSignInSuccess(user: FirebaseAuth.User, provider: UserProfileModel.AuthProvider) async {
         do {
-            // 1. 檢查本地是否有 LocalUser 資料
-            let localHasData = SyncManager.shared.hasLocalData(for: UserProfileModel.guestUserId)
+            // 1. 檢查本地是否有訪客資料（決定要不要歸戶）
+            let localHasData = LocalDataManager.shared.hasLocalData(for: UserProfileModel.guestUserId)
 
-            // 2. 檢查雲端是否有資料
-            let cloudHasData = await SyncManager.shared.hasCloudData(userId: user.uid)
+            // TODO: [SYNC-PENDING] 2. 檢查雲端是否有資料。
+            // ⚠️ 重建時要改成三態（true / false / unknown），
+            //    unknown（離線、查詢失敗）時不可做任何破壞性動作。見 SYNC_ARCHITECTURE_V2.md §9.1
 
             // 3. 建立 / 更新 UserProfileModel
             if let profile = try await userRepository.getUser(uid: user.uid) {
@@ -379,32 +368,17 @@ class AuthenticationManager: NSObject, ObservableObject {
                 userRepository.saveUserProfileLocally(user, syncStatus: .synced)
             }
 
-            // 4. 如果本地有 LocalUser 資料，遷移 userId
+            // 4. 本機有訪客資料 → 歸戶到正式帳號（純本機操作）
             if localHasData {
-                SyncManager.shared.updateAllUserIds(from: UserProfileModel.guestUserId, to: user.uid)
+                LocalDataManager.shared.updateAllUserIds(from: UserProfileModel.guestUserId, to: user.uid)
             }
 
-            // 5. 設定會員等級到 SyncManager
-            if let membership = currentUser?.membership {
-                SyncManager.shared.setMembership(membership)
-            }
-
-            // 6. 初始化同步環境
-            await SyncManager.shared.initializeSync()
-
-            // 7. 情境處理（所有情況自動合併，無需用戶選擇）
-            if localHasData {
-                // 本地有資料 → 先上傳
-                await SyncManager.shared.fullUploadAllData()
-                if cloudHasData {
-                    // 兩邊都有 → 上傳後再下載雲端資料完成合併
-                    await SyncManager.shared.performFullSync()
-                }
-            } else if cloudHasData {
-                // 只有雲端 → 下載
-                await SyncManager.shared.performFullSync()
-            }
-            // 兩邊都沒有 → 不需額外操作
+            // TODO: [SYNC-PENDING] 5~7. 初始化同步環境並處理三種合併情境：
+            //   本機有 + 雲端有 → 先上傳再下載
+            //   只有本機       → 全量上傳（顯示進度條）
+            //   只有雲端       → 全量下載
+            // ⚠️ 重建時注意：上傳失敗的資料【不可】標記為 synced，
+            //    且 cleanUp 不可在上傳有失敗時執行。見 SYNC_ARCHITECTURE_V2.md 附錄 A
 
             updateAuthState()
         } catch {
@@ -434,9 +408,8 @@ class AuthenticationManager: NSObject, ObservableObject {
             let functions = Functions.functions()
             _ = try await functions.httpsCallable("deleteAccount").call()
 
-            // 停止同步 + 清除本地資料
-            SyncManager.shared.resetSync()
-            SyncManager.shared.clearAllLocalData()
+            // 清除本地資料（帳號已由 Cloud Function 刪除，雲端資料不存在）
+            LocalDataManager.shared.clearAllLocalData()
             localProfileImage = nil
             errorMessage = nil
 
@@ -452,51 +425,28 @@ class AuthenticationManager: NSObject, ObservableObject {
         isLoading = false
     }
 
-    // MARK: - 登出前檢查（離線且有殘留資料時跳警告，仍可選擇登出；有網路則同步完直接登出，不跳警告）
-    /// 給 UI 呼叫的登出入口。有網路時先同步（轉圈），同步完直接登出；
-    /// 沒網路才需要使用者決定是否仍要冒著資料遺失的風險登出（`signOut()` 才是真的執行登出）。
+    // MARK: - 登出入口
+    /// 給 UI 呼叫的登出入口。
+    ///
+    /// TODO: [SYNC-PENDING] 重建同步後，這裡要：
+    ///   1. 先把 outbox 推送完（顯示進度，**必須有上限**，例如 30 秒）
+    ///   2. 未訂閱／推送未完成 → 詢問使用者「保留或刪除本機資料」，**不可靜默清除**
+    /// ⚠️ 舊版用無上限的 while 迴圈等待，是登出無限轉圈的根因。
+    ///    見 SYNC_ARCHITECTURE_V2.md §9.2、§9.6
     func requestSignOut() async {
         guard !isSigningOut else { return }
         isSigningOut = true
         defer { isSigningOut = false }
 
-        guard NetworkMonitor.shared.isConnected else {
-            // 未同步資料 = 已經失敗排進佇列的（pendingOperationCount）+ 還在飛、還不知道成功失敗的（inFlightSyncCount）。
-            // 少算後者的話，剛存檔就立刻登出會因為 Task 還沒跑完而誤判成「沒有未同步資料」。
-            let count = SyncManager.shared.pendingOperationCount() + SyncManager.shared.inFlightSyncCount
-            guard count > 0 else {
-                signOut()
-                return
-            }
-            pendingUnsyncedCount = count
-            showSignOutDataLossWarning = true
-            return
-        }
-
-        isLoading = true
-        await SyncManager.shared.processPendingQueue()
-        // 有網路就真的等到還在飛的同步全部跑完再登出，不設逾時放棄——
-        // 逾時放棄等於讓本機資料清除、Firebase 登出跟這些還沒寫完的同步請求並行，
-        // 圖片可能傳到 Storage 卻沒機會把新 URL 寫回 Firestore，下次登入讀到的就是舊版。
-        await waitForInFlightSyncToFinish()
-        isLoading = false
         signOut()
-    }
-
-    /// 等待還在飛的同步 Task 自然完成（通常就一兩個網路請求，很快）
-    private func waitForInFlightSyncToFinish() async {
-        while SyncManager.shared.inFlightSyncCount > 0 {
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
     }
 
     // MARK: - 登出
     func signOut() {
         do {
-            // 停止監聽並重置同步狀態
-            SyncManager.shared.resetSync()
             // 清除所有本地資料
-            SyncManager.shared.clearAllLocalData()
+            // ⚠️ 重建同步後，這裡【不可】無條件清除 —— 見 requestSignOut 的 TODO
+            LocalDataManager.shared.clearAllLocalData()
             localProfileImage = nil
             errorMessage = nil
             
@@ -550,7 +500,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - 更新個人資料（本地優先：一定成功，不管有沒有網路；頭貼的實際上傳交給 SyncManager 背景處理）
+    // MARK: - 更新個人資料（本地優先：一定成功，不管有沒有網路）
     func updateProfile(name: String?, image: UIImage? = nil) async {
         guard var user = currentUser else { return }
 
@@ -571,7 +521,8 @@ class AuthenticationManager: NSObject, ObservableObject {
         userRepository.saveUserProfileLocally(user, syncStatus: .pending)
         updateAuthState()
 
-        SyncManager.shared.syncUserProfile(user, imageChanged: imageChanged)
+        // TODO: [SYNC-PENDING] 重建同步後在此 enqueue 個人資料（含頭貼上傳）
+        _ = imageChanged
     }
 
     // MARK: - 錯誤訊息轉換

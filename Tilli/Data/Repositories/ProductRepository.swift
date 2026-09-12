@@ -44,9 +44,7 @@ class ProductRepository: ObservableObject {
             saveContext()
             // 同步到 Firestore（用剛存好的 entity 轉回 model，確保 sortOrder 等 repository 算出來的值一起同步，而不是呼叫端傳進來的舊值）
             let savedModel = productEntity.toModel()
-            Task { @MainActor in
-                SyncManager.shared.syncProduct(savedModel, operation: .create, imageChanged: imageChanged)
-            }
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
         } catch {
             print("加入 product 失敗:", error)
         }
@@ -92,12 +90,7 @@ class ProductRepository: ObservableObject {
             }
 
             saveContext()
-
-            Task { @MainActor in
-                for model in updatedModels {
-                    SyncManager.shared.syncProduct(model, operation: .update)
-                }
-            }
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
         } catch {
             print("更新商品排序失敗:", error)
         }
@@ -126,7 +119,7 @@ class ProductRepository: ObservableObject {
                     entity.imageData = imageData
                 }
                 if imageChanged {
-                    entity.imageURL = nil  // 清空舊 URL，Storage 上傳後由 SyncManager 回寫
+                    entity.imageURL = nil  // TODO: [SYNC-PENDING] 清空舊 URL，重建同步後由上傳端回寫
                 }
                 entity.syncStatus = "pending"
                 entity.updatedAt = Date()
@@ -135,9 +128,7 @@ class ProductRepository: ObservableObject {
                 // 同步到 Firestore（用 entity 轉回 model，而非呼叫端傳進來的 productModel——
                 // sortOrder 這裡不會被更新，若直接同步 productModel 會把它預設值 0 誤傳上雲端）
                 let savedModel = entity.toModel()
-                Task { @MainActor in
-                    SyncManager.shared.syncProduct(savedModel, operation: .update, imageChanged: imageChanged)
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
             }
         } catch {
             print("Update product failed:", error)
@@ -157,9 +148,7 @@ class ProductRepository: ObservableObject {
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
-                Task { @MainActor in
-                    SyncManager.shared.syncProduct(productModel, operation: .update)
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
             }
         } catch {
             print("Disable product failed:", error)
@@ -179,9 +168,7 @@ class ProductRepository: ObservableObject {
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
-                Task { @MainActor in
-                    SyncManager.shared.syncProduct(productModel, operation: .update)
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
             }
         } catch {
             print("Enable product failed:", error)
@@ -207,9 +194,7 @@ class ProductRepository: ObservableObject {
                 saveContext()
                 // 同步停用狀態到 Firestore
                 let productModel = productEntity.toModel()
-                Task { @MainActor in
-                    SyncManager.shared.syncProduct(productModel, operation: .update)
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
                 return .disabledInstead("此產品已有交易記錄，已改為停用狀態")
             } else {
                 // 沒有 Transaction，可以硬刪除
@@ -217,10 +202,7 @@ class ProductRepository: ObservableObject {
                 let deletedChangeIds = inventoryChangeRepository.deleteChanges(forProductId: productId)
                 context.delete(productEntity)
                 saveContext()
-                // 同步刪除到 Firestore（含庫存異動）
-                Task { @MainActor in
-                    SyncManager.shared.syncDeleteProductWithInventoryChanges(productId, inventoryChangeIds: deletedChangeIds)
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
                 return .deleted("產品已成功刪除")
             }
         } catch {
@@ -323,11 +305,7 @@ class ProductRepository: ObservableObject {
 
             // 同步到 Firestore
             let updatedModels = products.map { $0.toModel() }
-            Task { @MainActor in
-                for model in updatedModels {
-                    SyncManager.shared.syncProduct(model, operation: .update)
-                }
-            }
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
 
             print("✅ Batch updated \(products.count) products stock")
             return true
@@ -372,12 +350,7 @@ class ProductRepository: ObservableObject {
 
             try context.save()
 
-            // 同步到 Firestore
-            Task { @MainActor in
-                for model in productUpdates {
-                    SyncManager.shared.syncProduct(model, operation: .update)
-                }
-            }
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
 
             print("✅ Batch updated \(entities.count) products")
             return true

@@ -96,13 +96,7 @@ struct TilliProSheetView: View {
             authManager.currentUser?.membership = newMembership
             authManager.currentUser?.expiryDate = expiryDate
 
-            SyncManager.shared.setMembership(newMembership)
-
-            if newMembership == .pro {
-                SyncManager.shared.startListening()
-            } else {
-                SyncManager.shared.stopListening()
-            }
+            // TODO: [SYNC-PENDING] 重建同步後，會員等級變更要連動 entitlement 與同步啟停
         } catch {
             print("❌ 切換會員等級失敗: \(error)")
         }

@@ -9,7 +9,6 @@ import SwiftUI
 
 struct RootTabView: View {
     @EnvironmentObject var authManager: AuthenticationManager
-    @ObservedObject private var syncManager = SyncManager.shared
     @AppStorage("selectedLanguage") private var selectedLanguage = "zh-Hant"
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
 
@@ -25,9 +24,10 @@ struct RootTabView: View {
                 mainView
             }
 
-            // 全量下載完成前顯示轉圈圈，避免中途看到「尚無資料」的空畫面
-            // （例如刪除 App 重裝後，本機資料還沒補回來的那段時間）
-            if authManager.isLoading || syncManager.isDownloading {
+            // TODO: [SYNC-PENDING] 重建同步後，全量下載期間也要顯示遮罩
+            // ⚠️ 重建時請加上限（見 SYNC_ARCHITECTURE_V2.md §9.2），
+            //    舊版因為等待沒有上限而造成登出無限轉圈
+            if authManager.isLoading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .allowsHitTesting(true)

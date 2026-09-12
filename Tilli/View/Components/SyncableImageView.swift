@@ -78,7 +78,7 @@ struct SyncableImageView: View {
 
     /// 將下載的圖片處理後存入 CoreData
     private func saveImageLocally(_ image: UIImage, entityId: UUID, entityType: ImageEntityType, profileUid: String?) {
-        guard let processedData = ImageSyncService.shared.processImageForLocal(image, type: entityType.imageType) else { return }
+        guard let processedData = ImageProcessor.processForLocal(image, type: entityType.imageType) else { return }
 
         let context = PersistenceController.shared.container.viewContext
 

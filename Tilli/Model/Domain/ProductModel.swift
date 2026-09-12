@@ -33,7 +33,7 @@ struct ProductModel: Identifiable, Hashable, Codable {
                 return
             }
             // 使用 ImageSyncService 處理：200x200 JPEG 壓縮
-            imageData = ImageSyncService.shared.processImageForLocal(newImage, type: .thumbnail)
+            imageData = ImageProcessor.processForLocal(newImage, type: .thumbnail)
         }
     }
 }

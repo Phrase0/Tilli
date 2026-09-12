@@ -348,7 +348,7 @@ class AddNewProductViewModel: ObservableObject {
         }
         
         let processedImageData = image.flatMap {
-            ImageSyncService.shared.processImageForLocal($0, type: .thumbnail)
+            ImageProcessor.processForLocal($0, type: .thumbnail)
         }
 
         if let editing = editingProduct {

@@ -13,7 +13,7 @@ class QRCodeViewModel: ObservableObject {
     @Published var tempSelectedImage: UIImage?
     @Published var showDeleteAlert = false
 
-    /// 將選好的圖片存成 QRCodeModel。本地優先：一定成功；實際上傳交給 SyncManager 背景處理
+    /// 將選好的圖片存成 QRCodeModel（本地優先：一定成功）
     /// （跟商品、個人資料同一套模式，離線或失敗會自動排進佇列重試，不會像之前那樣失敗了也沒人知道）
     @MainActor
     func handleSelectedImage(

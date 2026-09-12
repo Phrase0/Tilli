@@ -13,8 +13,6 @@ class QRCodeRepository: ObservableObject {
 
     private let container: NSPersistentContainer
     private let context: NSManagedObjectContext
-    private var syncObserver: Any?
-
     @Published var qrCode: QRCodeModel?
 
     /// 便利屬性：取得 QR Code 圖片
@@ -27,19 +25,8 @@ class QRCodeRepository: ObservableObject {
         self.context = container.viewContext
         loadQRCode()
 
-        // 監聽 sync 完成通知（登出清資料 / 全量下載），重新讀取 CoreData
-        syncObserver = NotificationCenter.default.addObserver(
-            forName: .syncDidComplete, object: nil, queue: .main
-        ) { [weak self] _ in
-            self?.loadQRCode()
-        }
     }
 
-    deinit {
-        if let observer = syncObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
 
     // MARK: - QR Code Operations
 
@@ -76,10 +63,7 @@ class QRCodeRepository: ObservableObject {
         DispatchQueue.main.async {
             self.qrCode = model
         }
-
-        Task { @MainActor in
-            SyncManager.shared.syncQRCode(model)
-        }
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
     }
 
 
@@ -95,9 +79,7 @@ class QRCodeRepository: ObservableObject {
         }
 
         if let id = deletedId {
-            Task { @MainActor in
-                SyncManager.shared.syncDeleteQRCode(id)
-            }
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
         }
     }
 

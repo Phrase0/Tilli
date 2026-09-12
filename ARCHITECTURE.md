@@ -40,10 +40,12 @@
 > 2026-09-12 全專案掃描結果。修改資料結構後請更新這一節。
 
 ```
-程式碼      114 個 Swift 檔（排除 _Deprecated）、21,468 行
-CoreData    8 個 entity、87 個屬性、8 個關聯
+程式碼      94 個 Swift 檔（排除 _Deprecated）、17341 行
+CoreData    7 個 entity、79 個屬性、8 個關聯
 內嵌模型    2 個（SummaryItemModel、DiscountModel，以 JSON 存在 Binary 欄位內）
 ```
+
+> 2026-09-12 刪除同步層後的數字。刪除前為 114 檔 / 21,468 行 / 8 entity / 87 屬性。
 
 **Domain model 與 CoreData 欄位完全對得上，沒有結構落差。**
 
@@ -237,21 +239,6 @@ CoreData    8 個 entity、87 個屬性、8 個關聯
 | `updatedAt` | M | 現有 | |
 | `syncStatus` | M·X | 現有 | |
 
-### CDPendingSyncOperation
-
-> ⚠️ **整個 entity 刪除** —— 由 `CDOutboxOperation` 取代（見 `SYNC_ARCHITECTURE_V2.md` §7.6）
-
-| 欄位 | 分類 | 狀態 | 說明 |
-|------|------|------|------|
-| `id` | M·X | **刪除** | |
-| `entityId` | M·X | **刪除** | |
-| `entityType` | M·X | **刪除** | |
-| `operationType` | M·X | **刪除** | |
-| `payload` | M·X | **刪除** | 新設計不存 payload，只存指標 |
-| `createdAt` | M·X | **刪除** | |
-| `retryCount` | M·X | **刪除** | |
-| `lastError` | M·X | **刪除** | |
-
 ---
 
 ## 5. 內嵌模型分類表
@@ -389,14 +376,34 @@ python3 scripts/check_field_classification.py
 
 ---
 
-## 8. 第一步：刪除同步層
+## 8. 第一步：刪除同步層 ✅ 已完成（2026-09-12）
+
+> **結果：刪除 4,181 行，新增 3 個檔案，一次編譯通過。**
+>
+> | 項目 | 數字 |
+> |------|------|
+> | 刪除檔案 | 9 個（7 個 Sync + 2 個 CDPendingSyncOperation） |
+> | 刪除行數 | 4,181 |
+> | 移除的同步呼叫 | Repository 18 個 `Task { @MainActor in }` 區塊、View 層 4 處、AuthenticationManager 8 個區域 |
+> | 新增檔案 | `ImageProcessor.swift`、`SyncStatus.swift`、`LocalDataManager.swift` |
+> | 專案規模 | 114 檔 / 21,468 行 → **94 檔 / 17,341 行** |
+> | Build | ✅ BUILD SUCCEEDED |
+> | 欄位分類驗證 | ✅ 7 entity / 79 屬性全數分類 |
+
 
 ### 8.1 刪除前先抽出（否則會編譯失敗）
 
 | 要保留的 | 現在在哪 | 被誰用 | 搬到 |
 |---|---|---|---|
 | `processImageForLocal` + `ImageType` | `ImageSyncService.swift` | **5 處**：`ProductModel:36`、`QRCodeModel:29`、`UserProfileModel:38` 的 `image` setter、`AddNewProductViewModel:351`、`SyncableImageView:81` | `Utilities/Helpers/ImageProcessor.swift`（新建） |
-| `SyncStatus` enum | `CDPendingSyncOperation+CoreDataProperties.swift` | 2 處 Repository | CoreData 共用檔 |
+| `SyncStatus` enum | `CDPendingSyncOperation+CoreDataProperties.swift` | 2 處 `UserRepository` | `Data/CoreData/SyncStatus.swift`（新建） |
+| ⚠️ `clearAllLocalData()`<br>⚠️ `updateAllUserIds(from:to:)`<br>⚠️ `hasLocalData(for:)` | `SyncManager.swift` | `AuthenticationManager`（登入歸戶、登出清資料） | `Data/Repositories/LocalDataManager.swift`（新建） |
+
+> ⚠️ **最後一列是初版盤點漏掉的。** 這三個函式雖然放在 `SyncManager` 裡，
+> 但它們是**純 CoreData 操作**，跟雲端無關：登入時把訪客資料歸戶到正式帳號、登出時清除本機。
+> 刪除同步層時若沒先抽出來，登入與登出會直接壞掉。
+>
+> 教訓：判斷「能不能刪」要看**函式實際做什麼**，不能只看它放在哪個資料夾。
 
 ### 8.2 刪除清單
 
@@ -429,12 +436,37 @@ Tilli/Data/Repositories/QRCodeRepository.swift
 Tilli/Data/Repositories/AuthenticationManager.swift  ← 保留 Auth，只拔同步
 ```
 
-### 8.4 刪除後的狀態
+### 8.4 刪除後的狀態 ✅
 
 - `userId` 欄位照常填入（`Auth.auth().currentUser?.uid ?? guestUserId`），只是沒有東西會上傳
 - `syncStatus` 欄位保留，一律維持 `pending`（重建同步時才有意義）
 - `imageURL` 欄位保留但永遠是 nil（本機只用 `imageData`）
-- 登入流程保留可測，但登入後不會發生任何同步
+- 登入 / 登出 / 刪除帳號流程**完整可用**（歸戶與清資料由 `LocalDataManager` 負責）
+- Firebase Auth、Cloud Functions、Firebase SDK 依賴保留
+
+### 8.5 重建同步的起點
+
+全專案搜尋 `SYNC-PENDING` 可列出所有需要接回同步的位置：
+
+```bash
+grep -rn "SYNC-PENDING" Tilli/
+```
+
+目前共 **28 處**（2026-09-12 實測），分布：
+
+| 位置 | 數量 | 內容 |
+|------|------|------|
+| `ProductRepository` | 10 | 商品 CRUD、排序、庫存、停用啟用、刪除的 enqueue |
+| `EventRepository` | 5 | 場次／類別／商品／交易／複製場次的 enqueue |
+| `AuthenticationManager` | 5 | 啟動初始化、雲端資料檢查、登入合併情境、登出流程、個人資料 enqueue |
+| `InventoryChangeRepository` | 2 | 單筆／批次庫存異動的 enqueue |
+| `QRCodeRepository` | 2 | 收款碼儲存／刪除的 enqueue |
+| `RootTabView` | 1 | 全量下載遮罩（**重建時必須有上限**） |
+| `TilliProSheetView` | 1 | 會員等級連動 |
+| `NetworkMonitor` | 1 | 網路恢復只叫醒 worker（**不可觸發 pull**） |
+| `LocalDataManager` | 1 | 清除後的 UI 通知 |
+
+每一處的 TODO 都寫了「重建時要注意什麼」與對應的文件章節。
 
 ---
 
@@ -443,3 +475,4 @@ Tilli/Data/Repositories/AuthenticationManager.swift  ← 保留 Auth，只拔同
 | 日期 | 變更 |
 |------|------|
 | 2026-09-12 | 初版。全專案掃描：8 entity / 87 屬性 / 8 關聯，建立六種分類與完整分類表、驗證腳本、刪除同步層的執行清單 |
+| 2026-09-12 | **執行 §8 刪除同步層**：刪 4,181 行、新增 3 個檔案、build 通過。補上初版漏掉的 `LocalDataManager`（三個純本機函式）。移除 `CDPendingSyncOperation` 段落。新增 §8.5 重建起點（20 處 SYNC-PENDING） |

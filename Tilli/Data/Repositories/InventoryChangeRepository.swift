@@ -33,10 +33,7 @@ class InventoryChangeRepository: ObservableObject {
         entity.event = eventEntity
         entity.eventId = eventId
         saveContext()
-        // 同步到 Firestore
-        Task { @MainActor in
-            SyncManager.shared.syncInventoryChange(change, eventId: eventId)
-        }
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
     }
 
     /// 批次新增庫存異動紀錄
@@ -55,12 +52,7 @@ class InventoryChangeRepository: ObservableObject {
             entity.eventId = eventId
         }
         saveContext()
-        // 批次同步到 Firestore
-        Task { @MainActor in
-            for change in changes {
-                SyncManager.shared.syncInventoryChange(change, eventId: eventId)
-            }
-        }
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
     }
 
     /// 根據 eventId 取得 CDEventEntity

@@ -26,16 +26,6 @@
         <attribute name="userId" optional="YES" attributeType="String"/>
         <relationship name="event" maxCount="1" deletionRule="Nullify" destinationEntity="CDEventEntity" inverseName="inventoryChanges" inverseEntity="CDEventEntity"/>
     </entity>
-    <entity name="CDPendingSyncOperation" representedClassName="CDPendingSyncOperation" syncable="YES">
-        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="entityId" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="entityType" attributeType="String"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="lastError" optional="YES" attributeType="String"/>
-        <attribute name="operationType" attributeType="String"/>
-        <attribute name="payload" optional="YES" attributeType="Binary"/>
-        <attribute name="retryCount" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-    </entity>
     <entity name="CDProductEntity" representedClassName="CDProductEntity" syncable="YES">
         <attribute name="categoryId" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="categoryName" attributeType="String"/>

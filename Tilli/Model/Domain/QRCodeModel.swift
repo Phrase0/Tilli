@@ -26,7 +26,7 @@ struct QRCodeModel: Identifiable, Codable, Hashable {
                 return
             }
             // 使用 ImageSyncService 處理：512x512 PNG 無損
-            imageData = ImageSyncService.shared.processImageForLocal(newImage, type: .qrCode)
+            imageData = ImageProcessor.processForLocal(newImage, type: .qrCode)
         }
     }
 }

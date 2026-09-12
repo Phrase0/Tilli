@@ -35,26 +35,13 @@ class EventRepository: ObservableObject {
 
     @Published var events: [EventModel] = []
 
-    private var syncObserver: NSObjectProtocol?
-
     init(container: NSPersistentContainer = PersistenceController.shared.container) {
         self.container = container
         self.context = container.viewContext
         fetchEvents()
 
-        // 監聽 full sync 完成通知，重新讀取 CoreData
-        syncObserver = NotificationCenter.default.addObserver(
-            forName: .syncDidComplete, object: nil, queue: .main
-        ) { [weak self] _ in
-            self?.fetchEvents()
-        }
     }
 
-    deinit {
-        if let observer = syncObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
 
     // MARK: - Event CRUD Operations
     
@@ -128,10 +115,7 @@ class EventRepository: ObservableObject {
 
         if saveContext() {
             fetchEvents()
-            // 同步到 Firestore（包含 Categories 和 Products）
-            Task { @MainActor in
-                SyncManager.shared.syncEventWithChildren(model)
-            }
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
         }
     }
 
@@ -180,53 +164,7 @@ class EventRepository: ObservableObject {
 
             if saveContext() {
                 fetchEvents()
-                // 同步到 Firestore
-                Task { @MainActor in
-                    // 1. 同步 Event 本身
-                    SyncManager.shared.syncEvent(model, operation: .update)
-
-                    // 2. 同步 Category 變更
-                    let eventId = model.id
-
-                    // 新增的 Categories（含其 Products）
-                    for category in categoryChanges.added {
-                        SyncManager.shared.syncCategory(category, eventId: eventId, operation: .create)
-                        for product in category.products {
-                            SyncManager.shared.syncProduct(product, operation: .create)
-                        }
-                    }
-
-                    // 刪除的 Categories（含其 Products）
-                    for categoryId in categoryChanges.deletedIds {
-                        SyncManager.shared.syncDeleteCategory(categoryId, withProducts: true)
-                    }
-
-                    // 停用的 Categories
-                    for category in categoryChanges.disabled {
-                        SyncManager.shared.syncCategory(category, eventId: eventId, operation: .update)
-                    }
-
-                    // 更新的 Categories
-                    for category in categoryChanges.updated {
-                        SyncManager.shared.syncCategory(category, eventId: eventId, operation: .update)
-                        // 同步更新 Products 的 categoryName
-                        for product in category.products {
-                            SyncManager.shared.syncProduct(product, operation: .update)
-                        }
-                    }
-
-                    // 如果標題變更，同步受影響的 Transaction（eventTitle 欄位）
-                    if titleChanged {
-                        let txRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-                        txRequest.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
-                        if let transactions = try? self.context.fetch(txRequest) {
-                            for tx in transactions {
-                                let txModel = tx.toModel()
-                                SyncManager.shared.syncTransaction(txModel)
-                            }
-                        }
-                    }
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
             }
         } catch {
             print("Update event failed:", error)
@@ -367,10 +305,7 @@ class EventRepository: ObservableObject {
                     debugTransactionStatus(forEventId: eventId)
                     print("")
                     fetchEvents()
-                    // 同步刪除到 Firestore（包含 Categories、Products、InventoryChanges）
-                    Task { @MainActor in
-                        SyncManager.shared.syncDeleteEvent(eventId, withChildren: true)
-                    }
+                    // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
                 }
             }
         } catch {
@@ -399,10 +334,7 @@ class EventRepository: ObservableObject {
 
             if saveContext() {
                 TransactionRepository.shared.notifyTransactionsChanged()
-                // 同步到 Firestore
-                Task { @MainActor in
-                    SyncManager.shared.syncTransaction(model)
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
             }
         } catch {
             print("加入 transaction 失敗:", error)
@@ -505,14 +437,7 @@ class EventRepository: ObservableObject {
                 let newEvent = newEventEntity.toModel()
                 let newEventId = newEventEntity.id
                 let changeModels = inventoryChangeEntities.map { $0.toModel() }
-                // 同步到 Firestore（包含 Categories 和 Products）
-                Task { @MainActor in
-                    SyncManager.shared.syncEventWithChildren(newEvent)
-                    // 同步庫存異動記錄
-                    for change in changeModels {
-                        SyncManager.shared.syncInventoryChange(change, eventId: newEventId)
-                    }
-                }
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
                 return newEvent
             } else {
                 return nil

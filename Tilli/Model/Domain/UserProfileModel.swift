@@ -35,7 +35,7 @@ struct UserProfileModel: Identifiable, Codable, Equatable {
                 imageData = nil
                 return
             }
-            imageData = ImageSyncService.shared.processImageForLocal(newImage, type: .thumbnail)
+            imageData = ImageProcessor.processForLocal(newImage, type: .thumbnail)
         }
     }
 
