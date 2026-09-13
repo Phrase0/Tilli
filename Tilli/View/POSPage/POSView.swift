@@ -9,20 +9,17 @@ import SwiftUI
 
 struct POSView: View {
 
-    let event: EventModel
-
     @ObservedObject var viewModel: POSViewModel
-    @EnvironmentObject var productRepository: ProductRepository
 
     @State private var showCheckoutSheet = false
     @State private var checkoutCompleted = false
     @State private var showClearAlert = false
-    @State private var eventState: EventModel
 
-    init(event: EventModel, viewModel: POSViewModel) {
-        self.event = event
+    /// 場次一律從 ViewModel 的共用快照取，不再另外持有一份（A2）
+    private var event: EventModel { viewModel.event }
+
+    init(viewModel: POSViewModel) {
         self.viewModel = viewModel
-        _eventState = State(initialValue: event)
     }
 
     var body: some View {
@@ -53,7 +50,7 @@ struct POSView: View {
             CheckoutFlowView(
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted,
-                event: $eventState,
+                event: event,
                 selectedItems: viewModel.selectedProductsWithQuantity(),
                 totalAmount: viewModel.totalAmount(),
                 selectedDiscount: viewModel.effectiveDiscount()
@@ -67,7 +64,6 @@ struct POSView: View {
             }
         }
         .onAppear {
-            viewModel.updateDataManagers(productRepository: productRepository)
             viewModel.loadProducts()
         }
     }
@@ -94,7 +90,7 @@ struct POSView: View {
     private var productListSection: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                ForEach(event.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.id) { category in
+                ForEach(viewModel.activeCategories, id: \.id) { category in
                     let items = viewModel.getSortedProductsForCategory(category.id)
                     if !items.isEmpty {
                         categorySection(category: category, products: items)

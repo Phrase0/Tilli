@@ -44,6 +44,9 @@ class AddEventViewModel: ObservableObject {
     private var transactionDataManager: TransactionRepository?
     private var productRepository: ProductRepository?
 
+    /// 交易索引（建立一次，之後都是 Set.contains）
+    private var transactionIndex: TransactionIndex = .empty
+
     // 判斷是否有交易記錄（用於決定是否可編輯幣別）
     var isEditingWithTransaction: Bool {
         return hasTransaction()
@@ -51,11 +54,7 @@ class AddEventViewModel: ObservableObject {
 
     // 取得場次的交易筆數
     var transactionCount: Int {
-        guard let eventId = editingEvent?.id,
-              let transactionManager = transactionDataManager else {
-            return 0
-        }
-        return transactionManager.fetchTransactions(forEventId: eventId).count
+        transactionIndex.transactionCount
     }
     
     var sortedCategories: [CategoryModel] {
@@ -63,11 +62,11 @@ class AddEventViewModel: ObservableObject {
     }
 
     var activeSortedCategories: [CategoryModel] {
-        categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
+        categories.active
     }
 
     var disabledSortedCategories: [CategoryModel] {
-        categories.filter { $0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
+        categories.disabled
     }
     
     var selectedCategory: CategoryModel? {
@@ -142,6 +141,9 @@ class AddEventViewModel: ObservableObject {
     func updateDataManagers(transactionDataManager: TransactionRepository, productRepository: ProductRepository) {
         self.transactionDataManager = transactionDataManager
         self.productRepository = productRepository
+        self.transactionIndex = editingEvent.map {
+            TransactionIndex(transactions: transactionDataManager.fetchTransactions(forEventId: $0.id))
+        } ?? .empty
     }
 
     func updateCategoryName(id: UUID, newName: String) {
@@ -378,25 +380,13 @@ class AddEventViewModel: ObservableObject {
         return nil
     }
     
+    /// 檢查類別是否有交易記錄（唯一答案來源是 `TransactionIndex`，A1）
+    ///
+    /// ⭐ 一律用 `SummaryItem.categoryId` 快照 —— 與 `EventRepository` 的刪除守衛
+    /// 現在用同一份索引，不會再出現「UI 說可以刪、repository 說不行」。
     func hasTransaction(for categoryId: UUID? = nil) -> Bool {
-        guard let eventId = editingEvent?.id else { return false }
-        
-        let transactions: [TransactionModel]
-        if let transactionManager = transactionDataManager {
-            transactions = transactionManager.fetchTransactions(forEventId: eventId)
-        } else {
-            transactions = []
-        }
-        
-        // 如果沒有指定 categoryId，檢查是否有任何交易
-        guard let categoryId = categoryId else {
-            return !transactions.isEmpty
-        }
-        
-        // 檢查特定類別的交易
-        return transactions.contains { transaction in
-            transaction.items.contains { $0.categoryId == categoryId }
-        }
+        guard let categoryId else { return transactionIndex.hasAnyTransaction }
+        return transactionIndex.hasTransaction(categoryId: categoryId)
     }
     
     /// 檢查類別是否有產品（從最新數據源）

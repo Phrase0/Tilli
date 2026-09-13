@@ -25,9 +25,13 @@ enum ReportExportType {
     case monthlyRevenueTrend
 }
 
+@MainActor
 class ReportsViewModel: ObservableObject {
 
-    let event: EventModel
+    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    private let dataSource: EventDataSource
+
+    var event: EventModel { dataSource.event }
 
     let transactionViewModel: TransactionHistoryViewModel
     let productPerformanceViewModel: ProductPerformanceViewModel
@@ -37,29 +41,23 @@ class ReportsViewModel: ObservableObject {
     @Published var currentShareItems: [Any] = []
     @Published var showingExportSuccessAlert = false
 
-    init(event: EventModel) {
-        self.event = event
-        self.transactionViewModel = TransactionHistoryViewModel(event: .constant(event))
-        self.productPerformanceViewModel = ProductPerformanceViewModel(event: .constant(event))
-        self.salesAnalyticsViewModel = SalesAnalyticsViewModel(event: .constant(event))
+    init(dataSource: EventDataSource) {
+        self.dataSource = dataSource
+        self.transactionViewModel = TransactionHistoryViewModel(dataSource: dataSource)
+        self.productPerformanceViewModel = ProductPerformanceViewModel(dataSource: dataSource)
+        self.salesAnalyticsViewModel = SalesAnalyticsViewModel(dataSource: dataSource)
     }
 
-    func updateDataManagers(
-        transactionDataManager: TransactionRepository,
-        eventDataManager: EventRepository
-    ) {
-        transactionViewModel.updateDataManagers(
-            transactionDataManager: transactionDataManager
-        )
-        productPerformanceViewModel.updateDataManagers(
-            transactionDataManager: transactionDataManager,
-            eventDataManager: eventDataManager
-        )
-        salesAnalyticsViewModel.updateDataManagers(
-            transactionDataManager: transactionDataManager
-        )
+    /// 重新查 DB 一次，再讓三張報表各自重算（進頁面／回到頁面時用）
+    func reloadAllData(timeRange: ReportTimeRange) {
+        dataSource.reload()
+        loadAllData(timeRange: timeRange)
     }
 
+    /// 只重算，不查 DB。
+    ///
+    /// 三張報表共用 `dataSource` 的同一份 `transactions`，切換 timeRange 純粹是
+    /// 換記憶體裡的篩選條件 —— 原本每換一次要查 3 次 DB（A5 / E2 / U6）。
     func loadAllData(timeRange: ReportTimeRange) {
         transactionViewModel.loadData(timeRange: timeRange)
         productPerformanceViewModel.loadData(timeRange: timeRange)

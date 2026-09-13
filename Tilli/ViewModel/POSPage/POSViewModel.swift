@@ -13,11 +13,17 @@ enum ProductLayoutMode: String, Codable {
     case grid
 }
 
+@MainActor
 class POSViewModel: ObservableObject {
 
-    @Binding var event: EventModel
-    @Published var categories: [CategoryModel] = []
-    @Published var products: [ProductModel] = []
+    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    private let dataSource: EventDataSource
+
+    /// ⭐ event / categories / products 一律一起從 dataSource 取同一份快照，
+    /// 不再出現「商品是新鮮的、類別是舊快照」（A3）
+    @Published private(set) var event: EventModel
+    @Published private(set) var categories: [CategoryModel] = []
+    @Published private(set) var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
     @Published var selectedDiscountId: UUID?  // 當前選擇的折扣 ID（整筆訂單）
 
@@ -35,26 +41,21 @@ class POSViewModel: ObservableObject {
         }
     }
     
-    // 用於獲取最新狀態的 DataManager
-    private var productRepository: ProductRepository?
-    
-    // 計算屬性：可顯示的產品（Product.isDisabled == false && Category.isDisabled == false）
+    /// 可販售的商品（商品未下架 + 所屬類別存在且未停用）
     var activeProducts: [ProductModel] {
-        products.filter { product in
-            let isProductEnabled = !product.isDisabled
-            let isCategoryEnabled = categories.first(where: { $0.id == product.categoryId })?.isDisabled == false
-            return isProductEnabled && isCategoryEnabled
-        }
+        products.filter { $0.isAvailableForSale(in: categories) }
     }
-    
+
+    /// 啟用中的類別（POS 的區塊順序；View 也用這個，不再各自過濾 event.categories）
+    var activeCategories: [CategoryModel] {
+        categories.active
+    }
+
     // MARK: - 商品狀態邏輯
 
     /// 檢查是否有任何可用商品（用於判斷是否顯示空狀態）
     var hasAnyProducts: Bool {
-        let activeCategories = event.categories.filter { !$0.isDisabled }
-        return activeCategories.contains { category in
-            !getSortedProductsForCategory(category.id).isEmpty
-        }
+        !activeProducts.isEmpty
     }
 
     /// 是否應該顯示空狀態（下架商品不顯示在收銀頁，只看啟用商品）
@@ -68,8 +69,9 @@ class POSViewModel: ObservableObject {
         return event.discounts.first { $0.id == id }
     }
 
-    init(event: Binding<EventModel>) {
-        self._event = event
+    init(dataSource: EventDataSource) {
+        self.dataSource = dataSource
+        self.event = dataSource.event
 
         // 从 UserDefaults 讀取布局模式
         if let savedMode = UserDefaults.standard.string(forKey: "ProductLayoutMode"),
@@ -78,13 +80,6 @@ class POSViewModel: ObservableObject {
         } else {
             self.layoutMode = .list  // 默認為列表模式
         }
-    }
-    
-    // MARK: - DataManager 管理
-    
-    /// 更新 DataManager 引用
-    func updateDataManagers(productRepository: ProductRepository) {
-        self.productRepository = productRepository
     }
     
     // MARK: - Product Detail 相關方法
@@ -107,7 +102,7 @@ class POSViewModel: ObservableObject {
     
     /// 初始化時展開所有分類
     func expandAllCategories() {
-        expandedCategories = Set(categories.filter { !$0.isDisabled }.map { $0.id })
+        expandedCategories = Set(activeCategories.map { $0.id })
     }
     
     /// 檢查商品是否無庫存
@@ -137,11 +132,13 @@ class POSViewModel: ObservableObject {
         return sortedInStock + sortedOutOfStock
     }
     
+    /// 從共用資料源重新取一份快照（跨頁回來、結帳完成時呼叫）
     func loadProducts() {
-        guard let productRepo = productRepository else { return }
-        products = productRepo.fetchProducts(forEventId: event.id)
-        categories = event.categories
-        
+        dataSource.reload()
+        event = dataSource.event
+        categories = dataSource.categories
+        products = dataSource.products
+
         // 首次載入時展開所有分類
         if expandedCategories.isEmpty {
             expandAllCategories()
@@ -193,48 +190,17 @@ class POSViewModel: ObservableObject {
 
     /// 計算總金額（套用折扣）
     func totalAmount() -> Decimal {
-        let sub = subtotal()
-
-        guard let discount = selectedDiscount else {
-            return sub
-        }
-
-        switch discount.type {
-        case .percentage:
-            let rate = MoneyHelper.subtract(Decimal(1), discount.value / 100)
-            return MoneyHelper.multiply(sub, rate)
-        case .amount:
-            return max(MoneyHelper.subtract(sub, discount.value), 0)
-        }
+        DiscountCalculator.total(subtotal: subtotal(), discount: selectedDiscount)
     }
 
     /// 檢查折扣是否超過商品總額（僅適用於固定金額折扣）
     var isDiscountExceedsLimit: Bool {
-        guard let discount = selectedDiscount else { return false }
-        let sub = subtotal()
-
-        switch discount.type {
-        case .percentage:
-            return false  // 百分比已限制 ≤ 100%，不會超過
-        case .amount:
-            return discount.value > sub && sub > 0
-        }
+        DiscountCalculator.exceedsSubtotal(selectedDiscount, subtotal: subtotal())
     }
 
     /// 計算實際套用的折扣（用於記錄交易）
     func effectiveDiscount() -> DiscountModel? {
-        guard let discount = selectedDiscount else { return nil }
-        let sub = subtotal()
-
-        switch discount.type {
-        case .percentage:
-            // 百分比折扣直接使用原值
-            return discount
-        case .amount:
-            // 固定金額折扣：取折扣值和商品總額的較小值
-            let effectiveValue = min(discount.value, sub)
-            return DiscountModel(type: .amount, value: effectiveValue)
-        }
+        DiscountCalculator.effective(selectedDiscount, subtotal: subtotal())
     }
 
     /// 折扣超過上限的提示訊息
@@ -242,6 +208,12 @@ class POSViewModel: ObservableObject {
         guard isDiscountExceedsLimit else { return nil }
         // 折扣不可超過商品金額，已自動調整
         return String.localized("productDetailDiscountExceed")
+    }
+
+    /// 取得類別名稱（從 categories 現查，不再依賴已刪除的 `Product.categoryName` 冗餘欄位）
+    private func categoryName(for categoryId: UUID) -> String {
+        // 未分類
+        categories.first { $0.id == categoryId }?.name ?? String.localized("inventoryUncategorized")
     }
 
     /// 產生 SummaryItemModel 列表（不含折扣，折扣存在 Transaction 層級）
@@ -255,7 +227,7 @@ class POSViewModel: ObservableObject {
                 name: product.name,
                 price: product.price,
                 categoryId: product.categoryId,
-                category: product.categoryName,
+                category: categoryName(for: product.categoryId),
                 quantity: qty,
                 timestamp: Date()
             )

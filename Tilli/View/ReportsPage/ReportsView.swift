@@ -12,8 +12,6 @@ struct ReportsView: View {
     let event: EventModel
 
     @ObservedObject var viewModel: ReportsViewModel
-    @EnvironmentObject var transactionDataManager: TransactionRepository
-    @EnvironmentObject var eventDataManager: EventRepository
 
     @State private var timeRange: ReportTimeRange
     @Binding var showingShareSheet: Bool
@@ -36,21 +34,21 @@ struct ReportsView: View {
             TabView(selection: $viewModel.selectedTab) {
                 TransactionHistoryView(
                     transactionViewModel: viewModel.transactionViewModel,
-                    event: .constant(event),
+                    event: event,
                     timeRange: timeRange
                 )
                 .tag(ReportsTab.transactions)
 
                 ProductPerformanceView(
                     viewModel: viewModel.productPerformanceViewModel,
-                    event: .constant(event),
+                    event: event,
                     timeRange: timeRange
                 )
                 .tag(ReportsTab.performance)
 
                 SalesAnalyticsView(
                     viewModel: viewModel.salesAnalyticsViewModel,
-                    event: .constant(event),
+                    event: event,
                     timeRange: timeRange
                 )
                 .tag(ReportsTab.analytics)
@@ -59,11 +57,7 @@ struct ReportsView: View {
         }
         .background(DesignSystem.ColorToken.paper)
         .onAppear {
-            viewModel.updateDataManagers(
-                transactionDataManager: transactionDataManager,
-                eventDataManager: eventDataManager
-            )
-            viewModel.loadAllData(timeRange: timeRange)
+            viewModel.reloadAllData(timeRange: timeRange)
         }
         .onChange(of: timeRange.type) {
             viewModel.loadAllData(timeRange: timeRange)

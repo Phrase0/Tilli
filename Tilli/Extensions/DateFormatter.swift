@@ -41,6 +41,13 @@ extension DateFormatter {
         return formatter
     }()
 
+    /// 月日帶星期（根據系統語言）- 用於日曆選中日期
+    static let monthDayWeekday: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "MMMdEEE", options: 0, locale: formatter.locale)
+        return formatter
+    }()
+
     // MARK: - 日期時間格式
 
     /// 日期時間：yyyy/MM/dd HH:mm（例：2026/01/04 14:30）

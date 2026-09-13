@@ -14,7 +14,6 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var price: Decimal
     var stock: Int                   // 初始庫存
     var categoryId: UUID
-    var categoryName: String
     var note: String?
     var imageData: Data?             // 可選圖片（轉 UIImage 用 image）
     var isDisabled: Bool
@@ -49,7 +48,6 @@ extension ProductModel {
         self.imageData = entity.imageData
 
         self.categoryId = entity.categoryId
-        self.categoryName = entity.categoryName
         self.isDisabled = entity.isDisabled
         self.imageURL = entity.imageURL
         self.createdAt = entity.createdAt ?? Date()

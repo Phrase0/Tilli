@@ -10,13 +10,13 @@ import Charts
 
 struct ProductPerformanceView: View {
     @ObservedObject var productPerformanceViewModel: ProductPerformanceViewModel
-    @Binding var event: EventModel
+    let event: EventModel
     let timeRange: ReportTimeRange
     @State private var expandedProducts: Set<Int> = []
 
-    init(viewModel: ProductPerformanceViewModel, event: Binding<EventModel>, timeRange: ReportTimeRange) {
+    init(viewModel: ProductPerformanceViewModel, event: EventModel, timeRange: ReportTimeRange) {
         self.productPerformanceViewModel = viewModel
-        self._event = event
+        self.event = event
         self.timeRange = timeRange
     }
 

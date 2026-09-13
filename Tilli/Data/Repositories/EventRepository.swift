@@ -91,24 +91,21 @@ class EventRepository: ObservableObject {
         entity.update(from: model, context: context)
         let currentUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         entity.userId = currentUserId
-        entity.syncStatus = "pending"
-        entity.updatedAt = Date()
+        entity.markPendingSync()
 
         // 創建 Categories 和 Products
         for categoryModel in model.categories {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
             categoryEntity.userId = currentUserId
-            categoryEntity.syncStatus = "pending"
-            categoryEntity.updatedAt = Date()
+            categoryEntity.markPendingSync()
             categoryEntity.event = entity
 
             for productModel in categoryModel.products {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
                 productEntity.userId = currentUserId
-                productEntity.syncStatus = "pending"
-                productEntity.updatedAt = Date()
+                productEntity.markPendingSync()
                 productEntity.category = categoryEntity
             }
         }
@@ -138,9 +135,6 @@ class EventRepository: ObservableObject {
                 return
             }
 
-            // 檢查標題是否有變更
-            let titleChanged = entity.title != model.title
-
             // 更新 Event 基本屬性
             entity.title = model.title
             entity.startDate = model.startDate
@@ -148,16 +142,7 @@ class EventRepository: ObservableObject {
             entity.dateType = model.dateType.rawValue
             entity.currency = model.currency
             entity.discountsData = try? JSONEncoder().encode(model.discounts)
-            entity.syncStatus = "pending"
-            entity.updatedAt = Date()
-
-            // 同步更新所有相關交易記錄的 eventTitle
-            if titleChanged {
-                updateRelatedTransactions(
-                    eventId: model.id,
-                    newTitle: model.title
-                )
-            }
+            entity.markPendingSync()
 
             // 處理 Categories 的變更，收集 sync 需要的資訊
             let categoryChanges = updateCategoriesForEvent(entity: entity, newCategories: model.categories)
@@ -198,24 +183,23 @@ class EventRepository: ObservableObject {
         let categoriesToUpdate = newCategories.filter { existingCategoryIds.contains($0.id) }
 
         // 刪除不再需要的 categories（但要檢查是否有交易記錄）
+        //
+        // 守衛保留（repository 是最後一道防線），但**只拒絕、不偷偷做別的事**：
+        // 原本會靜默把類別改成「停用」，呼叫端以為刪掉了、實際上資料還在而且被改了狀態。
+        // 現在有交易的類別就是**原封不動留著**，UI 重載後會看到它還在 —— 這才是誠實的回饋。
+        //
+        // ⭐ 判斷一律用 `SummaryItem.categoryId` 快照（`TransactionIndex`），
+        // 與 `AddEventViewModel.getSwipeAction` 用同一份答案（A1）。
+        // 原本 repository 用「該類別目前的商品清單」推算，商品被搬走後答案就會跟 UI 相反。
+        let index = transactionIndex(forEventId: entity.id)
         for categoryEntity in categoriesToDelete {
-            // 檢查是否有相關交易記錄
-            if hasRelatedTransactionsForCategory(categoryId: categoryEntity.id) {
-                // 有交易記錄，只能停用
-                categoryEntity.isDisabled = true
-                categoryEntity.syncStatus = "pending"
-                categoryEntity.updatedAt = Date()
-                // 記錄停用變更（需要轉成 model，停用後的狀態）
-                var disabledModel = categoryEntity.toModel()
-                disabledModel.isDisabled = true
-                changes.disabled.append(disabledModel)
-                print("Category \(categoryEntity.name) has transactions, disabled instead of deleted")
-            } else {
-                // 無交易記錄，可以硬刪除
-                changes.deletedIds.append(categoryEntity.id)
-                entity.removeFromCategories(categoryEntity)
-                context.delete(categoryEntity)
+            guard let index, !index.hasTransaction(categoryId: categoryEntity.id) else {
+                print("🔴 類別「\(categoryEntity.name)」已有交易紀錄（或索引建立失敗），不予刪除")
+                continue
             }
+            changes.deletedIds.append(categoryEntity.id)
+            entity.removeFromCategories(categoryEntity)
+            context.delete(categoryEntity)
         }
 
         // 新增新的 categories
@@ -224,8 +208,7 @@ class EventRepository: ObservableObject {
             let categoryEntity = CDCategoryEntity(context: context)
             categoryEntity.update(from: categoryModel, context: context)
             categoryEntity.userId = currentUserId
-            categoryEntity.syncStatus = "pending"
-            categoryEntity.updatedAt = Date()
+            categoryEntity.markPendingSync()
             categoryEntity.event = entity
             entity.addToCategories(categoryEntity)
 
@@ -234,8 +217,7 @@ class EventRepository: ObservableObject {
                 let productEntity = CDProductEntity(context: context)
                 productEntity.update(from: productModel, context: context)
                 productEntity.userId = currentUserId
-                productEntity.syncStatus = "pending"
-                productEntity.updatedAt = Date()
+                productEntity.markPendingSync()
                 productEntity.category = categoryEntity
                 categoryEntity.addToProducts(productEntity)
             }
@@ -256,22 +238,8 @@ class EventRepository: ObservableObject {
                 categoryEntity.isDisabled = categoryModel.isDisabled
                 categoryEntity.sortOrder = Int16(categoryModel.sortOrder)
 
-                // 只更新 products 的 categoryName（不處理 products 的新增/刪除）
-                // Products 的 CRUD 由 ProductRepository 負責
-                if nameChanged {
-                    if let products = categoryEntity.products as? Set<CDProductEntity> {
-                        let now = Date()
-                        for product in products {
-                            product.categoryName = categoryModel.name
-                            product.syncStatus = "pending"
-                            product.updatedAt = now
-                        }
-                    }
-                }
-
                 if nameChanged || disabledChanged || sortOrderChanged {
-                    categoryEntity.syncStatus = "pending"
-                    categoryEntity.updatedAt = Date()
+                    categoryEntity.markPendingSync()
                     changes.updated.append(categoryModel)
                 }
             }
@@ -329,7 +297,7 @@ class EventRepository: ObservableObject {
             let entity = CDTransactionEntity(context: context)
             entity.update(from: model, context: context)
             entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-            entity.syncStatus = "pending"
+            entity.markPendingSync()
             eventEntity.addToTransactions(entity)
 
             if saveContext() {
@@ -371,8 +339,7 @@ class EventRepository: ObservableObject {
             newEventEntity.currency = originalEntity.currency
             newEventEntity.discountsData = originalEntity.discountsData
             newEventEntity.userId = copyUserId
-            newEventEntity.syncStatus = "pending"
-            newEventEntity.updatedAt = Date()
+            newEventEntity.markPendingSync()
 
             // 複製所有 Categories 和 Products（按 sortOrder 排序以保持順序）
             var inventoryChangeEntities: [CDInventoryChangeEntity] = []
@@ -387,8 +354,7 @@ class EventRepository: ObservableObject {
                     newCategoryEntity.isDisabled = originalCategory.isDisabled
                     newCategoryEntity.sortOrder = originalCategory.sortOrder
                     newCategoryEntity.userId = copyUserId
-                    newCategoryEntity.syncStatus = "pending"
-                    newCategoryEntity.updatedAt = Date()
+                    newCategoryEntity.markPendingSync()
                     newCategoryEntity.event = newEventEntity
 
                     // 複製該 Category 下的所有 Products
@@ -401,14 +367,12 @@ class EventRepository: ObservableObject {
                             newProductEntity.price = originalProduct.price
                             newProductEntity.stock = originalProduct.stock
                             newProductEntity.categoryId = newCategoryEntity.id
-                            newProductEntity.categoryName = newCategoryEntity.name
                             newProductEntity.note = originalProduct.note
                             newProductEntity.imageData = originalProduct.imageData
                             newProductEntity.isDisabled = originalProduct.isDisabled
                             newProductEntity.sortOrder = originalProduct.sortOrder
                             newProductEntity.userId = copyUserId
-                            newProductEntity.syncStatus = "pending"
-                            newProductEntity.updatedAt = Date()
+                            newProductEntity.markPendingSync()
                             newProductEntity.category = newCategoryEntity
 
                             // 若有庫存，建立「進貨入庫」記錄
@@ -417,13 +381,14 @@ class EventRepository: ObservableObject {
                                 changeEntity.id = UUID()
                                 changeEntity.productId = newProductEntity.id
                                 changeEntity.event = newEventEntity
+                                changeEntity.product = newProductEntity
                                 changeEntity.change = originalProduct.stock
                                 changeEntity.reason = InventoryChangeReason.purchase.rawValue
                                 changeEntity.customReason = nil
                                 changeEntity.transactionId = nil
                                 changeEntity.timestamp = Date()
                                 changeEntity.userId = copyUserId
-                                changeEntity.syncStatus = "pending"
+                                changeEntity.markPendingSync()
                                 inventoryChangeEntities.append(changeEntity)
                             }
                         }
@@ -502,61 +467,15 @@ class EventRepository: ObservableObject {
 
     // MARK: - Helper Methods
 
-    /// 批量更新相關交易記錄的 Event 資訊
-    private func updateRelatedTransactions(eventId: UUID, newTitle: String?) {
+    /// 建立該場次的交易索引（刪除守衛用）。查詢失敗回傳 nil，呼叫端保守處理。
+    private func transactionIndex(forEventId eventId: UUID) -> TransactionIndex? {
         let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
-
         do {
-            let transactions = try context.fetch(request)
-
-            for transaction in transactions {
-                // 更新 eventTitle
-                if let newTitle = newTitle {
-                    transaction.eventTitle = newTitle
-                }
-            }
-
-            print("✅ 已更新 \(transactions.count) 筆交易記錄的 Event 標題")
+            return TransactionIndex(transactions: try context.fetch(request).map { $0.toModel() })
         } catch {
-            print("❌ 更新交易記錄失敗: \(error)")
-        }
-    }
-
-    /// 檢查 Category 下是否有相關 Transaction
-    private func hasRelatedTransactionsForCategory(categoryId: UUID) -> Bool {
-        // 先找到該 Category 下的所有 Product
-        let productRequest: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
-        productRequest.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
-
-        do {
-            let products = try context.fetch(productRequest)
-            let productIds = products.map { $0.id }
-
-            if productIds.isEmpty {
-                return false // 沒有 Product，當然沒有 Transaction
-            }
-
-            // 檢查同場次交易的 items 中是否包含這些 productIds
-            let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-            if let eventId = products.first?.category.event.id {
-                transactionRequest.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
-            }
-            let transactions = try context.fetch(transactionRequest)
-            
-            for transaction in transactions {
-                if let itemsData = transaction.itemsData,
-                   let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
-                    if items.contains(where: { productIds.contains($0.productId) }) {
-                        return true
-                    }
-                }
-            }
-            
-            return false
-        } catch {
-            print("檢查 Transaction 失敗:", error)
-            return true // 發生錯誤時保守處理，假設有 Transaction
+            print("🔴 建立交易索引失敗:", error)
+            return nil
         }
     }
 

@@ -43,7 +43,7 @@ class EPaymentViewModel: ObservableObject {
         eventDataManager: EventRepository,
         productRepository: ProductRepository,
         inventoryChangeRepository: InventoryChangeRepository
-    ) -> EventModel {
+    ) {
 
         // 批次更新產品庫存
         var stockUpdates: [UUID: Int] = [:]
@@ -69,6 +69,13 @@ class EPaymentViewModel: ObservableObject {
             print("🔴 批次更新產品庫存失敗")
         }
 
+        // 寫進流水帳前一律 clamp —— 不依賴呼叫端（原本只有 POSView 記得呼叫
+        // effectiveDiscount()，換個入口就會存進超過小計的折扣，報表攤提會變負營收）
+        let effectiveDiscount = DiscountCalculator.effective(
+            selectedDiscount,
+            subtotal: summaryItems.subtotal
+        )
+
         // 創建交易記錄
         let transaction = TransactionModel(
             eventId: event.id,
@@ -79,8 +86,8 @@ class EPaymentViewModel: ObservableObject {
             paymentMethod: .ePayment,
             timestamp: Date(),
             occurredAt: occurredAt,
-            discountType: selectedDiscount?.type,
-            discountValue: selectedDiscount?.value
+            discountType: effectiveDiscount?.type,
+            discountValue: effectiveDiscount?.value
         )
 
         // 使用 EventDataManager 添加交易記錄
@@ -101,6 +108,5 @@ class EPaymentViewModel: ObservableObject {
         }
 
         // 直接返回原 event，UI 更新由 onChange(of: checkoutCompleted) 處理
-        return event
     }
 }

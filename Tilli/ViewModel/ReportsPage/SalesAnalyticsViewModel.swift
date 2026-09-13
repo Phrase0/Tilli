@@ -45,6 +45,7 @@ struct MonthlyRevenueData: Identifiable {
     }
 }
 
+@MainActor
 class SalesAnalyticsViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var hourlyData: [HourlyAnalysisData] = []
@@ -73,30 +74,27 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     // MARK: - Dependencies
-    private var transactionDataManager: TransactionRepository?
-    @Binding var event: EventModel
+    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    private let dataSource: EventDataSource
+
+    var event: EventModel { dataSource.event }
     private(set) var currentTimeRange: ReportTimeRange?
 
     // MARK: - Initialization
-    init(event: Binding<EventModel>) {
-        self._event = event
+    init(dataSource: EventDataSource) {
+        self.dataSource = dataSource
     }
 
     // MARK: - DataManager 管理
 
     /// 更新 DataManager 引用
-    func updateDataManagers(transactionDataManager: TransactionRepository) {
-        self.transactionDataManager = transactionDataManager
-    }
 
     // MARK: - Public Methods
 
     /// 載入資料（支援時間範圍）
     func loadData(timeRange: ReportTimeRange? = nil) {
-        // 儲存當前時間範圍（用於 CSV 匯出）- 即使 DataManager 未設定也要保存
+        // 儲存當前時間範圍（用於 CSV 匯出）
         self.currentTimeRange = timeRange
-
-        guard transactionDataManager != nil else { return }
 
         isLoading = true
 
@@ -165,7 +163,7 @@ class SalesAnalyticsViewModel: ObservableObject {
         csvContent += "\(h1),\(h2),\(h3),\(h4)\n"
 
         for paymentData in paymentMethodData {
-            let name = paymentData.name.replacingOccurrences(of: ",", with: "，")
+            let name = CSVExporter.escape(paymentData.name)
             let currency = Currency(rawValue: currencyCode) ?? .twd
             let amount = MoneyHelper.toDisplayString(paymentData.amount, currency: currency)
             let transactions = "\(paymentData.transactions)"
@@ -244,90 +242,39 @@ class SalesAnalyticsViewModel: ObservableObject {
 
 
     func createHourlyAnalysisCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 時段銷售分析
-        let csvFileLabel = String.localized("csvFileHourlyAnalysis")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-
-        do {
-            let csvContent = generateHourlyAnalysisCSV()
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating Hourly Analysis CSV file: \(error)")
-        }
-
-        return fileURL
+        return CSVExporter.write(
+            content: generateHourlyAnalysisCSV(),
+            label: String.localized("csvFileHourlyAnalysis"),
+            eventTitle: event.title
+        )
     }
 
     func createPaymentMethodCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        // 過濾檔名中的非法字符
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 支付方式分析
-        let csvFileLabel = String.localized("csvFilePaymentMethod")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-
-        do {
-            let csvContent = generatePaymentMethodCSV()
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating Payment Method CSV file: \(error)")
-        }
-
-        return fileURL
+        return CSVExporter.write(
+            content: generatePaymentMethodCSV(),
+            label: String.localized("csvFilePaymentMethod"),
+            eventTitle: event.title
+        )
     }
 
     func createDailyRevenueTrendCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        // 過濾檔名中的非法字符
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 日營收趨勢
-        let csvFileLabel = String.localized("csvFileDailyRevenue")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-
-        do {
-            let csvContent = generateDailyRevenueTrendCSV()
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating Daily Revenue Trend CSV file: \(error)")
-        }
-
-        return fileURL
+        return CSVExporter.write(
+            content: generateDailyRevenueTrendCSV(),
+            label: String.localized("csvFileDailyRevenue"),
+            eventTitle: event.title
+        )
     }
 
     func createMonthlyRevenueTrendCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        // 過濾檔名中的非法字符
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 月營收趨勢
-        let csvFileLabel = String.localized("csvFileMonthlyRevenue")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-
-        do {
-            let csvContent = generateMonthlyRevenueTrendCSV()
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating Monthly Revenue Trend CSV file: \(error)")
-        }
-
-        return fileURL
+        return CSVExporter.write(
+            content: generateMonthlyRevenueTrendCSV(),
+            label: String.localized("csvFileMonthlyRevenue"),
+            eventTitle: event.title
+        )
     }
 }
 
@@ -336,18 +283,8 @@ private extension SalesAnalyticsViewModel {
 
     /// 計算銷售分析數據（支援時間範圍）
     func calculateSalesAnalytics(timeRange: ReportTimeRange? = nil) {
-        guard let transactionDataManager = transactionDataManager else { return }
-
-        // 根據時間範圍查詢交易
-        let transactions: [TransactionModel]
-        if let timeRange = timeRange {
-            transactions = transactionDataManager.fetchTransactions(
-                forEventId: event.id,
-                dateRange: timeRange.dateInterval
-            )
-        } else {
-            transactions = transactionDataManager.fetchTransactions(forEventId: event.id)
-        }
+        // 共用資料源，切換 timeRange 不再重查 DB（A5 / E2）
+        let transactions = dataSource.transactions(in: timeRange?.dateInterval)
 
         // 初始化 Helper Classes
         let hourlyHelper = HourlyStatsHelper()

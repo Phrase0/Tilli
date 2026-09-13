@@ -22,11 +22,13 @@ extension CDInventoryChangeEntity {
     @NSManaged public var transactionId: UUID?
     @NSManaged public var timestamp: Date
     @NSManaged public var event: CDEventEntity?
+    @NSManaged public var product: CDProductEntity?
 
     // MARK: - Sync 相關欄位
     @NSManaged public var userId: String?        // 所屬用戶 ID
     @NSManaged public var eventId: UUID?       // Firestore 同步用
     @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
+    @NSManaged public var updatedAt: Date?       // 建立當下的時間，之後永不改變（append-only）
 }
 
 extension CDInventoryChangeEntity {

@@ -9,14 +9,14 @@ import SwiftUI
 
 struct TransactionHistoryView: View {
     @ObservedObject var transactionViewModel: TransactionHistoryViewModel
-    @Binding var event: EventModel
+    let event: EventModel
     let timeRange: ReportTimeRange?
 
     init(transactionViewModel: TransactionHistoryViewModel,
-         event: Binding<EventModel>,
+         event: EventModel,
          timeRange: ReportTimeRange? = nil) {
         self.transactionViewModel = transactionViewModel
-        self._event = event
+        self.event = event
         self.timeRange = timeRange
     }
 
@@ -262,9 +262,8 @@ struct TransactionHistoryView: View {
 
                         HStack(alignment: .center, spacing: DesignSystem.Spacing.xs) {
                             // 顯示折扣標籤
-                            if let discountType = transaction.discountType,
-                               let discountValue = transaction.discountValue {
-                                Text(formatDiscount(type: discountType, value: discountValue))
+                            if let discountText = transactionViewModel.discountText(for: transaction) {
+                                Text(discountText)
                                     .font(DesignSystem.Typography.caption)
                                     .padding(.horizontal, DesignSystem.Spacing.xxs)
                                     .padding(.vertical, 2)
@@ -385,15 +384,4 @@ struct TransactionHistoryView: View {
         .background(DesignSystem.ColorToken.cardSurface)
     }
 
-    // MARK: - Helper Methods
-
-    /// 格式化折扣顯示文字
-    private func formatDiscount(type: DiscountType, value: Decimal) -> String {
-        switch type {
-        case .percentage:
-            return "\(value)%"
-        case .amount:
-            return "-\(value)"
-        }
-    }
 }

@@ -19,6 +19,9 @@ struct TransactionModel: Identifiable, Codable, Hashable {
     var discountType: DiscountType?   // 套用的折扣類型（整筆訂單）
     var discountValue: Decimal?       // 套用的折扣數值
 
+    /// 小計（折扣前，所有項目的 total 相加）
+    var subtotal: Decimal { items.subtotal }
+
     /// 顯示用日期（優先使用 occurredAt，否則用 timestamp）
     var displayDate: Date {
         return occurredAt ?? timestamp

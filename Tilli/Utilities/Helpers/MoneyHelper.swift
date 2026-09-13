@@ -149,27 +149,6 @@ class MoneyHelper {
 
     // MARK: - 進階運算（中間計算不四捨五入，只在最終結果四捨五入）
 
-    static func applyDiscount(price: Decimal, discountPercentage: Int, roundingMode: RoundingMode? = nil) -> Decimal {
-        let discount = Decimal(discountPercentage) / Decimal(100)
-        let discountAmount = multiply(price, discount)  // 中間不四捨五入
-        let result = subtract(price, discountAmount)    // 中間不四捨五入
-        // 只在有指定 roundingMode 時才四捨五入
-        if let mode = roundingMode {
-            return round(result, roundingMode: mode)
-        }
-        return result
-    }
-
-    static func calculateTotal(price: Decimal, quantity: Int, discountPercentage: Int = 0, roundingMode: RoundingMode? = nil) -> Decimal {
-        let discountedPrice = applyDiscount(price: price, discountPercentage: discountPercentage)  // 不四捨五入
-        let result = multiply(discountedPrice, Decimal(quantity))  // 不四捨五入
-        // 只在有指定 roundingMode 時才四捨五入
-        if let mode = roundingMode {
-            return round(result, roundingMode: mode)
-        }
-        return result
-    }
-
     static func round(_ value: Decimal, roundingMode: RoundingMode = .bankers) -> Decimal {
         let nsValue = NSDecimalNumber(decimal: value)
         let handler = getHandler(for: roundingMode)

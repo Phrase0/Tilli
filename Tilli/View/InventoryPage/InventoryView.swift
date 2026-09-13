@@ -46,10 +46,6 @@ struct InventoryView: View {
     @Binding var formTarget: InventoryFormTarget?
 
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
-    @EnvironmentObject var transactionDataManager: TransactionRepository
-    @EnvironmentObject var eventDataManager: EventRepository
-    @Environment(\.dismiss) private var dismiss
 
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
@@ -105,11 +101,7 @@ struct InventoryView: View {
             viewModel.createAlert()
         }
         .onAppear {
-            viewModel.updateRepositories(
-                productRepository: productRepository,
-                inventoryChangeRepository: inventoryChangeRepository,
-                transactionDataManager: transactionDataManager
-            )
+            viewModel.updateRepositories(productRepository: productRepository)
         }
         .onChange(of: searchText) {
             viewModel.searchText = searchText
@@ -125,13 +117,6 @@ struct InventoryView: View {
         .onChange(of: timeRange.customEnd) {
             if timeRange.type == .custom {
                 viewModel.selectedTimeRange = timeRange
-            }
-        }
-        .onChange(of: eventDataManager.events) {
-            // 檢查當前場次是否還存在，若已被刪除則返回上一頁
-            let eventExists = eventDataManager.events.contains { $0.id == viewModel.event.id }
-            if !eventExists {
-                dismiss()
             }
         }
     }

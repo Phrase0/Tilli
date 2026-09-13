@@ -56,10 +56,13 @@ class AddNewProductViewModel: ObservableObject {
     
     // MARK: - 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionRepository?
+
+    /// 交易索引（建立一次，之後都是 Set.contains；取代原本每次呼叫全表掃描）
+    private var transactionIndex: TransactionIndex = .empty
     
     // MARK: - 計算屬性
     var sortedCategories: [CategoryModel] {
-        event.categories.filter { !$0.isDisabled }.sorted(by: { $0.sortOrder < $1.sortOrder })
+        event.categories.active
     }
 
     var selectedCategory: CategoryModel? {
@@ -299,34 +302,19 @@ class AddNewProductViewModel: ObservableObject {
     }
 
     // MARK: - 更新 DataManager 引用
-    /// 更新 DataManager 引用
+    /// 更新 DataManager 引用，並建立一次交易索引
     func updateDataManagers(transactionDataManager: TransactionRepository) {
-         self.transactionDataManager = transactionDataManager
-     }
-    
+        self.transactionDataManager = transactionDataManager
+        self.transactionIndex = TransactionIndex(
+            transactions: transactionDataManager.fetchTransactions(forEventId: event.id)
+        )
+    }
+
     // MARK: - 交易檢查邏輯
-    /// 檢查產品是否有交易記錄
+    /// 檢查產品是否有交易記錄（唯一答案來源是 `TransactionIndex`，A1）
     func hasTransaction(for productId: UUID? = nil) -> Bool {
-        guard let eventId = event.id as UUID? else { 
-            return false 
-        }
-        
-        let transactions: [TransactionModel]
-        if let transactionManager = transactionDataManager {
-            transactions = transactionManager.fetchTransactions(forEventId: eventId)
-        } else {
-            transactions = []
-        }
-        
-        // 如果沒有指定 productId，檢查是否有任何交易
-        guard let productId = productId else {
-            return !transactions.isEmpty
-        }
-        
-        // 檢查特定產品的交易
-        return transactions.contains { transaction in
-            transaction.items.contains { $0.productId == productId }
-        }
+        guard let productId else { return transactionIndex.hasAnyTransaction }
+        return transactionIndex.hasTransaction(productId: productId)
     }
     
     // MARK: - 確保選中的類別是有效的
@@ -362,7 +350,6 @@ class AddNewProductViewModel: ObservableObject {
                     price: editing.price,              // 保持原價格
                     stock: quantityValue,              // 允許更新庫存
                     categoryId: editing.categoryId,    // 保持原類別 ID
-                    categoryName: editing.categoryName, // 保持原類別名稱
                     note: description,                 // 允許更新描述
                     imageData: processedImageData,     // 允許更新圖片
                     isDisabled: editing.isDisabled,
@@ -377,7 +364,6 @@ class AddNewProductViewModel: ObservableObject {
                     price: priceValue,                 // 允許更新價格
                     stock: quantityValue,              // 允許更新庫存
                     categoryId: category.id,           // 允許更新類別 ID
-                    categoryName: category.name,       // 允許更新類別名稱
                     note: description,                 // 允許更新描述
                     imageData: processedImageData,     // 允許更新圖片
                     isDisabled: editing.isDisabled,
@@ -392,7 +378,6 @@ class AddNewProductViewModel: ObservableObject {
                 price: priceValue,
                 stock: quantityValue,
                 categoryId: category.id,
-                categoryName: category.name,
                 note: description,
                 imageData: processedImageData,
                 isDisabled: false

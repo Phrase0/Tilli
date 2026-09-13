@@ -15,7 +15,7 @@ struct CashPaymentView: View {
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
-    @Binding var event: EventModel
+    let event: EventModel
 
     @Environment(\.closeCheckoutFlow) private var closeFlow
 
@@ -25,15 +25,15 @@ struct CashPaymentView: View {
 
     init(
         totalAmount: Decimal,
-        event: Binding<EventModel>,
+        event: EventModel,
         summaryItems: [SummaryItemModel],
         selectedDiscount: DiscountModel? = nil,
         occurredAt: Date? = nil
     ) {
-        self._event = event
+        self.event = event
         self._viewModel = ObservedObject(wrappedValue: CashPaymentViewModel(
             totalAmount: totalAmount,
-            event: event.wrappedValue,
+            event: event,
             summaryItems: summaryItems,
             selectedDiscount: selectedDiscount,
             occurredAt: occurredAt
@@ -191,12 +191,11 @@ struct CashPaymentView: View {
     private func completePayment() {
         guard viewModel.isAmountValid else { return }
 
-        let updateEvent = viewModel.performCheckout(
+        viewModel.performCheckout(
             eventDataManager: eventDataManager,
             productRepository: productRepository,
             inventoryChangeRepository: inventoryChangeRepository
         )
-        event = updateEvent
 
         DispatchQueue.main.async {
             closeFlow()
@@ -204,12 +203,11 @@ struct CashPaymentView: View {
     }
 
     private func completePaymentSimple() {
-        let updateEvent = viewModel.performCheckout(
+        viewModel.performCheckout(
             eventDataManager: eventDataManager,
             productRepository: productRepository,
             inventoryChangeRepository: inventoryChangeRepository
         )
-        event = updateEvent
         closeFlow()
     }
 }

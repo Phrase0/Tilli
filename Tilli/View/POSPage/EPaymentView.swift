@@ -16,7 +16,7 @@ struct EPaymentView: View {
     @EnvironmentObject var qrCodeDataManager: QRCodeRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
-    @Binding var event: EventModel
+    let event: EventModel
 
     @Environment(\.closeCheckoutFlow) private var closeFlow
 
@@ -24,15 +24,15 @@ struct EPaymentView: View {
 
     init(
         totalAmount: Decimal,
-        event: Binding<EventModel>,
+        event: EventModel,
         summaryItems: [SummaryItemModel],
         selectedDiscount: DiscountModel? = nil,
         occurredAt: Date? = nil
     ) {
-        self._event = event
+        self.event = event
         self._viewModel = ObservedObject(wrappedValue: EPaymentViewModel(
             totalAmount: totalAmount,
-            event: event.wrappedValue,
+            event: event,
             summaryItems: summaryItems,
             selectedDiscount: selectedDiscount,
             occurredAt: occurredAt
@@ -129,12 +129,11 @@ struct EPaymentView: View {
     private func completePayment() {
         guard qrCodeDataManager.qrCodeImage != nil else { return }
 
-        let updateEvent = viewModel.performCheckout(
+        viewModel.performCheckout(
             eventDataManager: eventDataManager,
             productRepository: productRepository,
             inventoryChangeRepository: inventoryChangeRepository
         )
-        event = updateEvent
 
         closeFlow()
     }

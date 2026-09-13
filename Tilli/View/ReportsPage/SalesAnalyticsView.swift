@@ -10,7 +10,7 @@ import Charts
 
 struct SalesAnalyticsView: View {
     @ObservedObject var salesAnalyticsViewModel: SalesAnalyticsViewModel
-    @Binding var event: EventModel
+    let event: EventModel
     let timeRange: ReportTimeRange
 
     // 時間分佈圖選中狀態
@@ -20,9 +20,9 @@ struct SalesAnalyticsView: View {
     @State private var selectedDailyData: DailyRevenueData?
     @State private var selectedMonthlyData: MonthlyRevenueData?
 
-    init(viewModel: SalesAnalyticsViewModel, event: Binding<EventModel>, timeRange: ReportTimeRange) {
+    init(viewModel: SalesAnalyticsViewModel, event: EventModel, timeRange: ReportTimeRange) {
         self.salesAnalyticsViewModel = viewModel
-        self._event = event
+        self.event = event
         self.timeRange = timeRange
     }
 

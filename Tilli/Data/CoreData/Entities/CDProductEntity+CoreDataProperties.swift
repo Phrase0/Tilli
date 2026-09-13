@@ -16,7 +16,6 @@ extension CDProductEntity {
     }
     
     @NSManaged public var categoryId: UUID
-    @NSManaged public var categoryName: String
     @NSManaged public var id: UUID
     @NSManaged public var eventId: UUID
     @NSManaged public var name: String
@@ -25,6 +24,7 @@ extension CDProductEntity {
     @NSManaged public var note: String?
     @NSManaged public var imageData: Data?
     @NSManaged public var category: CDCategoryEntity
+    @NSManaged public var inventoryChanges: NSSet?
     @NSManaged public var isDisabled: Bool
     @NSManaged public var sortOrder: Int16
 
@@ -46,7 +46,6 @@ extension CDProductEntity {
         self.price = NSDecimalNumber(decimal: model.price)
         self.stock = Int32(model.stock)
         self.categoryId = model.categoryId
-        self.categoryName = model.categoryName
         self.note = model.note
         if let imageData = model.imageData {
             self.imageData = imageData

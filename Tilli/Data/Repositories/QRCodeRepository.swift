@@ -55,8 +55,7 @@ class QRCodeRepository: ObservableObject {
         let entity = CDQRCodeEntity(context: context)
         entity.update(from: model, context: context)
         entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-        entity.updatedAt = Date()
-        entity.syncStatus = "pending"
+        entity.markPendingSync()
 
         saveContext()
 

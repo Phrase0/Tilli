@@ -63,7 +63,6 @@ class TestDataGenerator {
             price: 120,
             stock: 100,
             categoryId: category1Id,
-            categoryName: "飲品",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -76,7 +75,6 @@ class TestDataGenerator {
             price: 80,
             stock: 100,
             categoryId: category1Id,
-            categoryName: "飲品",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -99,7 +97,6 @@ class TestDataGenerator {
             price: 150,
             stock: 50,
             categoryId: category2Id,
-            categoryName: "甜點",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -112,7 +109,6 @@ class TestDataGenerator {
             price: 180,
             stock: 50,
             categoryId: category2Id,
-            categoryName: "甜點",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -135,7 +131,6 @@ class TestDataGenerator {
             price: 100,
             stock: 80,
             categoryId: category3Id,
-            categoryName: "輕食",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -251,7 +246,6 @@ class TestDataGenerator {
             price: Decimal(string: "4.50")!,
             stock: 100,
             categoryId: category1Id,
-            categoryName: "飲品",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -264,7 +258,6 @@ class TestDataGenerator {
             price: Decimal(string: "3.20")!,
             stock: 100,
             categoryId: category1Id,
-            categoryName: "飲品",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -287,7 +280,6 @@ class TestDataGenerator {
             price: Decimal(string: "5.80")!,
             stock: 50,
             categoryId: category2Id,
-            categoryName: "甜點",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -300,7 +292,6 @@ class TestDataGenerator {
             price: Decimal(string: "6.40")!,
             stock: 50,
             categoryId: category2Id,
-            categoryName: "甜點",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -323,7 +314,6 @@ class TestDataGenerator {
             price: Decimal(string: "4.75")!,
             stock: 80,
             categoryId: category3Id,
-            categoryName: "輕食",
             note: nil,
             imageData: nil,
             isDisabled: false
@@ -469,19 +459,11 @@ class TestDataGenerator {
                 var discountValue: Decimal? = nil
                 var totalAmount = subtotal
 
-                if !discounts.isEmpty && Int.random(in: 1...100) <= 30 {
-                    let selectedDiscount = discounts.randomElement()!
-                    discountType = selectedDiscount.type
-                    discountValue = selectedDiscount.value
-
-                    // 計算折扣後金額
-                    switch selectedDiscount.type {
-                    case .percentage:
-                        let discountAmount = MoneyHelper.multiply(subtotal, selectedDiscount.value / 100)
-                        totalAmount = MoneyHelper.subtract(subtotal, discountAmount)
-                    case .amount:
-                        totalAmount = max(MoneyHelper.subtract(subtotal, selectedDiscount.value), 0)
-                    }
+                if !discounts.isEmpty && Int.random(in: 1...100) <= 30,
+                   let applied = DiscountCalculator.effective(discounts.randomElement(), subtotal: subtotal) {
+                    discountType = applied.type
+                    discountValue = applied.value
+                    totalAmount = DiscountCalculator.total(subtotal: subtotal, discount: applied)
                 }
 
                 // 設定交易時間（當天的隨機時間，營業時間 9:00-21:00）

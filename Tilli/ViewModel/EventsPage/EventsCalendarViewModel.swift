@@ -105,15 +105,11 @@ class EventsCalendarViewModel: ObservableObject {
     }
 
     func monthYearString() -> String {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
-        return formatter.string(from: currentDate)
+        DateFormatter.yearMonth.string(from: currentDate)
     }
 
     func selectedDateString() -> String {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("MMMdEEE")
-        return formatter.string(from: selectedDate)
+        DateFormatter.monthDayWeekday.string(from: selectedDate)
     }
 
     /// 取得選中日期的所有場次（排除永久場次）
@@ -130,8 +126,6 @@ class EventsCalendarViewModel: ObservableObject {
         guard let transactionManager = transactionDataManager else {
             return (count: 0, total: 0)
         }
-        let transactions = transactionManager.fetchTransactions(forEventId: event.id)
-        let total = transactions.reduce(Decimal(0)) { MoneyHelper.add($0, $1.totalAmount) }
-        return (count: transactions.count, total: total)
+        return transactionManager.fetchTransactions(forEventId: event.id).summary
     }
 }

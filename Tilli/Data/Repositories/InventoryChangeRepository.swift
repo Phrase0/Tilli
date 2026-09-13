@@ -29,9 +29,10 @@ class InventoryChangeRepository: ObservableObject {
         let entity = CDInventoryChangeEntity(context: context)
         entity.update(from: change, context: context)
         entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-        entity.syncStatus = "pending"
+        entity.markPendingSync()
         entity.event = eventEntity
         entity.eventId = eventId
+        entity.product = fetchProductEntity(by: change.productId)
         saveContext()
         // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
     }
@@ -43,13 +44,17 @@ class InventoryChangeRepository: ObservableObject {
             return
         }
         let currentUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
+        // 一次撈出這批用到的 product entity，避免每筆異動各查一次
+        let productEntities = fetchProductEntities(by: Set(changes.map { $0.productId }))
+        let now = Date()
         for change in changes {
             let entity = CDInventoryChangeEntity(context: context)
             entity.update(from: change, context: context)
             entity.userId = currentUserId
-            entity.syncStatus = "pending"
+            entity.markPendingSync(at: now)
             entity.event = eventEntity
             entity.eventId = eventId
+            entity.product = productEntities[change.productId]
         }
         saveContext()
         // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
@@ -61,6 +66,23 @@ class InventoryChangeRepository: ObservableObject {
         request.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
         request.fetchLimit = 1
         return try? context.fetch(request).first
+    }
+
+    /// 根據 productId 取得 CDProductEntity（接 `product` relationship 用）
+    private func fetchProductEntity(by productId: UUID) -> CDProductEntity? {
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
+    }
+
+    /// 批次取得多個 CDProductEntity，以 id 為索引
+    private func fetchProductEntities(by productIds: Set<UUID>) -> [UUID: CDProductEntity] {
+        guard !productIds.isEmpty else { return [:] }
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id IN %@", Array(productIds))
+        let entities = (try? context.fetch(request)) ?? []
+        return Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0) })
     }
 
     // MARK: - Read

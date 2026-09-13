@@ -31,6 +31,7 @@ extension CDTransactionEntity {
     // MARK: - Sync 相關欄位
     @NSManaged public var userId: String?        // 所屬用戶 ID
     @NSManaged public var syncStatus: String?    // "synced" | "pending" | "error"
+    @NSManaged public var updatedAt: Date?       // 建立當下的時間，之後永不改變（append-only）
 
 }
 

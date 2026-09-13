@@ -37,9 +37,13 @@ enum PaymentMethodFilter {
     }
 }
 
+@MainActor
 class TransactionHistoryViewModel: ObservableObject {
 
-    @Binding var event: EventModel
+    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    private let dataSource: EventDataSource
+
+    var event: EventModel { dataSource.event }
 
     // Transaction History 相關狀態
     @Published var transactions: [TransactionModel] = []
@@ -55,16 +59,8 @@ class TransactionHistoryViewModel: ObservableObject {
     // 篩選狀態
     @Published var paymentFilter: PaymentMethodFilter = .all
 
-    // 用於獲取最新狀態的 DataManager
-    private var transactionDataManager: TransactionRepository?
-    
     var eventTotalAmount: Decimal {
-        if let transactionManager = transactionDataManager {
-            let transactions = transactionManager.fetchTransactions(forEventId: event.id)
-            return transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
-        } else {
-            return 0
-        }
+        dataSource.transactions.total
     }
 
     // MARK: - 篩選後的交易（用於金額排序的打平列表）
@@ -122,8 +118,8 @@ class TransactionHistoryViewModel: ObservableObject {
         return paymentFilter != .all
     }
 
-    init(event: Binding<EventModel>) {
-        self._event = event
+    init(dataSource: EventDataSource) {
+        self.dataSource = dataSource
     }
 
     // MARK: - 排序切換
@@ -140,34 +136,15 @@ class TransactionHistoryViewModel: ObservableObject {
         }
     }
 
-    // MARK: - DataManager 管理
-    
-    /// 更新 DataManager 引用
-    func updateDataManagers(
-        transactionDataManager: TransactionRepository
-    ) {
-        self.transactionDataManager = transactionDataManager
-    }
-    
     // MARK: - Transaction History 相關方法
 
     /// 載入交易資料（支援時間範圍）
     func loadData(timeRange: ReportTimeRange? = nil) {
-        // 儲存當前時間範圍（用於 CSV 匯出）- 即使 DataManager 未設定也要保存
+        // 儲存當前時間範圍（用於 CSV 匯出）
         self.currentTimeRange = timeRange
 
-        guard let transactionManager = transactionDataManager else { return }
-
-        if let timeRange = timeRange {
-            // 使用時間範圍查詢
-            transactions = transactionManager.fetchTransactions(
-                forEventId: event.id,
-                dateRange: timeRange.dateInterval
-            )
-        } else {
-            // 查詢所有交易（向後兼容）
-            transactions = transactionManager.fetchTransactions(forEventId: event.id)
-        }
+        // 共用資料源，切換 timeRange 不再重查 DB（A5 / E2）
+        transactions = dataSource.transactions(in: timeRange?.dateInterval)
 
         // 按日分組交易
         groupTransactionsByDate()
@@ -232,22 +209,11 @@ class TransactionHistoryViewModel: ObservableObject {
             let paymentMethod = paymentMethodText(transaction.paymentMethod)
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
-            let transactionDiscount: String = {
-                guard let discountType = transaction.discountType,
-                      let discountValue = transaction.discountValue else {
-                    return "-"
-                }
-                switch discountType {
-                case .percentage:
-                    return "\(discountValue)%"
-                case .amount:
-                    return "-\(discountValue)"
-                }
-            }()
+            let transactionDiscount = DiscountCalculator.deductionText(for: transaction) ?? "-"
 
             for item in transaction.items {
-                let productName = item.name.replacingOccurrences(of: ",", with: "，")
-                let category = item.category.replacingOccurrences(of: ",", with: "，")
+                let productName = CSVExporter.escape(item.name)
+                let category = CSVExporter.escape(item.category)
                 let unitPrice = MoneyHelper.toDisplayString(item.price, currency: currency)
                 let quantity = "\(item.quantity)"
                 let subtotal = MoneyHelper.toDisplayString(item.total, currency: currency)
@@ -263,25 +229,17 @@ class TransactionHistoryViewModel: ObservableObject {
     }
 
     func createTempCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        // 過濾檔名中的非法字符（/ : 等）
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 交易明細
-        let csvFileLabel = String.localized("csvFileTransactionDetail")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-        
-        do {
-            let content = generateCSVContent()  // 自動生成內容
-            try content.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating CSV file: \(error)")
-        }
-        
-        return fileURL
+        return CSVExporter.write(
+            content: generateCSVContent(),
+            label: String.localized("csvFileTransactionDetail"),
+            eventTitle: event.title
+        )
+    }
+
+    /// 折扣標籤的顯示文字（無折扣時回傳 nil，View 直接顯示不做判斷）
+    func discountText(for transaction: TransactionModel) -> String? {
+        DiscountCalculator.deductionText(for: transaction)
     }
 
     // MARK: - 交易展開/收合

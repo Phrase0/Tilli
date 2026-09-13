@@ -13,9 +13,6 @@ struct ContentView: View {
     @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
-    // MARK: - 測試用（測試完成後刪除這段）
-    @State private var hasGeneratedTestData = false
-
     /// 是否需要顯示個人資料設定頁（由 authState 控制）
     private var needsProfileSetup: Bool {
         authManager.authState == .needsSetup
@@ -82,17 +79,6 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
-        // MARK: - 測試用（測試完成後刪除這段 .onAppear）
-//        .onAppear {
-//            TestDataGenerator.generateTestData(
-//                eventDataManager: eventDataManager,
-//                inventoryChangeRepository: inventoryChangeRepository
-//            )
-//            TestDataGenerator.generate30DaysMultiCafeSession(
-//                eventDataManager: eventDataManager,
-//                inventoryChangeRepository: inventoryChangeRepository
-//            )
-//        }
     }
 }
 

@@ -37,8 +37,7 @@ class ProductRepository: ObservableObject {
             productEntity.update(from: productModel, context: context)
             productEntity.sortOrder = Int16(nextProductSortOrder(forCategoryId: categoryId))
             productEntity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-            productEntity.syncStatus = "pending"
-            productEntity.updatedAt = Date()
+            productEntity.markPendingSync()
             productEntity.category = categoryEntity
 
             saveContext()
@@ -84,8 +83,7 @@ class ProductRepository: ObservableObject {
             for (index, productId) in orderedProductIds.enumerated() {
                 guard let entity = entityDict[productId] else { continue }
                 entity.sortOrder = Int16(index)
-                entity.syncStatus = "pending"
-                entity.updatedAt = Date()
+                entity.markPendingSync()
                 updatedModels.append(entity.toModel())
             }
 
@@ -112,7 +110,6 @@ class ProductRepository: ObservableObject {
                 
                 // 更新類別相關屬性
                 entity.categoryId = productModel.categoryId
-                entity.categoryName = productModel.categoryName
                 
                 entity.note = productModel.note
                 if let imageData = productModel.imageData {
@@ -121,8 +118,7 @@ class ProductRepository: ObservableObject {
                 if imageChanged {
                     entity.imageURL = nil  // TODO: [SYNC-PENDING] 清空舊 URL，重建同步後由上傳端回寫
                 }
-                entity.syncStatus = "pending"
-                entity.updatedAt = Date()
+                entity.markPendingSync()
 
                 saveContext()
                 // 同步到 Firestore（用 entity 轉回 model，而非呼叫端傳進來的 productModel——
@@ -143,8 +139,7 @@ class ProductRepository: ObservableObject {
         do {
             if let entity = try context.fetch(request).first {
                 entity.isDisabled = true
-                entity.syncStatus = "pending"
-                entity.updatedAt = Date()
+                entity.markPendingSync()
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
@@ -163,8 +158,7 @@ class ProductRepository: ObservableObject {
         do {
             if let entity = try context.fetch(request).first {
                 entity.isDisabled = false
-                entity.syncStatus = "pending"
-                entity.updatedAt = Date()
+                entity.markPendingSync()
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
@@ -175,27 +169,28 @@ class ProductRepository: ObservableObject {
         }
     }
 
-    /// 刪除 Product（智能刪除：有 Transaction 則停用，無則硬刪除）
+    /// 刪除 Product
+    ///
+    /// 有交易紀錄的商品**不可刪除**（刪掉再建同名商品會讓報表統計分裂成兩個 UUID）。
+    /// 守衛保留，因為 repository 是最後一道防線（將來的批次刪除／匯入會需要），
+    /// 但它**只拒絕、不偷偷做別的事** —— 原本會靜默改成「停用」，
+    /// 呼叫端以為刪掉了、實際上資料還在。
     func deleteProduct(_ productId: UUID) -> ProductDeletionResult {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
 
         do {
             guard let productEntity = try context.fetch(request).first else {
-                return .failed("找不到要刪除的 Product")
+                return .failed(String.localized("productDeleteNotFound"))
             }
 
-            // 檢查是否有相關 Transaction
-            if hasRelatedTransactions(productId: productId, eventId: productEntity.eventId) {
-                // 有 Transaction，只能停用
-                productEntity.isDisabled = true
-                productEntity.syncStatus = "pending"
-                productEntity.updatedAt = Date()
-                saveContext()
-                // 同步停用狀態到 Firestore
-                let productModel = productEntity.toModel()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
-                return .disabledInstead("此產品已有交易記錄，已改為停用狀態")
+            guard let index = transactionIndex(forEventId: productEntity.eventId) else {
+                // 查不到交易就不敢刪（保守處理），但明確告知呼叫端
+                return .failed(String.localized("productDeleteCheckFailed"))
+            }
+
+            if index.hasTransaction(productId: productId) {
+                return .failed(String.localized("productDetailCannotDelete"))
             } else {
                 // 沒有 Transaction，可以硬刪除
                 // 先刪除該產品的所有庫存異動記錄
@@ -203,39 +198,27 @@ class ProductRepository: ObservableObject {
                 context.delete(productEntity)
                 saveContext()
                 // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
-                return .deleted("產品已成功刪除")
+                return .deleted("Product deleted")
             }
         } catch {
             print("Delete product failed:", error)
-            return .failed("刪除失敗: \(error.localizedDescription)")
+            return .failed(String.localized("productDeleteFailed \(error.localizedDescription)"))
         }
     }
 
     // MARK: - Helper Methods
 
-    /// 檢查 Product 是否有相關 Transaction（僅查詢同場次的交易）
-    private func hasRelatedTransactions(productId: UUID, eventId: UUID?) -> Bool {
-        let transactionRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
-        if let eventId = eventId {
-            transactionRequest.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
+    /// 建立該場次的交易索引（刪除守衛用）。查詢失敗回傳 nil，由呼叫端誠實失敗。
+    private func transactionIndex(forEventId eventId: UUID?) -> TransactionIndex? {
+        let request: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
+        if let eventId {
+            request.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
         }
-
         do {
-            let transactions = try context.fetch(transactionRequest)
-
-            // 檢查交易的 items 中是否包含此 productId
-            for transaction in transactions {
-                if let itemsData = transaction.itemsData,
-                   let items = try? JSONDecoder().decode([SummaryItemModel].self, from: itemsData) {
-                    if items.contains(where: { $0.productId == productId }) {
-                        return true
-                    }
-                }
-            }
-            return false
+            return TransactionIndex(transactions: try context.fetch(request).map { $0.toModel() })
         } catch {
-            print("檢查 Transaction 失敗:", error)
-            return true // 發生錯誤時保守處理，假設有 Transaction
+            print("🔴 建立交易索引失敗:", error)
+            return nil
         }
     }
 
@@ -296,8 +279,7 @@ class ProductRepository: ObservableObject {
             for product in products {
                 if let newStock = stockUpdates[product.id] {
                     product.stock = Int32(max(newStock, 0))
-                    product.syncStatus = "pending"
-                    product.updatedAt = now
+                    product.markPendingSync(at: now)
                 }
             }
             
@@ -338,13 +320,11 @@ class ProductRepository: ObservableObject {
                     entity.price = NSDecimalNumber(decimal: productModel.price)
                     updateStockWithBusinessLogic(entity: entity, newStock: productModel.stock)
                     entity.categoryId = productModel.categoryId
-                    entity.categoryName = productModel.categoryName
                     entity.note = productModel.note
                     if let imageData = productModel.imageData {
                         entity.imageData = imageData
                     }
-                    entity.syncStatus = "pending"
-                    entity.updatedAt = now
+                    entity.markPendingSync(at: now)
                 }
             }
 
@@ -378,7 +358,6 @@ class ProductRepository: ObservableObject {
 // MARK: - Product Deletion Result
 
 enum ProductDeletionResult {
-    case deleted(String)          // 成功硬刪除
-    case disabledInstead(String)  // 因為有 Transaction，改為停用
-    case failed(String)           // 刪除失敗
+    case deleted(String)   // 成功硬刪除
+    case failed(String)    // 刪除失敗（含「有交易紀錄不可刪除」）
 }

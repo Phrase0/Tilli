@@ -22,6 +22,15 @@ enum WorkspaceTab: Hashable {
 struct EventWorkspaceView: View {
     let event: EventModel
 
+    // 三個分頁共用的單一資料源（CONVENTIONS.md 規則 1 例外 2）
+    @StateObject private var dataSource: EventDataSource
+
+    @EnvironmentObject private var eventRepository: EventRepository
+    @EnvironmentObject private var productRepository: ProductRepository
+    @EnvironmentObject private var transactionRepository: TransactionRepository
+    @EnvironmentObject private var inventoryChangeRepository: InventoryChangeRepository
+    @Environment(\.dismiss) private var dismiss
+
     @State private var selectedTab: WorkspaceTab
     @StateObject private var inventoryVM: InventoryViewModel
     @StateObject private var posVM: POSViewModel
@@ -39,9 +48,13 @@ struct EventWorkspaceView: View {
     init(event: EventModel, initialTab: WorkspaceTab) {
         self.event = event
         _selectedTab = State(initialValue: initialTab)
-        _inventoryVM = StateObject(wrappedValue: InventoryViewModel(event: event))
-        _posVM = StateObject(wrappedValue: POSViewModel(event: .constant(event)))
-        _reportsVM = StateObject(wrappedValue: ReportsViewModel(event: event))
+
+        // 四者共用同一個 EventDataSource 實例
+        let source = EventDataSource(event: event)
+        _dataSource = StateObject(wrappedValue: source)
+        _inventoryVM = StateObject(wrappedValue: InventoryViewModel(dataSource: source))
+        _posVM = StateObject(wrappedValue: POSViewModel(dataSource: source))
+        _reportsVM = StateObject(wrappedValue: ReportsViewModel(dataSource: source))
     }
 
     var body: some View {
@@ -59,7 +72,7 @@ struct EventWorkspaceView: View {
                 }
                 .tag(WorkspaceTab.inventory)
 
-            POSView(event: event, viewModel: posVM)
+            POSView(viewModel: posVM)
                 .tabItem {
                     Image(systemName: "dollarsign.circle")
                     // 開始收銀
@@ -75,7 +88,20 @@ struct EventWorkspaceView: View {
                 }
                 .tag(WorkspaceTab.reports)
         }
-        .navigationTitle(event.title)
+        .onAppear {
+            // Repository 走 @EnvironmentObject，在 init 取不到，這裡注入後立即載入
+            dataSource.attach(
+                eventRepository: eventRepository,
+                productRepository: productRepository,
+                transactionRepository: transactionRepository,
+                inventoryChangeRepository: inventoryChangeRepository
+            )
+        }
+        .onChange(of: dataSource.isEventDeleted) {
+            // 場次被刪除 → 整個工作區退回上一頁（原本寫在 InventoryView 的 onChange 補丁）
+            if dataSource.isEventDeleted { dismiss() }
+        }
+        .navigationTitle(dataSource.event.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

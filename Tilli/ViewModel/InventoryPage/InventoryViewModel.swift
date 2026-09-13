@@ -56,18 +56,21 @@ class InventoryViewModel: ObservableObject {
     @Published var isDisableAction = false
 
     // MARK: - Dependencies
-    let event: EventModel
+    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    private let dataSource: EventDataSource
     private var productRepository: ProductRepository?
-    private var inventoryChangeRepository: InventoryChangeRepository?
-    private var transactionDataManager: TransactionRepository?
+
+    /// ⭐ 一律從 dataSource 取，商品與類別是同一份快照（A3）
+    var event: EventModel { dataSource.event }
+
+    /// 交易索引（唯一的「有沒有賣過」答案來源，A1）
+    var transactionIndex: TransactionIndex { dataSource.transactionIndex }
 
     // MARK: - Computed Properties
 
     /// 從 event 取得類別列表（只顯示啟用的，按 sortOrder 排序）
     var sortedCategories: [CategoryModel] {
-        event.categories
-            .filter { !$0.isDisabled }
-            .sorted { $0.sortOrder < $1.sortOrder }
+        event.categories.active
     }
 
     /// 檢查是否有任何商品（用於空狀態判斷）
@@ -94,57 +97,44 @@ class InventoryViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(event: EventModel) {
-        self.event = event
-        self.selectedTimeRange = ReportTimeRange(event: event)
+    init(dataSource: EventDataSource) {
+        self.dataSource = dataSource
+        self.selectedTimeRange = ReportTimeRange(event: dataSource.event)
         // 預設展開所有類別
-        self.expandedCategoryIds = Set(event.categories.filter { !$0.isDisabled }.map { $0.id })
+        self.expandedCategoryIds = Set(dataSource.event.categories.active.map { $0.id })
     }
 
     // MARK: - Public Methods
 
-    /// 更新 Repository 引用
-    func updateRepositories(productRepository: ProductRepository,
-                            inventoryChangeRepository: InventoryChangeRepository,
-                            transactionDataManager: TransactionRepository) {
+    /// 注入寫入用的 Repository（讀取一律走 dataSource）
+    func updateRepositories(productRepository: ProductRepository) {
         self.productRepository = productRepository
-        self.inventoryChangeRepository = inventoryChangeRepository
-        self.transactionDataManager = transactionDataManager
         loadData()
     }
 
-    /// 載入資料
+    /// 從共用資料源重新取一份快照
+    ///
+    /// 管理頁刻意按 `product.isDisabled` 分成「銷售中／已下架」兩區 ——
+    /// 這跟 POS 的 `isAvailableForSale`（還要看類別）是不同語意：
+    /// 管理頁本來就要看得到下架商品。
     func loadData() {
-        guard let productRepo = productRepository,
-              let changeRepo = inventoryChangeRepository else { return }
+        dataSource.reload()
 
-        // 取得該場次的所有產品
-        let allProducts = productRepo.fetchProducts(forEventId: event.id)
-        let enabledProducts = allProducts.filter { !$0.isDisabled }
-        let disabledProducts = allProducts.filter { $0.isDisabled }
+        let allProducts = dataSource.products
+        let allChanges = dataSource.inventoryChanges
 
-        // 取得該場次的所有異動紀錄
-        let allChanges = changeRepo.fetchChanges(forEventId: event.id)
-
-        // 組合成 InventoryProductItem（啟用的商品）
-        inventoryItems = enabledProducts.map { product in
-            let productChanges = allChanges.filter { $0.productId == product.id }
-            return InventoryProductItem(
-                id: product.id,
-                product: product,
-                changes: productChanges
-            )
+        func items(from products: [ProductModel]) -> [InventoryProductItem] {
+            products.map { product in
+                InventoryProductItem(
+                    id: product.id,
+                    product: product,
+                    changes: allChanges.filter { $0.productId == product.id }
+                )
+            }
         }
 
-        // 組合成 InventoryProductItem（已下架的商品）
-        disabledInventoryItems = disabledProducts.map { product in
-            let productChanges = allChanges.filter { $0.productId == product.id }
-            return InventoryProductItem(
-                id: product.id,
-                product: product,
-                changes: productChanges
-            )
-        }
+        inventoryItems = items(from: allProducts.filter { !$0.isDisabled })
+        disabledInventoryItems = items(from: allProducts.filter { $0.isDisabled })
     }
 
     /// 切換商品展開/收起狀態
@@ -251,8 +241,8 @@ class InventoryViewModel: ObservableObject {
         let allItems = inventoryItems + disabledInventoryItems
 
         for item in allItems {
-            let productName = item.product.name.replacingOccurrences(of: ",", with: "，")
-            let categoryName = getCategoryName(for: item.product.categoryId).replacingOccurrences(of: ",", with: "，")
+            let productName = CSVExporter.escape(item.product.name)
+            let categoryName = CSVExporter.escape(getCategoryName(for: item.product.categoryId))
             let unitPrice = MoneyHelper.toDisplayString(item.product.price, currency: currency)
             let currentStock = "\(item.currentStock)"
             // 庫存不足 / 庫存正常
@@ -350,11 +340,11 @@ class InventoryViewModel: ObservableObject {
             }
 
             let dateTime = DateFormatter.dateTime.string(from: change.timestamp)
-            let productName = product.name.replacingOccurrences(of: ",", with: "，")
-            let categoryName = getCategoryName(for: product.categoryId).replacingOccurrences(of: ",", with: "，")
+            let productName = CSVExporter.escape(product.name)
+            let categoryName = CSVExporter.escape(getCategoryName(for: product.categoryId))
             // 已下架 / 銷售中
             let productStatus = product.isDisabled ? String.localized("csvDisabled") : String.localized("csvActive")
-            let reasonName = change.displayReasonName.replacingOccurrences(of: ",", with: "，")
+            let reasonName = CSVExporter.escape(change.displayReasonName)
             let changeText = change.change >= 0 ? "+\(change.change)" : "\(change.change)"
             let afterStock = afterStockMap[change.id].map { String($0) } ?? "-"
 
@@ -367,52 +357,27 @@ class InventoryViewModel: ObservableObject {
 
     /// 建立庫存總覽 CSV 檔案 URL
     func createInventorySummaryCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 庫存總覽
-        let csvFileLabel = String.localized("csvFileInventorySummary")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-
-        do {
-            let csvContent = generateInventorySummaryCSV()
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating Inventory Summary CSV file: \(error)")
-        }
-
-        return fileURL
+        return CSVExporter.write(
+            content: generateInventorySummaryCSV(),
+            label: String.localized("csvFileInventorySummary"),
+            eventTitle: event.title
+        )
     }
 
     /// 建立庫存異動明細 CSV 檔案 URL
     func createInventoryDetailCSVFileURL() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        let safeTitle = event.title
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
         // 庫存異動明細
-        let csvFileLabel = String.localized("csvFileInventoryDetail")
-        let fileName = "\(csvFileLabel)_\(safeTitle)_\(DateFormatter.fileTimestamp.string(from: Date())).csv"
-        let fileURL = tempDir.appendingPathComponent(fileName)
-
-        do {
-            let csvContent = generateInventoryDetailCSV()
-            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Error creating Inventory Detail CSV file: \(error)")
-        }
-
-        return fileURL
+        return CSVExporter.write(
+            content: generateInventoryDetailCSV(),
+            label: String.localized("csvFileInventoryDetail"),
+            eventTitle: event.title
+        )
     }
 
-    /// 取得類別名稱
+    /// 取得類別名稱（從共用資料源的 categories 查）
     private func getCategoryName(for categoryId: UUID) -> String {
-        // 未分類
-        event.categories.first { $0.id == categoryId }?.name ?? String.localized("inventoryUncategorized")
+        dataSource.categoryName(for: categoryId)
     }
 
     // MARK: - Export Management
@@ -452,17 +417,7 @@ class InventoryViewModel: ObservableObject {
 
     /// 檢查產品是否有交易記錄
     func hasTransaction(for productId: UUID) -> Bool {
-        guard let transactionManager = transactionDataManager else { return false }
-
-        let transactions = transactionManager.fetchTransactions(forEventId: event.id)
-        for transaction in transactions {
-            for item in transaction.items {
-                if item.productId == productId {
-                    return true
-                }
-            }
-        }
-        return false
+        transactionIndex.hasTransaction(productId: productId)
     }
 
     func removeProduct(byId productId: UUID) {
@@ -472,9 +427,7 @@ class InventoryViewModel: ObservableObject {
         switch result {
         case .deleted(let message):
             print(message)
-        case .disabledInstead(let message):
-            alertMessage = message
-            showAlert = true
+            loadData()
         case .failed(let message):
             alertMessage = message
             showAlert = true

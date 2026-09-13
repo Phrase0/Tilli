@@ -19,6 +19,6 @@ final class TilliSmokeTests: XCTestCase {
 
     func testWorkspaceViewInitWithEvent() {
         let event = EventModel.mock()
-        let _ = WorkspaceView(event: event)
+        let _ = EventWorkspaceView(event: event, initialTab: .pos)
     }
 }

@@ -23,3 +23,9 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
     }
 }
 
+extension Array where Element == SummaryItemModel {
+    /// 小計（折扣前，所有項目的 total 相加）
+    var subtotal: Decimal {
+        reduce(Decimal(0)) { MoneyHelper.add($0, $1.total) }
+    }
+}

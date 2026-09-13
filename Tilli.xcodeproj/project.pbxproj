@@ -62,6 +62,7 @@
 				_Deprecated/SessionDetailFromCalendarView.swift,
 				_Deprecated/SessionDetailFromCalendarViewModel.swift,
 				_Deprecated/SessionsView.swift,
+				_Deprecated/TestDataGenerator.swift,
 				Info.plist,
 			);
 			target = F84D81F52DB85002006730C2 /* Tilli */;

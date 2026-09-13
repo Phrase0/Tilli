@@ -16,7 +16,7 @@
 
 ## 目錄
 
-1. [完整查核結果（24 項）](#1-完整查核結果24-項)
+1. [完整查核結果（28 項）](#1-完整查核結果28-項)
 2. [共用元件設計](#2-共用元件設計)
 3. [功能 A：刪除與停用規則](#3-功能-a刪除與停用規則)
 4. [功能 B：編輯限制（維持現況）](#4-功能-b編輯限制維持現況)
@@ -32,7 +32,7 @@
 
 ---
 
-## 1. 完整查核結果（24 項）
+## 1. 完整查核結果（28 項）
 
 > 掃描範圍：全專案 114 個 Swift 檔（排除 `_Deprecated/`），21,468 行。
 
@@ -59,6 +59,32 @@
 ```
 
 兩者分別被「UI 要不要顯示刪除鍵」和「repository 要不要擋刪除」使用 —— 意見不合時行為無法預測。
+
+##### ⚠️ A1 的可達性（2026-09-13 複查，修正原本的敘述）
+
+上面這個例子**在目前的 UI 上做不到** —— 有交易的商品**不能改類別**，而且是雙重保險：
+
+| 擋在哪 | 位置 |
+|--------|------|
+| 類別 Picker `.disabled(isEditingWithTransaction)` | `AddNewProductView:170` |
+| 組 `ProductModel` 時強制沿用 `editing.categoryId` | `AddNewProductViewModel:352` |
+| 唯一還能改 `categoryId` 的 `batchUpdateProducts` | **沒有任何呼叫端**（dead code） |
+
+其餘可能造成兩種判斷分歧的路徑也都不成立：
+商品下架不改 `categoryId`、賣過的商品不能刪、複製場次產生的是新 UUID（沒交易）、
+刪場次是整個一起走。**目前沒有可達的分歧情境。**
+
+所以 `TransactionIndex`（§2.1）的價值要誠實列為：
+
+| 理由 | 成立？ |
+|------|--------|
+| **E1 效能** —— 25,000 次 JSON decode → 500 次 | ✅ 可實測 |
+| **5 份實作收斂成 1 份** —— 維護成本 | ✅ |
+| **為 Backlog「開放商品編輯」預先收斂** —— §4.1 的理由正是「A1 尚未收斂前風險大於效益」，現在前提達成了 | ✅ |
+| 「修掉使用者現在會遇到的不一致」 | ❌ **不成立**，目前遇不到 |
+
+**這不改變第 1 批的任何程式碼**，只是把測試從「手動操作」改成「單元測試」守住
+（見 §11 第 1 批的測試區）。
 
 #### A7 的具體問題
 
@@ -143,9 +169,88 @@ let isCategoryEnabled = categories.first(where: { $0.id == product.categoryId })
 
 ---
 
+### 1.7 🟠 本地化三條通道不一致（4 項，2026-09-12 新增）
+
+> **修法取決於一個尚未決定的產品問題：App 內的語言切換要留還是拿掉？**
+> 見 §13 待確認事項第 8 項。程式碼本輪不動，先登記。
+
+App 目前有**三條**本地化通道，日期掛在沒接上的那一條：
+
+| # | 通道 | 影響範圍 | 跟隨 App 語言？ |
+|---|------|---------|----------------|
+| 1 | `.environment(\.locale, Locale(identifier: selectedLanguage))`<br>`TilliApp:38` | SwiftUI `Text(LocalizedStringKey)`、`.formatted()`、Charts 軸標籤 | ✅ |
+| 2 | `Bundle.appLocalized` + `String.localized(_:)`<br>`Bundle+AppLocalized.swift` | ViewModel 產出的字串（204 處呼叫） | ✅ |
+| 3 | **`DateFormatter` / `Calendar.current` 的 symbols** | 所有日期字串、日曆星期列（37 處） | ❌ **吃 `Locale.current`（系統語言）** |
+
+`.environment(\.locale,)` 只影響 SwiftUI view tree，**改不到 `Locale.current`** —— 那是 process 層級、由系統語言決定的值。
+
+| # | 問題 | 位置 | 後果 |
+|---|------|------|------|
+| **F1** | **日期格式不跟隨 App 語言** —— `Extensions/DateFormatter.swift` 的 8 個 formatter 都沒設 `.locale` | `EventModel:29-34`、`EventsCalendarViewModel:104/108/112`、`TransactionHistoryViewModel:372`、`SalesAnalyticsViewModel:21/25` | 切成英文後，UI 文字變英文但日期仍是中文格式 |
+| **F2** | **`Locale(identifier: "zh-Hant")` 沒有 region** —— 純語言碼把使用者地區資訊抹掉 | `TilliApp:38` | `region=nil`、`currency=nil`，SwiftUI 原生幣別格式變成 `XXX 1,234.50` |
+| **F3** | **首次啟動強制中文** —— 沒有任何地方從系統語言初始化 `selectedLanguage` | `@AppStorage("selectedLanguage") = "zh-Hant"`（7 處） | 英文手機第一次開 App 得到中文 UI，要自己去「我的」改 |
+| **F4** | **同一畫面兩套語言** —— Charts 軸走通道 1、日期標籤走通道 3 | `SalesAnalyticsView:641` vs `SalesAnalyticsViewModel:21/25` | 切英文時同一張圖上中英並存 |
+
+#### F1 的實測範圍
+
+只有「帶語言的 template formatter」有可見症狀；固定數字 pattern 的輸出兩種語言相同：
+
+```
+                   zh-Hant              en
+dateWithWeekday    2026年01月04日 星期日   Sunday, 01/04/2026    ← ❌ 有差
+yearMonth          2026年1月             January 2026          ← ❌ 有差
+monthDayWeekday    1月4日 週日            Sun, Jan 4            ← ❌ 有差
+veryShortWeekday   [日 一 二 三 四 五 六]   [S M T W T F S]        ← ❌ 有差
+standardDate       2026/01/04           2026/01/04            ← 無差
+dateTime           2026/01/04 16:00     2026/01/04 16:00      ← HH:mm 24 小時制，無差
+shortDate / isoDate / fileTimestamp                           ← 無差
+```
+
+固定 pattern 那幾個目前沒有可見症狀，但仍有隱性風險：`Locale.current` 會帶系統的曆法偏好，
+系統若設成日本和曆／佛曆，`yyyy` 會印出非西元年。設定 locale 可以一併釘死 Gregorian。
+
+#### F2 的實測
+
+```
+zh-Hant      region=nil  currency=nil   幣別格式=「XXX 1,234.50」
+en           region=nil  currency=nil   幣別格式=「¤1,234.50」
+zh-Hant_TW   region=TW   currency=TWD   幣別格式=「$1,234.50」   ← 系統原本給的
+```
+
+**目前沒爆，是因為錢都走 `MoneyHelper.format`**（自己建 `NumberFormatter`，吃 `Locale.current`，不吃 environment）。
+但任何人在 View 裡寫一個 `Text(amount, format: .currency(code:))` 就會拿到 `XXX 1,234.50`。
+
+#### 兩條修法（等產品決定後選一條，不要兩條都做）
+
+**路線 A：拿掉語言切換，全部跟系統（程式碼淨減）**
+
+`Locale.current` 就是正解 → **`Extensions/DateFormatter.swift` 現在的寫法已經是對的，一行都不用改**。
+F1～F4 全部自動消失。要做的是刪：
+
+| 動作 | 位置 |
+|------|------|
+| 刪語言 Picker | `MyView:242`（`_Deprecated/ProfileView:263` 一起） |
+| 刪 `.environment(\.locale, ...)` | `TilliApp:38` → 自動回到系統 locale（解 F2） |
+| 刪 7 處 `@AppStorage("selectedLanguage")` | `TilliApp:21`、`RootTabView:12`、`EventsView:22`、`MyView:14`、`_Deprecated` |
+| `Bundle.appLocalized` 刪除，`String.localized` 退化成不指定 bundle 的薄殼 | 204 處呼叫端**零改動** |
+
+順帶效益：`RootTabView:12` 與 `EventsView:22` 那兩個「宣告了卻沒在 body 用」的強制重繪觸發器一起消失
+—— 那正是 `CONVENTIONS.md`「資料同步規範」明文禁止的強制刷新 hack。
+
+**路線 B：保留語言切換（要新增抽象）**
+
+新增 `AppLocale`（單一真相，讀同一個 `selectedLanguage` key），8 個 formatter 從 `static let` 改成
+`static var` + 依 locale 快取（`NSLock` 保護 dictionary，因為 `EventModel.displayDate` 是 model 層
+computed property，不保證只在主執行緒呼叫）。呼叫端 37 處寫法不變。
+**但 F2、F3 仍須各自另外修**，而且三條通道會永久共存。
+
+⚠️ **兩條路線互斥。** 路線 A 成立時 `AppLocale` 是確定要刪的鷹架，所以產品決定之前不要先建。
+
+---
+
 ## 2. 共用元件設計
 
-上面 24 項用 **7 個共用元件**一次收斂。
+上面 24 項用 **7 個共用元件**一次收斂（§1.7 的 4 項本地化問題不在其中，修法見該節）。
 
 ### 2.1 `TransactionIndex` — 取代 5 個 `hasTransaction`（解 A1、E1）
 
@@ -350,6 +455,28 @@ if transactionIndex.hasTransaction(productId: productId) {
 現況 `AddNewProductView:51/88/170` 的 `.disabled(isEditingWithTransaction)` 與 `AddEventViewModel:413 canEditCategoryName` **全部保留**。
 
 理由：開放編輯會牽動報表的顯示語意與類別歸屬，而 A1 的判斷不一致尚未收斂前，風險大於效益。等本輪統一完成、觀察一段時間再評估。
+
+> **2026-09-13 更新：A1 已於第 1 批收斂**（單一 `TransactionIndex`，一律用 `SummaryItem.categoryId` 快照）。
+> 上述「風險大於效益」的**前提條件已經達成**，要不要開放「有交易的商品改類別」
+> 變成純產品決定。開放前請先讓 §11 第 1 批列的 `TransactionIndex` 單元測試到位 ——
+> 那組測試就是為了這一天寫的。
+
+### 4.1.1 ⚠️ 場次名稱目前【沒有】編輯限制
+
+實際盤點（2026-09-13）：
+
+| 對象 | 有交易時 | 位置 |
+|------|---------|------|
+| **場次名稱** | ✅ **可以改**（沒有任何 `.disabled`） | `AddEventView:42-49` |
+| 場次幣別 | ❌ 鎖定 | `AddEventView:163` |
+| 類別名稱 | ❌ 鎖定（該類別有交易時） | `AddEventView:383`／`canEditCategoryName` |
+| 商品名稱 | ❌ 鎖定 | `AddNewProductView:51` |
+| 商品價格 | ❌ 鎖定 | `AddNewProductView:88` |
+| 商品類別 | ❌ 鎖定 | `AddNewProductView:170` ＋ `AddNewProductViewModel:352` |
+
+場次名稱是這張表裡唯一沒鎖的。**暫定維持可改**，理由：
+場次名不影響任何金額或歸屬，而且第 1.9 批之後歷史交易顯示的是當時的名稱快照，
+改名不會污染歷史。若要改成一致（鎖起來），見 §13 待確認第 9 項。
 
 ### 4.2 但要修 `unitPrice` 的假設（D5）
 
@@ -697,28 +824,349 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 
 ## 11. 執行順序
 
-### 第 0 批 — Dead code 清除（最快，先做）
+> **每批下方都有該批專屬的「測試」區**，拆成三塊：
+> **自動—指令驗證**（grep／build，貼進終端機就能跑）、
+> **自動—單元測試**（純函式，`TilliTests` 目標）、
+> **手動**（要開 App 操作，附完整步驟與預期）。
+>
+> 與 §12 的關係：§12 是**跨批的總清單**（U／D／E／R／F／B／P／G 編號），
+> 用來確認 28 項查核有沒有真的收斂；這裡是**逐批逐改動**的驗收，
+> 每個改動都對得到至少一條。兩邊重疊的項目會標出 §12 的編號，
+> 例如「（U1／U2）」，避免兩份清單各自漂移。
+>
+> 圖例：`✅` 已驗證通過　`⬜` 待補　`⚠️` 已知限制
 
-| # | 項目 | 解決 |
-|---|------|------|
-| 0.1 | 刪除 `MoneyHelper.applyDiscount` / `calculateTotal` | D1、D2 |
-| 0.2 | `EventsCalendarViewModel:108/114` 改用共用 `DateFormatter` | E3 |
+### 第 0 批 — Dead code 清除（最快，先做）✅ 2026-09-12 完成
 
-### 第 1 批 — 共用元件（後面全部依賴）
+| # | 項目 | 解決 | 狀態 |
+|---|------|------|------|
+| 0.1 | 刪除 `MoneyHelper.applyDiscount` / `calculateTotal` | D1、D2 | ✅ |
+| 0.2 | `EventsCalendarViewModel:108/114` 改用共用 `DateFormatter` | E3 | ✅ |
 
-| # | 項目 | 解決 |
-|---|------|------|
-| 1.1 | `TransactionIndex` + 刪除 5 個 `hasTransaction` 實作 | A1、E1 |
-| 1.2 | `EventDataSource` + 移除 `updateDataManagers` 與 `onChange` 補丁 | A2、A3、A5、E2 |
-| 1.3 | `ProductAvailability.isAvailableForSale`（6 處改用、加 log） | B6 |
-| 1.4 | `DiscountCalculator`（含內建 clamp） | B4、B1 |
-| 1.5 | `CSVExporter`（含欄位逸出） | B5 |
-| 1.6 | `PendingSyncStamp`（25 處改用，修 4 處漏設） | C1、C4 |
-| 1.7 | 刪除守衛改誠實失敗 + 移除 `disabledInstead` | D3、D4 |
-| 1.8 | `transactionSummary` 統一到 `EventDataSource`，統一用 `MoneyHelper.add` | A4 |
-| 1.9 | **刪除 `updateRelatedTransactions`**（`eventTitle` 停止更新） | A7 |
-| 1.10 | **刪除 `Product.categoryName` 欄位**，顯示改從 relationship 查 | A7 |
-| 1.11 | 流水帳補 `updatedAt` 欄位 + `InventoryChange → Product` relationship | §14.3 |
+0.2 的共用 formatter：`monthYearString()` → 既有的 `DateFormatter.yearMonth`；
+`selectedDateString()` 的 `MMMdEEE` 模板原本沒有對應 static，已在 `Extensions/DateFormatter.swift`
+新增 `monthDayWeekday`（共 8 個 static）。已驗證 zh-Hant-TW／en-US／ja-JP 三個 locale 輸出與原本完全一致。
+
+#### 測試
+
+> 圖例：`✅` 已驗證通過　`⬜` 待補（需要新增測試檔）　`⚠️` 已知限制，本批不修
+
+##### 自動 —— 指令驗證（不需開 App）
+
+- ✅ **0.1 dead code 真的消失**
+  `grep -rn "applyDiscount\|calculateTotal" --include="*.swift" Tilli` → **0 筆**
+- ✅ **0.1 沒有誤刪其他 MoneyHelper API**
+  `add` / `subtract` / `multiply` / `divide` / `round` / `format` / `average` / `sum` / `toDisplayString` / `toEditableString` 都還在，且 `Decimal.money` extension 未動
+- ✅ **0.2 全專案沒有行內建立的 DateFormatter**
+  `grep -rn "DateFormatter()" --include="*.swift" Tilli | grep -v "Extensions/DateFormatter.swift"` → **0 筆**
+- ✅ **0.2 formatter 輸出等價性**（確認換成共用 static 後字串完全一樣）
+  用 `swift` 腳本比對三個 locale 的輸出：
+  - `zh-Hant`：`yearMonth` = `2026年1月`、`monthDayWeekday` = `1月4日 週日`
+  - `en`：`January 2026`、`Sun, Jan 4`
+  - `ja`：`2026年1月`、`1月4日(日)`
+  - 三者皆與原本的 `setLocalizedDateFormatFromTemplate("yMMMM")` / `("MMMdEEE")` 逐字相同
+- ✅ **0.2 `yearMonth` 的既有使用者沒被破壞**
+  `_Deprecated/CalendarViewModel.swift` 仍在編譯目標內且有用到 `DateFormatter.yearMonth`
+- ✅ **建置** `xcodebuild build` → `BUILD SUCCEEDED`
+
+##### 自動 —— 單元測試
+
+- 本批是「刪除 dead code + 換成共用 formatter」，沒有新的商業邏輯，
+  等價性已由上面的 locale 腳本涵蓋，**不需要新增單元測試**。
+
+##### 手動 —— 需操作 App
+
+- **日曆頁月份標題**（`monthYearString`）
+  1. 場次 tab → 切到日曆檢視
+  2. 確認標題顯示為「2026年9月」這類格式（不是 `2026 September` 或亂碼）
+  3. 左右切換月份數次，含**跨年**（12 月 → 1 月、1 月 → 12 月）
+  - 預期：每次切換標題都正確更新，年份跟著跨年變動
+- **日曆頁選中日期**（`selectedDateString`）
+  1. 點選日曆上任一天
+  2. 確認顯示為「9月13日 週日」這類格式，**星期要正確**
+  3. 特別點選月初 1 號、月底最後一天、以及**閏年 2/29**（2028 年）
+  - 預期：日期與星期都正確，無「週7」之類的異常
+- **回歸：其他用到日期的畫面沒被影響**
+  - 場次卡片的日期區間（`EventModel.displayDate`，用 `dateWithWeekday` / `standardDate`）
+  - 庫存異動紀錄的時間（`dateTime`）
+  - 交易紀錄的日期分組標題（`dateWithWeekday`）
+  - 報表 CSV 檔名的時間戳（`fileTimestamp`）
+  - 預期：全部與改動前相同
+- ⚠️ **已知限制（本批不修）**：在「我的」頁切換 App 語言後，上述日期**不會**跟著變成英文。
+  這是 §1.7 的 F1，三條本地化通道的問題，修法取決於 §13 待確認第 8 項的產品決定。
+  測試時**不要**把這個當成第 0 批的 bug。
+
+### 第 1 批 — 共用元件（後面全部依賴）✅ 2026-09-12 完成
+
+| # | 項目 | 解決 | 狀態 |
+|---|------|------|------|
+| 1.1 | `TransactionIndex` + 刪除 5 個 `hasTransaction` 實作 | A1、E1 | ✅ |
+| 1.2 | `EventDataSource` + 移除 `updateDataManagers` 與 `onChange` 補丁 | A2、A3、A5、E2 | ✅ |
+| 1.3 | `ProductAvailability.isAvailableForSale`（6 處改用、加 log） | B6 | ✅ |
+| 1.4 | `DiscountCalculator`（含內建 clamp） | B4、B1 | ✅ |
+| 1.5 | `CSVExporter`（含欄位逸出） | B5 | ✅ |
+| 1.6 | `PendingSyncStamp`（25 處改用，修 4 處漏設） | C1、C4 | ✅ |
+| 1.7 | 刪除守衛改誠實失敗 + 移除 `disabledInstead` | D3、D4 | ✅ |
+| 1.8 | `transactionSummary` 統一，統一用 `MoneyHelper.add` | A4 | ✅ |
+| 1.9 | **刪除 `updateRelatedTransactions`**（`eventTitle` 停止更新） | A7 | ✅ |
+| 1.10 | **刪除 `Product.categoryName` 欄位**，顯示改從 relationship 查 | A7 | ✅ |
+| 1.11 | 流水帳補 `updatedAt` 欄位 + `InventoryChange → Product` relationship | §14.3 | ✅ |
+
+#### 實作與計畫的差異（都是刻意的）
+
+| # | 計畫寫的 | 實際做的 | 為什麼 |
+|---|---------|---------|-------|
+| 1.3 | 「6 處判斷全部改用 `isAvailableForSale`」 | 那 7 個點其實是**兩種語意**：只有 `POSViewModel.activeProducts` 是「商品可不可賣」（兩層）；其餘 5 處是「啟用中的類別」（一層）。前者改用 `isAvailableForSale`，後者收斂成 `[CategoryModel].active`；`InventoryViewModel` 依 `product.isDisabled` 分「銷售中／已下架」兩區**保持原樣** | 管理頁本來就要看得到下架商品，套用「可販售」會讓下架區消失 |
+| 1.4 | `DiscountCalculator` 吃 `[AppliedDiscount]` | 核心 API 是陣列版（`amount(for:subtotal:)`／`total(subtotal:discounts:)`，先百分比後定額），另加現行單一折扣的便利版 | `AppliedDiscount` 是第 3 批才有的 schema；陣列版先就位，第 3 批換型別即可 |
+| 1.4 | clamp 內建在計算器 | 另外把 clamp **下移到寫入邊界**（兩個付款 VM 與 `TestDataGenerator`），不再依賴 `POSView:59` 記得呼叫 `effectiveDiscount()` | 原本換個入口就會把超過小計的折扣存進流水帳 → 報表攤提出現負營收 |
+| 1.7 | 類別守衛改誠實失敗 | 有交易的類別改成**原封不動留著**（不刪、也不偷偷停用）+ log | 它在 `updateCategoriesForEvent` 的批次儲存裡，無法單獨回傳失敗；「沒被刪掉」本身就是誠實回饋 |
+| 1.8 | 統一到 `EventDataSource` | 實作放在 `[TransactionModel].summary / .total`，`EventDataSource` 也用它 | 兩個重複點（`EventsViewModel`／`EventsCalendarViewModel`）在場次列表，不在工作區內，拿不到 `EventDataSource` |
+| — | — | 順帶刪除結帳鏈的 `@Binding var event`（7 個 View）與 `performCheckout` 的回傳值 | 那條寫回鏈是**死的**：`performCheckout` 只 `return event`（自己未修改的副本），寫回 `POSView` 的區域 `@State`，而 `POSViewModel` 拿的是 `.constant(event)`。正是 CONVENTIONS 禁止的跨頁 `@Binding` |
+| — | — | 場次被刪除的偵測從 `InventoryView.onChange(of: eventDataManager.events)` 移到工作區容器 | 「場次還在不在」是容器層的事，不該由其中一個分頁負責；也移除了一個 CONVENTIONS 禁止的 `onChange` 觸發器 |
+| — | — | `TilliTests` 的 `WorkspaceView` → `EventWorkspaceView`、`ProductModel.mock` 移除 `categoryName` | 前者在本批之前就已經編譯失敗（上次改名時漏改），測試目標整個跑不起來 |
+
+#### 測試
+
+> 圖例：`✅` 已驗證通過　`⬜` 待補（需要新增測試檔，目前 `TilliTests` 只有 3 個 smoke test）
+
+##### 自動 —— 指令驗證（不需開 App，可直接貼進終端機）
+
+```bash
+# 1.1 TransactionIndex：全專案只有一份「有沒有賣過」的實作
+grep -rn "soldProductIds\|soldCategoryIds" --include="*.swift" Tilli      # 應只出現在 TransactionIndex.swift
+grep -rn "hasRelatedTransactions" --include="*.swift" Tilli               # 應 0 筆
+
+# 1.2 EventDataSource：死的跨頁 Binding 已清除
+grep -rn "@Binding var event" --include="*.swift" Tilli | grep -v _Deprecated   # 應 0 筆
+grep -rn "\.constant(event)" --include="*.swift" Tilli | grep -v _Deprecated    # 應 0 筆
+
+# 1.3 ProductAvailability：不再有「找不到類別就靜默隱藏」的寫法
+grep -rn "isDisabled == false" --include="*.swift" Tilli \
+  | grep -v ProductAvailability.swift                                      # 應 0 筆
+  # 註：ProductAvailability.swift 的註解引用了這個舊寫法當反例，所以排除自身
+
+# 1.4 DiscountCalculator（U9）
+grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
+  | grep -v DiscountCalculator.swift                                       # 應 0 筆
+
+# 1.5 CSVExporter（U10）
+grep -rn "temporaryDirectory" --include="*.swift" Tilli | grep -v CSVExporter.swift   # 應 0 筆
+grep -rn 'with: "，"' --include="*.swift" Tilli | grep -v CSVExporter.swift           # 應 0 筆（假逸出）
+grep -rc "CSVExporter.write" --include="*.swift" -r Tilli | grep -v ":0"              # 合計應 9 處
+
+# 1.6 PendingSyncStamp（U7）
+grep -rn 'syncStatus = "pending"' --include="*.swift" Tilli \
+  | grep -v PendingSyncStamp.swift                                         # 應 0 筆
+grep -rn "markPendingSync(" --include="*.swift" Tilli \
+  | grep -v PendingSyncStamp.swift | wc -l                                 # 應 22（25 改用 − 3 隨守衛/風暴刪除）
+
+# 1.7 刪除守衛
+grep -rn "disabledInstead" --include="*.swift" Tilli                       # 應 0 筆
+
+# 1.8 交易加總只有一種算法
+grep -rn 'reduce(.*) { \$0 + \$1.totalAmount }' --include="*.swift" Tilli   # 應 0 筆（原生 + 已清除）
+
+# 1.9 / 1.10（U16）
+grep -rn "updateRelatedTransactions\|product\.categoryName" --include="*.swift" Tilli  # 應 0 筆
+grep -c "categoryName" Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents  # 應 0
+
+# 1.11 schema
+grep -c "updatedAt" Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents     # 應 7（原 5 + 流水帳 2）
+grep -o 'name="product"[^/]*'      Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents
+grep -o 'name="inventoryChanges"[^/]*' Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents
+
+# 建置與測試
+xcodebuild -project Tilli.xcodeproj -scheme Tilli -destination 'generic/platform=iOS Simulator' build
+xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
+- ✅ 以上 grep 全部符合預期
+- ✅ `BUILD SUCCEEDED`
+- ✅ `Executed 3 tests, with 0 failures`（`TilliSmokeTests` 已一併修復，本批之前它是編譯失敗的）
+
+##### 自動 —— 單元測試 ✅ 2026-09-13 補齊（75 個，全數通過）
+
+```
+TilliTests/
+├── TransactionIndexTests.swift        8 tests   1.1
+├── DiscountCalculatorTests.swift     24 tests   1.4
+├── CSVExporterTests.swift            10 tests   1.5
+├── MoneyAggregationTests.swift        8 tests   1.8
+├── ProductAvailabilityTests.swift    10 tests   1.3
+├── PendingSyncStampTests.swift        7 tests   1.6 / 1.11
+├── ProductDeletionGuardTests.swift    5 tests   1.7
+└── TilliSmokeTests.swift              3 tests   （既有）
+                                      ──────────
+                                      75 tests   0 failures
+```
+
+**補測試時抓到的兩個真實缺陷**（都已修）：
+
+| # | 缺陷 | 位置 | 症狀 |
+|---|------|------|------|
+| 1 | `total(subtotal:discounts:)` **沒有 clamp 定額折扣的負值** | `DiscountCalculator.swift` | 折扣值為負時**反而加錢** —— `total(200, [.amount(-50)])` 回 `250`。clamp 只做在 `amount(type:value:subtotal:)`，陣列版漏了。已改成每筆都 clamp 到 `0...running` |
+| 2 | 每個 `NSPersistentContainer` 各自解析一份 `NSManagedObjectModel` | `Persistence.swift` | 測試另建 in-memory container 後，`+[CDxxxEntity entity]` 報 `Failed to find a unique match for an NSEntityDescription`，entity 取不到。已改成整個 process 共用一份（順帶省掉重複解析） |
+
+覆蓋內容：
+
+- ✅ **`TransactionIndex`**（1.1）
+  - 空交易 → `hasAnyTransaction == false`、`transactionCount == 0`、任何查詢都是 `false`
+  - 單筆交易含商品 A（類別甲）→ `hasTransaction(productId: A) == true`、`hasTransaction(categoryId: 甲) == true`
+  - **A 之後被搬到類別乙**（直接改 `ProductModel.categoryId`，但交易的 `SummaryItem.categoryId` 仍是甲）
+    → `hasTransaction(categoryId: 甲) == true`、`hasTransaction(categoryId: 乙) == false`
+    ⭐ 這條是 A1 的核心：答案只看歷史快照，不隨商品搬移而改變。
+    **目前 UI 走不到這個情境**（有交易的商品不能改類別，見下方「A1 的可達性」），
+    所以只能、也必須用單元測試守住 —— 這正是為 Backlog 的「開放商品編輯」預先鋪路
+  - 同一商品出現在多筆交易 → 不重複計數，`transactionCount` 等於交易筆數而非項目數
+- ✅ **`DiscountCalculator`**（1.4，對應 F1–F5）
+  - `amount(type: .percentage, value: 10, subtotal: 200)` == `20`
+  - `amount(type: .amount, value: 20, subtotal: 200)` == `20`
+  - **先百分比後定額**：`total(subtotal: 200, discounts: [9折, −20])` == `160`
+    （若寫成先定額後百分比會得到 162，測試要能抓到）
+  - **clamp 上界**：`total(subtotal: 50, discounts: [−100])` == `0`，且 `amount(...) == 50`（不是 100）
+  - **clamp 下界**：負數折扣值 → `amount == 0`，總額不變
+  - **百分比 clamp**：`value: 150` 視同 `100`，總額 `0`，不會變負
+  - `subtotal == 0` → 所有 `amount` 都回 `0`，不會除以零
+  - `effective(_:subtotal:)`：定額 100、小計 50 → 回傳 value 被改成 50 的 `DiscountModel`，**且 `id` 保持不變**
+  - `deductionText`：`.percentage 5` → `"5%"`；`.amount 5` → `"-5"`
+  - `displayText`：`.amount 5` + `"TWD"` → `"NT$5"`；未知幣別 → 走 `currencyDefaultSymbol`
+- ✅ **`CSVExporter.escape`**（1.5，對應 U13）
+  - 無特殊字元 → 原樣回傳（不加引號）
+  - 含逗號 `大福,紅豆` → `"大福,紅豆"`
+  - 含引號（例：`他說"好"`）→ 整欄加上引號，且內部每個引號變成連續兩個引號
+  - 含換行 → 整欄加引號
+  - 空字串 → 空字串
+  - `row([...])` → 每欄逸出、以逗號相連、結尾 `\n`
+- ✅ **`[SummaryItemModel].subtotal` / `[TransactionModel].summary`**（1.8）
+  - 空陣列 → `0` / `(0, 0)`
+  - 多筆小數金額相加，結果與逐次 `MoneyHelper.add` 相同（驗證沒退回原生 `+`）
+- ✅ **`ProductModel.isAvailableForSale(in:)`**（1.3）
+  - 商品啟用 + 類別啟用 → `true`
+  - 商品下架 → `false`
+  - 類別停用 → `false`
+  - **類別不存在** → `.categoryMissing`（fail-closed）
+    ⭐ 為了讓這條可測，`isAvailableForSale` 拆成兩層：純判斷的 `saleAvailability(in:)`
+    （無副作用，測試測這個）＋ 外層負責 `assertionFailure` 與 log。
+    否則 Debug 下測試會被 assertion 直接 trap
+  - **商品已下架 + 類別也不存在** → 回 `.productDisabled`（短路，不會誤觸 assertion）
+- ✅ **`[CategoryModel].active` / `.disabled`**（1.3）
+  - 混合啟用/停用 + 亂序 `sortOrder` → 回傳正確子集且依 `sortOrder` 升冪
+- ✅ **`markPendingSync(at:)`**（1.6）
+  - 對 `CDProductEntity`（有 `updatedAt`）→ 兩個欄位都被設定
+  - 對 `CDTransactionEntity`（1.11 剛加 `updatedAt`）→ 兩個欄位都被設定
+  - 傳入固定 `date` → 批次內所有 entity 的 `updatedAt` 完全相同
+- ✅ **`deleteProduct` 誠實失敗**（1.7，對應 D6）
+  - 有交易的商品 → 回傳 `.failed`，且**該商品的 `isDisabled` 沒有被改動**
+    ⭐ 這條專門防止「守衛偷偷做別的事」這個 bug 復發
+
+##### 手動 —— 需操作 App
+
+**前置：** 建一個測試場次，含 2 個類別（甲／乙）、每類別 3 個商品，並完成至少 1 筆含商品的交易。
+
+- **1.1 ＋ 1.7｜類別的刪除／停用判斷**（U2／D4／D5）
+  1. 類別甲底下的商品賣出 1 個（產生交易）；類別乙底下的商品都沒賣過
+  2. 場次編輯頁對**類別甲**左滑 → 應顯示「停用」，沒有刪除
+  3. 對**類別乙**左滑 → 應顯示「刪除」，按下去真的消失
+  - 預期：甲**不會被偷偷改成停用**（改動前 repository 會靜默把它 `isDisabled = true`，
+    呼叫端以為刪掉了；現在是原封不動留著 + log）
+  - ⚠️ **U1 的「把商品搬到別的類別」步驟在 UI 上做不到** —— 見下方「A1 的可達性」說明，
+    該情境改由單元測試覆蓋
+- **1.1｜有交易的商品只能下架**（D1／D2）
+  1. 對賣過的商品左滑 → 應只有「下架」，沒有刪除
+  2. 對沒賣過的商品左滑 → 有「刪除」，按下去真的消失
+- **1.2｜跨分頁資料一致（A3 的核心）**（U3／U4）
+  1. 在場次編輯頁把類別甲**改名**，儲存
+  2. 回到工作區，切到 **POS** 分頁 → 類別標題應是新名稱
+  3. 切到 **管理商品** 分頁 → 類別標題也應是新名稱
+  4. 再回場次編輯頁把類別甲**停用**，儲存
+  5. POS 與管理商品**兩個畫面**都應立刻看不到甲的商品
+  - 預期：不會出現「POS 已更新、庫存頁還是舊的」這種一新一舊
+- **1.2｜場次被刪除時整個工作區退回**
+  1. 進入場次工作區
+  2. 用另一條路徑刪除該場次（回到場次列表左滑刪除）
+  - 預期：自動 pop 回場次列表，不會停在空白的工作區
+  - 註：這個偵測從 `InventoryView` 移到了容器，所以**在 POS 或報表分頁時也要會退回**（改動前只有在管理商品分頁才會）
+- **1.2｜結帳後回到 POS，庫存有更新**（G1／G2）
+  1. POS 加購商品 → 結帳（現金）→ 完成
+  2. 回到 POS
+  - 預期：該商品庫存數字已扣減；切到管理商品分頁也看得到新的庫存異動紀錄
+  - ⭐ 這條專門驗證「刪掉死的 `@Binding` 寫回鏈後，資料仍然正確更新」
+- **1.3｜可販售判斷**（U4／P3）
+  1. 下架一個商品 → POS 看不到、管理商品的「已下架」區看得到
+  2. 停用一個類別 → POS 整個類別區塊消失
+  3. 上架 / 啟用回來 → 都恢復
+- **1.3｜類別不存在時不靜默隱藏**（U12）
+  1. 用 Xcode 的 CoreData 檢視或 `TestDataGenerator` 製造一個 `categoryId` 指向不存在類別的商品
+  2. 進入 POS
+  - 預期：Debug build **觸發 assertion 停下來**；Release build 在 console 看到 `🔴 商品 ... 的類別 ... 不存在`
+  - 預期：**不會**只是安靜地少一個商品
+- **1.4｜折扣**（F1／F2／F4／F6）
+  1. 場次設定加一個 9 折與一個 −20
+  2. POS 加購到小計 200 → 只選 9 折 → 應顯示 180
+  3. 只選 −20 → 應顯示 180
+  4. 再點一次已選的 chip → 取消，回到 200
+  5. **把購物車清到小計 10，選 −20** → 總額應為 **0**，不是 −10
+  6. 結帳完成後到交易紀錄查看
+  - 預期：折扣標籤顯示 `-20`（不是 `-10`），**報表的營收不出現負數**
+- **1.4｜折扣文字顯示位置**
+  - POS 折扣 chip：`9%` / `NT$20` 格式
+  - 交易紀錄列表的折扣標籤：`9%` / `-20` 格式
+  - 交易明細 CSV 的折扣欄：同上，無折扣時為 `-`
+  - ⭐ 折扣格式化已從 View 移進 ViewModel，要確認畫面顯示沒變
+- **1.5｜CSV 逸出與檔名**（U13／R5／G6）
+  1. 建一個商品叫 `大福,紅豆"特價"`（含逗號與引號）
+  2. 賣出它
+  3. 逐一匯出 **8 種 CSV**：庫存總覽、庫存異動明細、交易明細、熱門商品排行、類別銷售匯總、時段銷售分析、支付方式分析、日營收趨勢（永久場次再加月營收趨勢）
+  4. 用 Numbers／Excel 開啟每一個
+  - 預期：欄位不跑位，商品名完整顯示為 `大福,紅豆"特價"`
+  - 預期：檔名為 `<標籤>_<場次名>_yyyyMMdd_HHmmss.csv`，場次名中的 `/ : \` 已被換成 `-`
+  - ⭐ 改動前是把逗號偷換成全形「，」—— 現在資料是原樣的，逸出才是對的
+- **1.6 ＋ 1.11｜寫入標記**（U8／U17）
+  1. 新增一筆交易、一筆庫存異動、改一次商品、改一次場次
+  2. 用 Xcode → Debug → 開啟 App 容器的 `.sqlite`（或加暫時 log）檢查對應 entity
+  - 預期：`syncStatus == "pending"` **且** `updatedAt` 有值
+  - ⭐ 交易與庫存異動的 `updatedAt` 是 1.11 才加的欄位，改動前這兩者根本沒有這個欄位
+- **1.8｜兩個畫面的交易總額相同**（U5）
+  1. 場次列表看某場次卡片的交易總額
+  2. 切到日曆檢視，找同一個場次看總額
+  - 預期：**完全相同**（改動前一邊用原生 `+`、一邊用 `MoneyHelper.add`，捨入可能不同）
+  - 建議用含小數的幣別（USD/EUR）測，TWD 是整數看不出差異
+- **1.9｜場次改名不影響歷史交易**（U14）
+  > **前置確認：場次名稱在有交易後【仍然可以編輯】** —— `AddEventView` 的名稱 `TextField`
+  > 沒有任何 `.disabled`。被鎖的是**幣別**（`AddEventView:163`）與**類別名稱**
+  > （`canEditCategoryName`），不是場次名稱。所以這個情境是**可達的**。
+  1. 場次「週末市集」賣出幾筆
+  2. 回場次編輯頁，把名稱改為「週末市集（春）」→ 儲存（名稱欄應可正常輸入，不是灰的）
+  3. 到報表 → 交易紀錄查看步驟 1 產生的舊交易
+  - 預期：舊交易顯示的是**當時的名稱「週末市集」**
+  - 預期：步驟 2 之後**新**產生的交易，`eventTitle` 才是「週末市集（春）」
+  - ⭐ 這是刻意的行為改變：改動前會把歷史交易一起改名，而且只改本機、不標 `pending`，
+    造成本機顯示新名、雲端／其他裝置／重裝後顯示舊名
+- **1.10｜類別改名不造成更新風暴**（U15）
+  1. 類別甲底下放 20 個商品
+  2. 把類別甲改名
+  3. 檢查這 20 個商品的 `syncStatus`
+  - 預期：**沒有任何商品被標成 pending**（改動前 20 個全部會被重新標記 → 重構同步後會全部重傳）
+  - 預期：POS 與管理商品顯示的類別名稱是**新的**（從 relationship 現查）
+  - 預期：結帳後新產生的交易，其 `SummaryItem.category` 快照是**新名稱**
+- **1.11｜relationship 與 Cascade**
+  1. 對一個**沒賣過**的商品先做幾筆庫存異動（進貨、盤損）
+  2. 刪除該商品
+  3. 到管理商品 → 庫存異動明細 CSV 匯出檢查
+  - 預期：該商品的異動紀錄一併消失，沒有孤兒紀錄
+- **1.11｜複製場次**（G4）
+  1. 複製一個有商品且有庫存的場次
+  2. 檢查新場次
+  - 預期：類別、商品、排序都正確；每個有庫存的商品各產生一筆「進貨入庫」異動
+  - 預期：這些異動的 `syncStatus == "pending"` 且 `updatedAt` 有值（改動前這裡漏設 `updatedAt`）
+- **回歸｜補記帳**（G3）
+  1. 結帳頁開啟補記帳，選一個過去的日期
+  2. 完成結帳
+  - 預期：交易紀錄依 `occurredAt` 排序與分組；報表的日營收歸到**那一天**而非今天
+- **回歸｜場次編輯的完整連動**（G5）
+  1. 同一次編輯中：新增一個類別、刪除一個沒交易的類別、停用一個類別、改一個類別名、拖曳調整順序
+  2. 儲存後回工作區
+  - 預期：五種變更全部生效，沒有孤兒商品，POS 與管理商品的類別順序一致
 
 ### 第 2 批 — 報表
 
@@ -727,6 +1175,58 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 | 2.1 | `unitPrice` → `averageUnitPrice` | D5 |
 | 2.2 | 商品銷售排行：列出所有商品（含銷量 0） | §5.1 |
 | 2.3 | 報表三個方法改用 `EventDataSource` 的單一資料 | A5 |
+
+#### 測試（預定）
+
+> 2.3 已在第 1 批一併完成（三個方法都改吃 `dataSource.transactions(in:)`），
+> 本批只需補做 2.1 與 2.2，但驗收時三項一起測。
+
+##### 自動 —— 指令驗證
+
+- ⬜ `grep -rn "unitPrice" --include="*.swift" Tilli` → 應只剩 `averageUnitPrice`，舊名 0 筆
+- ⬜ `grep -rn "假設同商品單價一致" --include="*.swift" Tilli` → 0 筆（D5 的註解連同欄位刪除）
+- ⬜ `grep -rn "fetchTransactions" --include="*.swift" Tilli/ViewModel/ReportsPage/` → **0 筆**（報表一律走 `dataSource`）
+- ⬜ 建置與既有測試仍通過
+
+##### 自動 —— 單元測試（⬜ 待補）
+
+- ⬜ **`averageUnitPrice` 計算**（2.1）
+  - 同一商品兩筆交易：3 個 × 100、2 個 × 50 → 平均單價 = (300+100) ÷ 5 = **80**
+  - 銷量 0 的商品 → 平均單價為 `0`，**不可除以零 crash**
+  - 只有一種單價時 → 平均單價等於該單價（與改動前的 `unitPrice` 相同，確保沒有回歸）
+- ⬜ **商品銷售排行的骨架來源**（2.2）
+  - 場次有 5 個商品、只有 2 個賣過 → 回傳 **5 筆**，未售出的銷量 0、營收 0
+  - 排序：有銷量的在前並依營收降冪，銷量 0 的在後（依 `sortOrder` 或名稱，實作時定案並鎖進測試）
+  - **已下架但賣過**的商品 → 仍要出現（歷史績效不能消失）
+  - **已下架且沒賣過**的商品 → 實作時決定要不要列，鎖進測試
+- ⬜ **`transactions(in:)` 的邊界**（2.3，`EventDataSource`）
+  - `range == nil` → 回傳全部
+  - 交易剛好落在 `range.start` / `range.end` → **包含**（與 `TransactionRepository` 的 `>=` / `<=` 一致）
+  - 補記帳交易依 `displayDate`（`occurredAt`）落點，不是 `timestamp`
+
+##### 手動 —— 需操作 App
+
+- **2.1 平均單價**
+  1. 同一商品分兩筆交易賣出，其中一筆套用折扣讓成交單價不同
+  2. 報表 → 商品績效 → 看該商品的單價欄
+  - 預期：顯示**平均單價**，不是固定的第一筆單價
+  - 預期：欄位標題也已改成「平均單價」而非「單價」
+- **2.2 商品銷售排行列出所有商品**（R1）
+  1. 場次建 5 個商品，只賣其中 2 個
+  2. 報表 → 商品績效 → 商品銷售排行
+  - 預期：**5 個全部出現**，沒賣過的顯示銷量 0、營收 0
+  - 預期：匯出「熱門商品排行」CSV 也是 5 列
+- **2.3 切換 timeRange 不重查 DB**（U6／R4／P5）
+  1. 在 `EventDataSource.reload()` 暫時加一行 `print`
+  2. 進入報表頁 → console 應只印 **1 次**
+  3. 連續切換 timeRange（今天／本週／自訂）數次 → console **完全不再增加**
+  - 預期：切篩選條件是純記憶體運算，0 次 DB 查詢
+  - 註：第 1 批已把 `reloadAllData`（查 DB）與 `loadAllData`（只重算）分開，這裡是驗證它真的生效
+- **2.3 三張報表數字互相一致**（R4）
+  1. 同一個 timeRange 下比對：交易紀錄的筆數與總額、商品績效的營收合計、銷售分析的總營收
+  - 預期：三者基於同一份交易，筆數一致、金額一致
+- **回歸：報表 CSV**（G6）
+  - 五種報表 CSV 內容與第 1 批測過的結果一致，只有單價欄語意改變
 
 ### 第 3 批 — 折扣
 
@@ -737,6 +1237,59 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 | 3.3 | 場次設定頁的折扣管理調整 |
 | 3.4 | 全部改呼叫 `DiscountCalculator` |
 
+#### 測試（預定）
+
+> ⚠️ 這批會把 `TransactionModel.discountType/discountValue` 換成 `appliedDiscounts`，
+> 是**破壞性 schema 變更**。App 未上架，直接刪 App 重裝即可，但要確認舊路徑真的全部移除。
+
+##### 自動 —— 指令驗證
+
+- ⬜ `grep -rn "discountType\|discountValue" --include="*.swift" Tilli` → **0 筆**（含 CoreData properties）
+- ⬜ CoreData model：`CDTransactionEntity` 不再有 `discountType` / `discountValue`，改有 `appliedDiscountsData`
+- ⬜ `grep -rnE "switch (discountType|discount\.type|appliedDiscount)" --include="*.swift" Tilli | grep -v DiscountCalculator.swift` → 0 筆（U9 持續成立）
+- ⬜ §14.2 登記表第 1 列狀態要從 ⬜ 更新
+
+##### 自動 —— 單元測試（⬜ 待補）
+
+- ⬜ **`AppliedDiscount` 的 `amount` 快照**（3.1，對應 F7）
+  - 建立交易時 `amount` 寫入 clamp 後的實際折抵金額
+  - **之後修改 `event.discounts` 的設定值** → 重新讀取該交易，`amount` **不變**
+    ⭐ 這是 3.1 的核心：沒有快照的話，改折扣設定會讓歷史交易的金額整批算錯
+- ⬜ **多重折扣組合**（3.4，對應 F1–F3）
+  - 只有百分比、只有定額、兩者都有 → 三種都正確
+  - 兩個百分比同時存在（UI 不允許，但資料層要可預測）→ 依序套用，不會爆
+  - 空陣列 → 總額等於小計
+- ⬜ **編碼往返**（3.1）
+  - `[AppliedDiscount]` → JSON → `[AppliedDiscount]` 值完全相同（`Decimal` 精度不丟失）
+  - `appliedDiscountsData == nil`（舊資料）→ 解碼成空陣列，不 crash
+
+##### 手動 —— 需操作 App
+
+- **3.3 場次設定頁的折扣管理**
+  1. 新增百分比折扣、新增定額折扣、編輯、刪除
+  2. 輸入邊界值：百分比 0 / 100 / 101、定額 0 / 負數
+  - 預期：不合法的值被擋下並有提示
+  - 預期：有交易的場次仍可改折扣設定（歷史交易不受影響，見 F7）
+- **3.2 折扣 chip UI**
+  1. POS 下方應有**兩區**：百分比、折抵金額
+  2. 每區各自**單選**，chip 依值**升冪**排列
+  3. 點已選的 chip → 取消
+  4. 兩區**各選一個** → 兩個 chip 同時高亮
+  5. 小計與折後金額**即時**更新
+  - 預期：`200 → 9折 180 → −20 = 160`（**先百分比後定額**；若顯示 162 就是順序錯了）
+- **3.2 clamp 的視覺回饋**（F4）
+  1. 小計 10，選 −20
+  - 預期：總額顯示 **0**，並出現「折扣不可超過商品金額，已自動調整」的提示
+- **3.4 全流程一致**
+  1. 選兩種折扣 → 結帳（現金與電子支付各一次）
+  2. 交易紀錄 → 該筆交易應顯示**兩個**折扣標籤
+  3. 交易明細 CSV → 折扣欄要能表達兩個折扣
+  4. 商品績效 → 營收為攤提後的金額，**不出現負數**
+- **3.1 破壞性變更的回歸**
+  1. 刪 App 重裝 → 重新建場次、商品、交易
+  - 預期：全流程正常，沒有因為 CoreData 欄位改名而崩潰
+- **回歸**：不選任何折扣的結帳流程（最常見路徑）完全正常（G1／G2）
+
 ### 第 4 批 — 攤提（⭐ 必須在組合之前）
 
 | # | 項目 | 解決 |
@@ -745,6 +1298,66 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 | 4.2 | `RevenueAllocator`，結帳時計算 | A6 |
 | 4.3 | **刪除** `ProductPerformanceViewModel` 三處攤提與三處 reduce | B1、B2 |
 | 4.4 | 驗證兩張報表營收相等 | 測試 R2 |
+
+#### 測試（預定）
+
+> 這批是**金額正確性**的關鍵，捨入處理錯了會讓兩張報表對不起來。
+> 單元測試的價值遠高於手動測試，建議先把 `RevenueAllocator` 的測試寫滿再接 UI。
+
+##### 自動 —— 指令驗證
+
+- ⬜ `grep -rn "itemProportion\|transactionSubtotal" --include="*.swift" Tilli/ViewModel/ReportsPage/` → **0 筆**（報表端攤提整段刪除）
+- ⬜ `grep -rn "DiscountCalculator.amount(for: transaction)" --include="*.swift" Tilli/ViewModel/ReportsPage/` → 0 筆（報表改成直接加總 `actualRevenue`，不再重算折扣）
+- ⬜ `grep -rn "reduce" --include="*.swift" Tilli/ViewModel/ReportsPage/ProductPerformanceViewModel.swift` → 只剩單純加總，沒有攤提邏輯
+
+##### 自動 —— 單元測試（⬜ 待補，**本批最重要**）
+
+- ⬜ **`RevenueAllocator` 恆等式（⭐ 對應 R2）**
+  - **`Σ actualRevenue == transaction.totalAmount`**，對**任意**輸入都成立
+  - 建議用隨機測試：隨機 1–10 個項目、隨機單價（含小數）、隨機數量、隨機折扣組合，跑 1000 次，每次都驗這條恆等式
+  - ⭐ 這條就是 A6 的定義：兩張報表的口徑相等，不是靠巧合
+- ⬜ **攤提順序**（§7.3）
+  - ① 原價小計 → ② 套餐差額 → ③ 百分比 → ④ 定額 → ⑤ 捨入差額由最後一項吃掉
+  - 驗證：把順序對調會得到不同結果，測試要能抓到
+- ⬜ **捨入差額處理**
+  - 小計 100 分成 3 項（各 33.33…）搭配 10% 折扣 → 三項 `actualRevenue` 相加**剛好**等於總額
+  - 差額只出現在**最後一項**，且絕對值 ≤ 1 分
+  - 全部用整數（分）運算，不會出現 `0.30000000000000004` 這類浮點殘渣
+- ⬜ **邊界**
+  - 單一項目 → 全部折扣都算在它身上
+  - 折扣為 0 → `actualRevenue == originalSubtotal`、`allocatedDiscount == 0`
+  - 折扣 clamp 到等於小計 → 所有 `actualRevenue` 都是 0，**沒有任何一項是負數**
+  - 數量為 0 的項目（理論上不該存在）→ 不會除以零
+  - 項目單價為 0（贈品）→ 攤提比例為 0，不會 NaN
+- ⬜ **`SummaryItemModel` 新欄位的編碼往返**（4.1）
+  - 5 個新欄位 JSON 往返後值不變
+  - 舊資料（沒有這些欄位）解碼 → 有合理預設值且不 crash
+- ⬜ **報表加總**（4.3）
+  - 商品績效的營收 = `Σ SummaryItem.actualRevenue`，**不再重算折扣**
+  - 同一份交易資料，新舊兩種算法結果相同（做為重構不改壞的護欄）
+
+##### 手動 —— 需操作 App
+
+- **4.4 兩張報表營收相等（⭐ R2，本批的驗收條件）**
+  1. 建立多筆交易：含折扣的、不含折扣的、補記帳的都要有
+  2. 報表 → 銷售分析 → 記下**總營收**
+  3. 報表 → 商品績效 → 把所有商品的**實際營收**加總
+  - 預期：**兩者相等**，捨入差額 ≤ 1 分
+  - 預期：換不同 timeRange 重測數次，仍然相等
+- **4.2 結帳當下就算好**
+  1. 結帳完成後立刻看報表
+  - 預期：數字馬上正確（攤提發生在結帳時，不是報表時）
+  2. 之後**修改場次的折扣設定**，再看同一筆交易的報表
+  - 預期：歷史數字**完全不變**（已凍結在 `SummaryItem` 裡）
+- **4.1 攤提結果可追溯**
+  1. 用 Xcode 檢查一筆含折扣交易的 `itemsData`
+  - 預期：每個 item 都有 `originalSubtotal`、`allocatedDiscount`、`actualRevenue`
+  - 預期：`originalSubtotal − allocatedDiscount == actualRevenue`，逐項成立
+- **4.3 報表端沒有殘留的重複計算**
+  1. 在原本三處攤提的位置確認程式碼已刪除
+  2. 切換 timeRange，確認數字仍正確
+  - 預期：報表只是單純加總，不再有 `switch discountType` 或比例分攤
+- **回歸**：折扣、無折扣、補記帳三種結帳路徑的金額都正確（G1／G2／G3）
 
 ### 第 5 批 — 組合與套餐（最大塊）
 
@@ -758,11 +1371,141 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 | 5.6 | 庫存扣成員 + `InventoryChange.bundleId` |
 | 5.7 | `BundleModel.isAvailable` 可用性判斷 |
 
+#### 測試（預定）
+
+> 最大的一批，兩種 `BundleMode` 的互動方式完全不同（§8.3），測試要分開列。
+
+##### 自動 —— 指令驗證
+
+- ⬜ CoreData model：`CDEventEntity` 有 `bundlesData: Binary`；**沒有**新增任何 entity
+- ⬜ `CDInventoryChangeEntity` 有 `bundleId` / `bundleName`
+- ⬜ `grep -rn "isAvailable" --include="*.swift" Tilli` → 是**算出來的** computed property，不是存起來的欄位（與 §2.5 同原則）
+- ⬜ `grep -rn "bundlesData\|bundleId" Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents` → 都存在
+- ⬜ §14.2 登記表第 3、4 列狀態要更新
+
+##### 自動 —— 單元測試（⬜ 待補）
+
+- ⬜ **`.chooseAny` 自動套用演算法**（5.4，對應 B2／B9／B11）
+  - 候選 10 個、購物車 7 個、`count: 3` → 套用 **2 組**，剩 1 個原價
+  - **挑單價最高的**：驗證被納入組合的是最貴的 6 個（對客人最有利）
+  - 購物車只有 2 個（< count）→ **0 組**，全部原價
+  - 剛好 3 個 → 1 組，無剩餘
+  - 同一商品數量 5 個、`count: 3` → 展開成單品後套 1 組，剩 2 個原價
+  - **兩個組合都符合** → 依 `sortOrder` 貪婪套用，結果**可預測且穩定**（同樣輸入永遠同樣輸出）
+  - **同一件商品不被算進兩個組合**（B11）
+- ⬜ **`.fixed` 套餐**（5.3）
+  - 成員各 1 個，組合價取代成員原價總和
+  - 成員清單為空 → 不可販售，不會產生 0 元交易
+- ⬜ **`BundleModel.isAvailable`**（5.7，對應 B7／B8）
+  - 所有成員都可販售 → `true`
+  - 任一成員**下架** → `false`
+  - 任一成員的**類別停用** → `false`（與 `isAvailableForSale` 同一套判斷）
+  - 任一成員**已被刪除**（`productIds` 有但 `products` 查不到）→ `false`，且有 log
+  - bundle 自己 `isDisabled` → `false`
+  - 成員**上架回來** → 自動變回 `true`（不需任何額外操作）⭐ 這是「算出來而非存起來」的關鍵驗證
+- ⬜ **攤提整合**（5.6，接第 4 批）
+  - 套餐差額按成員**原價比例**攤提
+  - `Σ actualRevenue == totalAmount` 在**有套餐**的情況下仍然成立
+  - 套餐 + 整筆折扣同時 → 順序為「套餐差額 → 百分比 → 定額」（B10）
+- ⬜ **編碼往返**：`BundleModel` / `BundleMode`（含 `.chooseAny(count:)` 的關聯值）JSON 往返值不變
+
+##### 手動 —— 需操作 App
+
+- **5.2 管理 UI**（B1）
+  1. 工作區新分頁「組合／套餐」→ segmented control 切兩區
+  2. 建立「任選三個 100」：勾 10 個候選商品
+  3. 建立「下午茶套餐 100」：選 3 個成員
+  4. 拖曳調整組合順序、編輯、停用、刪除
+  - 預期：都正常；勾選清單能搜尋／依類別分組（商品多時可用）
+- **5.4 ＋ 5.5 組合優惠自動套用**（B2／B3）
+  1. POS 加入 7 個候選商品（單價刻意不同）
+  2. 看結帳頁
+  - 預期：顯示「任選三個100 × 2 組，折抵 NT$XX」
+  - 預期：被納入的是**單價最高的 6 個**
+  - 預期：可**手動取消**套用，取消後金額回到原價總和
+  - 預期：取消後再回 POS 改數量，重新進結帳頁會**重新自動套用**
+- **5.3 套餐點選**（B4）
+  1. POS 應有獨立的「套餐」區塊
+  2. 點選套餐 → 購物車出現「下午茶套餐 × 1」
+  - 預期：套餐**不會**出現在一般商品列表裡
+  - 預期：可加減數量、可移除
+- **5.6 庫存扣減**（B5）
+  1. 賣出 1 份套餐（3 個成員）
+  2. 管理商品 → 看三個成員的庫存與異動紀錄
+  - 預期：三個成員各扣 1，產生 **3 筆** `InventoryChange`
+  - 預期：三筆都帶相同的 `bundleId` 與 `bundleName` 快照
+  - 預期：庫存異動明細 CSV 看得出它們來自同一次套餐銷售
+- **5.6 庫存不足的處理**
+  1. 讓套餐其中一個成員庫存只剩 0
+  2. 嘗試在 POS 點選該套餐
+  - 預期：擋下並提示是哪個成員缺貨（不要靜默失敗或扣成負庫存）
+- **5.7 可用性：不擋、提示、自動失效**（B7／B8）
+  1. 下架一個被 2 個組合包含的商品
+  - 預期：出現提示「有 2 個組合包含此商品，下架後這些組合將無法販售」
+  - 預期：**下架動作本身不被阻擋**
+  2. 回到 POS
+  - 預期：那 2 個組合**灰掉**並顯示「含已下架商品」，點不下去
+  3. 組合管理頁
+  - 預期：那 2 個組合有 ⚠️ 標記
+  4. 把商品**上架回來**
+  - 預期：兩個組合**自動恢復**可販售，不需要任何手動操作 ⭐
+- **5.7 成員被刪除的情況**
+  1. 把某組合的成員商品**直接刪除**（該商品沒賣過所以可刪）
+  - 預期：組合變不可販售並有明確標示，**不會 crash**
+- **B6 報表**
+  1. 賣出套餐後看商品績效
+  - 預期：成員商品**各自計入**，金額是攤提後的 `actualRevenue`
+  - 預期：成員營收加總 = 套餐售價（不是成員原價總和）
+- **B10 套餐 + 整筆折扣**
+  1. 購物車同時有套餐與一般商品，再套用 9 折 + −20
+  - 預期：攤提順序正確，`Σ actualRevenue == totalAmount`
+- **B11 套餐與組合優惠同時**
+  1. 購物車同時觸發套餐與「任選三個」
+  - 預期：同一件商品**只被算進一個**組合，沒有重複折抵
+- **回歸**：完全不使用組合／套餐的原本結帳流程不受任何影響（G1／G2）
+
 ### 第 6 批 — POS UI
 
 | # | 項目 |
 |---|------|
 | 6.1 | 類別 chip 列 + 點擊跳躍 + 高亮 |
+
+#### 測試（預定）
+
+##### 自動 —— 指令驗證
+
+- ⬜ 類別列的資料來源是 `viewModel.activeCategories`（第 1 批已建立的單一定義），
+  `grep -rn "filter { !\$0.isDisabled }" Tilli/View/POSPage/` → **0 筆**
+- ⬜ 捲動位置、選中的 chip 屬於純 UI 狀態，應是 View 的 `@State`
+  （CONVENTIONS「MVVM 規則」第 3 條）；跳躍目標的計算若含商業判斷才進 ViewModel
+
+##### 手動 —— 需操作 App
+
+- **6.1 點擊跳躍**（P1）
+  1. POS 最上方應有橫向類別列 `[全部] [類別1] [類別2] …`
+  2. 點某個類別 chip
+  - 預期：商品列表捲到該類別區塊，該 chip **高亮**
+  - 預期：點「全部」回到頂端
+- **6.1 捲動連動**（P2）
+  1. 手動捲動商品列表
+  - 預期：chip 高亮**跟著**目前可見的類別變化
+  - 預期：高亮的 chip 若在畫面外，chip 列**自動捲動**讓它可見
+  - 預期：捲動時不會閃爍或與手動點擊互相打架
+- **6.1 與類別狀態連動**（P3）
+  1. 停用一個類別 → 回 POS
+  - 預期：該 chip **消失**，商品也消失
+  2. 類別改名 → 回 POS
+  - 預期：chip 文字是新名稱（走第 1 批的 `EventDataSource`）
+  3. 調整類別順序 → 回 POS
+  - 預期：chip 順序跟著 `sortOrder`
+- **6.1 邊界狀況**
+  - 只有 1 個類別 → chip 列的呈現合理（或依設計隱藏）
+  - 類別很多（10+）→ 可水平捲動，不擠壓商品區
+  - 類別名稱很長 → 不破版（截斷或縮放，依 `DESIGN.md`）
+  - 某類別底下沒有可販售商品 → 依設計決定 chip 要不要出現，並鎖進測試
+- **6.1 兩種版面**
+  - `list` 與 `grid` 兩種 `layoutMode` 下，跳躍與高亮都要正確
+- **視覺**：對照 `DESIGN.md` 的 token（間距、圓角、選中/未選中顏色），不要自創樣式
 
 ### Backlog
 
@@ -770,16 +1513,22 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 - 組合／套餐績效報表
 - 類別 icon
 - 商品編輯開放（等本輪統一穩定後再評估）
+- 本地化三條通道收斂（§1.7 F1–F4，等語言切換去留的產品決定）
 
 ---
 
 ## 12. 測試清單
 
+> 這裡是**跨批的總清單**，用來確認 §1 的 28 項查核有沒有真的收斂。
+> **逐批、逐個改動的詳細驗收步驟在 §11 每批下方的「測試」區**，
+> 那裡有指令、單元測試案例與完整的手動操作步驟。
+> 本節的編號（U／D／E／R／F／B／P／G）會被 §11 引用。
+
 ### 12.1 ⭐ 一致性測試（本輪重點，驗證 24 項查核有真的收斂）
 
 | # | 情境 | 預期 |
 |---|------|------|
-| **U1** | 商品從 A 類別搬到 B 類別後，問「A 類別有交易嗎」 | **所有呼叫端答案一致**（依快照：A 有、B 沒有） |
+| **U1** | 商品從 A 類別搬到 B 類別後，問「A 類別有交易嗎」 | **所有呼叫端答案一致**（依快照：A 有、B 沒有）<br>⚠️ **UI 不可達**（有交易的商品不能改類別，見 §1.1「A1 的可達性」）→ 用單元測試覆蓋 |
 | **U2** | U1 之後，A 類別的 swipe 動作與 repository 守衛 | **一致**（都是「只能停用」） |
 | **U3** | 在場次編輯頁改類別名稱 → 回到 POS | POS 立刻顯示新名稱（`EventDataSource` 一起重載） |
 | **U4** | 在場次編輯頁停用類別 → 回到 POS 與庫存頁 | **兩個畫面都**立刻隱藏該類別商品 |
@@ -890,6 +1639,8 @@ POS 最上方橫向類別列：`[全部] [類別1] [類別2] …`，點擊跳躍
 | 5 | 商品銷售排行是否保留「原價總額 / 折扣金額」兩欄 | 暫定收進展開區 |
 | 6 | 類別 icon | 本輪不做 |
 | 7 | `EventDataSource` 的持有層級（View 建立還是注入 environment） | 實作時決定；建議在場次工作區建立一份，往下傳 |
+| 8 | **App 內的語言切換要留還是拿掉** | **未定，且會決定 §1.7 F1–F4 的修法**。技術上「拿掉、全跟系統」淨減程式碼且三條通道收斂成一條；保留則須新增 `AppLocale`。取捨點是產品面：攤商會不會有「手機英文但想用中文介面」的需求 |
+| 9 | **場次名稱在有交易後要不要比照幣別鎖起來** | **未定**。目前唯一沒鎖的編輯欄位（見 §4.1.1）。暫定**維持可改** —— 場次名不影響金額或歸屬，且歷史交易已有名稱快照。若要鎖，一行 `.disabled(viewModel.isEditingWithTransaction)` 即可 |
 
 ---
 
@@ -964,8 +1715,10 @@ extension EventModel {
 | 2 | 待填 | E 攤提（§7） | `SummaryItemModel` 加 5 欄：<br>`originalSubtotal`、`allocatedDiscount`、`actualRevenue`、`bundleId`、`bundleName` | 在 `CDTransactionEntity.itemsData` 內（跟著走） | 流水帳 | `SummaryItemModel.toFirestoreData` 加這 5 欄 | ⬜ 未接 |
 | 3 | 待填 | F 組合套餐（§8） | `BundleModel`、`BundleMode` | `CDEventEntity.bundlesData: Binary` | 文件（跟 Event 走） | `EventModel.toFirestoreData` 加 `bundles`（JSON 陣列）<br>**不需要新 collection** | ⬜ 未接 |
 | 4 | 待填 | F 組合套餐（§8.5） | `InventoryChangeModel.bundleId`<br>`InventoryChangeModel.bundleName` | `CDInventoryChangeEntity` 新欄位 | 流水帳 | `InventoryChangeModel.toFirestoreData` 加這 2 欄 | ⬜ 未接 |
-| 5 | 待填 | 同步架構補正 | `updatedAt` | `CDTransactionEntity`<br>`CDInventoryChangeEntity` | 流水帳 | **CoreData 欄位已於第 1.11 批加好**（本機時間）。同步時只需在 `toFirestoreData` 改寫為 `serverTimestamp()`。見 `SYNC_ARCHITECTURE_V2.md` §6.2 | 🟡 已提前 |
-| 6 | | | | | | | |
+| 5 | 2026-09-12 | 同步架構補正 | `updatedAt` | `CDTransactionEntity`<br>`CDInventoryChangeEntity` | 流水帳 | **CoreData 欄位已於第 1.11 批加好**（本機時間，由 `markPendingSync()` 自動偵測並設定）。同步時只需在 `toFirestoreData` 改寫為 `serverTimestamp()`。見 `SYNC_ARCHITECTURE_V2.md` §6.2 | 🟡 已提前 |
+| 6 | 2026-09-12 | 第 1.11 批 | `CDInventoryChangeEntity.product` relationship<br>+ `CDProductEntity.inventoryChanges` inverse（Cascade） | CoreData relationship | 流水帳 | **純本機 relationship，不上傳**。建立點已接好（`InventoryChangeRepository.addChange/addChanges`、`EventRepository.duplicateEvent`） | 🟡 已提前 |
+| 7 | 2026-09-12 | 第 1.10 批（A7） | **移除** `CDProductEntity.categoryName` / `ProductModel.categoryName` | — | 文件 | 重建 `ProductModel.toFirestoreData` 時**不要**再寫這個欄位；類別名稱一律從 relationship 查 | 🟡 已提前 |
+| 8 | | | | | | | |
 
 **狀態圖例**：⬜ 未接　🔄 重構中　✅ 已接上並測試
 
@@ -1036,3 +1789,8 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-09-12 | 新增查核項 A7（`eventTitle` 更新不同步 / `categoryName` 更新風暴）；新增 §14.3 提前處理清單（4 項 schema 變更移到功能開發期）；執行順序補 1.9–1.11；測試補 U14–U17 |
 | 2026-09-12 | 新增 §14 待接同步清單（開發期間的 SYNC-PENDING 標記規則 + 登記表）|
 | 2026-09-12 | 擴大為全專案流程統一：完整查核 24 項、新增 7 個共用元件、新增一致性測試（U1–U13）與回歸測試（G1–G6）；編輯限制改為維持現況；新增查核對照表 |
+| 2026-09-12 | 第 0 批完成（0.1 刪 `MoneyHelper` 兩個 dead method、0.2 日曆改用共用 `DateFormatter` 並新增 `monthDayWeekday`）；新增 §1.7 本地化查核 F1–F4（查核總數 24 → 28）與 §13 待確認第 8 項 —— 本輪只登記不改碼 |
+| 2026-09-12 | 第 1 批完成（1.1–1.11 全部）：新增 `TransactionIndex`／`EventDataSource`／`DiscountCalculator`／`CSVExporter`／`ProductAvailability`／`PendingSyncStamp` 六個共用元件；刪除 `updateRelatedTransactions`、`Product.categoryName`、`disabledInstead`、結帳鏈的死 `@Binding` 寫回；CoreData 補 `updatedAt` ×2 與 `InventoryChange↔Product` relationship。差異說明與靜態驗收見 §11 第 1 批 |
+| 2026-09-13 | §11 每一批下方新增專屬「測試」區：自動（指令驗證／單元測試）與手動分開列點，逐項對應該批的每個改動，並標註 §12 的對應編號；§11、§12 開頭互加說明避免兩份清單漂移 |
+| 2026-09-13 | 複查編輯限制後修正三處敘述：<br>① §1.1 新增「A1 的可達性」—— 有交易的商品**不能改類別**（雙重保險），A1 的分歧情境目前不可達，`TransactionIndex` 的價值改列為效能／收斂／為開放編輯鋪路<br>② §4.1.1 盤點六個編輯欄位，指出**場次名稱是唯一沒鎖的**<br>③ §11 第 1 批把做不到的手動步驟（搬類別）改成單元測試，U14 補上「場次名稱確實可改」的前置確認<br>④ §13 新增待確認第 9 項 |
+| 2026-09-13 | 第 1 批單元測試補齊：新增 7 個測試檔共 72 個測試（連同既有 smoke test 共 75 個，全數通過）。過程中抓到並修正兩個真實缺陷 —— ① `DiscountCalculator.total` 未 clamp 定額折扣負值（負折扣會反而加錢）② `Persistence` 每個 container 各自載入 model 導致 `+[CDxxxEntity entity]` 取不到 entity。另把 `isAvailableForSale` 拆出純函式 `saleAvailability(in:)` 讓 fail-closed 分支可測。場次名稱依決定**維持可改**，未加限制 |

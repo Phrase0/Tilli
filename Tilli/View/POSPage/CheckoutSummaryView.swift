@@ -13,7 +13,7 @@ struct CheckoutSummaryView: View {
     let totalAmount: Decimal
     let selectedDiscount: DiscountModel?
 
-    @Binding var event: EventModel
+    let event: EventModel
 
     @Environment(\.dismiss) private var dismiss
 
@@ -170,7 +170,7 @@ struct CheckoutSummaryView: View {
         .navigationDestination(isPresented: $viewModel.navigateToCashPayment) {
             CashPaymentView(
                 totalAmount: totalAmount,
-                event: $event,
+                event: event,
                 summaryItems: selectedItems,
                 selectedDiscount: selectedDiscount,
                 occurredAt: viewModel.occurredAtValue
@@ -179,7 +179,7 @@ struct CheckoutSummaryView: View {
         .navigationDestination(isPresented: $viewModel.navigateToEPayment) {
             EPaymentView(
                 totalAmount: totalAmount,
-                event: $event,
+                event: event,
                 summaryItems: selectedItems,
                 selectedDiscount: selectedDiscount,
                 occurredAt: viewModel.occurredAtValue
