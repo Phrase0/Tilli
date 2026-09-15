@@ -16,10 +16,22 @@ struct ProductPerformanceData: Identifiable {
     let category: String
     let salesCount: Int
     let contributionRate: Int
-    let unitPrice: Decimal
+    /// 平均成交單價（原價總額 ÷ 總銷量）
+    let averageUnitPrice: Decimal
     let originalPrice: Decimal
     let discount: Decimal
     let actualRevenue: Decimal
+}
+
+/// 本期未售出的商品。
+///
+/// 只需要「是誰」—— 營收、名次這些欄位對它們一律是 0／沒有意義，
+/// 給了反而讓收攤時的主表變難讀。見 FEATURE_PLAN_V1.md §5.1。
+struct UnsoldProductData: Identifiable {
+    let id: UUID              // = productId
+    let name: String
+    let category: String
+    let isDisabled: Bool      // 已下架的商品在 UI 上要標示出來
 }
 
 struct CategoryAnalysisData: Identifiable {

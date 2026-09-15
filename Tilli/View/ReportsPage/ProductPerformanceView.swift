@@ -13,6 +13,7 @@ struct ProductPerformanceView: View {
     let event: EventModel
     let timeRange: ReportTimeRange
     @State private var expandedProducts: Set<Int> = []
+    @State private var showUnsoldProducts = false
 
     init(viewModel: ProductPerformanceViewModel, event: EventModel, timeRange: ReportTimeRange) {
         self.productPerformanceViewModel = viewModel
@@ -22,7 +23,7 @@ struct ProductPerformanceView: View {
 
     var body: some View {
         Group {
-            if productPerformanceViewModel.topProducts.isEmpty && productPerformanceViewModel.categoryAnalysis.isEmpty {
+            if !productPerformanceViewModel.hasSalesInRange {
                 ScrollView {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         EmptyStateView(
@@ -36,8 +37,12 @@ struct ProductPerformanceView: View {
                 ScrollView {
                     LazyVStack(spacing: DesignSystem.Spacing.sm) {
                         VStack(spacing: DesignSystem.Spacing.lg) {
-                            // TOP 5 商品榜單
+                            // 商品銷售排行（只列有賣出的）
                             topProductsView
+                            // 本期未售出（預設收合）
+                            if !productPerformanceViewModel.unsoldProducts.isEmpty {
+                                unsoldProductsView
+                            }
                             // 類別銷售彙總
                             categoryAnalysisView
                             // 銷售洞察
@@ -74,7 +79,7 @@ struct ProductPerformanceView: View {
                         salesCount: product.salesCount,
                         revenue: product.actualRevenue,
                         contributionRate: product.contributionRate,
-                        unitPrice: product.unitPrice,
+                        averageUnitPrice: product.averageUnitPrice,
                         originalPrice: product.originalPrice,
                         discount: product.discount,
                         actualRevenue: product.actualRevenue,
@@ -84,6 +89,68 @@ struct ProductPerformanceView: View {
                         toggleExpansion(for: product.rank)
                     }
                 }
+            }
+        }
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.ColorToken.cardSurface)
+        .cornerRadius(DesignSystem.Radius.md)
+    }
+
+    // MARK: - 本期未售出
+
+    /// 摺疊區：只回答「哪些沒賣掉」。
+    ///
+    /// 不給名次與營收欄位 —— 對這些商品一律是 0／沒有意義，
+    /// 放進主排行榜只會讓收攤時要看的那張表變長變難讀（見 FEATURE_PLAN_V1.md §5.1）。
+    private var unsoldProductsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showUnsoldProducts.toggle()
+                }
+            } label: {
+                HStack {
+                    // 本期未售出（N 項）
+                    Text("performanceUnsoldSection \(productPerformanceViewModel.unsoldProducts.count)")
+                        .font(DesignSystem.Typography.title2)
+                        .foregroundColor(DesignSystem.ColorToken.ink)
+                    Spacer()
+                    Image(systemName: showUnsoldProducts ? "chevron.up" : "chevron.down")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if showUnsoldProducts {
+                VStack(spacing: 0) {
+                    ForEach(productPerformanceViewModel.unsoldProducts) { product in
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Text(product.name)
+                                .foregroundColor(DesignSystem.ColorToken.ink)
+
+                            if product.isDisabled {
+                                // 已下架
+                                Text("performanceUnsoldDisabledTag")
+                                    .font(DesignSystem.Typography.caption)
+                                    .padding(.horizontal, DesignSystem.Spacing.xxs)
+                                    .padding(.vertical, 2)
+                                    .background(DesignSystem.ColorToken.quietFill)
+                                    .foregroundColor(DesignSystem.ColorToken.muted)
+                                    .cornerRadius(DesignSystem.Radius.sm)
+                            }
+
+                            Spacer()
+
+                            Text(product.category)
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundColor(DesignSystem.ColorToken.muted)
+                        }
+                        .padding(.vertical, DesignSystem.Spacing.xs)
+                    }
+                }
+                .padding(.top, DesignSystem.Spacing.sm)
             }
         }
         .padding(DesignSystem.Spacing.md)

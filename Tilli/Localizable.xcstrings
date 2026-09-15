@@ -3079,13 +3079,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unit Price(%@)"
+            "value": "Avg. Unit Price(%@)"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "單價(%@)"
+            "value": "平均單價(%@)"
           }
         }
       }
@@ -5049,13 +5049,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Top Products"
+            "value": "Product Sales Ranking"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "熱門商品榜單"
+            "value": "商品銷售排行"
           }
         }
       }
@@ -5081,13 +5081,45 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unit Price"
+            "value": "Avg. Unit Price"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "單價"
+            "value": "平均單價"
+          }
+        }
+      }
+    },
+    "performanceUnsoldDisabledTag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delisted"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已下架"
+          }
+        }
+      }
+    },
+    "performanceUnsoldSection %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Sold This Period (%lld)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本期未售出（%lld 項）"
           }
         }
       }

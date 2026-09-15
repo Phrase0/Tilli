@@ -17,7 +17,20 @@ class ProductSalesStats {
     var originalRevenue: Decimal = 0
     var actualRevenue: Decimal = 0
     var totalDiscount: Decimal = 0
-    var unitPrice: Decimal = 0
+
+    /// 平均成交單價 = 原價總額 ÷ 總銷量。
+    ///
+    /// 取代原本的 `unitPrice` —— 它每次 `addSale` 都覆蓋成最後一筆的單價，
+    /// 註解直接寫「假設同商品單價一致」。那個假設在組合優惠與套餐（§8）之後
+    /// 必然不成立：同一個商品會有多種成交單價。見 FEATURE_PLAN_V1.md §4.2（D5）。
+    ///
+    /// `originalRevenue` 本來就是用每筆快照單價逐筆累加，總額一直是對的，
+    /// 這裡只是換一個不會失真的顯示方式。
+    var averageUnitPrice: Decimal {
+        totalQuantity > 0
+            ? MoneyHelper.divide(originalRevenue, Decimal(totalQuantity))
+            : 0
+    }
 
     init(productId: UUID, name: String, category: String, categoryId: UUID) {
         self.productId = productId
@@ -28,7 +41,6 @@ class ProductSalesStats {
 
     func addSale(quantity: Int, unitPrice: Decimal, actualTotal: Decimal) {
         self.totalQuantity += quantity
-        self.unitPrice = unitPrice // 假設同商品單價一致
         let originalTotal = MoneyHelper.multiply(unitPrice, Decimal(quantity))
         self.originalRevenue = MoneyHelper.add(self.originalRevenue, originalTotal)
         self.actualRevenue = MoneyHelper.add(self.actualRevenue, actualTotal)

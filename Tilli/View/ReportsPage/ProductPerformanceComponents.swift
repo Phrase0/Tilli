@@ -16,7 +16,7 @@ struct ProductRankingCard: View {
     let salesCount: Int
     let revenue: Decimal
     let contributionRate: Int
-    let unitPrice: Decimal?
+    let averageUnitPrice: Decimal?
     let originalPrice: Decimal?
     let discount: Decimal?
     let actualRevenue: Decimal?
@@ -24,14 +24,14 @@ struct ProductRankingCard: View {
     let isExpanded: Bool
     let onToggle: () -> Void
 
-    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, unitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Decimal? = nil, actualRevenue: Decimal? = nil, currency: String = "TWD", isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
+    init(rank: Int, name: String, category: String, salesCount: Int, revenue: Decimal, contributionRate: Int, averageUnitPrice: Decimal? = nil, originalPrice: Decimal? = nil, discount: Decimal? = nil, actualRevenue: Decimal? = nil, currency: String = "TWD", isExpanded: Bool = false, onToggle: @escaping () -> Void = {}) {
         self.rank = rank
         self.name = name
         self.category = category
         self.salesCount = salesCount
         self.revenue = revenue
         self.contributionRate = contributionRate
-        self.unitPrice = unitPrice
+        self.averageUnitPrice = averageUnitPrice
         self.originalPrice = originalPrice
         self.discount = discount
         self.actualRevenue = actualRevenue
@@ -118,13 +118,13 @@ struct ProductRankingCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     VStack(spacing: DesignSystem.Spacing.xs) {
-                        if let unitPrice = unitPrice {
+                        if let averageUnitPrice {
                             HStack {
-                                // 單價
+                                // 平均單價
                                 Text("performanceUnitPrice")
                                     .foregroundColor(DesignSystem.ColorToken.muted)
                                 Spacer()
-                                Text(MoneyHelper.format(unitPrice, currencyCode: currency))
+                                Text(MoneyHelper.format(averageUnitPrice, currencyCode: currency))
                                     .fontWeight(.medium)
                             }
                         }

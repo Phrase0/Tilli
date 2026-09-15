@@ -51,7 +51,6 @@ class SalesAnalyticsViewModel: ObservableObject {
     @Published var hourlyData: [HourlyAnalysisData] = []
     @Published var paymentMethodData: [PaymentMethodAnalysisData] = []
     @Published var salesOverview: SalesOverviewData? = nil
-    @Published var isLoading = false
 
     // MARK: - Revenue Trend Properties
     @Published var dailyRevenue: [DailyRevenueData] = []
@@ -96,14 +95,8 @@ class SalesAnalyticsViewModel: ObservableObject {
         // 儲存當前時間範圍（用於 CSV 匯出）
         self.currentTimeRange = timeRange
 
-        isLoading = true
-
-        Task {
-            await MainActor.run {
-                calculateSalesAnalytics(timeRange: timeRange)
-                isLoading = false
-            }
-        }
+        // 同步計算，理由同 ProductPerformanceViewModel
+        calculateSalesAnalytics(timeRange: timeRange)
     }
 
     // MARK: - CSV Export Methods
