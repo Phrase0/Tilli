@@ -26,7 +26,7 @@ struct EPaymentView: View {
         totalAmount: Decimal,
         event: EventModel,
         summaryItems: [SummaryItemModel],
-        selectedDiscount: DiscountModel? = nil,
+        appliedDiscounts: [AppliedDiscount] = [],
         occurredAt: Date? = nil
     ) {
         self.event = event
@@ -34,7 +34,7 @@ struct EPaymentView: View {
             totalAmount: totalAmount,
             event: event,
             summaryItems: summaryItems,
-            selectedDiscount: selectedDiscount,
+            appliedDiscounts: appliedDiscounts,
             occurredAt: occurredAt
         ))
     }

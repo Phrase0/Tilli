@@ -307,14 +307,21 @@ class AddEventViewModel: ObservableObject {
     }
 
     /// 刪除折扣
+    /// 百分比折扣，升冪排列（與 POS 的 chip 順序一致）
+    var percentageDiscounts: [DiscountModel] {
+        discounts.filter { $0.type == .percentage }.sorted { $0.value < $1.value }
+    }
+
+    /// 定額折扣，升冪排列
+    var amountDiscounts: [DiscountModel] {
+        discounts.filter { $0.type == .amount }.sorted { $0.value < $1.value }
+    }
+
     func deleteDiscount(_ discount: DiscountModel) {
         discounts.removeAll { $0.id == discount.id }
     }
 
     /// 移動折扣順序
-    func moveDiscount(from source: IndexSet, to destination: Int) {
-        discounts.move(fromOffsets: source, toOffset: destination)
-    }
 
     // MARK: - 類別相關方法
 

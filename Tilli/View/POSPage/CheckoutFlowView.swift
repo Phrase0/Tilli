@@ -26,14 +26,14 @@ struct CheckoutFlowView: View {
 
     let selectedItems: [SummaryItemModel]
     let totalAmount: Decimal
-    let selectedDiscount: DiscountModel?
+    let appliedDiscounts: [AppliedDiscount]
 
     var body: some View {
         NavigationStack {
             CheckoutSummaryView(
                 selectedItems: selectedItems,
                 totalAmount: totalAmount,
-                selectedDiscount: selectedDiscount,
+                appliedDiscounts: appliedDiscounts,
                 event: event
             )
         }

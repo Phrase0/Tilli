@@ -177,15 +177,30 @@ final class DiscountCalculatorTests: XCTestCase {
 
     // MARK: - 流水帳
 
-    func testAmountForTransactionUsesItemsSubtotal() {
+    func testAmountForTransactionSumsAppliedSnapshots() {
         let transaction = TransactionModel.mock(
             items: [.mock(price: 100, quantity: 2)],   // 小計 200
-            discountType: .percentage,
-            discountValue: 10
+            appliedDiscounts: [
+                .mock(type: .percentage, value: 10, amount: 20),
+                .mock(type: .amount, value: 15, amount: 15)
+            ]
         )
 
         XCTAssertEqual(transaction.subtotal, 200)
-        XCTAssertEqual(DiscountCalculator.amount(for: transaction), 20)
+        XCTAssertEqual(DiscountCalculator.amount(for: transaction), 35)
+    }
+
+    /// ⭐ F7：折抵金額是**快照**，不從設定重算。
+    /// 之後改了場次的折扣設定，歷史交易的金額必須原封不動。
+    func testAmountForTransactionDoesNotRecomputeFromValue() {
+        let transaction = TransactionModel.mock(
+            items: [.mock(price: 100, quantity: 2)],   // 小計 200
+            // value 與 amount 刻意不一致：模擬「當時只折得到 30」的情況
+            appliedDiscounts: [.mock(type: .percentage, value: 50, amount: 30)]
+        )
+
+        // 若重算會得到 100（200 的 50%），但快照說 30
+        XCTAssertEqual(DiscountCalculator.amount(for: transaction), 30)
     }
 
     func testAmountForTransactionWithoutDiscountIsZero() {
@@ -193,15 +208,14 @@ final class DiscountCalculatorTests: XCTestCase {
         XCTAssertEqual(DiscountCalculator.amount(for: transaction), 0)
     }
 
-    func testAmountForTransactionIsClamped() {
-        // 流水帳裡萬一存進超過小計的折扣，報表端仍然不會算出負營收
-        let transaction = TransactionModel.mock(
-            items: [.mock(price: 10, quantity: 1)],    // 小計 10
-            discountType: .amount,
-            discountValue: 999
-        )
+    func testSanitizedClampsOversizedSnapshotAtWriteBoundary() {
+        // 呼叫端給了超過小計的 amount（例如未來的匯入功能）
+        let dirty: [AppliedDiscount] = [.mock(type: .amount, value: 999, amount: 999)]
 
-        XCTAssertEqual(DiscountCalculator.amount(for: transaction), 10)
+        let clean = DiscountCalculator.sanitized(dirty, subtotal: 10)
+
+        XCTAssertEqual(clean.first?.amount, 10, "折抵不可超過小計")
+        XCTAssertEqual(clean.first?.value, 999, "設定值是快照，不該被動到")
     }
 
     // MARK: - 顯示文字
@@ -212,7 +226,9 @@ final class DiscountCalculatorTests: XCTestCase {
     }
 
     func testDeductionTextForTransaction() {
-        let withDiscount = TransactionModel.mock(discountType: .amount, discountValue: 5)
+        let withDiscount = TransactionModel.mock(
+            appliedDiscounts: [.mock(type: .amount, value: 5, amount: 5)]
+        )
         XCTAssertEqual(DiscountCalculator.deductionText(for: withDiscount), "-5")
 
         let withoutDiscount = TransactionModel.mock()

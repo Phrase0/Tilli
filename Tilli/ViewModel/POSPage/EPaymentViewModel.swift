@@ -13,17 +13,17 @@ class EPaymentViewModel: ObservableObject {
     let totalAmount: Decimal
     let event: EventModel
     let summaryItems: [SummaryItemModel]
-    let selectedDiscount: DiscountModel?
+    let appliedDiscounts: [AppliedDiscount]
     let occurredAt: Date?  // 補記帳時的實際發生時間
 
     @Published var showDateWarning: Bool = false
     @Published var dateWarningMessage: String = ""
 
-    init(totalAmount: Decimal, event: EventModel, summaryItems: [SummaryItemModel], selectedDiscount: DiscountModel? = nil, occurredAt: Date? = nil) {
+    init(totalAmount: Decimal, event: EventModel, summaryItems: [SummaryItemModel], appliedDiscounts: [AppliedDiscount] = [], occurredAt: Date? = nil) {
         self.totalAmount = totalAmount
         self.event = event
         self.summaryItems = summaryItems
-        self.selectedDiscount = selectedDiscount
+        self.appliedDiscounts = appliedDiscounts
         self.occurredAt = occurredAt
     }
 
@@ -69,10 +69,10 @@ class EPaymentViewModel: ObservableObject {
             print("🔴 批次更新產品庫存失敗")
         }
 
-        // 寫進流水帳前一律 clamp —— 不依賴呼叫端（原本只有 POSView 記得呼叫
-        // effectiveDiscount()，換個入口就會存進超過小計的折扣，報表攤提會變負營收）
-        let effectiveDiscount = DiscountCalculator.effective(
-            selectedDiscount,
+        // 寫進流水帳前收斂折抵金額 —— 不依賴呼叫端先算對
+        // （CONVENTIONS.md「保護要放在寫入邊界」）
+        let safeDiscounts = DiscountCalculator.sanitized(
+            appliedDiscounts,
             subtotal: summaryItems.subtotal
         )
 
@@ -86,8 +86,7 @@ class EPaymentViewModel: ObservableObject {
             paymentMethod: .ePayment,
             timestamp: Date(),
             occurredAt: occurredAt,
-            discountType: effectiveDiscount?.type,
-            discountValue: effectiveDiscount?.value
+            appliedDiscounts: safeDiscounts
         )
 
         // 使用 EventDataManager 添加交易記錄

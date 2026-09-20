@@ -53,7 +53,7 @@ struct POSView: View {
                 event: event,
                 selectedItems: viewModel.selectedProductsWithQuantity(),
                 totalAmount: viewModel.totalAmount(),
-                selectedDiscount: viewModel.effectiveDiscount()
+                appliedDiscounts: viewModel.appliedDiscounts()
             )
         }
         .onChange(of: checkoutCompleted) {
@@ -65,6 +65,70 @@ struct POSView: View {
         }
         .onAppear {
             viewModel.loadProducts()
+        }
+    }
+
+    // MARK: - 折扣（兩區各自單選，可同時一個百分比 + 一個定額，§6.4）
+
+    private var discountSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // 折扣
+            Text("posDiscountLabel")
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.ColorToken.muted)
+
+            if !viewModel.percentageDiscounts.isEmpty {
+                discountChipRow(viewModel.percentageDiscounts)
+            }
+            if !viewModel.amountDiscounts.isEmpty {
+                discountChipRow(viewModel.amountDiscounts)
+            }
+
+            // 小計 → 折後，只在真的有折抵時顯示
+            if viewModel.discountAmount() > 0 {
+                HStack(spacing: DesignSystem.Spacing.xxs) {
+                    Text(MoneyHelper.format(viewModel.subtotal(), currencyCode: event.currency))
+                        .strikethrough()
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                    Image(systemName: "arrow.right")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                    Text(MoneyHelper.format(viewModel.totalAmount(), currencyCode: event.currency))
+                        .foregroundColor(DesignSystem.ColorToken.ink)
+                }
+                .font(DesignSystem.Typography.caption)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func discountChipRow(_ discounts: [DiscountModel]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DesignSystem.Spacing.xs) {
+                ForEach(discounts) { discount in
+                    let isSelected = viewModel.isSelected(discount)
+                    Button {
+                        viewModel.toggleDiscount(discount)
+                    } label: {
+                        Text(discount.displayText(currency: event.currency))
+                            .font(DesignSystem.Typography.caption)
+                            .padding(.horizontal, DesignSystem.Spacing.sm)
+                            .padding(.vertical, DesignSystem.Spacing.xs)
+                            .background(
+                                isSelected
+                                    ? DesignSystem.ColorToken.ink
+                                    : DesignSystem.ColorToken.quietFill
+                            )
+                            .foregroundColor(
+                                isSelected
+                                    ? DesignSystem.ColorToken.paper
+                                    : DesignSystem.ColorToken.ink
+                            )
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -151,53 +215,7 @@ struct POSView: View {
     private var checkoutFooter: some View {
         VStack(spacing: DesignSystem.Spacing.sm) {
             if !event.discounts.isEmpty {
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    // 折扣
-                    Text("posDiscountLabel")
-                        .font(DesignSystem.Typography.body)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-
-                    Menu {
-                        Button {
-                            viewModel.selectedDiscountId = nil
-                        } label: {
-                            HStack {
-                                Text("- -")
-                                if viewModel.selectedDiscountId == nil {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-
-                        ForEach(event.discounts) { discount in
-                            Button {
-                                viewModel.selectedDiscountId = discount.id
-                            } label: {
-                                HStack {
-                                    Text(discount.displayText(currency: event.currency))
-                                    if viewModel.selectedDiscountId == discount.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text(viewModel.selectedDiscount?.displayText(currency: event.currency) ?? "- -")
-                                .font(DesignSystem.Typography.body)
-                                .foregroundColor(DesignSystem.ColorToken.ink)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                        }
-                        .padding(.horizontal, DesignSystem.Spacing.sm)
-                        .padding(.vertical, DesignSystem.Spacing.sm)
-                        .frame(maxWidth: .infinity)
-                        .background(DesignSystem.ColorToken.cardSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.sm))
-                    }
-                }
+                discountSection
             }
 
             if let warning = viewModel.discountWarningMessage {

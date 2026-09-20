@@ -1353,14 +1353,143 @@ grep -rn "isLoading"         --include="*.swift" Tilli/ViewModel/ReportsPage/   
 - **回歸：報表 CSV**（G6）
   - 五種報表 CSV 內容與第 1 批測過的結果一致，只有單價欄語意改變
 
-### 第 3 批 — 折扣
+### 第 3 批 — 折扣 ✅ 2026-09-15 完成
 
-| # | 項目 |
-|---|------|
-| 3.1 | `AppliedDiscount` schema + CoreData `appliedDiscountsData` |
-| 3.2 | 折扣 chip UI（兩區各單選、升冪、即時顯示） |
-| 3.3 | 場次設定頁的折扣管理調整 |
-| 3.4 | 全部改呼叫 `DiscountCalculator` |
+| # | 項目 | 狀態 |
+|---|------|------|
+| 3.1 | `AppliedDiscount` schema + CoreData `appliedDiscountsData` | ✅ |
+| 3.2 | 折扣 chip UI（兩區各單選、升冪、即時顯示） | ✅ |
+| 3.3 | 場次設定頁的折扣管理調整 | ✅ |
+| 3.4 | 全部改呼叫 `DiscountCalculator` | ✅ |
+
+#### 實作與計畫的差異
+
+| # | 計畫寫的 | 實際做的 | 為什麼 |
+|---|---------|---------|-------|
+| 3.2 | 兩個獨立的選取欄位 | `selectedDiscountIds: [DiscountType: UUID]`，用**型別當 key** | 之後多一種折扣型別時，`toggleDiscount` / `isSelected` 都不用改；也讓 U9（折扣 `switch` 只在 `DiscountCalculator` 內）字面上維持成立 |
+| 3.3 | 「折扣管理調整」（未指定） | 依型別**分兩區、各自升冪**，並**移除拖曳換序** | POS 的 chip 一律照數值升冪排（§6.4），設定頁排了也不會反映到收銀畫面，留著只會讓人誤會 |
+| 3.4 | — | 新增 `DiscountCalculator.sanitized(_:subtotal:)`，兩個付款 VM 在寫入前呼叫 | `AppliedDiscount.amount` 是呼叫端給的**快照**，不能無條件相信。原本的保護是 `effective()`，但它回傳 `DiscountModel`（沒有 amount），換成快照後需要對應的守門 —— 見 CONVENTIONS.md「保護要放在寫入邊界」 |
+| — | — | `TestDataGenerator` **沒有更新** | 它已在第 1 批被移到 `_Deprecated/`，且列在 `project.pbxproj` 的 `membershipExceptions` 裡**不參與編譯**。跟其他 12 個 deprecated 檔一樣停在舊 API |
+
+#### 3.1 的關鍵：`amount` 是快照，不重算
+
+```swift
+struct AppliedDiscount: Codable, Hashable, Identifiable {
+    var discountId: UUID   // 對應 event.discounts；設定被刪除後仍可追溯
+    var type: DiscountType
+    var value: Decimal     // 快照：折扣設定的值
+    var amount: Decimal    // ⭐ 快照：實際折抵金額（已 clamp）
+}
+```
+
+`DiscountCalculator.amount(for: transaction)` **直接加總 `amount`**，不從 `value` 重算 ——
+重算的話，之後改了場次的折扣設定，歷史交易的金額就會跟著變（F7）。
+
+不變式：`Σ applied.amount == subtotal − total(subtotal:discounts:)`。
+第 4 批的攤提會依賴這條（§7.3），已用多組輸入鎖進測試。
+
+#### 測試
+
+##### 自動 —— 指令驗證
+
+```bash
+# 3.1 舊欄位徹底消失（含 CoreData model）
+grep -rn "discountType\|discountValue" --include="*.swift" . | grep -v _Deprecated   # 只剩 1 筆註解
+grep -c  "discountType\|discountValue" Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents   # 0
+grep -o  'name="appliedDiscountsData"[^/]*' Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents
+
+# 3.2 / 3.4 舊的單選與 clamp 入口已移除
+grep -rn "selectedDiscountId\b" --include="*.swift" Tilli | grep -v _Deprecated      # 0
+grep -rn "effectiveDiscount"    --include="*.swift" Tilli | grep -v _Deprecated \
+  | grep -v DiscountCalculator.swift                                                 # 0
+
+# 3.3 拖曳換序已移除
+grep -rn "moveDiscount" --include="*.swift" Tilli | grep -v _Deprecated              # 0
+
+# U9 持續成立
+grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
+  | grep -v _Deprecated | grep -v DiscountCalculator.swift                           # 0
+```
+
+- ✅ 全部符合預期
+
+##### 自動 —— 單元測試 ✅（新增 22 個，總計 109 個全過）
+
+- ✅ **`DiscountCalculator.applied`**（3.1，`AppliedDiscountTests` 6 個）
+  - 逐筆記下實際折抵：200 選 9 折 + −20 → `[percentage amount:20, amount amount:20]`
+  - **無論輸入順序，輸出一律百分比在前**
+  - ⭐ **`Σ amount == subtotal − total`**，用 7 組輸入驗（含 clamp、除不盡、小額）——
+    第 4 批的攤提直接依賴這條
+  - 定額 clamp 到「套用百分比之後」的餘額：200 → 九折剩 180 → 定額 500 只折 180
+  - 小計 0 或無折扣 → 空陣列
+  - `discountId` 保留，設定被刪除後仍可追溯
+- ✅ **`DiscountCalculator.sanitized`**（3.4，4 個）
+  - 合法輸入**原樣回傳**（快照不被動到）
+  - 多筆累計超過小計 → 逐筆遞減收斂，`Σ amount == subtotal`
+  - 負數 → 0；小計 0 → 空陣列
+- ✅ **快照語意**（3.1，3 個）
+  - ⭐ `value` 與 `amount` 刻意不一致時，`amount(for:)` 回**快照值**而不是重算值（F7）
+  - JSON 往返後 `Decimal` 精度不丟失
+  - 舊資料（`appliedDiscountsData == nil`）解碼成空陣列，不 crash
+- ✅ **多折扣顯示**（1 個）：`deductionText(for:)` → `"10% -20"`
+- ✅ **POS 選取邏輯**（3.2，`POSDiscountSelectionTests` 8 個）
+  - 亂序建立的折扣，chip **自動分兩區且各自升冪**
+  - 同一區選第二個會**取代**前一個
+  - 再點一次**取消**
+  - ⭐ 百分比與定額**可同時選**
+  - `selectedDiscounts` **永遠百分比在前**（與套用順序一致）
+  - 清空購物車一併清除折扣
+  - 超額提示比的是**折後**金額而非原始小計
+
+##### 手動 —— 需操作 App
+
+> ⚠️ **這批是破壞性 schema 變更**（`discountType`/`discountValue` → `appliedDiscountsData`）。
+> 測試前請**刪 App 重裝**。App 未上架，不需要資料轉移。
+
+- **3.3 場次設定頁的折扣管理**
+  1. 新增百分比折扣 10、5、20（刻意亂序輸入）
+  2. 新增定額折扣 50、20
+  - 預期：清單**分兩區**顯示，百分比區是 5／10／20，定額區是 20／50（**各自升冪**）
+  - 預期：**沒有拖曳把手**，也拖不動
+  - 預期：左滑仍可刪除
+  3. 輸入邊界值：百分比 0／100／101、定額 0／負數、重複值
+  - 預期：不合法的值被擋下並有提示
+- **3.2 折扣 chip**
+  1. POS 加購到小計 200
+  - 預期：結帳列上方有**兩排 chip**，百分比一排、定額一排，各自升冪
+  2. 點百分比 10
+  - 預期：該 chip **高亮**，下方出現 `200 → 180`（原價有刪除線）
+  3. 再點定額 20
+  - 預期：**兩個 chip 同時高亮**，顯示 `200 → 160`
+  - ⭐ 若顯示 162 就是順序錯了（變成先扣定額再打折）
+  4. 再點一次百分比 10
+  - 預期：取消，只剩定額，顯示 `200 → 180`
+  5. 兩個都取消
+  - 預期：`200 → ...` 那一行**整個消失**（沒有折抵時不顯示）
+- **3.2 clamp 的視覺回饋**（F4）
+  1. 把購物車減到小計 100，選 9 折（剩 90）再選定額 200
+  - 預期：總計顯示 **0**，並出現「折扣不可超過商品金額，已自動調整」
+  - ⭐ 提示的門檻是 **90**（折後）而不是 100（原始小計）
+- **3.1 ＋ 3.4 全流程**
+  1. 選百分比 + 定額 → 現金結帳
+  2. 再做一次 → 電子支付結帳
+  3. 報表 → 交易紀錄
+  - 預期：每筆交易顯示**兩個**折扣標籤
+  - 預期：展開後金額正確，實收 == 小計 − 兩個折抵
+  4. 匯出交易明細 CSV
+  - 預期：折扣欄顯示 `10% -20`（兩個以空格相連），無折扣時為 `-`
+  5. 商品績效
+  - 預期：營收為攤提後金額，**不出現負數**
+- **3.1 快照不被設定變更影響**（⭐ F7）
+  1. 用 9 折賣掉一筆
+  2. 回場次設定頁，把那個 9 折**改成 5 折**（刪掉再新增）
+  3. 回報表看**步驟 1 的那筆舊交易**
+  - 預期：折抵金額**完全沒變**（快照），不是被重算成 5 折
+  - 預期：商品績效的營收也沒變
+- **回歸：不選折扣的結帳**（最常見路徑）
+  - 現金與電子支付都正常，交易的折扣標籤不顯示，CSV 折扣欄為 `-`（G1／G2）
+- **回歸：補記帳 + 折扣**
+  - 補記帳開啟時選折扣結帳，日期與金額都正確（G3）
 
 #### 測試（預定）
 
@@ -1836,7 +1965,7 @@ extension EventModel {
 | # | 日期 | 功能 | 新增/修改的資料 | 儲存位置 | 分類 | 同步時要做什麼 | 狀態 |
 |---|------|------|----------------|----------|------|---------------|------|
 | 0 | — | **見 §14.3：以下 4 項的 CoreData 部分在功能開發期就先做掉** | | | | | |
-| 1 | 待填 | D 多重折扣（§6） | `AppliedDiscount` 結構<br>`TransactionModel.appliedDiscounts` | `CDTransactionEntity.appliedDiscountsData: Binary` | 流水帳 | `TransactionModel.toFirestoreData` 加 `appliedDiscounts`（JSON 陣列）<br>移除舊的 `discountType` / `discountValue` | ⬜ 未接 |
+| 1 | 2026-09-15 | D 多重折扣（§6） | `AppliedDiscount` 結構<br>`TransactionModel.appliedDiscounts` | `CDTransactionEntity.appliedDiscountsData: Binary` | 流水帳 | `TransactionModel.toFirestoreData` 加 `appliedDiscounts`（JSON 陣列）<br>舊的 `discountType` / `discountValue` **已於第 3 批從 CoreData 移除**，重建同步時不會再看到它們 | ⬜ 未接 |
 | 2 | 待填 | E 攤提（§7） | `SummaryItemModel` 加 5 欄：<br>`originalSubtotal`、`allocatedDiscount`、`actualRevenue`、`bundleId`、`bundleName` | 在 `CDTransactionEntity.itemsData` 內（跟著走） | 流水帳 | `SummaryItemModel.toFirestoreData` 加這 5 欄 | ⬜ 未接 |
 | 3 | 待填 | F 組合套餐（§8） | `BundleModel`、`BundleMode` | `CDEventEntity.bundlesData: Binary` | 文件（跟 Event 走） | `EventModel.toFirestoreData` 加 `bundles`（JSON 陣列）<br>**不需要新 collection** | ⬜ 未接 |
 | 4 | 待填 | F 組合套餐（§8.5） | `InventoryChangeModel.bundleId`<br>`InventoryChangeModel.bundleName` | `CDInventoryChangeEntity` 新欄位 | 流水帳 | `InventoryChangeModel.toFirestoreData` 加這 2 欄 | ⬜ 未接 |
@@ -1920,3 +2049,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-09-13 | 複查編輯限制後修正三處敘述：<br>① §1.1 新增「A1 的可達性」—— 有交易的商品**不能改類別**（雙重保險），A1 的分歧情境目前不可達，`TransactionIndex` 的價值改列為效能／收斂／為開放編輯鋪路<br>② §4.1.1 盤點六個編輯欄位，指出**場次名稱是唯一沒鎖的**<br>③ §11 第 1 批把做不到的手動步驟（搬類別）改成單元測試，U14 補上「場次名稱確實可改」的前置確認<br>④ §13 新增待確認第 9 項 |
 | 2026-09-13 | 第 1 批單元測試補齊：新增 7 個測試檔共 72 個測試（連同既有 smoke test 共 75 個，全數通過）。過程中抓到並修正兩個真實缺陷 —— ① `DiscountCalculator.total` 未 clamp 定額折扣負值（負折扣會反而加錢）② `Persistence` 每個 container 各自載入 model 導致 `+[CDxxxEntity entity]` 取不到 entity。另把 `isAvailableForSale` 拆出純函式 `saleAvailability(in:)` 讓 fail-closed 分支可測。場次名稱依決定**維持可改**，未加限制 |
 | 2026-09-15 | 第 2 批完成（2.1–2.3）：`unitPrice` → `averageUnitPrice`（D5）；商品銷售排行改成「排行 + 本期未售出摺疊區」兩區並移除 `prefix(5)`，CSV 仍是一張表；新增 `UnsoldProductData` 與 `hasSalesInRange`。順帶把兩個報表 VM 的 `loadData` 從非同步改同步（`@MainActor` 之後那層 `Task` 只是延到下一個 runloop，寫測試時才發現）並移除沒人讀的 `isLoading`。新增 12 個單元測試，總計 87 個全過 |
+| 2026-09-15 | 第 3 批完成（3.1–3.4）：`TransactionModel.discountType/discountValue` → `appliedDiscounts: [AppliedDiscount]`（含 `amount` 快照），CoreData 換成 `appliedDiscountsData: Binary`；POS 折扣改成兩區 chip 各自單選、升冪、即時顯示折後金額；場次設定頁分區升冪並移除拖曳；新增 `DiscountCalculator.applied` 與 `sanitized`（寫入邊界保護）。新增 22 個單元測試，總計 109 個全過 |

@@ -119,8 +119,7 @@ extension TransactionModel {
         paymentMethod: PaymentMethod = .cash,
         timestamp: Date = Date(),
         occurredAt: Date? = nil,
-        discountType: DiscountType? = nil,
-        discountValue: Decimal? = nil
+        appliedDiscounts: [AppliedDiscount] = []
     ) -> TransactionModel {
         TransactionModel(
             id: id,
@@ -132,8 +131,7 @@ extension TransactionModel {
             paymentMethod: paymentMethod,
             timestamp: timestamp,
             occurredAt: occurredAt,
-            discountType: discountType,
-            discountValue: discountValue
+            appliedDiscounts: appliedDiscounts
         )
     }
 }
@@ -156,5 +154,16 @@ enum TestStore {
     /// 每次呼叫都建立一個獨立的 in-memory container，測試之間不互相污染
     static func makeInMemoryContainer() -> NSPersistentContainer {
         PersistenceController(inMemory: true).container
+    }
+}
+
+extension AppliedDiscount {
+    static func mock(
+        discountId: UUID = UUID(),
+        type: DiscountType = .amount,
+        value: Decimal = 10,
+        amount: Decimal = 10
+    ) -> AppliedDiscount {
+        AppliedDiscount(discountId: discountId, type: type, value: value, amount: amount)
     }
 }

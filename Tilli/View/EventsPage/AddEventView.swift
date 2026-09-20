@@ -225,21 +225,11 @@ struct AddEventView: View {
 
             // 折扣
             Section(header: Text("addEventDiscountHeader")) {
-                ForEach(viewModel.discounts) { discount in
-                    HStack {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                        Text(discount.displayText(currency: viewModel.selectedCurrency))
-                    }
-                }
-                .onMove { from, to in
-                    viewModel.moveDiscount(from: from, to: to)
-                }
-                .onDelete { indexSet in
-                    indexSet.forEach { index in
-                        viewModel.deleteDiscount(viewModel.discounts[index])
-                    }
-                }
+                // 依型別分兩區、各自升冪。
+                // 不提供拖曳換序 —— POS 的 chip 一律照數值升冪排（§6.4），
+                // 這裡排了也不會反映到收銀畫面，留著只會讓人誤會。
+                discountRows(viewModel.percentageDiscounts)
+                discountRows(viewModel.amountDiscounts)
 
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     // 數值
@@ -363,6 +353,16 @@ struct AddEventView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 focusedField = .newCategory
             }
+        }
+    }
+
+    @ViewBuilder
+    private func discountRows(_ discounts: [DiscountModel]) -> some View {
+        ForEach(discounts) { discount in
+            Text(discount.displayText(currency: viewModel.selectedCurrency))
+        }
+        .onDelete { indexSet in
+            indexSet.forEach { viewModel.deleteDiscount(discounts[$0]) }
         }
     }
 

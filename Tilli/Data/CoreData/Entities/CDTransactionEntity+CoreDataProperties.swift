@@ -24,8 +24,7 @@ extension CDTransactionEntity {
     @NSManaged public var paymentMethod: String
     @NSManaged public var timestamp: Date
     @NSManaged public var occurredAt: Date?           // 補記帳時的實際發生時間
-    @NSManaged public var discountType: String?       // 折扣類型："percentage" | "amount"
-    @NSManaged public var discountValue: NSDecimalNumber?  // 折扣數值
+    @NSManaged public var appliedDiscountsData: Data?  // [AppliedDiscount] 的 JSON
     @NSManaged public var event: CDEventEntity?
 
     // MARK: - Sync 相關欄位
@@ -48,6 +47,16 @@ extension CDTransactionEntity {
         }
     }
 
+    var appliedDiscounts: [AppliedDiscount] {
+        get {
+            guard let data = self.appliedDiscountsData else { return [] }
+            return (try? JSONDecoder().decode([AppliedDiscount].self, from: data)) ?? []
+        }
+        set {
+            self.appliedDiscountsData = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue))
+        }
+    }
+
     func update(from model: TransactionModel, context: NSManagedObjectContext) {
         self.id = model.id
         self.eventId = model.eventId
@@ -58,8 +67,7 @@ extension CDTransactionEntity {
         self.timestamp = model.timestamp
         self.occurredAt = model.occurredAt
         self.items = model.items
-        self.discountType = model.discountType?.rawValue
-        self.discountValue = model.discountValue.map { NSDecimalNumber(decimal: $0) }
+        self.appliedDiscounts = model.appliedDiscounts
     }
 
     func toModel() -> TransactionModel {

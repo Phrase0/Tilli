@@ -11,7 +11,7 @@ import Foundation
 struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Decimal
-    let selectedDiscount: DiscountModel?
+    let appliedDiscounts: [AppliedDiscount]
 
     let event: EventModel
 
@@ -101,13 +101,17 @@ struct CheckoutSummaryView: View {
                     .fontWeight(.semibold)
                 Spacer()
 
-                if let discount = selectedDiscount {
-                    Text(discount.displayText(currency: event.currency))
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.xs)
-                        .padding(.vertical, DesignSystem.Spacing.xxs)
-                        .background(DesignSystem.ColorToken.quietFill)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                ForEach(appliedDiscounts) { discount in
+                    Text(DiscountCalculator.displayText(
+                        type: discount.type,
+                        value: discount.value,
+                        currency: event.currency
+                    ))
+                    .font(DesignSystem.Typography.caption)
+                    .padding(.horizontal, DesignSystem.Spacing.xs)
+                    .padding(.vertical, DesignSystem.Spacing.xxs)
+                    .background(DesignSystem.ColorToken.quietFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
 
                 Text(totalAmount.money(currency: event.currency))
@@ -172,7 +176,7 @@ struct CheckoutSummaryView: View {
                 totalAmount: totalAmount,
                 event: event,
                 summaryItems: selectedItems,
-                selectedDiscount: selectedDiscount,
+                appliedDiscounts: appliedDiscounts,
                 occurredAt: viewModel.occurredAtValue
             )
         }
@@ -181,7 +185,7 @@ struct CheckoutSummaryView: View {
                 totalAmount: totalAmount,
                 event: event,
                 summaryItems: selectedItems,
-                selectedDiscount: selectedDiscount,
+                appliedDiscounts: appliedDiscounts,
                 occurredAt: viewModel.occurredAtValue
             )
         }

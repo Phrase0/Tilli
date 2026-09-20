@@ -25,7 +25,11 @@ class POSViewModel: ObservableObject {
     @Published private(set) var categories: [CategoryModel] = []
     @Published private(set) var products: [ProductModel] = []
     @Published var quantities: [UUID: Int] = [:]
-    @Published var selectedDiscountId: UUID?  // 當前選擇的折扣 ID（整筆訂單）
+    /// 折扣：每個型別各自單選，可同時一個百分比 + 一個定額（§6.1）。
+    ///
+    /// 用型別當 key 而不是兩個獨立欄位 —— 之後多一種折扣型別時，
+    /// 這裡與 `toggleDiscount` / `isSelected` 都不用改。
+    @Published private(set) var selectedDiscountIds: [DiscountType: UUID] = [:]
 
     // Alert 相關狀態（僅無庫存提醒使用）
     @Published var showAlert = false
@@ -63,10 +67,52 @@ class POSViewModel: ObservableObject {
         return !hasAnyProducts
     }
 
-    /// 取得選中的折扣 Model
-    var selectedDiscount: DiscountModel? {
-        guard let id = selectedDiscountId else { return nil }
-        return event.discounts.first { $0.id == id }
+    // MARK: - 折扣
+
+    /// 百分比折扣選項，升冪排列（§6.4）
+    var percentageDiscounts: [DiscountModel] {
+        event.discounts.filter { $0.type == .percentage }.sorted { $0.value < $1.value }
+    }
+
+    /// 定額折扣選項，升冪排列
+    var amountDiscounts: [DiscountModel] {
+        event.discounts.filter { $0.type == .amount }.sorted { $0.value < $1.value }
+    }
+
+    private func selected(_ type: DiscountType) -> DiscountModel? {
+        guard let id = selectedDiscountIds[type] else { return nil }
+        return event.discounts.first { $0.id == id && $0.type == type }
+    }
+
+    var selectedPercentage: DiscountModel? { selected(.percentage) }
+    var selectedAmount: DiscountModel? { selected(.amount) }
+
+    /// 已選的折扣，**百分比在前、定額在後** —— 與 `DiscountCalculator` 的套用順序一致
+    var selectedDiscounts: [DiscountModel] {
+        [selectedPercentage, selectedAmount].compactMap { $0 }
+    }
+
+    /// 點選折扣 chip：同一區再點一次等於取消
+    func toggleDiscount(_ discount: DiscountModel) {
+        if selectedDiscountIds[discount.type] == discount.id {
+            selectedDiscountIds[discount.type] = nil
+        } else {
+            selectedDiscountIds[discount.type] = discount.id
+        }
+    }
+
+    func isSelected(_ discount: DiscountModel) -> Bool {
+        selectedDiscountIds[discount.type] == discount.id
+    }
+
+    /// 折扣總折抵金額（即時顯示用）
+    func discountAmount() -> Decimal {
+        DiscountCalculator.amount(for: selectedDiscounts, subtotal: subtotal())
+    }
+
+    /// 寫進流水帳的折扣快照（含實際折抵金額）
+    func appliedDiscounts() -> [AppliedDiscount] {
+        DiscountCalculator.applied(for: selectedDiscounts, subtotal: subtotal())
     }
 
     init(dataSource: EventDataSource) {
@@ -176,7 +222,7 @@ class POSViewModel: ObservableObject {
     
     func clearAllQuantities() {
         quantities.removeAll()
-        selectedDiscountId = nil
+        selectedDiscountIds.removeAll()
     }
 
     /// 計算小計（未套用折扣）
@@ -190,17 +236,20 @@ class POSViewModel: ObservableObject {
 
     /// 計算總金額（套用折扣）
     func totalAmount() -> Decimal {
-        DiscountCalculator.total(subtotal: subtotal(), discount: selectedDiscount)
+        DiscountCalculator.total(subtotal: subtotal(), discounts: selectedDiscounts)
     }
 
-    /// 檢查折扣是否超過商品總額（僅適用於固定金額折扣）
+    /// 檢查定額折扣是否超過「套用百分比之後」的金額。
+    ///
+    /// 比的是折後金額而不是原始小計 —— 小計 200 選 9 折（剩 180）再選 −200 時，
+    /// 實際只能折 180，這時就該提示。
     var isDiscountExceedsLimit: Bool {
-        DiscountCalculator.exceedsSubtotal(selectedDiscount, subtotal: subtotal())
-    }
-
-    /// 計算實際套用的折扣（用於記錄交易）
-    func effectiveDiscount() -> DiscountModel? {
-        DiscountCalculator.effective(selectedDiscount, subtotal: subtotal())
+        guard let amountDiscount = selectedAmount else { return false }
+        let afterPercentage = DiscountCalculator.total(
+            subtotal: subtotal(),
+            discounts: selectedDiscounts.filter { $0.type == .percentage }
+        )
+        return DiscountCalculator.exceedsSubtotal(amountDiscount, subtotal: afterPercentage)
     }
 
     /// 折扣超過上限的提示訊息

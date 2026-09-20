@@ -16,8 +16,9 @@ struct TransactionModel: Identifiable, Codable, Hashable {
     var paymentMethod: PaymentMethod
     var timestamp: Date               // 記錄建立時間
     var occurredAt: Date?             // 補記帳時的實際發生時間
-    var discountType: DiscountType?   // 套用的折扣類型（整筆訂單）
-    var discountValue: Decimal?       // 套用的折扣數值
+    /// 套用在整筆訂單上的折扣（最多一個百分比 + 一個定額）。
+    /// 每一筆都帶 `amount` 快照，改了場次的折扣設定也不會影響歷史交易。
+    var appliedDiscounts: [AppliedDiscount] = []
 
     /// 小計（折扣前，所有項目的 total 相加）
     var subtotal: Decimal { items.subtotal }
@@ -58,12 +59,12 @@ extension TransactionModel {
             self.items = []
         }
 
-        // 解碼折扣
-        if let typeString = entity.discountType {
-            self.discountType = DiscountType(rawValue: typeString)
+        // 解碼折扣（舊資料或空值一律視為沒有折扣）
+        if let data = entity.appliedDiscountsData,
+           let decoded = try? JSONDecoder().decode([AppliedDiscount].self, from: data) {
+            self.appliedDiscounts = decoded
         } else {
-            self.discountType = nil
+            self.appliedDiscounts = []
         }
-        self.discountValue = entity.discountValue?.decimalValue
     }
 }

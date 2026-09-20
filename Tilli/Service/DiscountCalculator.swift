@@ -44,11 +44,75 @@ enum DiscountCalculator {
         return MoneyHelper.subtract(subtotal, total(subtotal: subtotal, discounts: discounts))
     }
 
-    /// 流水帳的折扣金額（`TransactionModel` 目前存單一折扣的 type/value）。
+    /// 流水帳的折扣總額 —— **直接加總 `amount` 快照，不重算**。
+    ///
+    /// ⭐ 重算的話，之後改了場次的折扣設定，歷史交易的金額就會變。
     static func amount(for transaction: TransactionModel) -> Decimal {
-        guard let type = transaction.discountType,
-              let value = transaction.discountValue else { return 0 }
-        return amount(type: type, value: value, subtotal: transaction.subtotal)
+        transaction.appliedDiscounts.reduce(Decimal(0)) { MoneyHelper.add($0, $1.amount) }
+    }
+
+    // MARK: - 產生流水帳的折扣快照
+
+    /// 把場次的折扣設定換算成**寫進流水帳**的 `AppliedDiscount`。
+    ///
+    /// 與 `total(subtotal:discounts:)` 走完全相同的順序與 clamp，
+    /// 但逐筆記下「這一個折扣實際折抵了多少」。
+    ///
+    /// 保證：`Σ result.amount == subtotal − total(subtotal:discounts:)`
+    /// （第 4 批的攤提會依賴這條，見 §7.3）
+    static func applied(for discounts: [DiscountModel], subtotal: Decimal) -> [AppliedDiscount] {
+        guard subtotal > 0 else { return [] }
+
+        var running = subtotal
+        var result: [AppliedDiscount] = []
+
+        // 先百分比
+        for discount in discounts where discount.type == .percentage {
+            let rate = clampPercentage(discount.value)
+            let deduction = MoneyHelper.multiply(running, MoneyHelper.divide(rate, 100))
+            running = MoneyHelper.subtract(running, deduction)
+            result.append(AppliedDiscount(
+                discountId: discount.id,
+                type: .percentage,
+                value: discount.value,
+                amount: deduction
+            ))
+        }
+
+        // 後定額
+        for discount in discounts where discount.type == .amount {
+            let deduction = min(max(discount.value, 0), running)
+            running = MoneyHelper.subtract(running, deduction)
+            result.append(AppliedDiscount(
+                discountId: discount.id,
+                type: .amount,
+                value: discount.value,
+                amount: deduction
+            ))
+        }
+
+        return result
+    }
+
+    /// 把外部傳進來的 `AppliedDiscount` 收斂到合法範圍。
+    ///
+    /// `amount` 是呼叫端給的快照，不能無條件相信 —— 這裡確保
+    /// `Σ amount <= subtotal` 且每一筆都 `>= 0`，讓流水帳裡不可能出現
+    /// 超過小計的折抵（報表攤提會因此算出負營收）。
+    ///
+    /// 已經合法的輸入會原樣回傳，快照不會被動到。
+    static func sanitized(_ applied: [AppliedDiscount], subtotal: Decimal) -> [AppliedDiscount] {
+        guard subtotal > 0 else { return [] }
+
+        var running = subtotal
+        return applied.map { discount in
+            let safeAmount = min(max(discount.amount, 0), running)
+            running = MoneyHelper.subtract(running, safeAmount)
+            guard safeAmount != discount.amount else { return discount }
+            var fixed = discount
+            fixed.amount = safeAmount
+            return fixed
+        }
     }
 
     // MARK: - 套用折扣後的總額
@@ -67,6 +131,8 @@ enum DiscountCalculator {
 
         // 後定額。每一筆都 clamp 到 0...running：
         // 負數折扣不可以反而加錢，單筆也不可以把總額扣成負的。
+        // ⚠️ 這段與 `applied(for:subtotal:)` 必須保持同樣的順序與 clamp，
+        //    否則流水帳的 amount 快照會跟實收總額對不起來。
         for discount in discounts where discount.type == .amount {
             let deduction = min(max(discount.value, 0), running)
             running = MoneyHelper.subtract(running, deduction)
@@ -135,11 +201,13 @@ enum DiscountCalculator {
         }
     }
 
-    /// 流水帳的折扣顯示文字；沒有折扣時回傳 nil
+    /// 流水帳的折扣顯示文字；沒有折扣時回傳 nil。
+    /// 多個折扣以空格相連，例如 `10% -20`。
     static func deductionText(for transaction: TransactionModel) -> String? {
-        guard let type = transaction.discountType,
-              let value = transaction.discountValue else { return nil }
-        return deductionText(type: type, value: value)
+        guard !transaction.appliedDiscounts.isEmpty else { return nil }
+        return transaction.appliedDiscounts
+            .map { deductionText(type: $0.type, value: $0.value) }
+            .joined(separator: " ")
     }
 
     /// 根據幣別取得金額折扣的單位前綴
