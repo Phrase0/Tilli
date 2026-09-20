@@ -102,10 +102,11 @@ struct CheckoutSummaryView: View {
                 Spacer()
 
                 ForEach(appliedDiscounts) { discount in
-                    Text(DiscountCalculator.displayText(
+                    // 減額顯示成 -77 而不是 NT$77 —— 這裡表達的是「扣掉多少」，
+                    // 幣別由右邊的總計金額表達（與 POS 的 chip 一致）
+                    Text(DiscountCalculator.deductionText(
                         type: discount.type,
-                        value: discount.value,
-                        currency: event.currency
+                        value: discount.value
                     ))
                     .font(DesignSystem.Typography.caption)
                     .padding(.horizontal, DesignSystem.Spacing.xs)

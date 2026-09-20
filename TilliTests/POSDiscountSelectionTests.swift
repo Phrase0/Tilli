@@ -26,8 +26,10 @@ final class POSDiscountSelectionTests: XCTestCase {
 
     // MARK: - 分區與排序（§6.4）
 
-    func testDiscountsAreSplitByTypeAndSortedAscending() {
-        let vm = makeViewModel()
+    /// POS 的 chip **一律即時升冪**，不管場次設定裡存的是什麼順序。
+    /// （設定頁刻意不即時排序，見 `AddEventDiscountTests`）
+    func testDiscountChipsAreSplitByTypeAndAlwaysSortedAscending() {
+        let vm = makeViewModel()   // 建立時刻意亂序：a50, p10, a20, p5
 
         XCTAssertEqual(vm.percentageDiscounts.map(\.value), [5, 10])
         XCTAssertEqual(vm.amountDiscounts.map(\.value), [20, 50])

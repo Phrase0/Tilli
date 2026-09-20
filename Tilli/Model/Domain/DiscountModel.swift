@@ -29,6 +29,19 @@ struct DiscountModel: Identifiable, Codable, Hashable {
     }
 }
 
+extension Array where Element == DiscountModel {
+
+    /// 儲存用的順序：**百分比升冪在前，減額升冪在後**。
+    ///
+    /// 只在按下儲存時套用 —— 編輯中即時排序會讓剛輸入的那一列在清單裡跳動。
+    /// POS 的 chip 另外自己排，不依賴這個順序。
+    var sortedForStorage: [DiscountModel] {
+        let byValue: (DiscountModel, DiscountModel) -> Bool = { $0.value < $1.value }
+        return filter { $0.type == .percentage }.sorted(by: byValue)
+             + filter { $0.type == .amount }.sorted(by: byValue)
+    }
+}
+
 // MARK: - AppliedDiscount
 
 /// 實際套用在某一筆交易上的折扣（寫進流水帳）。

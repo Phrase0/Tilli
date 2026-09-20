@@ -20,7 +20,8 @@ struct AddEventView: View {
         case eventName
         case newCategory
         case editingCategory
-        case newDiscount
+        case newPercentageDiscount
+        case newAmountDiscount
     }
 
     @FocusState private var focusedField: FocusField?
@@ -223,58 +224,33 @@ struct AddEventView: View {
                 }
             }
 
-            // 折扣
-            Section(header: Text("addEventDiscountHeader")) {
-                // 依型別分兩區、各自升冪。
-                // 不提供拖曳換序 —— POS 的 chip 一律照數值升冪排（§6.4），
-                // 這裡排了也不會反映到收銀畫面，留著只會讓人誤會。
-                discountRows(viewModel.percentageDiscounts)
-                discountRows(viewModel.amountDiscounts)
-
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    // 數值
-                    TextField("addEventDiscountValuePlaceholder", text: $viewModel.newDiscountValue)
-                        .keyboardType(.numberPad)
-                        .frame(width: 80)
-                        .focused($focusedField, equals: .newDiscount)
-                        .submitLabel(.done)
-                        .onSubmit {
-                            addDiscountAction()
-                        }
-
-                    // 類型
-                    Picker("addEventDiscountTypeLabel", selection: $viewModel.newDiscountType) {
-                        Text("%").tag(DiscountType.percentage)
-                        Text(viewModel.currentCurrency.symbol).tag(DiscountType.amount)
-                    }
-                    .pickerStyle(.segmented)
-
-                    if !viewModel.newDiscountValue.isEmpty {
-                        Button {
-                            addDiscountAction()
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(DesignSystem.ColorToken.ink)
-                        }
+            // 已停用類別（接在類別下方；沒有停用類別時整個 Section 不顯示）
+            if !viewModel.disabledSortedCategories.isEmpty {
+                Section(header: Text("addEventDisabledCategoryHeader")) {
+                    ForEach(viewModel.disabledSortedCategories, id: \.id) { category in
+                        Text(category.name)
+                            .foregroundColor(DesignSystem.ColorToken.muted)
+                            .swipeActions(edge: .trailing) {
+                                // 復原
+                                Button("addEventRestore") {
+                                    viewModel.handleRestoreAction(for: category.id)
+                                }
+                                .tint(DesignSystem.ColorToken.marketGreen)
+                            }
                     }
                 }
-                .frame(height: 36)
             }
 
-            // 已停用類別
-            Section(header: Text("addEventDisabledCategoryHeader")) {
-                ForEach(viewModel.disabledSortedCategories, id: \.id) { category in
-                    Text(category.name)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .swipeActions(edge: .trailing) {
-                            // 復原
-                            Button("addEventRestore") {
-                                viewModel.handleRestoreAction(for: category.id)
-                            }
-                            .tint(DesignSystem.ColorToken.marketGreen)
-                        }
-                }
+            // 百分比折扣
+            Section(header: Text("discountPercentageHeader")) {
+                discountRows(viewModel.percentageDiscounts)
+                discountInputRow(type: .percentage, focus: .newPercentageDiscount, unit: "%")
+            }
+
+            // 減額折扣
+            Section(header: Text("discountAmountHeader")) {
+                discountRows(viewModel.amountDiscounts)
+                discountInputRow(type: .amount, focus: .newAmountDiscount)
             }
         }
         // 新增場次 / 編輯場次
@@ -284,15 +260,12 @@ struct AddEventView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
-                if focusedField == .newDiscount {
+                if focusedDiscountType != nil {
                     Spacer()
-                    // 完成
+                    // 完成 —— 只收起鍵盤。要新增請按輸入列右邊的 +
+                    //（沒按 + 的輸入會在儲存時自動補送，見 validateSave）
                     Button("commonDone") {
-                        if viewModel.newDiscountValue.trimmingCharacters(in: .whitespaces).isEmpty {
-                            focusedField = nil
-                        } else {
-                            addDiscountAction()
-                        }
+                        focusedField = nil
                     }
                 }
             }
@@ -356,6 +329,15 @@ struct AddEventView: View {
         }
     }
 
+    /// 目前游標在哪一區的折扣輸入欄
+    private var focusedDiscountType: DiscountType? {
+        switch focusedField {
+        case .newPercentageDiscount: return .percentage
+        case .newAmountDiscount: return .amount
+        default: return nil
+        }
+    }
+
     @ViewBuilder
     private func discountRows(_ discounts: [DiscountModel]) -> some View {
         ForEach(discounts) { discount in
@@ -366,14 +348,61 @@ struct AddEventView: View {
         }
     }
 
-    private func addDiscountAction() {
-        if let error = viewModel.tryAddDiscount() {
+    /// 折扣輸入列。型別由「在哪一區輸入」決定，不需要再選。
+    ///
+    /// `unit` 只有百分比用得到（`%`）；減額折扣不顯示幣別尾段 ——
+    /// Section 標題已經說了是減額，再掛一個 `NT$` 只是雜訊。
+    private func discountInputRow(
+        type: DiscountType,
+        focus: FocusField,
+        unit: String? = nil
+    ) -> some View {
+        let hasInput = !viewModel.newValue(for: type).trimmingCharacters(in: .whitespaces).isEmpty
+
+        return HStack(spacing: DesignSystem.Spacing.sm) {
+            // 數值
+            TextField(
+                "addEventDiscountValuePlaceholder",
+                text: type == .percentage ? $viewModel.newPercentageValue : $viewModel.newAmountValue
+            )
+            .keyboardType(.numberPad)
+            .frame(width: 80)
+            .focused($focusedField, equals: focus)
+            .submitLabel(.done)
+            .onSubmit { addDiscountAction(type: type) }
+
+            if let unit {
+                Text(unit)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+            }
+
+            Spacer()
+
+            // + 固定在最右方，沒輸入時變灰且不可按 —— 讓「要按這裡新增」一直看得見
+            Button {
+                addDiscountAction(type: type)
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(hasInput
+                                     ? DesignSystem.ColorToken.ink
+                                     : DesignSystem.ColorToken.muted)
+            }
+            .disabled(!hasInput)
+        }
+        .frame(height: 36)
+    }
+
+    private func addDiscountAction(type: DiscountType) {
+        if let error = viewModel.tryAddDiscount(type: type) {
             viewModel.alertMessage = error
             viewModel.showAlert = true
         } else {
+            // 新增成功後把游標留在同一區，方便連續輸入
+            let field: FocusField = type == .percentage ? .newPercentageDiscount : .newAmountDiscount
             focusedField = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                focusedField = .newDiscount
+                focusedField = field
             }
         }
     }

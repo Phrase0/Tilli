@@ -25,8 +25,9 @@ class AddEventViewModel: ObservableObject {
 
     // 折扣相關狀態
     @Published var discounts: [DiscountModel] = []
-    @Published var newDiscountValue: String = ""
-    @Published var newDiscountType: DiscountType = .percentage
+    // 折扣輸入：兩區各自一個欄位，型別由「在哪一區輸入」決定，不需要選
+    @Published var newPercentageValue: String = ""
+    @Published var newAmountValue: String = ""
 
     // Alert 相關狀態
     @Published var showAlert = false
@@ -232,9 +233,18 @@ class AddEventViewModel: ObservableObject {
 
     // MARK: - 折扣相關方法
 
+    /// 取得某一區的輸入值
+    func newValue(for type: DiscountType) -> String {
+        type == .percentage ? newPercentageValue : newAmountValue
+    }
+
+    private func clearNewValue(for type: DiscountType) {
+        if type == .percentage { newPercentageValue = "" } else { newAmountValue = "" }
+    }
+
     /// 驗證折扣數值
-    func validateDiscountValue() -> String? {
-        let trimmed = newDiscountValue.trimmingCharacters(in: .whitespaces)
+    func validateDiscountValue(for type: DiscountType) -> String? {
+        let trimmed = newValue(for: type).trimmingCharacters(in: .whitespaces)
 
         guard !trimmed.isEmpty else {
             return nil  // 空值不顯示錯誤
@@ -261,15 +271,13 @@ class AddEventViewModel: ObservableObject {
         }
 
         // 百分比不可超過 100
-        if newDiscountType == .percentage && value > 100 {
+        if type == .percentage && value > 100 {
             // 折扣百分比不可超過 100
             return String.localized("addEventDiscountMax")
         }
 
-        // 檢查是否重複
-        let isDuplicate = discounts.contains {
-            $0.type == newDiscountType && $0.value == value
-        }
+        // 檢查是否重複（同一區內）
+        let isDuplicate = discounts.contains { $0.type == type && $0.value == value }
         if isDuplicate {
             // 此折扣已存在
             return String.localized("addEventDiscountDuplicate")
@@ -279,8 +287,12 @@ class AddEventViewModel: ObservableObject {
     }
 
     /// 嘗試新增折扣
-    func tryAddDiscount() -> String? {
-        let trimmed = newDiscountValue.trimmingCharacters(in: .whitespaces)
+    ///
+    /// ⭐ **新增時不排序**，一律 append 在最後。
+    /// 邊打邊排會讓剛輸入的那一列在清單裡跳來跳去；升冪排序延到儲存時做
+    /// （`sortedForStorage`）。POS 的 chip 是即時計算排序，不受這裡影響。
+    func tryAddDiscount(type: DiscountType) -> String? {
+        let trimmed = newValue(for: type).trimmingCharacters(in: .whitespaces)
 
         // 空值檢查
         guard !trimmed.isEmpty else {
@@ -288,33 +300,30 @@ class AddEventViewModel: ObservableObject {
             return String.localized("addEventEnterValue")
         }
 
-        // 使用 validateDiscountValue() 進行完整驗證（包含重複檢查）
-        if let error = validateDiscountValue() {
+        // 完整驗證（包含重複檢查）
+        if let error = validateDiscountValue(for: type) {
             return error
         }
 
-        // 取得驗證過的數值
         guard let value = Decimal(string: trimmed) else {
             // 請輸入有效的數值
             return String.localized("addEventInvalidValue")
         }
 
-        // 新增折扣
-        let discount = DiscountModel(type: newDiscountType, value: value)
-        discounts.append(discount)
-        newDiscountValue = ""
+        discounts.append(DiscountModel(type: type, value: value))
+        clearNewValue(for: type)
         return nil
     }
 
     /// 刪除折扣
-    /// 百分比折扣，升冪排列（與 POS 的 chip 順序一致）
+    /// 百分比折扣（**維持輸入順序**，不即時排序 —— 見 `tryAddDiscount`）
     var percentageDiscounts: [DiscountModel] {
-        discounts.filter { $0.type == .percentage }.sorted { $0.value < $1.value }
+        discounts.filter { $0.type == .percentage }
     }
 
-    /// 定額折扣，升冪排列
+    /// 減額折扣（同上）
     var amountDiscounts: [DiscountModel] {
-        discounts.filter { $0.type == .amount }.sorted { $0.value < $1.value }
+        discounts.filter { $0.type == .amount }
     }
 
     func deleteDiscount(_ discount: DiscountModel) {
@@ -501,9 +510,10 @@ class AddEventViewModel: ObservableObject {
             return .failure(error)
         }
 
-        // 儲存前嘗試新增未按+的折扣（如果有輸入值）
-        if !newDiscountValue.trimmingCharacters(in: .whitespaces).isEmpty {
-            if let error = tryAddDiscount() {
+        // 儲存前嘗試新增未按 + 的折扣（兩區各自檢查）
+        for type in [DiscountType.percentage, .amount]
+        where !newValue(for: type).trimmingCharacters(in: .whitespaces).isEmpty {
+            if let error = tryAddDiscount(type: type) {
                 return .failure(error)
             }
         }
@@ -654,7 +664,8 @@ class AddEventViewModel: ObservableObject {
             categories: categories,
             createdAt: baseEvent.createdAt,
             currency: selectedCurrency,
-            discounts: discounts
+            // ⭐ 排序在這裡做，不在新增時做（見 tryAddDiscount）
+            discounts: discounts.sortedForStorage
         )
     }
 

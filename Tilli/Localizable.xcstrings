@@ -22,6 +22,7 @@
       }
     },
     "%" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -409,22 +410,6 @@
         }
       }
     },
-    "addEventDiscountHeader" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discounts"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "折扣"
-          }
-        }
-      }
-    },
     "addEventDiscountInteger" : {
       "localizations" : {
         "en" : {
@@ -453,22 +438,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "折扣百分比不可超過 100"
-          }
-        }
-      }
-    },
-    "addEventDiscountTypeLabel" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "類型"
           }
         }
       }
@@ -3289,6 +3258,38 @@
         }
       }
     },
+    "discountAmountHeader" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amount Discount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "減額折扣"
+          }
+        }
+      }
+    },
+    "discountPercentageHeader" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Percentage Discount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "百分比折扣"
+          }
+        }
+      }
+    },
     "eventDisplayDateSince %@" : {
       "localizations" : {
         "en" : {
@@ -5182,6 +5183,7 @@
       }
     },
     "posDiscountLabel" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

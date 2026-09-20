@@ -603,19 +603,23 @@ CoreData：`CDTransactionEntity` 的 `discountType` / `discountValue` → 改為
 ### 6.4 UI
 
 ```
-┌──────────────────────────────┐
-│  折扣                         │
-│  百分比（單選，可取消）        │
-│   [95%] [9折] [85折] [8折]    │  ← 升冪排列
-│                              │
-│  折抵金額（單選，可取消）      │
-│   [−5] [−10] [−20] [−50]     │  ← 升冪排列
-│                              │
-│  小計 200 → 折後 160          │  ← 即時顯示
-└──────────────────────────────┘
+┌──────────────────────────────────────┐
+│  百分比折扣  [5%] [10%] [20%]         │  ← 標籤與 chip 同一列
+│  減額折扣    [-5] [-10] [-15]         │  ← 升冪排列，水平可捲動
+│                      200 → 160        │  ← 即時顯示，有折抵才出現
+└──────────────────────────────────────┘
 ```
 
-兩區分開各自單選（可再點一次取消），已選 chip 高亮，升冪排列，不提供拖曳換序。
+兩區分開各自單選（可再點一次取消），已選 chip 高亮，**一律即時升冪排列**，不提供拖曳換序。
+
+| 項目 | POS | 場次設定頁 |
+|------|-----|-----------|
+| 減額折扣的顯示 | `-5`（chip 要短，幣別由總計那行表達） | `NT$5`（在定義金額，要明確） |
+| 排序 | **即時升冪**（computed） | **維持輸入順序**，按儲存時才升冪 |
+| 某型別沒有折扣時 | 該列不顯示 | 該 Section 只剩輸入列 |
+
+設定頁的型別**不需要選** —— 兩個獨立 Section（百分比折扣／減額折扣），各有自己的輸入欄，
+在哪一區輸入就是哪一種。
 
 ---
 
@@ -1367,7 +1371,11 @@ grep -rn "isLoading"         --include="*.swift" Tilli/ViewModel/ReportsPage/   
 | # | 計畫寫的 | 實際做的 | 為什麼 |
 |---|---------|---------|-------|
 | 3.2 | 兩個獨立的選取欄位 | `selectedDiscountIds: [DiscountType: UUID]`，用**型別當 key** | 之後多一種折扣型別時，`toggleDiscount` / `isSelected` 都不用改；也讓 U9（折扣 `switch` 只在 `DiscountCalculator` 內）字面上維持成立 |
-| 3.3 | 「折扣管理調整」（未指定） | 依型別**分兩區、各自升冪**，並**移除拖曳換序** | POS 的 chip 一律照數值升冪排（§6.4），設定頁排了也不會反映到收銀畫面，留著只會讓人誤會 |
+| 3.2 | 「折扣」標題 + 兩排 chip（4 列） | **標籤與 chip 同一列**，共 2 列 + 折後 1 列 | 收銀列在螢幕底部，每一列都在壓縮商品區。標籤左置、chip 右側水平捲動，比原本省一列 |
+| 3.2 | 減額 chip 用 `displayText`（`NT$5`） | 改用 `deductionText`（**`-5`**） | chip 要短，幣別由下方總計那行表達。**設定頁維持 `NT$5`** —— 那裡是在定義一筆金額，要明確 |
+| 3.3 | 「折扣管理調整」（未指定） | 依型別**分成兩個獨立 Section**（百分比折扣／減額折扣），**移除型別 Picker**（型別由在哪一區輸入決定）、**移除拖曳換序** | 型別選擇器是多餘的一步；POS 的 chip 一律照數值升冪排（§6.4），設定頁排了也不會反映到收銀畫面 |
+| 3.3 | — | **新增時不排序**，一律 append 在最後；**升冪排序延到按儲存時**（`[DiscountModel].sortedForStorage`，百分比升冪在前、減額升冪在後） | 邊打邊排會讓剛輸入的那一列在清單裡跳動。POS 的 chip 是即時計算排序，不受儲存順序影響，所以這只影響設定頁下次打開的順序 |
+| 3.3 | — | 「已停用類別」Section **移到類別下方**，且**沒有停用類別時整個隱藏** | 原本固定顯示，沒有停用類別時會出現一個孤零零的空標題 |
 | 3.4 | — | 新增 `DiscountCalculator.sanitized(_:subtotal:)`，兩個付款 VM 在寫入前呼叫 | `AppliedDiscount.amount` 是呼叫端給的**快照**，不能無條件相信。原本的保護是 `effective()`，但它回傳 `DiscountModel`（沒有 amount），換成快照後需要對應的守門 —— 見 CONVENTIONS.md「保護要放在寫入邊界」 |
 | — | — | `TestDataGenerator` **沒有更新** | 它已在第 1 批被移到 `_Deprecated/`，且列在 `project.pbxproj` 的 `membershipExceptions` 裡**不參與編譯**。跟其他 12 個 deprecated 檔一樣停在舊 API |
 
@@ -1406,6 +1414,10 @@ grep -rn "effectiveDiscount"    --include="*.swift" Tilli | grep -v _Deprecated 
 # 3.3 拖曳換序已移除
 grep -rn "moveDiscount" --include="*.swift" Tilli | grep -v _Deprecated              # 0
 
+# 3.3 型別 Picker 與舊的單一輸入欄已移除
+grep -rn "newDiscountType\|newDiscountValue" --include="*.swift" Tilli | grep -v _Deprecated   # 0
+grep -rn "addEventDiscountTypeLabel" --include="*.swift" Tilli                                  # 0
+
 # U9 持續成立
 grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   | grep -v _Deprecated | grep -v DiscountCalculator.swift                           # 0
@@ -1413,7 +1425,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 
 - ✅ 全部符合預期
 
-##### 自動 —— 單元測試 ✅（新增 22 個，總計 109 個全過）
+##### 自動 —— 單元測試 ✅（新增 32 個，總計 119 個全過）
 
 - ✅ **`DiscountCalculator.applied`**（3.1，`AppliedDiscountTests` 6 個）
   - 逐筆記下實際折抵：200 選 9 折 + −20 → `[percentage amount:20, amount amount:20]`
@@ -1432,6 +1444,14 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - JSON 往返後 `Decimal` 精度不丟失
   - 舊資料（`appliedDiscountsData == nil`）解碼成空陣列，不 crash
 - ✅ **多折扣顯示**（1 個）：`deductionText(for:)` → `"10% -20"`
+- ✅ **設定頁的折扣管理**（3.3，`AddEventDiscountTests` 10 個）
+  - 型別由「在哪一區輸入」決定；新增後只清空該區的輸入欄
+  - ⭐ **新增時維持輸入順序**：依序加 20、5、10 → 清單就是 20、5、10
+  - 刪除不重排
+  - ⭐ **`sortedForStorage`**：百分比升冪在前、減額升冪在後；單一型別與空陣列都正確
+  - 查重**只在同一區內**（不同區的相同數值合法）
+  - 百分比 > 100 被擋、減額**沒有**這個上限
+  - 非整數／0／負數／非數字都被擋，且不會留下半筆資料
 - ✅ **POS 選取邏輯**（3.2，`POSDiscountSelectionTests` 8 個）
   - 亂序建立的折扣，chip **自動分兩區且各自升冪**
   - 同一區選第二個會**取代**前一個
@@ -1456,7 +1476,11 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - 預期：不合法的值被擋下並有提示
 - **3.2 折扣 chip**
   1. POS 加購到小計 200
-  - 預期：結帳列上方有**兩排 chip**，百分比一排、定額一排，各自升冪
+  - 預期：結帳列上方有**兩列**，格式為 `百分比折扣  [5%] [10%] [20%]` /
+    `減額折扣  [-5] [-10] [-15]`，**標籤與 chip 同一列**，各自升冪
+  - 預期：減額 chip 顯示成 **`-5`** 而不是 `NT$5`
+  - 預期：只有一種型別的折扣時，另一列**整列不顯示**
+  - 預期：折扣很多時 chip 可**水平捲動**，左邊標籤固定不動
   2. 點百分比 10
   - 預期：該 chip **高亮**，下方出現 `200 → 180`（原價有刪除線）
   3. 再點定額 20
@@ -1481,11 +1505,44 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   5. 商品績效
   - 預期：營收為攤提後金額，**不出現負數**
 - **3.1 快照不被設定變更影響**（⭐ F7）
+  > **前置澄清（2026-09-20 複查）：折扣設定【不能就地編輯】** —— 設定頁的清單是 `Text`
+  > 不是 `TextField`，只能新增與左滑刪除。所以「把 9 折改成 5 折」要靠
+  > **刪掉 9 折 + 新增 5 折**兩個動作。折扣區塊**沒有交易守衛**
+  > （`isEditingWithTransaction` 只鎖幣別），有交易的場次照樣能改折扣設定，
+  > 所以這個情境是**可達的**。
   1. 用 9 折賣掉一筆
-  2. 回場次設定頁，把那個 9 折**改成 5 折**（刪掉再新增）
+  2. 回場次設定頁，**刪掉那個 9 折**，新增一個 5 折，儲存
   3. 回報表看**步驟 1 的那筆舊交易**
   - 預期：折抵金額**完全沒變**（快照），不是被重算成 5 折
   - 預期：商品績效的營收也沒變
+  - 預期：即使 `discountId` 已指向不存在的設定，顯示與金額都正常
+    （`discountId` 全專案**只被寫入、從未拿去反查 `event.discounts`**）
+  - ⭐ 這條擋的不是使用者操作，而是**日後有人把 `amount(for:)` 改成從 `value` 重算** ——
+    那個改動看起來很合理（「不是可以省一個欄位嗎」），但會讓所有歷史交易的金額跟著設定跑
+
+- **3.3 折扣管理：分兩區、型別不用選**
+  1. 場次設定頁往下捲
+  - 預期：看到**兩個獨立 Section**「百分比折扣」與「減額折扣」，各有自己的輸入欄
+  - 預期：**沒有 `%` / `$` 的型別選擇器**
+  - 預期：百分比區的輸入欄右邊是 `%`，減額區是幣別符號
+  2. 在百分比區輸入 10 按 +，游標應**留在同一區**方便連續輸入
+  3. 兩區各輸入相同數值 10
+  - 預期：都可以新增（不同區的相同數值是合法的）
+  4. 同一區再輸入一次 10
+  - 預期：被擋下並提示重複
+- **3.3 ⭐ 新增時不跳位**
+  1. 在百分比區依序輸入 **20 → 5 → 10**
+  - 預期：清單顯示 **20、5、10**（維持輸入順序），**剛輸入的那一列不會跳到別的位置**
+  2. 按**儲存**，再重新進入編輯
+  - 預期：清單變成 **5、10、20**（升冪）
+  3. POS 的 chip
+  - 預期：**從頭到尾都是 5、10、20** —— POS 即時排序，不受設定頁順序影響
+- **3.3 已停用類別的位置與隱藏**
+  1. 場次沒有任何停用類別時進編輯頁
+  - 預期：**看不到「已停用類別」區塊**（原本會出現一個空的標題）
+  2. 停用一個類別後
+  - 預期：「已停用類別」出現在**「類別」正下方**、折扣的**上方**
+  - 預期：左滑可復原，復原後區塊若空了就再次消失
 - **回歸：不選折扣的結帳**（最常見路徑）
   - 現金與電子支付都正常，交易的折扣標籤不顯示，CSV 折扣欄為 `-`（G1／G2）
 - **回歸：補記帳 + 折扣**
@@ -2050,3 +2107,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-09-13 | 第 1 批單元測試補齊：新增 7 個測試檔共 72 個測試（連同既有 smoke test 共 75 個，全數通過）。過程中抓到並修正兩個真實缺陷 —— ① `DiscountCalculator.total` 未 clamp 定額折扣負值（負折扣會反而加錢）② `Persistence` 每個 container 各自載入 model 導致 `+[CDxxxEntity entity]` 取不到 entity。另把 `isAvailableForSale` 拆出純函式 `saleAvailability(in:)` 讓 fail-closed 分支可測。場次名稱依決定**維持可改**，未加限制 |
 | 2026-09-15 | 第 2 批完成（2.1–2.3）：`unitPrice` → `averageUnitPrice`（D5）；商品銷售排行改成「排行 + 本期未售出摺疊區」兩區並移除 `prefix(5)`，CSV 仍是一張表；新增 `UnsoldProductData` 與 `hasSalesInRange`。順帶把兩個報表 VM 的 `loadData` 從非同步改同步（`@MainActor` 之後那層 `Task` 只是延到下一個 runloop，寫測試時才發現）並移除沒人讀的 `isLoading`。新增 12 個單元測試，總計 87 個全過 |
 | 2026-09-15 | 第 3 批完成（3.1–3.4）：`TransactionModel.discountType/discountValue` → `appliedDiscounts: [AppliedDiscount]`（含 `amount` 快照），CoreData 換成 `appliedDiscountsData: Binary`；POS 折扣改成兩區 chip 各自單選、升冪、即時顯示折後金額；場次設定頁分區升冪並移除拖曳；新增 `DiscountCalculator.applied` 與 `sanitized`（寫入邊界保護）。新增 22 個單元測試，總計 109 個全過 |
+| 2026-09-20 | 第 3 批 UI 調整（依實際操作回饋）：<br>① 設定頁折扣拆成「百分比折扣／減額折扣」兩個獨立 Section，**移除型別 Picker**<br>② **新增時不排序**（維持輸入順序，避免輸入時位置跳動），升冪排序延到按儲存時（`sortedForStorage`）<br>③ 「已停用類別」移到類別下方，**空時整個隱藏**（原本會出現空標題）<br>④ POS 折扣改成**標籤與 chip 同列**共兩列，減額 chip 顯示 `-5` 而非 `NT$5`<br>⑤ 複查確認折扣設定**不能就地編輯**（只能刪除+新增），F7 測試步驟已據此改寫。新增 10 個測試，總計 119 個全過 |

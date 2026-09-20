@@ -68,30 +68,31 @@ struct POSView: View {
         }
     }
 
-    // MARK: - 折扣（兩區各自單選，可同時一個百分比 + 一個定額，§6.4）
+    // MARK: - 折扣（兩區各自單選，可同時一個百分比 + 一個減額，§6.4）
 
     private var discountSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            // 折扣
-            Text("posDiscountLabel")
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.muted)
-
             if !viewModel.percentageDiscounts.isEmpty {
-                discountChipRow(viewModel.percentageDiscounts)
+                discountRow(
+                    title: "discountPercentageHeader",
+                    discounts: viewModel.percentageDiscounts
+                )
             }
             if !viewModel.amountDiscounts.isEmpty {
-                discountChipRow(viewModel.amountDiscounts)
+                discountRow(
+                    title: "discountAmountHeader",
+                    discounts: viewModel.amountDiscounts
+                )
             }
 
             // 小計 → 折後，只在真的有折抵時顯示
             if viewModel.discountAmount() > 0 {
                 HStack(spacing: DesignSystem.Spacing.xxs) {
+                    Spacer()
                     Text(MoneyHelper.format(viewModel.subtotal(), currencyCode: event.currency))
                         .strikethrough()
                         .foregroundColor(DesignSystem.ColorToken.muted)
                     Image(systemName: "arrow.right")
-                        .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.muted)
                     Text(MoneyHelper.format(viewModel.totalAmount(), currencyCode: event.currency))
                         .foregroundColor(DesignSystem.ColorToken.ink)
@@ -99,37 +100,41 @@ struct POSView: View {
                 .font(DesignSystem.Typography.caption)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func discountChipRow(_ discounts: [DiscountModel]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignSystem.Spacing.xs) {
-                ForEach(discounts) { discount in
-                    let isSelected = viewModel.isSelected(discount)
-                    Button {
-                        viewModel.toggleDiscount(discount)
-                    } label: {
-                        Text(discount.displayText(currency: event.currency))
-                            .font(DesignSystem.Typography.caption)
-                            .padding(.horizontal, DesignSystem.Spacing.sm)
-                            .padding(.vertical, DesignSystem.Spacing.xs)
-                            .background(
-                                isSelected
-                                    ? DesignSystem.ColorToken.ink
-                                    : DesignSystem.ColorToken.quietFill
-                            )
-                            .foregroundColor(
-                                isSelected
-                                    ? DesignSystem.ColorToken.paper
-                                    : DesignSystem.ColorToken.ink
-                            )
-                            .clipShape(Capsule())
+    /// 一列折扣：左邊固定標籤，右邊 chip 可水平捲動
+    private func discountRow(title: LocalizedStringKey, discounts: [DiscountModel]) -> some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Text(title)
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.ColorToken.muted)
+                .fixedSize()
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DesignSystem.Spacing.xs) {
+                    ForEach(discounts) { discount in
+                        discountChip(discount)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private func discountChip(_ discount: DiscountModel) -> some View {
+        let isSelected = viewModel.isSelected(discount)
+        return Button {
+            viewModel.toggleDiscount(discount)
+        } label: {
+            // 減額折扣顯示成 -5 而不是 NT$5 —— chip 要短，幣別由下方總計表達
+            Text(DiscountCalculator.deductionText(type: discount.type, value: discount.value))
+                .font(DesignSystem.Typography.caption)
+                .padding(.horizontal, DesignSystem.Spacing.sm)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+                .background(isSelected ? DesignSystem.ColorToken.ink : DesignSystem.ColorToken.quietFill)
+                .foregroundColor(isSelected ? DesignSystem.ColorToken.paper : DesignSystem.ColorToken.ink)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Empty State
