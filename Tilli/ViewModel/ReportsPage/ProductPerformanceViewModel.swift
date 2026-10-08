@@ -180,10 +180,6 @@ private extension ProductPerformanceViewModel {
         var productStats: [UUID: ProductSalesStats] = [:]
 
         for transaction in transactions {
-            // 小計（折扣前）與折扣金額
-            let transactionSubtotal = transaction.subtotal
-            let transactionDiscountAmount = DiscountCalculator.amount(for: transaction)
-
             for item in transaction.items {
                 let productId = item.productId
 
@@ -196,17 +192,11 @@ private extension ProductPerformanceViewModel {
                     )
                 }
 
-                // 計算此商品在交易中的佔比，並分攤折扣
-                let itemProportion: Decimal = transactionSubtotal > 0
-                    ? MoneyHelper.divide(item.total, transactionSubtotal)
-                    : 0
-                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
-                let itemActualTotal = MoneyHelper.subtract(item.total, itemDiscountShare)
-
+                // 攤提在結帳時已完成，這裡只加總（§7.4）
                 productStats[productId]?.addSale(
                     quantity: item.quantity,
                     unitPrice: item.price,
-                    actualTotal: itemActualTotal
+                    actualTotal: item.actualRevenue
                 )
             }
         }
@@ -293,10 +283,6 @@ private extension ProductPerformanceViewModel {
         var categoryStats: [UUID: CategorySalesStats] = [:]
 
         for transaction in transactions {
-            // 小計（折扣前）與折扣金額
-            let transactionSubtotal = transaction.subtotal
-            let transactionDiscountAmount = DiscountCalculator.amount(for: transaction)
-
             for item in transaction.items {
                 let categoryId = item.categoryId
 
@@ -307,14 +293,7 @@ private extension ProductPerformanceViewModel {
                     )
                 }
 
-                // 計算此商品在交易中的佔比，並分攤折扣
-                let itemProportion: Decimal = transactionSubtotal > 0
-                    ? MoneyHelper.divide(item.total, transactionSubtotal)
-                    : 0
-                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
-                let itemActualTotal = MoneyHelper.subtract(item.total, itemDiscountShare)
-
-                categoryStats[categoryId]?.addSale(amount: itemActualTotal)
+                categoryStats[categoryId]?.addSale(amount: item.actualRevenue)
             }
         }
         
@@ -411,10 +390,6 @@ private extension ProductPerformanceViewModel {
         var productDiscountStats: [UUID: (name: String, totalOriginal: Decimal, totalDiscount: Decimal)] = [:]
 
         for transaction in transactions {
-            // 小計（折扣前）與折扣金額
-            let transactionSubtotal = transaction.subtotal
-            let transactionDiscountAmount = DiscountCalculator.amount(for: transaction)
-
             for item in transaction.items {
                 let productId = item.productId
 
@@ -422,16 +397,10 @@ private extension ProductPerformanceViewModel {
                     productDiscountStats[productId] = (name: item.name, totalOriginal: 0, totalDiscount: 0)
                 }
 
-                // 計算此商品在交易中的佔比，並分攤折扣
-                let itemProportion: Decimal = transactionSubtotal > 0
-                    ? MoneyHelper.divide(item.total, transactionSubtotal)
-                    : 0
-                let itemDiscountShare = MoneyHelper.multiply(transactionDiscountAmount, itemProportion)
-
                 // 累計原價和折扣
                 if var stats = productDiscountStats[productId] {
                     stats.totalOriginal = MoneyHelper.add(stats.totalOriginal, item.total)
-                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, itemDiscountShare)
+                    stats.totalDiscount = MoneyHelper.add(stats.totalDiscount, item.allocatedDiscount)
                     productDiscountStats[productId] = stats
                 }
             }

@@ -155,6 +155,20 @@ class MoneyHelper {
         return nsValue.rounding(accordingToBehavior: handler).decimalValue
     }
 
+    /// 無條件捨去到指定小數位數（攤提用：每一份先捨去，餘額再另外分配，
+    /// 保證任何一份都不會超過它應得的金額）
+    static func roundDown(_ value: Decimal, scale: Int) -> Decimal {
+        let handler = NSDecimalNumberHandler(
+            roundingMode: .down,
+            scale: Int16(scale),
+            raiseOnExactness: false,
+            raiseOnOverflow: false,
+            raiseOnUnderflow: false,
+            raiseOnDivideByZero: false
+        )
+        return NSDecimalNumber(decimal: value).rounding(accordingToBehavior: handler).decimalValue
+    }
+
     static func format(_ value: Decimal, currencyCode: String = "TWD") -> String {
         // 將幣別代碼轉換為 Currency enum
         let currency = Currency(rawValue: currencyCode) ?? .twd
