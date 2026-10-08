@@ -127,7 +127,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | 欄位 | 分類 | 狀態 | 說明 |
 |------|------|------|------|
 | `id` | R | 現有 | |
-| `name` | L | 現有 | ⚠️ 改名時**不可**回頭更新商品的 `categoryName`（該欄位將被刪除） |
+| `name` | L | 現有 | ⚠️ 改名只改這一列。商品透過 `categoryId` 現查名稱，沒有副本要同步（`Product.categoryName` 已於第 1 批刪除） |
 | `isDisabled` | L | 現有 | 停用。**語意純化：只代表「停用」，不再兼任偽刪除** |
 | `sortOrder` | L | 現有 | |
 | `eventId` | R | 現有 | 冗餘但必要 —— Firestore 無 relationship |
@@ -149,7 +149,6 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `isDisabled` | L | 現有 | 下架。**語意純化：不再兼任偽刪除** |
 | `sortOrder` | L | 現有 | |
 | `categoryId` | R | 現有 | 有交易後不可編輯（UI 限制） |
-| `categoryName` | — | **刪除** | ⚠️ 反正規化冗餘，造成更新風暴。改查 relationship |
 | `eventId` | R | 現有 | 冗餘但必要 |
 | `stock` | **D** | 現有→降級 | ⚠️ **改為推導值**：`Σ InventoryChange.change`。**停止上傳** |
 | `imageData` | **X** | 現有 | 本機圖。**不上傳**（雲端存 `imageURL`） |
@@ -174,12 +173,10 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `paymentMethod` | S | 現有 | cash / ePayment |
 | `timestamp` | S | 現有 | 記錄建立時間 |
 | `occurredAt` | S | 現有 | 補記帳的實際發生時間 |
-| `discountType` | — | **刪除** | 由 `appliedDiscountsData` 取代 |
-| `discountValue` | — | **刪除** | 同上 |
-| `appliedDiscountsData` | S | **新增** | `[AppliedDiscount]` 的 JSON，含實際折抵金額快照 |
+| `appliedDiscountsData` | S | 現有 | `[AppliedDiscount]` 的 JSON，含實際折抵金額快照 |
 | `paymentQRCodeId` | R | **新增** | 用哪一張收款碼 |
 | `paymentQRCodeLabel` | S | **新增** | 收款碼名稱快照 |
-| `updatedAt` | M | **新增** | ⚠️ **pull cursor 必需**。建立時寫入，之後不變 |
+| `updatedAt` | M | 現有 | ⚠️ **pull cursor 必需**。建立時寫入，之後不變 |
 | `userId` | M | 現有 | |
 | `syncStatus` | M·X | 現有 | |
 
@@ -199,7 +196,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `eventId` | R | 現有 | |
 | `bundleId` | R | **新增** | 來自哪個組合／套餐 |
 | `bundleName` | S | **新增** | 組合名稱快照 |
-| `updatedAt` | M | **新增** | ⚠️ pull cursor 必需 |
+| `updatedAt` | M | 現有 | ⚠️ pull cursor 必需 |
 | `userId` | M | 現有 | |
 | `syncStatus` | M·X | 現有 | |
 
@@ -345,14 +342,16 @@ python3 scripts/check_field_classification.py
 
 腳本確實抓得到漏掉的欄位，不是只會回報成功。
 
-### 目前的計畫中項目（24）
+### 目前的計畫中項目（10，2026-10-08 更新）
 
 | 類型 | 數量 | 內容 |
 |------|------|------|
-| ⏳ 待實作（表上有、CoreData 還沒有） | 13 | `bundlesData`、`appliedDiscountsData`、`paymentQRCodeId/Label`、Transaction 與 InventoryChange 的 `updatedAt`、`bundleId/bundleName`、PaymentQRCode 的 5 個新欄位 |
-| ⏳ 待移除（CoreData 有、表上標刪除） | 11 | `CDPendingSyncOperation` 全部 8 個、`Product.categoryName`、`Transaction.discountType/discountValue` |
+| ⏳ 待實作（表上有、CoreData 還沒有） | 10 | `bundlesData`、`paymentQRCodeId/Label`、InventoryChange 的 `bundleId/bundleName`、PaymentQRCode 的 5 個新欄位 |
+| ⏳ 待移除（CoreData 有、表上標刪除） | 0 | 原本 11 個（`CDPendingSyncOperation` 8 個、`Product.categoryName`、`Transaction.discountType/discountValue`）都已刪除，列已從表上移除 |
 
-數字校驗：87（CoreData）+ 13（待實作）= 100（分類表列數）✅
+數字校驗：79（CoreData）+ 10（待實作）= 89（分類表列數）✅
+
+> ⚠️ 欄位真的加進／刪出 CoreData 後，要同時把這裡的狀態改成「現有」或把整列刪掉，否則腳本會回報「表過期」。
 
 ---
 
@@ -483,3 +482,4 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-09-12 | 專案結構整理：26 個檔案搬移（ViewModel 依頁面分組、`Extension`→`Extensions`、`AuthenticationManager`→`Data/Auth/`、`LocalDataManager`→`Data/Local/`、`NetworkMonitor`→`Utilities/Helpers/`、`RootTabView`→`View/Root/`、合併兩個 UI 元件資料夾）；`SyncableImageView` 改名 `EntityImageView`；修正 3 處 MVVM 違規；補齊 5 個檔案標頭。詳見 `CONVENTIONS.md` |
 | 2026-09-12 | **執行 §8 刪除同步層**：刪 4,181 行、新增 3 個檔案、build 通過。補上初版漏掉的 `LocalDataManager`（三個純本機函式）。移除 `CDPendingSyncOperation` 段落。新增 §8.5 重建起點（20 處 SYNC-PENDING） |
 | 2026-10-08 | §5 `SummaryItemModel`：第 4 批落地。`allocatedDiscount`／`bundleId`／`bundleName` 改為現有；`originalSubtotal`／`actualRevenue` 由 S 改為 **D**（計算屬性，不存），理由見 `FEATURE_PLAN_V1.md` 第 4 批差異表 |
+| 2026-10-08 | 清理過期狀態：移除已刪除的 `Product.categoryName`、`Transaction.discountType/discountValue` 三列；`appliedDiscountsData` 與兩個 `updatedAt` 由「新增」改為「現有」；§6 計畫中項目改為 10 項。腳本恢復 0 錯誤 0 警告 |
