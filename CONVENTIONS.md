@@ -141,6 +141,7 @@ struct POSView: View {
 | `NSManagedObject.markPendingSync(at:)` | `Data/CoreData/PendingSyncStamp.swift` | 25 處 `syncStatus = "pending"` | 直接賦值 `syncStatus`／單獨設 `updatedAt` |
 | `[TransactionModel].summary` / `.total` | `Service/EventDataSource.swift` | 2 種不同的加總寫法 | `reduce { $0 + $1.totalAmount }`（原生 `+` 捨入可能不同） |
 | `[SummaryItemModel].subtotal` | `Model/Domain/SummaryItemModel.swift` | 3 處重複 reduce | 自己 reduce 算小計 |
+| `RevenueAllocator` | `Service/` | 報表端 3 處各自按比例攤提折扣（2026-10-08 第 4 批） | 報表裡用 `item.total / subtotal` 算比例；報表讀 `appliedDiscounts` 重算每項折扣 —— 一律讀 `item.actualRevenue`／`item.allocatedDiscount` |
 
 ### 三條原則
 
@@ -458,3 +459,4 @@ grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
 | 2026-09-12 | 多語言規範修正與擴充：<br>① 修正文件漂移 —— 原本寫 `String(localized:)`，實際應為 `String.localized(_:)`（原生 init 會繞過 `Bundle.appLocalized`）<br>② 新增「日期與數字格式：先確認吃哪一條通道」一節（三通道對照表 + 4 條規則），並標注通道 3 不跟隨 App 語言是已知未解問題（`FEATURE_PLAN_V1.md` §1.7） |
 | 2026-09-12 | 第 1 批落地後補規範：<br>① 規則 1 例外 2 補上 `EventDataSource` 的實際位置、注入方式、「用 `load*()` 複製快照而非 Combine 訂閱」、「切換篩選條件不重載」<br>② 新增「共用計算元件：不要再各自實作」一節（9 個元件對照表 + 三條原則 + 歷史快照 vs 冗餘欄位的判斷規則） |
 | 2026-09-13 | 新增「測試規範」一節：`TilliTests` 是 synchronized group（丟檔即納入）、什麼該寫單元測試的判斷表、三個踩過的坑（共用 `NSManagedObjectModel`／`assertionFailure` 會 trap 測試／避開 `Auth.auth()`）、命名與寫法 |
+| 2026-10-08 | 「共用計算元件」表新增 `RevenueAllocator`（第 4 批）：攤提在付款 VM 寫入流水帳前完成，報表只加總 |

@@ -76,12 +76,19 @@ class EPaymentViewModel: ObservableObject {
             subtotal: summaryItems.subtotal
         )
 
+        // 結帳當下就把折扣攤到每一項，報表只做加總（FEATURE_PLAN_V1.md §7）
+        let allocatedItems = RevenueAllocator.allocate(
+            summaryItems,
+            discounts: safeDiscounts,
+            currency: event.currency
+        )
+
         // 創建交易記錄
         let transaction = TransactionModel(
             eventId: event.id,
             eventTitle: event.title,
             currency: event.currency,
-            items: summaryItems,
+            items: allocatedItems,
             totalAmount: totalAmount,
             paymentMethod: .ePayment,
             timestamp: Date(),

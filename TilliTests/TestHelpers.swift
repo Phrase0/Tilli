@@ -93,7 +93,9 @@ extension SummaryItemModel {
         categoryId: UUID = UUID(),
         category: String = "測試類別",
         quantity: Int = 1,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        bundleId: UUID? = nil,
+        bundleName: String? = nil
     ) -> SummaryItemModel {
         SummaryItemModel(
             id: id,
@@ -103,7 +105,9 @@ extension SummaryItemModel {
             categoryId: categoryId,
             category: category,
             quantity: quantity,
-            timestamp: timestamp
+            timestamp: timestamp,
+            bundleId: bundleId,
+            bundleName: bundleName
         )
     }
 }

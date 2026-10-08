@@ -264,11 +264,11 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `category` | S | 現有 | 類別名快照 |
 | `quantity` | S | 現有 | |
 | `timestamp` | S | 現有 | |
-| `originalSubtotal` | S | **新增** | 原價小計 = price × quantity |
-| `allocatedDiscount` | S | **新增** | 分攤到的折扣（套餐差額 + 整筆折扣） |
-| `actualRevenue` | S | **新增** | 實際營收 = original − allocated |
-| `bundleId` | R | **新增** | |
-| `bundleName` | S | **新增** | |
+| `allocatedDiscount` | S | 現有 | 分攤到的折扣（套餐差額 + 整筆折扣），結帳時由 `RevenueAllocator` 寫入 |
+| `bundleId` | R | 現有 | 第 5 批起才有值 |
+| `bundleName` | S | 現有 | |
+| `total`（= `originalSubtotal`） | D | 現有 | 計算屬性：price × quantity，不存 |
+| `actualRevenue` | D | 現有 | 計算屬性：total − allocatedDiscount，不存 |
 
 ### DiscountModel（存於 `CDEventEntity.discountsData`）
 
@@ -482,3 +482,4 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-09-12 | 初版。全專案掃描：8 entity / 87 屬性 / 8 關聯，建立六種分類與完整分類表、驗證腳本、刪除同步層的執行清單 |
 | 2026-09-12 | 專案結構整理：26 個檔案搬移（ViewModel 依頁面分組、`Extension`→`Extensions`、`AuthenticationManager`→`Data/Auth/`、`LocalDataManager`→`Data/Local/`、`NetworkMonitor`→`Utilities/Helpers/`、`RootTabView`→`View/Root/`、合併兩個 UI 元件資料夾）；`SyncableImageView` 改名 `EntityImageView`；修正 3 處 MVVM 違規；補齊 5 個檔案標頭。詳見 `CONVENTIONS.md` |
 | 2026-09-12 | **執行 §8 刪除同步層**：刪 4,181 行、新增 3 個檔案、build 通過。補上初版漏掉的 `LocalDataManager`（三個純本機函式）。移除 `CDPendingSyncOperation` 段落。新增 §8.5 重建起點（20 處 SYNC-PENDING） |
+| 2026-10-08 | §5 `SummaryItemModel`：第 4 批落地。`allocatedDiscount`／`bundleId`／`bundleName` 改為現有；`originalSubtotal`／`actualRevenue` 由 S 改為 **D**（計算屬性，不存），理由見 `FEATURE_PLAN_V1.md` 第 4 批差異表 |

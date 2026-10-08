@@ -1,6 +1,6 @@
 # Tilli 功能規劃 v1：流程統一、折扣、組合套餐
 
-> 建立日期：2026-09-11　最後更新：2026-09-12
+> 建立日期：2026-09-11　最後更新：2026-10-08
 > 範圍：本輪功能改動 + **全專案流程統一重構**
 > 同步架構見 `SYNC_ARCHITECTURE_V2.md`
 >
@@ -539,7 +539,7 @@ var averageUnitPrice: Decimal {
 | 銷售分析（日/月） | `transaction.totalAmount` |
 | 商品績效 | `Σ SummaryItem.actualRevenue` |
 
-兩者數學上相等（攤提總和 = 總額），捨入差額由「最後一項吃掉」保證。**測試 R2 專門驗證這件事。**
+兩者數學上相等（攤提總和 = 總額），捨入差額由「剩餘空間最大的項目」吸收（第 4 批改，原為「最後一項吃掉」）。**測試 R2 專門驗證這件事。**
 
 ---
 
@@ -659,10 +659,11 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
 ② 套餐／組合價差額 → 攤提到該組合成員（按各自原價比例）
 ③ 整筆百分比折扣   → 按 ② 之後的金額比例攤提到所有項目
 ④ 整筆定額折扣     → 同上
-⑤ 捨入差額         → 最後一項吃掉
+⑤ 捨入差額         → 每份先捨去到幣別最小單位，餘額給「剩餘空間最大」的項目
 ```
 
-⚠️ 金額全部用整數（分）運算，避免捨入誤差累積。
+⚠️ 金額存 `Decimal`；每一份先**捨去**到幣別最小單位（TWD 元、USD 分），不會出現 3.333… 這種殘渣。
+（第 4 批調整：原寫「最後一項吃掉」，最後一項是贈品時會吃成負數；原寫「全部用整數（分）運算」，但 TWD 打折後總額可能帶小數，如 33 打九折 = 29.7，餘額要能攤進去）
 
 ### 7.4 報表端改動
 
@@ -1601,51 +1602,63 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - 預期：全流程正常，沒有因為 CoreData 欄位改名而崩潰
 - **回歸**：不選任何折扣的結帳流程（最常見路徑）完全正常（G1／G2）
 
-### 第 4 批 — 攤提（⭐ 必須在組合之前）
+### 第 4 批 — 攤提（⭐ 必須在組合之前）✅ 2026-10-08 完成（手動測試待做）
 
-| # | 項目 | 解決 |
-|---|------|------|
-| 4.1 | `SummaryItemModel` 擴充 5 個欄位 | §7.2 |
-| 4.2 | `RevenueAllocator`，結帳時計算 | A6 |
-| 4.3 | **刪除** `ProductPerformanceViewModel` 三處攤提與三處 reduce | B1、B2 |
-| 4.4 | 驗證兩張報表營收相等 | 測試 R2 |
+| # | 項目 | 解決 | 狀態 |
+|---|------|------|------|
+| 4.1 | `SummaryItemModel` 擴充欄位 | §7.2 | ✅ |
+| 4.2 | `RevenueAllocator`，結帳時計算（兩個付款 VM 寫入前呼叫） | A6 | ✅ |
+| 4.3 | **刪除** `ProductPerformanceViewModel` 三處攤提與三處 reduce | B1、B2 | ✅ |
+| 4.4 | 驗證兩張報表營收相等 | 測試 R2 | ✅ 單元測試；⬜ 手動 |
 
-#### 測試（預定）
+#### 實作與計畫的差異
+
+| # | 計畫寫的 | 實際做的 | 為什麼 |
+|---|---------|---------|-------|
+| 4.1 | 新增 5 個儲存欄位 | 只存 **`allocatedDiscount`、`bundleId`、`bundleName`**；`originalSubtotal` 就是既有的計算屬性 `total`（`price × quantity`），`actualRevenue` 改成計算屬性（`total − allocatedDiscount`） | 兩者都能從其他快照推導，另外存就可能對不起來（CONVENTIONS「冗餘欄位不該存在」）。`originalSubtotal − allocatedDiscount == actualRevenue` 因此**結構上**恆成立，不需要測 |
+| 4.1 | — | `SummaryItemModel` 自訂 `init(from:)`，缺 key 時 `allocatedDiscount = 0` | 合成的 Decodable 不吃屬性預設值，舊 `itemsData` 會整筆交易解不出來 |
+| 4.2 | 全部用整數（分）運算 | 存 `Decimal`；每份**捨去**到幣別最小單位（新增 `MoneyHelper.roundDown(_:scale:)`） | 與 `AppliedDiscount`／`MoneyHelper` 一致；TWD 打折後總額可能有小數（29.7），整數運算攤不進去 |
+| 4.2 | ⑤ 捨入差額最後一項吃掉 | 餘額給**剩餘空間最大**的項目，同額取前面的 | 最後一項是贈品或金額很小時會被吃成負數 |
+| 4.2 | ② 套餐差額 | 已實作（`bundles: [BundleDeduction]` 參數），第 4 批傳空陣列 | 與整筆折扣是同一個分配函式，順序測試需要它；第 5 批直接接上 |
+| 4.2 | — | 輸入折扣超過可攤金額時 clamp，任何一項都不會變負數 | 「保護放在寫入邊界」—— 不假設呼叫端已經 sanitize |
+| — | — | ⚠️ 既有資料的 `allocatedDiscount` 都是 0（報表會把它們當作沒折扣） | App 未上架，刪 App 重裝即可；不做遷移 |
+
+#### 測試
 
 > 這批是**金額正確性**的關鍵，捨入處理錯了會讓兩張報表對不起來。
 > 單元測試的價值遠高於手動測試，建議先把 `RevenueAllocator` 的測試寫滿再接 UI。
 
 ##### 自動 —— 指令驗證
 
-- ⬜ `grep -rn "itemProportion\|transactionSubtotal" --include="*.swift" Tilli/ViewModel/ReportsPage/` → **0 筆**（報表端攤提整段刪除）
-- ⬜ `grep -rn "DiscountCalculator.amount(for: transaction)" --include="*.swift" Tilli/ViewModel/ReportsPage/` → 0 筆（報表改成直接加總 `actualRevenue`，不再重算折扣）
-- ⬜ `grep -rn "reduce" --include="*.swift" Tilli/ViewModel/ReportsPage/ProductPerformanceViewModel.swift` → 只剩單純加總，沒有攤提邏輯
+- ✅ `grep -rn "itemProportion\|transactionSubtotal" --include="*.swift" Tilli/ViewModel/ReportsPage/` → **0 筆**（報表端攤提整段刪除）
+- ✅ `grep -rn "DiscountCalculator.amount(for: transaction)" --include="*.swift" Tilli/ViewModel/ReportsPage/` → 0 筆（報表改成直接加總 `actualRevenue`，不再重算折扣）
+- ✅ `grep -rn "reduce" --include="*.swift" Tilli/ViewModel/ReportsPage/ProductPerformanceViewModel.swift` → 只剩單純加總，沒有攤提邏輯
 
-##### 自動 —— 單元測試（⬜ 待補，**本批最重要**）
+##### 自動 —— 單元測試 ✅（新增 15 個，總計 134 個全過：`RevenueAllocatorTests` 13、`ReportRevenueConsistencyTests` 2）
 
 - ⬜ **`RevenueAllocator` 恆等式（⭐ 對應 R2）**
   - **`Σ actualRevenue == transaction.totalAmount`**，對**任意**輸入都成立
-  - 建議用隨機測試：隨機 1–10 個項目、隨機單價（含小數）、隨機數量、隨機折扣組合，跑 1000 次，每次都驗這條恆等式
+  - 隨機測試（固定 seed，可重現）：隨機 1–10 個項目、隨機單價（含小數）、隨機數量、隨機折扣組合，跑 1000 次，每次都驗這條恆等式
   - ⭐ 這條就是 A6 的定義：兩張報表的口徑相等，不是靠巧合
-- ⬜ **攤提順序**（§7.3）
-  - ① 原價小計 → ② 套餐差額 → ③ 百分比 → ④ 定額 → ⑤ 捨入差額由最後一項吃掉
+- ✅ **攤提順序**（§7.3）
+  - ① 原價小計 → ② 套餐差額 → ③ 百分比 → ④ 定額 → ⑤ 捨入差額由剩餘空間最大的項目吸收
   - 驗證：把順序對調會得到不同結果，測試要能抓到
-- ⬜ **捨入差額處理**
+- ✅ **捨入差額處理**
   - 小計 100 分成 3 項（各 33.33…）搭配 10% 折扣 → 三項 `actualRevenue` 相加**剛好**等於總額
-  - 差額只出現在**最後一項**，且絕對值 ≤ 1 分
+  - 每一項的折扣都是幣別最小單位的整數倍；贈品（單價 0）排最後也不會分到差額
   - 全部用整數（分）運算，不會出現 `0.30000000000000004` 這類浮點殘渣
-- ⬜ **邊界**
+- ✅ **邊界**
   - 單一項目 → 全部折扣都算在它身上
   - 折扣為 0 → `actualRevenue == originalSubtotal`、`allocatedDiscount == 0`
   - 折扣 clamp 到等於小計 → 所有 `actualRevenue` 都是 0，**沒有任何一項是負數**
   - 數量為 0 的項目（理論上不該存在）→ 不會除以零
   - 項目單價為 0（贈品）→ 攤提比例為 0，不會 NaN
-- ⬜ **`SummaryItemModel` 新欄位的編碼往返**（4.1）
+- ✅ **`SummaryItemModel` 新欄位的編碼往返**（4.1）
   - 5 個新欄位 JSON 往返後值不變
   - 舊資料（沒有這些欄位）解碼 → 有合理預設值且不 crash
-- ⬜ **報表加總**（4.3）
+- ✅ **報表加總**（4.3）
   - 商品績效的營收 = `Σ SummaryItem.actualRevenue`，**不再重算折扣**
-  - 同一份交易資料，新舊兩種算法結果相同（做為重構不改壞的護欄）
+  - 銷售分析總營收 == 商品績效加總 == 類別分析加總（含折扣、無折扣、補記帳、除不盡、clamp 全額）
 
 ##### 手動 —— 需操作 App
 
@@ -1883,7 +1896,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | # | 情境 | 預期 |
 |---|------|------|
 | R1 | 商品銷售排行 | **所有商品都出現**，沒賣過的顯示銷量 0 |
-| **R2** | **Σ 商品實際營收 vs 日營收總和** | **相等**（捨入差額 ≤ 1 分） |
+| **R2** | **Σ 商品實際營收 vs 日營收總和** | **完全相等**（第 4 批起由 `RevenueAllocator` 保證，`ReportRevenueConsistencyTests` 鎖住） |
 | R3 | 同一商品有多種成交單價（組合優惠造成） | 平均單價 = 原價總額 ÷ 總銷量 |
 | R4 | 切換 timeRange 後三張圖表 | 數字互相一致（同一份資料） |
 | R5 | 匯出 CSV | 檔名含場次名與時間戳，欄位逸出正確 |
