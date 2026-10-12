@@ -175,10 +175,6 @@ class MoneyHelper {
         return format(value, currency: currency)
     }
 
-    static func fromDouble(_ value: Double) -> Decimal {
-        return Decimal(value)
-    }
-
     static func toDouble(_ value: Decimal) -> Double {
         return NSDecimalNumber(decimal: value).doubleValue
     }

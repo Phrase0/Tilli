@@ -219,6 +219,23 @@ final class RevenueAllocatorTests: XCTestCase {
         XCTAssertEqual(decoded.actualRevenue, Decimal(string: "90")!)
     }
 
+    /// itemsData 是 JSON。若解碼途中經過 Double，0.1、19.99 這類二進位無法精確表示的值
+    /// 會變成 0.1000000000000000512，Σ actualRevenue 就不再等於 totalAmount。
+    /// （AppliedDiscountTests 的往返測試用 12.5／25.75，二進位剛好精確，抓不到這件事）
+    func testNonBinaryExactDecimalsSurviveJSONRoundTrip() throws {
+        let values = ["0.1", "0.3", "19.99", "33.33", "1234.56", "29.7", "0.01"].map { Decimal(string: $0)! }
+        let items = values.map { value -> SummaryItemModel in
+            var item = SummaryItemModel.mock(price: value)
+            item.allocatedDiscount = value
+            return item
+        }
+
+        let decoded = try JSONDecoder().decode([SummaryItemModel].self, from: JSONEncoder().encode(items))
+
+        XCTAssertEqual(decoded.map(\.price), values)
+        XCTAssertEqual(decoded.map(\.allocatedDiscount), values)
+    }
+
     /// 第 4 批之前寫入的 itemsData 沒有新欄位 → 解碼成「沒有攤提」，不 crash
     func testLegacyItemWithoutNewFieldsDecodes() throws {
         let legacy = """
