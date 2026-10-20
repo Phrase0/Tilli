@@ -1602,14 +1602,14 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - 預期：全流程正常，沒有因為 CoreData 欄位改名而崩潰
 - **回歸**：不選任何折扣的結帳流程（最常見路徑）完全正常（G1／G2）
 
-### 第 4 批 — 攤提（⭐ 必須在組合之前）✅ 2026-10-08 完成（手動測試待做）
+### 第 4 批 — 攤提（⭐ 必須在組合之前）✅ 2026-10-08 完成（手動測試 2026-10-20 完成）
 
 | # | 項目 | 解決 | 狀態 |
 |---|------|------|------|
 | 4.1 | `SummaryItemModel` 擴充欄位 | §7.2 | ✅ |
 | 4.2 | `RevenueAllocator`，結帳時計算（兩個付款 VM 寫入前呼叫） | A6 | ✅ |
 | 4.3 | **刪除** `ProductPerformanceViewModel` 三處攤提與三處 reduce | B1、B2 | ✅ |
-| 4.4 | 驗證兩張報表營收相等 | 測試 R2 | ✅ 單元測試；⬜ 手動 |
+| 4.4 | 驗證兩張報表營收相等 | 測試 R2 | ✅ 單元測試；✅ 手動（2026-10-20） |
 
 #### 實作與計畫的差異
 
@@ -2121,5 +2121,5 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-09-15 | 第 2 批完成（2.1–2.3）：`unitPrice` → `averageUnitPrice`（D5）；商品銷售排行改成「排行 + 本期未售出摺疊區」兩區並移除 `prefix(5)`，CSV 仍是一張表；新增 `UnsoldProductData` 與 `hasSalesInRange`。順帶把兩個報表 VM 的 `loadData` 從非同步改同步（`@MainActor` 之後那層 `Task` 只是延到下一個 runloop，寫測試時才發現）並移除沒人讀的 `isLoading`。新增 12 個單元測試，總計 87 個全過 |
 | 2026-09-15 | 第 3 批完成（3.1–3.4）：`TransactionModel.discountType/discountValue` → `appliedDiscounts: [AppliedDiscount]`（含 `amount` 快照），CoreData 換成 `appliedDiscountsData: Binary`；POS 折扣改成兩區 chip 各自單選、升冪、即時顯示折後金額；場次設定頁分區升冪並移除拖曳；新增 `DiscountCalculator.applied` 與 `sanitized`（寫入邊界保護）。新增 22 個單元測試，總計 109 個全過 |
 | 2026-09-20 | 第 3 批 UI 調整（依實際操作回饋）：<br>① 設定頁折扣拆成「百分比折扣／減額折扣」兩個獨立 Section，**移除型別 Picker**<br>② **新增時不排序**（維持輸入順序，避免輸入時位置跳動），升冪排序延到按儲存時（`sortedForStorage`）<br>③ 「已停用類別」移到類別下方，**空時整個隱藏**（原本會出現空標題）<br>④ POS 折扣改成**標籤與 chip 同列**共兩列，減額 chip 顯示 `-5` 而非 `NT$5`<br>⑤ 複查確認折扣設定**不能就地編輯**（只能刪除+新增），F7 測試步驟已據此改寫。新增 10 個測試，總計 119 個全過 |
-| 2026-10-08 | 第 4 批完成（4.1–4.4）：新增 `RevenueAllocator`（結帳時攤提，兩個付款 VM 寫入前呼叫）與 `MoneyHelper.roundDown(_:scale:)`；`SummaryItemModel` 只存 `allocatedDiscount`／`bundleId`／`bundleName`，`originalSubtotal`／`actualRevenue` 為計算屬性；自訂 `init(from:)` 讓舊 `itemsData` 解成「沒有攤提」；刪除 `ProductPerformanceViewModel` 三處攤提與三處 reduce。捨入差額改由「剩餘空間最大」的項目吸收（原計畫「最後一項」）。新增 15 個單元測試，總計 134 個全過；手動測試待做。差異見 §11 第 4 批 |
+| 2026-10-08 | 第 4 批完成（4.1–4.4）：新增 `RevenueAllocator`（結帳時攤提，兩個付款 VM 寫入前呼叫）與 `MoneyHelper.roundDown(_:scale:)`；`SummaryItemModel` 只存 `allocatedDiscount`／`bundleId`／`bundleName`，`originalSubtotal`／`actualRevenue` 為計算屬性；自訂 `init(from:)` 讓舊 `itemsData` 解成「沒有攤提」；刪除 `ProductPerformanceViewModel` 三處攤提與三處 reduce。捨入差額改由「剩餘空間最大」的項目吸收（原計畫「最後一項」）。新增 15 個單元測試，總計 134 個全過；手動驗收已於 2026-10-20 完成。差異見 §11 第 4 批 |
 | 2026-10-12 | 金額 Decimal 全面查核：① CoreData 僅 `price`／`totalAmount` 為 Decimal 屬性，其餘金額都在 `itemsData`／`appliedDiscountsData`／`discountsData` 的 JSON 內，模型欄位一律 `Decimal`；② Double 只出現在圖表座標、`Int` 百分比顯示、UI 比例，沒有任何金額以 Double 儲存或加總；③ 新增 `testNonBinaryExactDecimalsSurviveJSONRoundTrip`（0.1、19.99、33.33…）確認 JSON 往返不經 Double（原有往返測試用 12.5／25.75，二進位剛好精確，抓不到）；④ 刪除沒人呼叫的 `MoneyHelper.fromDouble`；⑤ §14.2 第 2 列日期與欄位數修正（5 欄 → 3 個儲存欄位），並註記接 Firestore 時金額要存字串 |
