@@ -44,6 +44,8 @@ class AddNewProductViewModel: ObservableObject {
     @Published var showValidationError = false
     @Published var showDuplicateNameAlert = false
     @Published var duplicateNameMessage = ""
+    @Published var showSaveFailedAlert = false
+    @Published var saveFailedMessage = ""
 
     // MARK: - 庫存異動相關
     @Published var stockChangeReason: InventoryChangeReason = .purchase
@@ -428,7 +430,12 @@ class AddNewProductViewModel: ObservableObject {
 
         if editingProduct != nil {
             // 編輯模式 → 更新產品
-            productRepository.updateProduct(product.id, productModel: product, imageChanged: imageChanged)
+            let updateResult = productRepository.updateProduct(product.id, productModel: product, imageChanged: imageChanged)
+            if case .failed(let message) = updateResult {
+                saveFailedMessage = message
+                showSaveFailedAlert = true
+                return false
+            }
 
             // 如果庫存有變化，記錄異動
             if stockDelta != 0 {

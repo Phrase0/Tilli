@@ -266,6 +266,11 @@ struct AddNewProductView: View {
         } message: {
             Text(viewModel.duplicateNameMessage)
         }
+        .alert("commonReminder", isPresented: $viewModel.showSaveFailedAlert) {
+            Button("commonConfirm", role: .cancel) { }
+        } message: {
+            Text(viewModel.saveFailedMessage)
+        }
         .sheet(isPresented: $viewModel.showImagePicker) {
             CustomImagePicker(image: $viewModel.image, isPresented: $viewModel.showImagePicker)
         }

@@ -5361,6 +5361,40 @@
         }
       }
     },
+    "productDeleteReferencedByBundles %@" : {
+      "comment" : "此商品被以下套餐／組合使用：%@。請先修改或刪除它們。",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This product is used by these bundles/combos: %@. Edit or delete them first."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此商品被以下套餐／組合使用：%@。請先修改或刪除它們。"
+          }
+        }
+      }
+    },
+    "productPriceBreaksBundles %@" : {
+      "comment" : "改成這個價格後，以下套餐／組合會比原價還貴：%@。請先調整它們的價格。",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With this price, these bundles/combos would cost more than the regular price: %@. Adjust their prices first."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "改成這個價格後，以下套餐／組合會比原價還貴：%@。請先調整它們的價格。"
+          }
+        }
+      }
+    },
     "productDetailCannotDelete" : {
       "localizations" : {
         "en" : {

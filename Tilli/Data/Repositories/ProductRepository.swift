@@ -95,12 +95,29 @@ class ProductRepository: ObservableObject {
     }
 
     /// 更新 Product（允許修改名稱、價格、庫存等屬性，遵循原有業務邏輯）
-    func updateProduct(_ productId: UUID, productModel: ProductModel, imageChanged: Bool = false) {
+    ///
+    /// 價格有變且會讓場次內的套餐／組合比原價還貴時**拒絕並不寫入任何欄位**（只拒絕，不改做別的事）。
+    @discardableResult
+    func updateProduct(_ productId: UUID, productModel: ProductModel, imageChanged: Bool = false) -> ProductUpdateResult {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
 
         do {
             if let entity = try context.fetch(request).first {
+                if entity.price.decimalValue != productModel.price {
+                    let bundles = bundles(forEventId: entity.eventId)
+                    let products = Dictionary(
+                        uniqueKeysWithValues: eventProducts(forEventId: entity.eventId).map { ($0.id, $0) }
+                    )
+                    let violated = BundleValidator.bundlesViolated(
+                        byPrice: productModel.price, of: productId, bundles: bundles, products: products
+                    )
+                    if !violated.isEmpty {
+                        let names = violated.map(\.name).joined(separator: "、")
+                        return .failed(String.localized("productPriceBreaksBundles \(names)"))
+                    }
+                }
+
                 // 更新基本屬性
                 entity.name = productModel.name
                 entity.price = NSDecimalNumber(decimal: productModel.price)
@@ -126,8 +143,10 @@ class ProductRepository: ObservableObject {
                 let savedModel = entity.toModel()
                 // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
             }
+            return .updated
         } catch {
             print("Update product failed:", error)
+            return .failed(error.localizedDescription)
         }
     }
 
@@ -191,6 +210,14 @@ class ProductRepository: ObservableObject {
 
             if index.hasTransaction(productId: productId) {
                 return .failed(String.localized("productDetailCannotDelete"))
+            }
+
+            let referencing = BundleValidator.bundles(
+                referencing: productId, in: bundles(forEventId: productEntity.eventId)
+            )
+            if !referencing.isEmpty {
+                let names = referencing.map(\.name).joined(separator: "、")
+                return .failed(String.localized("productDeleteReferencedByBundles \(names)"))
             } else {
                 // 沒有 Transaction，可以硬刪除
                 // 先刪除該產品的所有庫存異動記錄
@@ -220,6 +247,21 @@ class ProductRepository: ObservableObject {
             print("🔴 建立交易索引失敗:", error)
             return nil
         }
+    }
+
+    /// 讀取場次的套餐／組合設定（守衛用）
+    private func bundles(forEventId eventId: UUID?) -> [BundleModel] {
+        guard let eventId else { return [] }
+        let request: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
+        guard let data = (try? context.fetch(request))?.first?.bundlesData,
+              let decoded = try? JSONDecoder().decode([BundleModel].self, from: data) else { return [] }
+        return decoded
+    }
+
+    private func eventProducts(forEventId eventId: UUID?) -> [ProductModel] {
+        guard let eventId else { return [] }
+        return fetchProducts(forEventId: eventId)
     }
 
     /// 更新庫存
@@ -360,4 +402,11 @@ class ProductRepository: ObservableObject {
 enum ProductDeletionResult {
     case deleted(String)   // 成功硬刪除
     case failed(String)    // 刪除失敗（含「有交易紀錄不可刪除」）
+}
+
+// MARK: - Product Update Result
+
+enum ProductUpdateResult: Equatable {
+    case updated
+    case failed(String)    // 被拒絕（例如改價會讓套餐比原價還貴）
 }
