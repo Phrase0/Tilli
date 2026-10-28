@@ -681,6 +681,8 @@ productStats[productId]?.addSale(
 
 ## 8. 功能 F：組合優惠與套餐
 
+> ⚠️ **2026-10-27 設計修訂**：本節的細節已由 `docs/superpowers/specs/2026-10-27-bundles-design.md` 修訂，**衝突時以該文件為準**。下方各小節已就地更新；差異總表見該文件 §10。
+
 ### 8.1 存放方式：沿用 `discountsData` 模式
 
 `CDEventEntity` 已有 `discountsData: Binary`（折扣以 JSON 序列化存在 Event 上）。**組合／套餐用同一套**：新增 `CDEventEntity.bundlesData: Binary`。
@@ -703,9 +705,10 @@ struct BundleModel: Identifiable, Codable, Hashable {
     var price: Decimal            // 組合價
     var mode: BundleMode
     var productIds: [UUID]        // fixed: 成員；chooseAny: 候選清單
-    var sortOrder: Int            // 套用優先順序（可拖曳）
-    var isDisabled: Bool = false
+    var isDisabled: Bool = false  // 「下架」
+    var imageURL: String? = nil   // 只有套餐使用（選填）；圖檔存本機，不放進 bundlesData
 }
+// 2026-10-27：移除 sortOrder（套用順序改由系統自動決定，見 §8.4）；新增 imageURL
 
 enum BundleMode: Codable, Hashable {
     case fixed                    // 套餐：productIds 全部都要，各一個
@@ -740,7 +743,11 @@ enum BundleMode: Codable, Hashable {
 
 **不讓使用者手選**（結帳要快），但要在結帳頁顯示套用結果並允許手動取消。
 
-**多個組合同時符合**：依 `sortOrder` **貪婪套用**，使用者可拖曳排序決定優先權。第一版不做組合最佳化 —— 簡單、可預測。
+**多個組合同時符合**：**系統自動決定順序**——每件平均價（組合價 ÷ N）較低的先套用（五個 150 = 30/件，先於三個 100 ≈ 33.3/件），貪婪套用；不給使用者排序，也不做全域最佳化 —— 簡單、可預測。（2026-10-27 修訂，原為依 `sortOrder` 可拖曳。）
+
+**套餐成員不計入組合**：只算購物車裡單點的商品；同一商品不吃兩次優惠。
+
+**儲存時擋住價格過高**：套餐價 ≤ 成員原價合計；組合價 ≤ N × 候選最低單價。商品改價若會讓套餐／組合違規則拒絕並列出。
 
 ### 8.5 庫存扣減
 
@@ -779,7 +786,7 @@ extension BundleModel {
 
 ### 8.7 放哪裡設定
 
-場次工作區新增分頁「**組合／套餐**」，與「管理商品」同層。內部用 segmented control 切換兩區。
+**不新增分頁。** 併入「管理商品」頁（2026-10-27 修訂）：chip 列 `全部｜套餐｜組合｜類別…`（「組合」chip 只在管理頁出現，收銀頁只有「套餐」chip）；右下 `＋` 在有商品後跳選單（新增商品／新增套餐／新增組合）；每列「⋯」選單為編輯／下架／刪除。套餐可放照片（選填）。複製場次時一併複製（`productIds` 重新對應新商品 id）。
 
 ---
 
@@ -1688,12 +1695,16 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | # | 項目 |
 |---|------|
 | 5.1 | `BundleModel` + `CDEventEntity.bundlesData` |
-| 5.2 | 組合／套餐管理 UI（新分頁、勾選商品、拖曳排序） |
+| 5.2 | 組合／套餐管理 UI（併入管理商品頁：chip、`＋` 選單、「⋯」編輯／下架／刪除、勾選商品、套餐照片、儲存時價格驗證、商品改價／刪除守衛） |
 | 5.3 | POS：套餐區塊（`.fixed` 可點選） |
 | 5.4 | POS：組合自動套用演算法（`.chooseAny`） |
 | 5.5 | 結帳頁顯示套用結果 + 可手動取消 |
 | 5.6 | 庫存扣成員 + `InventoryChange.bundleId` |
-| 5.7 | `BundleModel.isAvailable` 可用性判斷 |
+| 5.7 | `BundleModel.isAvailable` 可用性判斷（含庫存雙向佔用、購物車失效通知） |
+| 5.8 | 複製場次一併複製套餐／組合（id 重新對應） |
+| 5.9 | `SummaryItemModel` 新增 `bundleDiscount`、`bundleKind`（`RevenueAllocator` 寫入）；交易明細改成獨立明細頁（取代卡片下拉）、還原成訂單摘要版面、「共 N 項」把套餐算 1 項（見設計文件 §7；**CSV 不在本批**） |
+
+> 另有「收銀頁互動調整」（Uber Eats 式增減、訂單摘要可增減、優惠明細）見設計文件 §8，可與上列分開做。
 
 #### 測試（預定）
 
@@ -1835,6 +1846,14 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 
 - 庫存 +/− 與盤點雙模式（§10）
 - 組合／套餐績效報表
+- **交易明細 CSV 重新設計**（排在套餐、交易作廢之後）。現況問題（2026-10-28 檢查 `generateCSVContent`）：① 交易編號、整單折扣、總金額每個商品列都重複，直接加總會多算；② 「整單折扣」匯出的是文字（如 `10% -25`）不是金額，也沒匯出每項的實際營收（`allocatedDiscount`），小計與總金額對不起來；③ 付款方式等欄位沒有逸出、沒用共用的 `CSVExporter.row`；④ 沒有測試。重新設計時要涵蓋套餐／組合欄位與作廢狀態。
+- **交易作廢**（排在套餐之後；2026-10-28 設計草案，尚未細化）：
+  - 做法：交易上標記已作廢（作廢時間、原因），**原快照不改**；只能作廢一次，不能還原（要重來用新增／補記帳）。
+  - 報表：作廢的交易從營收、銷量、類別、折扣洞察排除，排除邏輯集中在 `EventDataSource`；交易紀錄仍顯示並標「已作廢」。
+  - 庫存：**使用者可選「庫存回流」或「不回流」**（✅ 使用者決定；退貨的食物常不能再賣）。回流時每個商品新增一筆回流的 `InventoryChange`（套餐對每個成員各一筆，沿用 `bundleId`），原因寫「作廢交易 TXN…」。
+  - 原因：輸入錯誤／客人取消／退貨／其他（可補文字，選填）。
+  - 有交易的商品仍鎖定（作廢不解除）；作廢前跳確認視窗。
+  - 待定：「回流」開關的預設值（我的猜測：輸入錯誤、客人取消預設回流；退貨預設不回流）。
 - 類別 icon
 - 商品編輯開放（等本輪統一穩定後再評估）
 - 本地化三條通道收斂（§1.7 F1–F4，等語言切換去留的產品決定）
@@ -1956,15 +1975,15 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 
 | # | 項目 | 狀態 |
 |---|------|------|
-| 1 | 「任選三個 100」的候選是「勾選商品」還是「整個類別」 | 暫定**勾選商品**。若要支援類別，`BundleModel` 加 `categoryIds` |
+| 1 | 「任選三個 100」的候選是「勾選商品」還是「整個類別」 | ✅ **確定：勾選商品**（2026-10-27） |
 | 2 | 折扣 chip 要不要內建幾組預設值 | 待定 |
-| 3 | `.fixed` 套餐第一版每成員固定 1 個 | 若需要 A×2，`productIds` 換成 `items: [BundleItem]` |
-| 4 | 組合／套餐要不要有圖片 | 暫定**不要**（省一套圖片同步） |
+| 3 | `.fixed` 套餐第一版每成員固定 1 個 | ✅ **確定：每成員 1 個，不預留擴充欄位**（2026-10-27）；若日後需要 A×2 或「餐點＋任一飲品」再改 `BundleModel`（JSON，無需遷移） |
+| 4 | 組合／套餐要不要有圖片 | ✅ **改為：套餐可放照片（選填），組合不放**（2026-10-27）。圖檔沿用商品做法（本機檔＋`imageURL`），同步時多一項，登記於 §14 |
 | 5 | 商品銷售排行是否保留「原價總額 / 折扣金額」兩欄 | 暫定收進展開區 |
 | 6 | 類別 icon | 本輪不做 |
 | 7 | `EventDataSource` 的持有層級（View 建立還是注入 environment） | 實作時決定；建議在場次工作區建立一份，往下傳 |
 | 8 | **App 內的語言切換要留還是拿掉** | **未定，且會決定 §1.7 F1–F4 的修法**。技術上「拿掉、全跟系統」淨減程式碼且三條通道收斂成一條；保留則須新增 `AppLocale`。取捨點是產品面：攤商會不會有「手機英文但想用中文介面」的需求 |
-| 9 | **場次名稱在有交易後要不要比照幣別鎖起來** | **未定**。目前唯一沒鎖的編輯欄位（見 §4.1.1）。暫定**維持可改** —— 場次名不影響金額或歸屬，且歷史交易已有名稱快照。若要鎖，一行 `.disabled(viewModel.isEditingWithTransaction)` 即可 |
+| 9 | **場次名稱在有交易後要不要比照幣別鎖起來** | **未定**。目前唯一沒鎖的編輯欄位（見 §4.1.1）。**維持可改** —— 場次名不影響金額或歸屬，且歷史交易已有名稱快照。若要鎖，一行 `.disabled(viewModel.isEditingWithTransaction)` 即可 |
 
 ---
 
@@ -2037,12 +2056,13 @@ extension EventModel {
 | 0 | — | **見 §14.3：以下 4 項的 CoreData 部分在功能開發期就先做掉** | | | | | |
 | 1 | 2026-09-15 | D 多重折扣（§6） | `AppliedDiscount` 結構<br>`TransactionModel.appliedDiscounts` | `CDTransactionEntity.appliedDiscountsData: Binary` | 流水帳 | `TransactionModel.toFirestoreData` 加 `appliedDiscounts`（JSON 陣列）<br>舊的 `discountType` / `discountValue` **已於第 3 批從 CoreData 移除**，重建同步時不會再看到它們 | ⬜ 未接 |
 | 2 | 2026-10-08 | E 攤提（§7） | `SummaryItemModel` 加 3 個**儲存**欄位：<br>`allocatedDiscount`、`bundleId`、`bundleName`<br>（`originalSubtotal` = 既有 `total`、`actualRevenue` 皆為計算屬性，不存，見 §11 第 4 批差異 4.1） | 在 `CDTransactionEntity.itemsData` 內（跟著走，CoreData 無新欄位） | 流水帳 | `SummaryItemModel.toFirestoreData` 加這 3 欄<br>⚠️ **金額（`price`／`allocatedDiscount`，以及 `AppliedDiscount.value`／`amount`）用字串存，不要用 Firestore number**：Firestore 數字是 Double，0.1、19.99 會失真，Σ actualRevenue 就不再等於 totalAmount。本機 JSON 往返已由 `testNonBinaryExactDecimalsSurviveJSONRoundTrip` 驗證精確 | ⬜ 未接 |
-| 3 | 待填 | F 組合套餐（§8） | `BundleModel`、`BundleMode` | `CDEventEntity.bundlesData: Binary` | 文件（跟 Event 走） | `EventModel.toFirestoreData` 加 `bundles`（JSON 陣列）<br>**不需要新 collection** | ⬜ 未接 |
+| 3 | 待填 | F 組合套餐（§8） | `BundleModel`（含 `imageURL`）、`BundleMode` | `CDEventEntity.bundlesData: Binary` | 文件（跟 Event 走） | `EventModel.toFirestoreData` 加 `bundles`（JSON 陣列）<br>**不需要新 collection** | ⬜ 未接 |
 | 4 | 待填 | F 組合套餐（§8.5） | `InventoryChangeModel.bundleId`<br>`InventoryChangeModel.bundleName` | `CDInventoryChangeEntity` 新欄位 | 流水帳 | `InventoryChangeModel.toFirestoreData` 加這 2 欄 | ⬜ 未接 |
 | 5 | 2026-09-12 | 同步架構補正 | `updatedAt` | `CDTransactionEntity`<br>`CDInventoryChangeEntity` | 流水帳 | **CoreData 欄位已於第 1.11 批加好**（本機時間，由 `markPendingSync()` 自動偵測並設定）。同步時只需在 `toFirestoreData` 改寫為 `serverTimestamp()`。見 `SYNC_ARCHITECTURE_V2.md` §6.2 | 🟡 已提前 |
 | 6 | 2026-09-12 | 第 1.11 批 | `CDInventoryChangeEntity.product` relationship<br>+ `CDProductEntity.inventoryChanges` inverse（Cascade） | CoreData relationship | 流水帳 | **純本機 relationship，不上傳**。建立點已接好（`InventoryChangeRepository.addChange/addChanges`、`EventRepository.duplicateEvent`） | 🟡 已提前 |
 | 7 | 2026-09-12 | 第 1.10 批（A7） | **移除** `CDProductEntity.categoryName` / `ProductModel.categoryName` | — | 文件 | 重建 `ProductModel.toFirestoreData` 時**不要**再寫這個欄位；類別名稱一律從 relationship 查 | 🟡 已提前 |
-| 8 | | | | | | | |
+| 8 | 待填 | F 組合套餐（§8／設計文件 §3） | `SummaryItemModel.bundleDiscount`、`SummaryItemModel.bundleKind` | 在 `CDTransactionEntity.itemsData` 內（無 CoreData 新欄位） | 流水帳 | `SummaryItemModel.toFirestoreData` 加這 2 欄；`bundleDiscount` 與其他金額一樣**用字串存** | ⬜ 未接 |
+| 9 | | | | | | | |
 
 **狀態圖例**：⬜ 未接　🔄 重構中　✅ 已接上並測試
 

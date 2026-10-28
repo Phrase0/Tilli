@@ -60,6 +60,10 @@ enum BundleMode { case fixed; case chooseAny(count: Int) }
 - 移除計畫書 §8.2 的 `sortOrder`（套用順序改由系統自動決定，見 §5.3）。
 - **照片**（僅套餐、選填）：沿用商品的做法——本機存檔、JSON 內只放 `imageURL`；圖檔**不放進** `bundlesData`（會讓整份場次文件變大）。沒設定照片時，卡片顯示與無照片商品相同的預設樣子。
 - 解碼要容錯：缺欄位給預設值（`init(from:)`），與 `SummaryItemModel` 同做法。
+- **`SummaryItemModel` 另外新增兩個儲存欄位**（在 `itemsData` JSON 內，無 CoreData 變更；缺 key 時解碼為預設值，沿用第 4 批的 `init(from:)`）：
+  - `bundleDiscount: Decimal`（預設 0）：`allocatedDiscount` 中**來自套餐／組合價差額**的部分（計畫書 §7.3 的步驟 ②）。整筆折扣分到的部分 = `allocatedDiscount − bundleDiscount`。由 `RevenueAllocator` 寫入。
+  - `bundleKind: BundleKind?`（`.fixed` / `.chooseAny`，預設 nil）：快照這一列屬於套餐還是組合。套餐刪除後歷史明細仍要知道該把它顯示成「套餐價」還是「組合折抵」。
+  - 用途：讓交易明細能還原成與訂單摘要相同的樣子（見 §7）；也讓日後的「套餐／組合成效」報表不必再改 schema。
 - 「可不可賣」是**算出來的**，不存（`isAvailable`，見 §6），與 `ProductAvailability` 同原則。
 
 ## 4. 畫面與操作
@@ -97,6 +101,7 @@ enum BundleMode { case fixed; case chooseAny(count: Int) }
 - 套餐卡片點選即加入購物車；與商品共用新的增減元件（§8.1）。
 - **購物車只顯示一行**「下午茶套餐 × 1」，可增減份數、移除。拆成成員只發生在結帳寫入時（扣庫存、攤提營收）。
 - 套餐成員任一缺貨或下架 → 卡片灰掉並顯示原因，不可點。
+- 購物車內已有的套餐在回到收銀頁時若失效 → 見 §9.1 第 5 點（通知＋確定後清除該行）。
 
 ## 5. 行為
 
@@ -130,10 +135,44 @@ enum BundleMode { case fixed; case chooseAny(count: Int) }
 ## 6. 資料層登記
 - `CDEventEntity.bundlesData`：登記到 `ARCHITECTURE.md` §4（分類 L，與 `discountsData` 同）並更新 §5 的 `BundleModel` 表（移除 `sortOrder`、加 `imageURL`）；跑 `check_field_classification.py`。
 - `InventoryChange` 新增 `bundleId`、`bundleName`（登記 §4）。
+- `SummaryItemModel` 新增 `bundleDiscount`、`bundleKind`：在 `itemsData` 內，無 CoreData 欄位；仍要在 `ARCHITECTURE.md` §5 `SummaryItemModel` 表登記為 S（快照），並加入 §14.2 待接同步清單（`toFirestoreData` 加 2 欄；金額用字串存）。
 - `FEATURE_PLAN_V1.md` §14.2 登記待接同步：`bundlesData` 跟 Event 文件走；套餐照片走 Storage 的 `imageURL`；`InventoryChange` 兩個新欄位。
 - 圖檔存放與 `imageURL` 對應沿用 `ProductModel` 的方式。
 
-## 7. 本次不動的範圍
+## 7. 報表與交易明細的影響（已檢查現有程式碼）
+
+**不會壞（因為套餐在結帳時展開成成員、差額已攤進 `allocatedDiscount`）：**
+- 銷售分析總營收（用 `transaction.totalAmount`）、商品績效與類別分析營收（Σ `actualRevenue`）——R2 不退步，測試要補含套餐／組合的案例。
+- 銷量與平均單價：套餐成員各算賣出的數量；平均單價用原價總額 ÷ 銷量，不受影響。
+- `TransactionIndex`：成員有 `productId`，「商品有交易就鎖定」的判斷照常運作。
+
+**會跑掉或不對（需要修）：**
+1. **歷史交易明細（`TransactionHistoryView`）**：
+   - 「共 N 項商品」用 `items.count`：套餐展開成 3 個成員會變 3 項、組合拆列也會增加。
+   - 展開明細列出成員的**原價**小計，加上目前只顯示「整筆折扣」標籤，**套餐／組合折抵沒有任何地方顯示**，所以小計加起來 − 整筆折扣 ≠ 總金額，看起來像算錯。
+2. **交易明細 CSV（`TransactionHistoryViewModel.generateCSVContent`）**：現況就有問題（見下），加入套餐／組合後更對不起來；整份重新設計**延後**到套餐之後。
+3. **「折扣最多的商品」洞察與商品績效的折扣欄位**：用 `allocatedDiscount`，現在會**混入套餐／組合差額**。語意上變成「優惠最多的商品」。
+4. **庫存異動紀錄與匯出**：套餐會產生每個成員各一筆異動，數量正確，但需要顯示來源套餐（見 §9.1 第 7 點）。
+
+**修法（使用者已選定版本 B）：新增 `bundleDiscount`、`bundleKind` 兩個快照欄位（§3），讓歷史明細還原成與訂單摘要相同的版面。**
+- 還原規則（單一共用元件計算，不在各 View 重寫）：
+  - 套餐顯示為**一行**：名稱、份數、套餐價 = Σ 成員 `total` − Σ 成員 `bundleDiscount`；成員名稱以小字列出（`bundleKind == .fixed`）。
+  - 組合涵蓋的商品列正常顯示原價，旁邊加「含組合」小標；各組合的折抵 = 同一 `bundleId` 各列 `bundleDiscount` 之和，在優惠明細中**各一行**（`bundleKind == .chooseAny`）。
+  - 整筆折扣各一行（百分比、減額）取自 `appliedDiscounts`；小計 = 商品列（套餐以套餐價）加總；總計 = `totalAmount`，折扣前金額劃線，並顯示「共省」。
+  - 恆等式要測：小計 − 各組合折抵 − 各整筆折扣 = 總計（捨入差額已在結帳時由 `RevenueAllocator` 處理）。
+- 「共 N 項商品」：同一套餐的成員算 1 項。
+- **CSV（交易明細匯出）延後**：使用者決定整份 CSV 要重新設計，排在套餐與「交易作廢」之後另案處理，**本批不改 CSV**。現況的問題（總金額每列重複、整單折扣是文字不是金額、沒匯出實際營收）已記在 `FEATURE_PLAN_V1.md` Backlog。本批新增的 `bundleName`、`bundleDiscount`、`bundleKind` 已足夠讓之後的 CSV 使用。
+- 折扣洞察「折扣最多的商品」與商品績效折扣欄位：維持用 `allocatedDiscount`，語意視為「優惠」，必要時只調整文案。
+
+## 7.0 交易明細頁（新，取代卡片下拉展開）
+- **交易紀錄列表**：卡片不再下拉展開；點整張卡片以 push 導航進入「交易明細頁」，右側箭頭改成「›」。卡片保留交易編號、付款方式、時間、補記帳標記、「共 N 項商品」、折扣標籤與總金額。移除 `toggleTransactionExpansion` 與展開的表格。
+- **交易明細頁**（唯讀，不提供編輯或刪除，與現行交易紀錄頁一致）：
+  1. 資訊區：交易編號、時間、付款方式、場次；**補記帳**的交易多一列，顯示實際發生時間與記錄時間。
+  2. 商品區塊：版面沿用訂單摘要（套餐一行、「含組合」小標）。
+  3. 優惠明細：依上述還原規則。
+- 顏色、卡片、元件以現有 UI 為準；mockup：`history-detail-v2.html`。
+
+## 7.1 本次不動的範圍
 補記帳（事後補登交易、調整時間）與套餐／組合無關，沿用現有流程即可；補記帳走同一套商品／折扣／攤提，不需特別處理。
 
 ## 8. 收銀頁互動調整（可與 §3–7 分開做）
@@ -162,9 +201,10 @@ enum BundleMode { case fixed; case chooseAny(count: Int) }
 2. **組合不會讓客人變貴**：由「儲存時擋住」保證（§4.2）以及「商品改價守衛」（§4.3），執行階段不需要再判斷。〔使用者決定〕
 3. **取消組合**以組合 `id` 為單位，只對這一筆交易有效；取消後**重新執行**自動套用（把該組合排除），釋放出來的單位可被下一順位的重疊組合使用，其餘折扣重算。〔我的決定〕
 4. **組合的 `SummaryItem` 表示**：同一商品「部分被組合涵蓋、部分沒有」時，拆成兩列（一列帶 `bundleId`／`bundleName` 與 `allocatedDiscount`，一列是原價），現有 schema 足夠，不新增欄位。〔我的決定〕
-5. **進行中的購物車遇到套餐被刪除／下架／改價／缺貨**：回到收銀頁（`onAppear` 重新載入）時重新驗證；失效的套餐行標示出來並**擋住結帳**、列出原因，不靜默移除或改價，也不清空購物車。〔使用者確認〕
+5. **進行中的購物車遇到套餐被刪除／下架／改價／缺貨**：回到收銀頁（`onAppear` 重新載入）時重新驗證；若有失效的套餐，**跳出通知**說明「哪些套餐、為什麼不能結帳」，使用者按下確定後，**只清除這些無法結帳的套餐行**（整行移除），其餘商品保留。不靜默處理：一定先通知、經確定才清。〔使用者決定，取代原本「擋住結帳」〕
 6. **複製場次**：不會有成員沒被複製的情況（見 §4.4），只需重新對應 id。〔使用者確認〕
 7. 庫存異動紀錄畫面：有 `bundleName` 的異動顯示「來自〈套餐名〉」，細節由建構者決定。〔我的決定〕
+8. **交易明細的資料來源**：為了還原成與訂單摘要一致的版面，`SummaryItemModel` 需要**兩個**新欄位（`bundleDiscount`、`bundleKind`），不是先前口頭說的一個；原因是套餐刪除後仍要知道該顯示為套餐價還是組合折抵。〔我的決定，待使用者核對〕
 
 ## 10. 與計畫書 §8 的差異
 | 項目 | 計畫書 | 本文件 |
@@ -176,5 +216,8 @@ enum BundleMode { case fixed; case chooseAny(count: Int) }
 | 停用／刪除 | 只有 `isDisabled` | 編輯／下架／刪除；刪除不受交易限制；商品被引用時禁止刪除 |
 | 複製場次 | 未寫 | 一起複製並重新對應 id |
 | 庫存 | 扣成員庫存 | 另加：可販售份數取最小成員庫存、雙向佔用 |
+| 價格驗證 | 未寫 | 儲存時擋住：套餐價 ≤ 成員原價合計；組合價 ≤ N × 最低候選單價；商品改價若會違規則拒絕 |
+| 購物車失效 | 未寫 | 通知後按確定，清除失效的套餐行 |
+| 交易明細 | 未寫 | 改成獨立明細頁；`SummaryItemModel` 新增 `bundleDiscount`、`bundleKind` |
 | §13 #1 | 暫定勾選商品 | 確定：勾選商品 |
 | §13 #3 | 暫定每成員 1 個 | 確定：每成員 1 個，不留擴充欄位 |

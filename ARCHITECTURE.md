@@ -266,6 +266,8 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `bundleName` | S | 現有 | |
 | `total`（= `originalSubtotal`） | D | 現有 | 計算屬性：price × quantity，不存 |
 | `actualRevenue` | D | 現有 | 計算屬性：total − allocatedDiscount，不存 |
+| `bundleDiscount` | S | **新增** | `allocatedDiscount` 中來自套餐／組合價差額的部分（第 5 批；`RevenueAllocator` 寫入）。整筆折扣分到的部分 = `allocatedDiscount − bundleDiscount` |
+| `bundleKind` | S | **新增** | 套餐（fixed）或組合（chooseAny）的快照，歷史明細靠它決定顯示方式（第 5 批） |
 
 ### DiscountModel（存於 `CDEventEntity.discountsData`）
 
@@ -290,6 +292,8 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 
 ### BundleModel（存於 `CDEventEntity.bundlesData`）
 
+> 2026-10-27 修訂：移除 `sortOrder`（套用順序由系統自動決定）、新增 `imageURL`。細節見 `docs/superpowers/specs/2026-10-27-bundles-design.md`。
+
 > 資料類型：**文件**
 
 | 欄位 | 分類 | 狀態 | 說明 |
@@ -299,7 +303,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `price` | L | **新增** | 組合價 |
 | `mode` | L | **新增** | fixed（套餐）/ chooseAny(N)（任選 N 個） |
 | `productIds` | L | **新增** | 成員或候選清單 |
-| `sortOrder` | L | **新增** | 套用優先順序 |
+| `imageURL` | L | **新增** | 套餐照片（選填）。圖檔存本機，不放進 `bundlesData` |
 | `isDisabled` | L | **新增** | |
 
 ---
