@@ -106,4 +106,36 @@ final class BundleAvailabilityTests: XCTestCase {
         let result = BundleAvailability.invalidLines(in: cart, bundles: [bundle.id: bundle], products: index([a, b]), categories: [category])
         XCTAssertTrue(result.isEmpty)
     }
+
+    // MARK: - 組合（管理頁 ⚠️）
+
+    func testComboOffSaleCandidateGivesNoWarningWhenOthersSuffice() {
+        let a = product("大福", stock: 2), b = product("抹茶", stock: 5, disabled: true), c = product("紅豆", stock: 1)
+        let combo = BundleModel.comboMock(count: 3, productIds: [a.id, b.id, c.id])
+        XCTAssertNil(BundleAvailability.comboWarning(combo, products: index([a, b, c]), categories: [category]))
+    }
+
+    func testComboWarnsWhenSellableCandidateStockBelowCount() {
+        let a = product("大福", stock: 2)
+        let combo = BundleModel.comboMock(count: 3, productIds: [a.id])
+        XCTAssertEqual(
+            BundleAvailability.comboWarning(combo, products: index([a]), categories: [category]),
+            ComboWarning(availableStock: 2, required: 3)
+        )
+    }
+
+    func testComboStockExactlyCountGivesNoWarning() {
+        let a = product("大福", stock: 3)
+        let combo = BundleModel.comboMock(count: 3, productIds: [a.id])
+        XCTAssertNil(BundleAvailability.comboWarning(combo, products: index([a]), categories: [category]))
+    }
+
+    func testComboWithOnlyOffSaleCandidatesWarns() {
+        let a = product("大福", stock: 10, disabled: true)
+        let combo = BundleModel.comboMock(count: 2, productIds: [a.id])
+        XCTAssertEqual(
+            BundleAvailability.comboWarning(combo, products: index([a]), categories: [category]),
+            ComboWarning(availableStock: 0, required: 2)
+        )
+    }
 }

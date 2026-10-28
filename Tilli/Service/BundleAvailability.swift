@@ -34,6 +34,17 @@ extension BundleUnavailableReason {
     }
 }
 
+/// 組合（chooseAny）湊不成一組的警告：可賣候選的庫存合計 < N（管理頁 ⚠️）
+struct ComboWarning: Equatable {
+    let availableStock: Int
+    let required: Int
+
+    var displayText: String {
+        // 可湊組的商品庫存不足 %lld 個
+        String.localized("bundleComboStockWarning \(required)")
+    }
+}
+
 enum InvalidBundleReason: Equatable {
     case deleted, disabled, priceChanged, membersChanged
     case unavailable(BundleUnavailableReason)
@@ -70,6 +81,22 @@ enum BundleAvailability {
         // 沒有成員的套餐沒有可賣內容
         guard portions != Int.max else { return .failure(.memberMissing) }
         return .success(portions)
+    }
+
+    /// 組合的管理頁警告（設計 §4.3：下架候選只是不計入，組合本身不失效）。
+    /// 只有「可賣候選的庫存合計 < N」才警告（含沒有任何可賣候選）；不看購物車。
+    static func comboWarning(
+        _ combo: BundleModel,
+        products: [UUID: ProductModel],
+        categories: [CategoryModel]
+    ) -> ComboWarning? {
+        guard case .chooseAny(let count) = combo.mode else { return nil }
+        let available = Set(combo.productIds).reduce(0) { sum, id in
+            guard let product = products[id],
+                  product.saleAvailability(in: categories) == .available else { return sum }
+            return sum + max(0, product.stock)
+        }
+        return available < count ? ComboWarning(availableStock: available, required: count) : nil
     }
 
     /// 單點商品還能再加幾個（stock − reservedQuantity）

@@ -608,16 +608,24 @@ extension InventoryViewModel {
         }
     }
 
-    /// 不可賣原因（⚠️）；已下架的列以灰色與「已下架」標示，不再重複顯示原因
+    /// 警告（⚠️）；已下架的列以灰色與「已下架」標示，不再重複顯示原因。
+    /// 套餐：任一成員不可賣或缺貨；組合：可賣候選的庫存湊不滿 N 個（下架候選只是不計入）
     func bundleWarning(_ bundle: BundleModel) -> String? {
         guard !bundle.isDisabled else { return nil }
         let products = Dictionary(dataSource.products.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        if case .failure(let reason) = BundleAvailability.check(
-            bundle, products: products, categories: dataSource.categories, cart: Cart()
-        ) {
-            return reason.displayText
+        switch bundle.kind {
+        case .fixed:
+            if case .failure(let reason) = BundleAvailability.check(
+                bundle, products: products, categories: dataSource.categories, cart: Cart()
+            ) {
+                return reason.displayText
+            }
+            return nil
+        case .chooseAny:
+            return BundleAvailability.comboWarning(
+                bundle, products: products, categories: dataSource.categories
+            )?.displayText
         }
-        return nil
     }
 
     /// 下架／上架

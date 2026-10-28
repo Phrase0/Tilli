@@ -159,6 +159,23 @@
         }
       }
     },
+    "bundleComboStockWarning %lld" : {
+      "comment" : "可湊組的商品庫存不足 %lld 個",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough stock to make %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可湊組的商品庫存不足 %lld 個"
+          }
+        }
+      }
+    },
     "bundleComboSummary %lld %@" : {
       "comment" : "任選 %lld 個：%@",
       "localizations" : {
