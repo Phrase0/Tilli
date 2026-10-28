@@ -1713,7 +1713,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 
 | # | 計畫寫的 | 實際做的 | 為什麼 |
 |---|---------|---------|-------|
-| 5.4 | 同價時依 `sortOrder` 貪婪套用 | 組合之間以「**單價／N 由小到大**」排序比較，同值再依 `createdAt`、`id.uuidString`；比較用 `MoneyHelper.multiply` 交叉相乘（不做除法）。候選可賣判斷用 `saleAvailability(in:) == .available` 而非 `isAvailableForSale` | 組合沒有 `sortOrder`；除法有捨入；`isAvailableForSale` 在類別缺失時 Debug 會 trap，語意相同 |
+| 5.4 | 多個組合依每件平均價（組合價 ÷ N）低者先貪婪套用（§8.4 已於 2026-10-27 由 `sortOrder` 拖曳順序修訂為此規則；平手規則未定，設計 §9 交給建構者） | 每件平均價相同時 N 大者先，再依 `id.uuidString`；比較用 `MoneyHelper.multiply` 交叉相乘（不做除法）。候選可賣判斷用 `saleAvailability(in:) == .available` 而非 `isAvailableForSale` | 平手規則要可預測且穩定；`isAvailableForSale` 在類別缺失時 Debug 會 trap，語意相同 |
 | 5.5 | 省多少 = 套餐差額加組合折抵加折扣 | `savings = subtotal − total`（小計為原價加總，不是優惠後） | 只有一個定義，結帳摘要與交易明細才不會各算各的 |
 | 5.5 | — | 整筆折扣基準 = 小計 − Σ 組合折抵（`isDiscountExceedsLimit` 也同一基準） | 組合折抵先於百分比、定額（B10） |
 | 5.5 | — | 成員不齊的套餐行（`productIds` 有商品已不在）不計價，與 `summaryItems` 看同一份 | 否則偏差會讓 `Σ actualRevenue ≠ total`（review 修正，commit `91f201f`） |
