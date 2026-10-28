@@ -59,6 +59,7 @@ class InventoryViewModel: ObservableObject {
     /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
     private let dataSource: EventDataSource
     private var productRepository: ProductRepository?
+    private var eventRepository: EventRepository?
 
     /// ⭐ 一律從 dataSource 取，商品與類別是同一份快照（A3）
     var event: EventModel { dataSource.event }
@@ -82,7 +83,8 @@ class InventoryViewModel: ObservableObject {
     var isSearchEmpty: Bool {
         !searchText.isEmpty &&
         sortedCategories.allSatisfy { getItemsForCategory($0.id).isEmpty } &&
-        filteredDisabledItems.isEmpty
+        filteredDisabledItems.isEmpty &&
+        fixedBundles.isEmpty && comboBundles.isEmpty
     }
 
     /// 篩選後的下架商品（套用搜尋）
@@ -107,8 +109,9 @@ class InventoryViewModel: ObservableObject {
     // MARK: - Public Methods
 
     /// 注入寫入用的 Repository（讀取一律走 dataSource）
-    func updateRepositories(productRepository: ProductRepository) {
+    func updateRepositories(productRepository: ProductRepository, eventRepository: EventRepository) {
         self.productRepository = productRepository
+        self.eventRepository = eventRepository
         loadData()
     }
 
@@ -562,6 +565,89 @@ class InventoryViewModel: ObservableObject {
                 dismissButton: .default(Text("commonOK"))
             )
         }
+    }
+}
+
+// MARK: - 套餐／組合管理（設計 §4.1、§4.3）
+
+extension InventoryViewModel {
+
+    /// 場次內所有商品（含已下架），表單勾選用
+    var allProducts: [ProductModel] { dataSource.products }
+
+    /// 場次內沒有任何商品時，＋ 直接進新增商品
+    var hasAnyProduct: Bool { !dataSource.products.isEmpty }
+
+    /// 套餐區（含已下架者），依建立時間排序；套用搜尋
+    var fixedBundles: [BundleModel] { bundles(of: .fixed) }
+
+    /// 組合區（含已下架者），依建立時間排序；套用搜尋
+    var comboBundles: [BundleModel] { bundles(of: .chooseAny) }
+
+    private func bundles(of kind: BundleKind) -> [BundleModel] {
+        event.bundles
+            .filter { $0.kind == kind }
+            .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
+            .sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+    }
+
+    /// 列的副標：套餐 = 成員名稱；組合 = 「任選 N 個：候選名稱」
+    func bundleSummary(_ bundle: BundleModel) -> String {
+        let names = bundle.productIds
+            .compactMap { id in dataSource.products.first { $0.id == id }?.name }
+            .joined(separator: "、")
+        switch bundle.mode {
+        case .fixed:
+            return names
+        case .chooseAny(let count):
+            // 任選 %lld 個：%@
+            return String.localized("bundleComboSummary \(count) \(names)")
+        }
+    }
+
+    /// 不可賣原因（⚠️）；已下架的列以灰色與「已下架」標示，不再重複顯示原因
+    func bundleWarning(_ bundle: BundleModel) -> String? {
+        guard !bundle.isDisabled else { return nil }
+        let products = Dictionary(dataSource.products.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        if case .failure(let reason) = BundleAvailability.check(
+            bundle, products: products, categories: dataSource.categories, cart: Cart()
+        ) {
+            return reason.displayText
+        }
+        return nil
+    }
+
+    /// 下架／上架
+    func setBundleDisabled(_ id: UUID, _ disabled: Bool) {
+        var bundles = event.bundles
+        guard let index = bundles.firstIndex(where: { $0.id == id }) else { return }
+        bundles[index].isDisabled = disabled
+        saveBundles(bundles)
+    }
+
+    /// 刪除（不論有沒有交易紀錄都能刪，設計 §4.3；確認由 View 負責），連同本機照片
+    func deleteBundle(_ id: UUID) {
+        let bundles = event.bundles.filter { $0.id != id }
+        guard bundles.count != event.bundles.count else { return }
+        if saveBundles(bundles) {
+            BundleImageStore.delete(for: id)
+        }
+    }
+
+    @discardableResult
+    private func saveBundles(_ bundles: [BundleModel]) -> Bool {
+        guard let eventRepository else { return false }
+        guard eventRepository.saveBundles(bundles, forEventId: event.id) else {
+            // 儲存失敗，請再試一次
+            alertMessage = String.localized("bundleSaveFailed")
+            showAlert = true
+            return false
+        }
+        loadData()
+        return true
     }
 }
 

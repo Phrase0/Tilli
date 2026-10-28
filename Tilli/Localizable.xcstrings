@@ -57,6 +57,516 @@
     "+%lld" : {
 
     },
+    "bundleAddMenuCombo" : {
+      "comment" : "新增組合",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New combo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增組合"
+          }
+        }
+      }
+    },
+    "bundleAddMenuFixed" : {
+      "comment" : "新增套餐",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New bundle"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增套餐"
+          }
+        }
+      }
+    },
+    "bundleAddMenuProduct" : {
+      "comment" : "新增商品",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add product"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增商品"
+          }
+        }
+      }
+    },
+    "bundleChipCombo" : {
+      "comment" : "組合",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combos"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "組合"
+          }
+        }
+      }
+    },
+    "bundleChipFixed" : {
+      "comment" : "套餐",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundles"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐"
+          }
+        }
+      }
+    },
+    "bundleChooseCount %lld" : {
+      "comment" : "任選 %lld 個",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任選 %lld 個"
+          }
+        }
+      }
+    },
+    "bundleComboSummary %lld %@" : {
+      "comment" : "任選 %lld 個：%@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any %1$lld: %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任選 %1$lld 個：%2$@"
+          }
+        }
+      }
+    },
+    "bundleDeleteConfirm %@" : {
+      "comment" : "確定要刪除「%@」嗎？",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete \"%@\"?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要刪除「%@」嗎？"
+          }
+        }
+      }
+    },
+    "bundleErrorCountTooSmall" : {
+      "comment" : "任選數量至少要 2 個",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The quantity must be at least 2"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任選數量至少要 2 個"
+          }
+        }
+      }
+    },
+    "bundleErrorDuplicateName" : {
+      "comment" : "已有相同名稱的套餐或組合",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A bundle or combo with this name already exists"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已有相同名稱的套餐或組合"
+          }
+        }
+      }
+    },
+    "bundleErrorEmptyName" : {
+      "comment" : "請輸入名稱",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入名稱"
+          }
+        }
+      }
+    },
+    "bundleErrorNoCandidates" : {
+      "comment" : "請至少選 1 個商品",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose at least 1 item"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請至少選 1 個商品"
+          }
+        }
+      }
+    },
+    "bundleErrorNonPositivePrice" : {
+      "comment" : "價格必須大於 0",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Price must be greater than 0"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "價格必須大於 0"
+          }
+        }
+      }
+    },
+    "bundleErrorPriceAboveLimit %@" : {
+      "comment" : "價格不能超過 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Price can't be more than %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "價格不能超過 %@"
+          }
+        }
+      }
+    },
+    "bundleErrorTooFewMembers" : {
+      "comment" : "套餐至少要選 2 個商品",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose at least 2 items"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐至少要選 2 個商品"
+          }
+        }
+      }
+    },
+    "bundleErrorUnknownProduct" : {
+      "comment" : "有商品已不存在，請重新勾選",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some items no longer exist. Please choose again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有商品已不存在，請重新勾選"
+          }
+        }
+      }
+    },
+    "bundleFormNamePlaceholder" : {
+      "comment" : "請輸入名稱",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入名稱"
+          }
+        }
+      }
+    },
+    "bundleFormSave" : {
+      "comment" : "儲存",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存"
+          }
+        }
+      }
+    },
+    "bundleFormSectionCandidates" : {
+      "comment" : "候選商品",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eligible items"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候選商品"
+          }
+        }
+      }
+    },
+    "bundleFormSectionMembers" : {
+      "comment" : "套餐成員（各 1 個）",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Items (1 each)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐成員（各 1 個）"
+          }
+        }
+      }
+    },
+    "bundleFormSectionName" : {
+      "comment" : "名稱",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名稱"
+          }
+        }
+      }
+    },
+    "bundleFormSectionPhoto" : {
+      "comment" : "照片（選填）",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo (optional)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片（選填）"
+          }
+        }
+      }
+    },
+    "bundleFormSectionPrice" : {
+      "comment" : "價格",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Price"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "價格"
+          }
+        }
+      }
+    },
+    "bundleFormTitleEditCombo" : {
+      "comment" : "編輯組合",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit combo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯組合"
+          }
+        }
+      }
+    },
+    "bundleFormTitleEditFixed" : {
+      "comment" : "編輯套餐",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit bundle"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯套餐"
+          }
+        }
+      }
+    },
+    "bundleMemberDisabledTag" : {
+      "comment" : "已下架",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已下架"
+          }
+        }
+      }
+    },
+    "bundleMenuEnable" : {
+      "comment" : "上架",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make available"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上架"
+          }
+        }
+      }
+    },
+    "bundleNoDiscountHint" : {
+      "comment" : "這個價格沒有優惠",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This price gives no discount"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個價格沒有優惠"
+          }
+        }
+      }
+    },
+    "bundleOriginalTotalHint %@ %@" : {
+      "comment" : "原價合計 %@，套餐價省 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regular total %1$@, bundle saves %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原價合計 %1$@，套餐價省 %2$@"
+          }
+        }
+      }
+    },
+    "bundleOriginalTotalOnly %@" : {
+      "comment" : "原價合計 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regular total %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原價合計 %@"
+          }
+        }
+      }
+    },
     "bundleReasonDeleted" : {
       "comment" : "套餐已刪除",
       "localizations" : {
@@ -70,6 +580,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "套餐已刪除"
+          }
+        }
+      }
+    },
+    "bundleRemovePhoto" : {
+      "comment" : "移除照片",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除照片"
+          }
+        }
+      }
+    },
+    "bundleSaveFailed" : {
+      "comment" : "儲存失敗，請再試一次",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save. Please try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存失敗，請再試一次"
+          }
+        }
+      }
+    },
+    "inventoryChipAll" : {
+      "comment" : "全部",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
           }
         }
       }

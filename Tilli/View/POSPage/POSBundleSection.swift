@@ -47,7 +47,7 @@ struct POSBundleSection: View {
     /// 不可賣的原因文字；可賣時為 nil
     private func unavailableText(_ bundle: BundleModel) -> String? {
         if case .failure(let reason) = viewModel.availability(of: bundle) {
-            return viewModel.unavailableReasonText(reason)
+            return reason.displayText
         }
         return nil
     }
@@ -59,15 +59,9 @@ struct POSBundleSection: View {
             .joined(separator: "、")
     }
 
-    /// 照片：BundleImageStore 尚未建立（Task 10），先用與無照片商品相同的 placeholder
+    /// 照片：BundleImageStore 的本機照片；沒有時與無照片商品相同的 placeholder
     private func image(_ bundle: BundleModel) -> some View {
-        EntityImageView(
-            imageData: nil,
-            imageURL: nil,
-            entityId: bundle.id,
-            entityType: .product,
-            contentMode: .fill
-        )
+        BundleImageView(bundleId: bundle.id)
     }
 
     // MARK: - 列表卡片（同 posProductCard）

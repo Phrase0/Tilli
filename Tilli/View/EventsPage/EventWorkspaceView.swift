@@ -118,6 +118,15 @@ struct EventWorkspaceView: View {
                 AddNewProductView(event: event, productToEdit: product) {
                     inventoryVM.loadData()
                 }
+            // 套餐／組合表單讀 dataSource 的最新快照（現有套餐、商品），不用進場時的 event
+            case .newBundle(let kind):
+                BundleFormView(kind: kind, event: dataSource.event, products: dataSource.products) {
+                    inventoryVM.loadData()
+                }
+            case .editBundle(let bundle):
+                BundleFormView(kind: bundle.kind, editing: bundle, event: dataSource.event, products: dataSource.products) {
+                    inventoryVM.loadData()
+                }
             }
         }
     }

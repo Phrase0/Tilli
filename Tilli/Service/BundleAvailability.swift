@@ -14,6 +14,26 @@ enum BundleUnavailableReason: Error, Equatable {
     case memberOutOfStock(productName: String)
 }
 
+extension BundleUnavailableReason {
+    /// 不可賣原因的顯示文字（收銀頁加入失敗、套餐卡片、管理頁 ⚠️ 共用，唯一一份）
+    var displayText: String {
+        switch self {
+        case .bundleDisabled:
+            // 套餐已下架
+            return String.localized("bundleReasonDisabled")
+        case .memberMissing:
+            // 套餐內有商品已不存在
+            return String.localized("bundleReasonMemberMissing")
+        case .memberUnavailable(let productName):
+            // 「%@」已下架
+            return String.localized("bundleReasonUnavailable \(productName)")
+        case .memberOutOfStock(let productName):
+            // 「%@」缺貨
+            return String.localized("bundleReasonOutOfStock \(productName)")
+        }
+    }
+}
+
 enum InvalidBundleReason: Equatable {
     case deleted, disabled, priceChanged, membersChanged
     case unavailable(BundleUnavailableReason)

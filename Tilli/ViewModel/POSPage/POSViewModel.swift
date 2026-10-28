@@ -262,7 +262,7 @@ class POSViewModel: ObservableObject {
     func addBundle(_ bundle: BundleModel) {
         switch availability(of: bundle) {
         case .failure(let reason):
-            alertMessage = unavailableReasonText(reason)
+            alertMessage = reason.displayText
             showAlert = true
         case .success:
             if var line = cart.bundleLines[bundle.id] {
@@ -304,24 +304,6 @@ class POSViewModel: ObservableObject {
         }
     }
 
-    /// 不可賣原因的顯示文字（加入失敗的 alert、套餐卡片共用）
-    func unavailableReasonText(_ reason: BundleUnavailableReason) -> String {
-        switch reason {
-        case .bundleDisabled:
-            // 套餐已下架
-            return String.localized("bundleReasonDisabled")
-        case .memberMissing:
-            // 套餐內有商品已不存在
-            return String.localized("bundleReasonMemberMissing")
-        case .memberUnavailable(let productName):
-            // 「%@」已下架
-            return String.localized("bundleReasonUnavailable \(productName)")
-        case .memberOutOfStock(let productName):
-            // 「%@」缺貨
-            return String.localized("bundleReasonOutOfStock \(productName)")
-        }
-    }
-
     /// 套餐行無法結帳的原因文字（失效通知用）
     func invalidReasonText(_ reason: InvalidBundleReason) -> String {
         switch reason {
@@ -338,7 +320,7 @@ class POSViewModel: ObservableObject {
             // 套餐內容已變更
             return String.localized("bundleReasonMembersChanged")
         case .unavailable(let reason):
-            return unavailableReasonText(reason)
+            return reason.displayText
         case .insufficientStock:
             // 庫存不足
             return String.localized("bundleReasonInsufficientStock")
