@@ -83,12 +83,61 @@ final class ReportRevenueConsistencyTests: XCTestCase {
         addTransaction([a, c], discounts: [.percentage(10), .amount(7)])
         addTransaction([b], discounts: [.amount(500)])                             // clamp 到全額
         addTransaction([a, b], discounts: [.amount(13)], occurredAt: Date().addingTimeInterval(-3600))  // 補記帳
+        addBundleTransaction(to: event, dessert: dessert)
 
         try context.save()
         return event.id
     }
 
-    func testSalesOverviewEqualsProductAndCategoryRevenue() {
+    /// 第 5 批：套餐 + 組合 + 百分比 + 減額，奇數 TWD 金額。走正式結帳流程
+    /// （CartPricing → summaryItems → CheckoutRecorder）產生交易。
+    private func addBundleTransaction(to event: CDEventEntity, dessert: UUID) {
+        let daifuku = ProductModel.mock(name: "大福", price: 37, categoryId: dessert)
+        let matcha = ProductModel.mock(name: "抹茶", price: 53, categoryId: dessert)
+        let strawberry = ProductModel.mock(name: "草莓", price: 29, categoryId: dessert)
+        let set = BundleModel.fixedMock(name: "奇數套餐", price: 79, productIds: [daifuku.id, matcha.id])
+        let combo = BundleModel.comboMock(name: "草莓兩個", price: 51, count: 2, productIds: [strawberry.id])
+        let cart = Cart(
+            productQuantities: [strawberry.id: 3, daifuku.id: 1],
+            bundleLines: [set.id: BundleCartLine(
+                quantity: 2, nameAtAdd: set.name, priceAtAdd: set.price, productIdsAtAdd: set.productIds
+            )]
+        )
+        let pricing = CartPricing.price(
+            cart: cart,
+            products: Dictionary(uniqueKeysWithValues: [daifuku, matcha, strawberry].map { ($0.id, $0) }),
+            bundles: [set.id: set, combo.id: combo],
+            categories: [CategoryModel.mock(id: dessert, name: "甜點")],
+            selectedDiscounts: [.percentage(15), .amount(7)]
+        )
+        let (items, deductions) = pricing.summaryItems(categoryName: { _ in "甜點" }, timestamp: Date())
+        let record = CheckoutRecorder.makeRecord(
+            event: .mock(id: event.id, title: event.title),
+            items: items,
+            bundleDeductions: deductions,
+            appliedDiscounts: pricing.discounts,
+            totalAmount: pricing.total,
+            paymentMethod: .cash,
+            occurredAt: nil,
+            now: Date()
+        )
+        let transaction = record.transaction
+
+        let entity = CDTransactionEntity(context: event.managedObjectContext!)
+        entity.id = transaction.id
+        entity.eventId = event.id
+        entity.eventTitle = event.title
+        entity.currency = "TWD"
+        entity.totalAmount = NSDecimalNumber(decimal: transaction.totalAmount)
+        entity.paymentMethod = PaymentMethod.cash.rawValue
+        entity.timestamp = transaction.timestamp
+        entity.items = transaction.items
+        entity.appliedDiscounts = transaction.appliedDiscounts
+        entity.event = event
+    }
+
+    /// 銷售分析總營收 == 商品績效實際營收加總 == 類別分析加總
+    private func assertReportsAgree(file: StaticString = #filePath, line: UInt = #line) {
         let sales = SalesAnalyticsViewModel(dataSource: dataSource)
         let performance = ProductPerformanceViewModel(dataSource: dataSource)
         sales.loadData()
@@ -98,9 +147,29 @@ final class ReportRevenueConsistencyTests: XCTestCase {
         let productSum = performance.topProducts.reduce(Decimal(0)) { MoneyHelper.add($0, $1.actualRevenue) }
         let categorySum = performance.categoryAnalysis.reduce(Decimal(0)) { MoneyHelper.add($0, $1.amount) }
 
-        XCTAssertNotNil(overview)
-        XCTAssertEqual(productSum, overview)
-        XCTAssertEqual(categorySum, overview)
+        XCTAssertNotNil(overview, file: file, line: line)
+        XCTAssertEqual(productSum, overview, file: file, line: line)
+        XCTAssertEqual(categorySum, overview, file: file, line: line)
+    }
+
+    func testSalesOverviewEqualsProductAndCategoryRevenue() {
+        assertReportsAgree()
+    }
+
+    /// 套餐／組合交易也在上面的等式裡，且本身 Σ actualRevenue == totalAmount
+    func testBundleAndComboTransactionKeepsReportsEqual() throws {
+        let transaction = try XCTUnwrap(
+            dataSource.transactions.first { $0.items.contains { $0.bundleKind == .fixed } },
+            "seed 應含套餐交易"
+        )
+        XCTAssertTrue(transaction.items.contains { $0.bundleKind == .chooseAny }, "應含組合")
+        XCTAssertEqual(Set(transaction.appliedDiscounts.map(\.type)), [.percentage, .amount])
+        XCTAssertEqual(
+            transaction.items.reduce(Decimal(0)) { MoneyHelper.add($0, $1.actualRevenue) },
+            transaction.totalAmount
+        )
+
+        assertReportsAgree()
     }
 
     /// 商品績效的營收 = Σ SummaryItem.actualRevenue，原價 − 折扣逐項對得起來

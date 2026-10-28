@@ -221,4 +221,50 @@ final class CartPricingTests: XCTestCase {
         XCTAssertEqual(items.filter { $0.bundleId == set.id }.map(\.quantity), [2, 2])
         XCTAssertTrue(items.allSatisfy { $0.actualRevenue >= 0 })
     }
+
+    // MARK: - 整筆折扣的基礎（唯一實作）
+
+    func testDiscountBaseIsSubtotalMinusComboDeductions() {
+        let pricing = price(mockupCart)
+
+        // 小計 340 − 草莓組合差額 40
+        XCTAssertEqual(pricing.discountBase, 300)
+        XCTAssertEqual(CartPricing.discountBase(subtotal: 340, deductions: [20, 15]), 305)
+    }
+
+    // MARK: - 定價 → 結帳寫入 → 交易明細 來回一致
+
+    /// 奇數 TWD 金額：套餐 2 份 + 組合 + 百分比 + 減額
+    func testPricingSurvivesCheckoutRecordAndBreakdownRoundTrip() {
+        let a = product("大福", price: 37)
+        let b = product("抹茶", price: 53)
+        let s = product("草莓", price: 29)
+        let set = BundleModel.fixedMock(name: "奇數套餐", price: 79, productIds: [a.id, b.id])       // 90 → 79
+        let combo = BundleModel.comboMock(name: "草莓兩個", price: 51, count: 2, productIds: [s.id])  // 58 → 51
+        let cart = Cart(
+            productQuantities: [s.id: 3, a.id: 1],
+            bundleLines: [set.id: line(for: set, quantity: 2)]
+        )
+        let pricing = price(cart, products: [a, b, s], bundles: [set, combo], discounts: [.percentage(15), .amount(7)])
+        let (items, deductions) = pricing.summaryItems(categoryName: { _ in "甜點" }, timestamp: Date())
+
+        let record = CheckoutRecorder.makeRecord(
+            event: .mock(),
+            items: items,
+            bundleDeductions: deductions,
+            appliedDiscounts: pricing.discounts,
+            totalAmount: pricing.total,
+            paymentMethod: .cash,
+            occurredAt: nil,
+            now: Date()
+        )
+        let breakdown = TransactionBreakdown(transaction: record.transaction)
+
+        XCTAssertEqual(pricing.subtotal, 282)   // 2 × 79 + 3 × 29 + 37
+        XCTAssertEqual(breakdown.subtotal, pricing.subtotal)
+        XCTAssertEqual(breakdown.total, pricing.total)
+        XCTAssertEqual(breakdown.discounts, pricing.discounts)
+        XCTAssertEqual(record.transaction.appliedDiscounts, pricing.discounts)
+        XCTAssertEqual(sum(record.transaction.items.map(\.actualRevenue)), record.transaction.totalAmount)
+    }
 }

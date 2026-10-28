@@ -142,10 +142,10 @@ struct POSView: View {
 | `[TransactionModel].summary` / `.total` | `Service/EventDataSource.swift` | 2 種不同的加總寫法 | `reduce { $0 + $1.totalAmount }`（原生 `+` 捨入可能不同） |
 | `[SummaryItemModel].subtotal` | `Model/Domain/SummaryItemModel.swift` | 3 處重複 reduce | 自己 reduce 算小計 |
 | `RevenueAllocator` | `Service/` | 報表端 3 處各自按比例攤提折扣（2026-10-08 第 4 批） | 報表裡用 `item.total / subtotal` 算比例；報表讀 `appliedDiscounts` 重算每項折扣 —— 一律讀 `item.actualRevenue`／`item.allocatedDiscount` |
-| `BundleValidator` | `Service/BundleValidator.swift` | （新）套餐／組合價格與欄位驗證 | 在 Form VM／Repository 各自算「成員原價合計」或價格上限；各處自己判斷「被套餐引用的商品能不能刪／改價」 |
+| `BundleValidator` | `Service/BundleValidator.swift` | （新）套餐／組合價格與欄位驗證；被引用守衛（`bundles(referencing:)`、`bundles(referencingAnyOf:)`） | 在 Form VM／Repository 各自算「成員原價合計」或價格上限；各處自己判斷「被套餐引用的商品／類別能不能刪、改價」 |
 | `BundleAvailability`（`check`、`remainingStock`、`invalidLines`、`comboWarning`、`BundleUnavailableReason.displayText`） | `Service/BundleAvailability.swift` | （新）套餐可用性、購物車庫存雙向佔用、管理頁警告文字 | 在 View／VM 自己展開套餐成員算庫存或可售；自己寫「缺貨／已下架」文字（一律用 `displayText`）；**組合**列的 ⚠️ 用套餐規則（組合要看可賣候選庫存合計，一律走 `comboWarning`） |
 | `ComboApplier` | `Service/ComboApplier.swift` | （新）`.chooseAny` 自動套用 | 在 View／VM 自己算組合折抵、自己挑「最貴的 N 個」；自己排序比較「單價／N」（用 `MoneyHelper.multiply` 交叉相乘，不做除法） |
-| `CartPricing` | `Service/CartPricing.swift` | （新）購物車定價：套餐列、商品列、組合、整筆折扣、總計、`summaryItems` | 在 POS／結帳 VM 自己累加小計、總計或「省多少」（省 = 小計 − 總計）；自己把套餐展開成成員 `SummaryItemModel`；折扣基準自己重算（= 小計 − Σ 組合折抵，只准在 `CartPricing` 內） |
+| `CartPricing` | `Service/CartPricing.swift` | （新）購物車定價：套餐列、商品列、組合、整筆折扣、總計、`summaryItems` | 在 POS／結帳 VM 自己累加小計、總計或「省多少」（省 = 小計 − 總計）；自己把套餐展開成成員 `SummaryItemModel`；折扣基準自己重算（一律用 `CartPricing.discountBase`／`CartPricing.discountBase(subtotal:deductions:)`；收銀頁折扣上限提示與 `CheckoutRecorder` 也走它） |
 | `CheckoutRecorder` | `Service/CheckoutRecorder.swift` | 兩個付款 VM 各自攤提＋建交易＋算庫存異動 | 付款 VM 自己呼叫 `RevenueAllocator`、自己建 `TransactionModel`、**自己累加 `stockUpdates`**（同商品多筆要累加，曾因此少扣庫存）、自己建套餐的 `InventoryChange` |
 | `TransactionBreakdown` | `Service/TransactionBreakdown.swift` | （新）交易明細／摘要的顯示資料 | 歷史畫面（明細頁、卡片）從場次設定重算套餐價或組合折抵；自己 `reduce` 算明細小計。**只准讀交易快照**（`bundleDiscount`、`bundleKind`、`appliedDiscounts`） |
 
@@ -467,3 +467,4 @@ grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
 | 2026-09-13 | 新增「測試規範」一節：`TilliTests` 是 synchronized group（丟檔即納入）、什麼該寫單元測試的判斷表、三個踩過的坑（共用 `NSManagedObjectModel`／`assertionFailure` 會 trap 測試／避開 `Auth.auth()`）、命名與寫法 |
 | 2026-10-08 | 「共用計算元件」表新增 `RevenueAllocator`（第 4 批）：攤提在付款 VM 寫入流水帳前完成，報表只加總 |
 | 2026-10-28 | 「共用計算元件」表新增 `BundleValidator`、`BundleAvailability`（含 `comboWarning`、`displayText`）、`ComboApplier`、`CartPricing`、`CheckoutRecorder`、`TransactionBreakdown`（第 5 批） |
+| 2026-10-28 | 第 5 批最終審查：`CartPricing.discountBase` 成為折扣基準唯一實作；`BundleValidator.bundles(referencingAnyOf:)` 供刪除類別守衛使用 |

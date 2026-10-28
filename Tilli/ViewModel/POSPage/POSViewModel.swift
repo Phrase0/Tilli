@@ -398,11 +398,8 @@ class POSViewModel: ObservableObject {
     /// 實際只能折 180，這時就該提示。
     var isDiscountExceedsLimit: Bool {
         guard let amountDiscount = selectedAmount else { return false }
-        let current = pricing
-        // 整筆折扣的基礎 = 小計 − 組合差額（與 CartPricing 一致）
-        let discountBase = MoneyHelper.subtract(current.subtotal, MoneyHelper.sum(current.combos.map(\.deduction)))
         let afterPercentage = DiscountCalculator.total(
-            subtotal: discountBase,
+            subtotal: pricing.discountBase,
             discounts: selectedDiscounts.filter { $0.type == .percentage }
         )
         return DiscountCalculator.exceedsSubtotal(amountDiscount, subtotal: afterPercentage)

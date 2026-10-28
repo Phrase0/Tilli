@@ -39,6 +39,18 @@ struct CartPricing: Equatable {
     /// 套餐成員展開時要查單價與類別；只給 `summaryItems` 用。
     private let products: [UUID: ProductModel]
 
+    /// 整筆折扣（百分比、減額）的基礎 = 小計 − Σ 組合差額
+    var discountBase: Decimal {
+        Self.discountBase(subtotal: subtotal, deductions: combos.map(\.deduction))
+    }
+
+    /// 整筆折扣基礎的**唯一實作**：小計 − Σ 已先扣的套餐／組合差額。
+    /// 定價（小計已是套餐價 → 只扣組合差額）、收銀頁的折扣上限提示、
+    /// 結帳寫入（`CheckoutRecorder`：小計是成員原價 → 扣套餐＋組合差額）都走這裡。
+    static func discountBase(subtotal: Decimal, deductions: [Decimal]) -> Decimal {
+        MoneyHelper.subtract(subtotal, MoneyHelper.sum(deductions))
+    }
+
     /// 共省 = 小計 − 總計（套餐差額已在小計外，不重複計入）
     var savings: Decimal {
         MoneyHelper.subtract(subtotal, total)
@@ -100,7 +112,7 @@ struct CartPricing: Equatable {
             MoneyHelper.sum(bundleRows.map(\.lineTotal)),
             MoneyHelper.sum(productRows.map(\.lineTotal))
         )
-        let discountBase = MoneyHelper.subtract(subtotal, MoneyHelper.sum(combos.map(\.deduction)))
+        let discountBase = Self.discountBase(subtotal: subtotal, deductions: combos.map(\.deduction))
 
         return CartPricing(
             bundleRows: bundleRows,

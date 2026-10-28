@@ -26,12 +26,10 @@ enum CheckoutRecorder {
         occurredAt: Date?,
         now: Date
     ) -> Record {
-        let deductionTotal = bundleDeductions.reduce(Decimal(0)) { MoneyHelper.add($0, $1.amount) }
-        let subtotalAfterBundles = MoneyHelper.subtract(items.subtotal, deductionTotal)
-
+        // items.subtotal 是成員原價合計，所以套餐與組合差額都要扣
         let safeDiscounts = DiscountCalculator.sanitized(
             appliedDiscounts,
-            subtotal: subtotalAfterBundles
+            subtotal: CartPricing.discountBase(subtotal: items.subtotal, deductions: bundleDeductions.map(\.amount))
         )
 
         // 結帳當下就把折扣攤到每一項，報表只做加總（FEATURE_PLAN_V1.md §7）
