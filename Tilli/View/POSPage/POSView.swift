@@ -46,22 +46,26 @@ struct POSView: View {
                 viewModel.clearAllQuantities()
             }
         }
+        // 以下套餐無法結帳（§9.1 第 5 點：先通知，確定後只清除這些套餐行）
+        .alert("posInvalidBundleTitle", isPresented: invalidBundleAlertBinding) {
+            // 確定
+            Button("commonConfirm", role: .cancel) {
+                viewModel.confirmInvalidBundleLines()
+            }
+        } message: {
+            Text(viewModel.invalidBundleLinesMessage)
+        }
         .sheet(isPresented: $showCheckoutSheet) {
-            let pricing = viewModel.pricing
-            let summary = pricing.summaryItems(categoryName: viewModel.categoryName(for:), timestamp: Date())
             CheckoutFlowView(
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted,
-                event: event,
-                selectedItems: summary.items,
-                totalAmount: pricing.total,
-                appliedDiscounts: pricing.discounts,
-                bundleDeductions: summary.bundleDeductions
+                posViewModel: viewModel
             )
         }
         .onChange(of: checkoutCompleted) {
-            viewModel.loadProducts()
+            // 先清購物車再重新載入：否則剛結帳的套餐行會對著已扣過的庫存被判成「庫存不足」而跳通知
             viewModel.clearAllQuantities()
+            viewModel.loadProducts()
             DispatchQueue.main.async {
                 checkoutCompleted = false
             }
@@ -69,6 +73,14 @@ struct POSView: View {
         .onAppear {
             viewModel.loadProducts()
         }
+    }
+
+    /// 有失效套餐行就顯示通知；關閉只能經「確定」（由 confirmInvalidBundleLines 清空陣列）
+    private var invalidBundleAlertBinding: Binding<Bool> {
+        Binding(
+            get: { !viewModel.invalidBundleLines.isEmpty },
+            set: { _ in }
+        )
     }
 
     // MARK: - 折扣（兩區各自單選，可同時一個百分比 + 一個減額，§6.4）
@@ -162,6 +174,10 @@ struct POSView: View {
     private var productListSection: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                if !viewModel.fixedBundles.isEmpty {
+                    POSBundleSection(viewModel: viewModel)
+                }
+
                 ForEach(viewModel.activeCategories, id: \.id) { category in
                     let items = viewModel.getSortedProductsForCategory(category.id)
                     if !items.isEmpty {

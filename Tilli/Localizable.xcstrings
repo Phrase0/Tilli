@@ -57,6 +57,23 @@
     "+%lld" : {
 
     },
+    "bundleReasonDeleted" : {
+      "comment" : "套餐已刪除",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle was deleted"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐已刪除"
+          }
+        }
+      }
+    },
     "～" : {
       "localizations" : {
         "en" : {
@@ -1547,6 +1564,23 @@
         }
       }
     },
+    "bundleReasonInsufficientStock" : {
+      "comment" : "庫存不足",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存不足"
+          }
+        }
+      }
+    },
     "bundleReasonMemberMissing" : {
       "comment" : "套餐內有商品已不存在",
       "localizations" : {
@@ -1564,6 +1598,23 @@
         }
       }
     },
+    "bundleReasonMembersChanged" : {
+      "comment" : "套餐內容已變更",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle items changed"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐內容已變更"
+          }
+        }
+      }
+    },
     "bundleReasonOutOfStock %@" : {
       "comment" : "「%@」缺貨",
       "localizations" : {
@@ -1577,6 +1628,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「%@」缺貨"
+          }
+        }
+      }
+    },
+    "bundleReasonPriceChanged" : {
+      "comment" : "套餐價格已變更",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle price changed"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐價格已變更"
           }
         }
       }
@@ -1854,6 +1922,57 @@
         }
       }
     },
+    "checkoutComboCancel" : {
+      "comment" : "取消",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "checkoutComboLine %@ %lld" : {
+      "comment" : "%@ × %lld 組",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ × %2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ × %2$lld 組"
+          }
+        }
+      }
+    },
+    "checkoutComboRestore" : {
+      "comment" : "恢復",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復"
+          }
+        }
+      }
+    },
     "checkoutCompleteButton" : {
       "localizations" : {
         "en" : {
@@ -1946,6 +2065,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "免找零"
+          }
+        }
+      }
+    },
+    "checkoutInComboTag" : {
+      "comment" : "含組合",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "含組合"
           }
         }
       }
@@ -5185,6 +5321,23 @@
         }
       }
     },
+    "posBundleSection" : {
+      "comment" : "套餐",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundles"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐"
+          }
+        }
+      }
+    },
     "posCheckoutButton" : {
       "localizations" : {
         "en" : {
@@ -5295,6 +5448,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚無商品"
+          }
+        }
+      }
+    },
+    "posInvalidBundleLine %@ %@" : {
+      "comment" : "%@：%@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@：%2$@"
+          }
+        }
+      }
+    },
+    "posInvalidBundleTitle" : {
+      "comment" : "以下套餐無法結帳",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These bundles can't be checked out"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以下套餐無法結帳"
           }
         }
       }

@@ -322,6 +322,47 @@ class POSViewModel: ObservableObject {
         }
     }
 
+    /// 套餐行無法結帳的原因文字（失效通知用）
+    func invalidReasonText(_ reason: InvalidBundleReason) -> String {
+        switch reason {
+        case .deleted:
+            // 套餐已刪除
+            return String.localized("bundleReasonDeleted")
+        case .disabled:
+            // 套餐已下架
+            return String.localized("bundleReasonDisabled")
+        case .priceChanged:
+            // 套餐價格已變更
+            return String.localized("bundleReasonPriceChanged")
+        case .membersChanged:
+            // 套餐內容已變更
+            return String.localized("bundleReasonMembersChanged")
+        case .unavailable(let reason):
+            return unavailableReasonText(reason)
+        case .insufficientStock:
+            // 庫存不足
+            return String.localized("bundleReasonInsufficientStock")
+        }
+    }
+
+    /// 失效通知的內文：每行「名稱：原因」
+    var invalidBundleLinesMessage: String {
+        invalidBundleLines
+            // %@：%@
+            .map { String.localized("posInvalidBundleLine \($0.name) \(invalidReasonText($0.reason))") }
+            .joined(separator: "\n")
+    }
+
+    /// 本筆交易已取消的組合（訂單摘要以灰色劃線顯示並可「恢復」）；已刪除或已停用的組合不列
+    var cancelledCombos: [BundleModel] {
+        event.bundles
+            .filter { cart.cancelledComboIds.contains($0.id) && $0.kind == .chooseAny && !$0.isDisabled }
+            .sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+    }
+
     /// 移除 `invalidBundleLines` 列出的套餐行（使用者在通知上按確定後呼叫），其餘商品保留
     func confirmInvalidBundleLines() {
         for line in invalidBundleLines {
