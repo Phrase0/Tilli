@@ -95,7 +95,9 @@ extension SummaryItemModel {
         quantity: Int = 1,
         timestamp: Date = Date(),
         bundleId: UUID? = nil,
-        bundleName: String? = nil
+        bundleName: String? = nil,
+        bundleDiscount: Decimal = 0,
+        bundleKind: BundleKind? = nil
     ) -> SummaryItemModel {
         SummaryItemModel(
             id: id,
@@ -107,7 +109,9 @@ extension SummaryItemModel {
             quantity: quantity,
             timestamp: timestamp,
             bundleId: bundleId,
-            bundleName: bundleName
+            bundleName: bundleName,
+            bundleDiscount: bundleDiscount,
+            bundleKind: bundleKind
         )
     }
 }

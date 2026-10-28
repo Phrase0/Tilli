@@ -129,6 +129,10 @@ struct EventWorkspaceView: View {
                 }
             }
         }
+        // 交易紀錄卡片 → 交易明細頁（唯讀，只讀交易快照）
+        .navigationDestination(for: TransactionModel.self) { transaction in
+            TransactionDetailView(transaction: transaction, viewModel: reportsVM.transactionViewModel)
+        }
     }
 
     // MARK: - 右上角 toolbar（依 selectedTab 切換內容）

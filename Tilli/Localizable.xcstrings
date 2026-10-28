@@ -635,6 +635,23 @@
         }
       }
     },
+    "inventoryChangeFromBundle %@" : {
+      "comment" : "來自〈%@〉",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來自〈%@〉"
+          }
+        }
+      }
+    },
     "inventoryChipAll" : {
       "comment" : "全部",
       "localizations" : {
@@ -648,6 +665,312 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部"
+          }
+        }
+      }
+    },
+    "transactionDetailAmountLine %@" : {
+      "comment" : "減額折扣 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amount Discount %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "減額折扣 %@"
+          }
+        }
+      }
+    },
+    "transactionDetailBundleTag" : {
+      "comment" : "套餐",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐"
+          }
+        }
+      }
+    },
+    "transactionDetailComboLine %@" : {
+      "comment" : "組合優惠 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combo %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "組合優惠 %@"
+          }
+        }
+      }
+    },
+    "transactionDetailDiscounts" : {
+      "comment" : "優惠明細",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discounts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優惠明細"
+          }
+        }
+      }
+    },
+    "transactionDetailEvent" : {
+      "comment" : "場次",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Event"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場次"
+          }
+        }
+      }
+    },
+    "transactionDetailId" : {
+      "comment" : "交易編號",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction ID"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易編號"
+          }
+        }
+      }
+    },
+    "transactionDetailInComboTag" : {
+      "comment" : "含組合",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "含組合"
+          }
+        }
+      }
+    },
+    "transactionDetailOccurredAt" : {
+      "comment" : "實際發生時間",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Occurred At"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "實際發生時間"
+          }
+        }
+      }
+    },
+    "transactionDetailPaymentMethod" : {
+      "comment" : "付款方式",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment Method"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "付款方式"
+          }
+        }
+      }
+    },
+    "transactionDetailPercentageLine %@" : {
+      "comment" : "百分比折扣 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Percentage Discount %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "百分比折扣 %@"
+          }
+        }
+      }
+    },
+    "transactionDetailProducts" : {
+      "comment" : "商品",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Items"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品"
+          }
+        }
+      }
+    },
+    "transactionDetailQuantity %lld" : {
+      "comment" : "× %lld",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "× %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "× %lld"
+          }
+        }
+      }
+    },
+    "transactionDetailRecordedAt" : {
+      "comment" : "記錄時間",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded At"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄時間"
+          }
+        }
+      }
+    },
+    "transactionDetailSavings %@" : {
+      "comment" : "共省 %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You saved %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共省 %@"
+          }
+        }
+      }
+    },
+    "transactionDetailSubtotal" : {
+      "comment" : "小計",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtotal"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小計"
+          }
+        }
+      }
+    },
+    "transactionDetailTime" : {
+      "comment" : "時間",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間"
+          }
+        }
+      }
+    },
+    "transactionDetailTitle" : {
+      "comment" : "交易明細",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction Details"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易明細"
+          }
+        }
+      }
+    },
+    "transactionDetailTotal" : {
+      "comment" : "總計",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "總計"
           }
         }
       }
@@ -7346,86 +7669,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "電子支付"
-          }
-        }
-      }
-    },
-    "transactionHeaderCategory" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Category"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "類別"
-          }
-        }
-      }
-    },
-    "transactionHeaderProduct" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Product"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "商品"
-          }
-        }
-      }
-    },
-    "transactionHeaderQuantity" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qty"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "數量"
-          }
-        }
-      }
-    },
-    "transactionHeaderSubtotal" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subtotal"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小計"
-          }
-        }
-      }
-    },
-    "transactionHeaderUnitPrice" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unit Price"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "單價"
           }
         }
       }

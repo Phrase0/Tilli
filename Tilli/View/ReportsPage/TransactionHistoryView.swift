@@ -210,178 +210,86 @@ struct TransactionHistoryView: View {
         }
     }
 
+    /// 交易卡片：點整張卡片 push 進交易明細頁（destination 在 EventWorkspaceView）
     private func transactionCard(_ transaction: TransactionModel) -> some View {
-        let isExpanded = transactionViewModel.isTransactionExpanded(transaction.id)
+        NavigationLink(value: transaction) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                // 第一行：交易編號和支付方式
+                HStack {
+                    Text(transactionViewModel.formatTransactionId(transaction.id.uuidString))
+                        .font(.subheadline)
+                        .foregroundColor(DesignSystem.ColorToken.ink)
 
-        return VStack(spacing: 0) {
-            // 交易總覽卡片
-            Button(action: {
-                transactionViewModel.toggleTransactionExpansion(transaction.id)
-            }) {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                    // 第一行：交易編號和支付方式
-                    HStack {
-                        Text(transactionViewModel.formatTransactionId(transaction.id.uuidString))
-                            .font(.subheadline)
+                    Spacer()
+
+                    Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
+                        .font(DesignSystem.Typography.caption)
+                        .padding(.horizontal, DesignSystem.Spacing.xs)
+                        .padding(.vertical, 2)
+                        .background(DesignSystem.ColorToken.quietFill)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                        .cornerRadius(DesignSystem.Radius.sm)
+                }
+
+                // 第二行：日期時間
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: DesignSystem.Spacing.xxs) {
+                            Text(DateFormatter.dateTime.string(from: transaction.displayDate))
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundColor(DesignSystem.ColorToken.muted)
+
+                            // 補記帳標記
+                            if transaction.isBackdated {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+
+                        // 共 N 項商品
+                        Text("transactionItemCount \(transactionViewModel.itemCount(for: transaction))")
+                            .font(DesignSystem.Typography.caption)
+                            .foregroundColor(DesignSystem.ColorToken.muted)
+                    }
+
+                    Spacer()
+
+                    HStack(alignment: .center, spacing: DesignSystem.Spacing.xs) {
+                        // 顯示折扣標籤
+                        if let discountText = transactionViewModel.discountText(for: transaction) {
+                            Text(discountText)
+                                .font(DesignSystem.Typography.caption)
+                                .padding(.horizontal, DesignSystem.Spacing.xxs)
+                                .padding(.vertical, 2)
+                                .background(DesignSystem.ColorToken.quietFill)
+                                .foregroundColor(DesignSystem.ColorToken.ink)
+                                .cornerRadius(DesignSystem.Radius.sm)
+                        }
+
+                        Text(transactionViewModel.formatAmount(transaction.totalAmount))
+                            .font(.headline)
+                            .bold()
                             .foregroundColor(DesignSystem.ColorToken.ink)
 
-                        Spacer()
-
-                        Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
-                            .font(DesignSystem.Typography.caption)
-                            .padding(.horizontal, DesignSystem.Spacing.xs)
-                            .padding(.vertical, 2)
-                            .background(DesignSystem.ColorToken.quietFill)
+                        Image(systemName: "chevron.right")
                             .foregroundColor(DesignSystem.ColorToken.muted)
-                            .cornerRadius(DesignSystem.Radius.sm)
-                    }
-
-                    // 第二行：日期時間
-                    HStack(alignment: .bottom) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: DesignSystem.Spacing.xxs) {
-                                Text(DateFormatter.dateTime.string(from: transaction.displayDate))
-                                    .font(DesignSystem.Typography.caption)
-                                    .foregroundColor(DesignSystem.ColorToken.muted)
-
-                                // 補記帳標記
-                                if transaction.isBackdated {
-                                    Image(systemName: "clock.arrow.circlepath")
-                                        .font(.caption2)
-                                        .foregroundColor(.orange)
-                                }
-                            }
-
-                            // 共 N 項商品
-                            Text("transactionItemCount \(transaction.items.count)")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                        }
-
-                        Spacer()
-
-                        HStack(alignment: .center, spacing: DesignSystem.Spacing.xs) {
-                            // 顯示折扣標籤
-                            if let discountText = transactionViewModel.discountText(for: transaction) {
-                                Text(discountText)
-                                    .font(DesignSystem.Typography.caption)
-                                    .padding(.horizontal, DesignSystem.Spacing.xxs)
-                                    .padding(.vertical, 2)
-                                    .background(DesignSystem.ColorToken.quietFill)
-                                    .foregroundColor(DesignSystem.ColorToken.ink)
-                                    .cornerRadius(DesignSystem.Radius.sm)
-                            }
-
-                            Text(transactionViewModel.formatAmount(transaction.totalAmount))
-                                .font(.headline)
-                                .bold()
-                                .foregroundColor(DesignSystem.ColorToken.ink)
-
-                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                                .font(DesignSystem.Typography.caption)
-                        }
-                    }
-                }
-                .padding(DesignSystem.Spacing.md)
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // 交易明細（展開時顯示）
-            if isExpanded {
-                VStack(spacing: 0) {
-                    // 表頭
-                    HStack(spacing: DesignSystem.Spacing.xs) {
-                        // 商品
-                        Text("transactionHeaderProduct")
                             .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        // 類別
-                        Text("transactionHeaderCategory")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .frame(maxWidth: .infinity, alignment: .center)
-
-                        // 單價
-                        Text("transactionHeaderUnitPrice")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .frame(maxWidth: .infinity, alignment: .center)
-
-                        // 數量
-                        Text("transactionHeaderQuantity")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .frame(maxWidth: .infinity, alignment: .center)
-
-                        // 小計
-                        Text("transactionHeaderSubtotal")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.md)
-                    .padding(.vertical, DesignSystem.Spacing.xs)
-                    .background(DesignSystem.ColorToken.quietFill)
-
-                    // 商品明細列表
-                    ForEach(transaction.items) { item in
-                        transactionItemRow(item)
                     }
                 }
             }
+            .padding(DesignSystem.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DesignSystem.ColorToken.cardSurface)
+            .cornerRadius(DesignSystem.Radius.md)
+            .shadow(
+                color: DesignSystem.Shadow.cardColor,
+                radius: DesignSystem.Shadow.cardRadius,
+                x: DesignSystem.Shadow.cardX,
+                y: DesignSystem.Shadow.cardY
+            )
         }
-        .background(DesignSystem.ColorToken.cardSurface)
-        .cornerRadius(DesignSystem.Radius.md)
-        .shadow(
-            color: DesignSystem.Shadow.cardColor,
-            radius: DesignSystem.Shadow.cardRadius,
-            x: DesignSystem.Shadow.cardX,
-            y: DesignSystem.Shadow.cardY
-        )
-    }
-
-    private func transactionItemRow(_ item: SummaryItemModel) -> some View {
-        HStack(spacing: DesignSystem.Spacing.xs) {
-            // 商品名稱
-            Text(item.name)
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // 類別
-            Text(item.category)
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.muted)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            // 單價
-            Text(transactionViewModel.formatAmount(item.price))
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            // 數量
-            Text("\(item.quantity)")
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            // 小計
-            Text(transactionViewModel.formatAmount(item.total))
-                .font(DesignSystem.Typography.caption)
-                .bold()
-                .foregroundColor(DesignSystem.ColorToken.ink)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .padding(.horizontal, DesignSystem.Spacing.md)
-        .padding(.vertical, DesignSystem.Spacing.sm)
-        .background(DesignSystem.ColorToken.cardSurface)
+        .buttonStyle(PlainButtonStyle())
     }
 
 }

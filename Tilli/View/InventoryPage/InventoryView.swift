@@ -784,6 +784,14 @@ struct InventoryProductCard: View {
                 .fontWeight(.semibold)
                 .foregroundColor(DesignSystem.ColorToken.ink)
 
+            // 來自〈套餐名〉
+            if let bundleName = change.bundleName {
+                Text("inventoryChangeFromBundle \(bundleName)")
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .lineLimit(1)
+            }
+
             Spacer()
 
             // 時間
@@ -979,6 +987,14 @@ struct DisabledInventoryProductCard: View {
                 .font(DesignSystem.Typography.caption)
                 .fontWeight(.semibold)
                 .foregroundColor(DesignSystem.ColorToken.muted)
+
+            // 來自〈套餐名〉
+            if let bundleName = change.bundleName {
+                Text("inventoryChangeFromBundle \(bundleName)")
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .lineLimit(1)
+            }
 
             Spacer()
 

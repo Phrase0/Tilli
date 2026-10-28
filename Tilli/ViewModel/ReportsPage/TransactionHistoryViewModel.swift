@@ -48,7 +48,6 @@ class TransactionHistoryViewModel: ObservableObject {
     // Transaction History 相關狀態
     @Published var transactions: [TransactionModel] = []
     @Published var groupedTransactions: [DailyTransactionGroup] = []
-    @Published var expandedTransactionIds: Set<UUID> = []
     @Published var expandedDailyGroupIds: Set<Date> = []  // 日期分組展開狀態
     @Published var currentTimeRange: ReportTimeRange?
 
@@ -242,22 +241,23 @@ class TransactionHistoryViewModel: ObservableObject {
         DiscountCalculator.deductionText(for: transaction)
     }
 
-    // MARK: - 交易展開/收合
-    
-    func toggleTransactionExpansion(_ transactionId: UUID) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if expandedTransactionIds.contains(transactionId) {
-                expandedTransactionIds.remove(transactionId)
-            } else {
-                expandedTransactionIds.insert(transactionId)
-            }
-        }
+    // MARK: - 交易明細
+
+    /// 明細頁與卡片共用的還原結果（只讀交易快照）
+    func breakdown(for transaction: TransactionModel) -> TransactionBreakdown {
+        TransactionBreakdown(transaction: transaction)
     }
-    
-    func isTransactionExpanded(_ transactionId: UUID) -> Bool {
-        return expandedTransactionIds.contains(transactionId)
+
+    /// 卡片「共 N 項商品」：套餐算 1 項、同一商品的拆列算 1 項
+    func itemCount(for transaction: TransactionModel) -> Int {
+        breakdown(for: transaction).itemCount
     }
-    
+
+    /// 優惠明細的折抵金額，例如 `-NT$40`
+    func formatDeduction(_ amount: Decimal, currency: String) -> String {
+        "-" + formatAmount(amount, currency: currency)
+    }
+
     // MARK: - 日期分組展開/收合
     
     /// 切換日期分組的展開/收合狀態
