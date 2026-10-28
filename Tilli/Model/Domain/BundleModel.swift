@@ -64,3 +64,20 @@ extension BundleModel {
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date(timeIntervalSince1970: 0)
     }
 }
+
+extension BundleModel {
+    /// 複製場次用：換新 bundle id，productIds 依對照表換成新商品 id；任一成員不在對照表 → nil。
+    /// 保留名稱／價格／mode／停用狀態／createdAt（維持列表順序）；imageURL 清空（新圖待同步上傳）。
+    func remapped(productIdMap: [UUID: UUID]) -> BundleModel? {
+        var newProductIds: [UUID] = []
+        for oldId in productIds {
+            guard let newId = productIdMap[oldId] else { return nil }
+            newProductIds.append(newId)
+        }
+        var copy = self
+        copy.id = UUID()
+        copy.productIds = newProductIds
+        copy.imageURL = nil
+        return copy
+    }
+}

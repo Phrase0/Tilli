@@ -361,6 +361,7 @@ class EventRepository: ObservableObject {
 
             // 複製所有 Categories 和 Products（按 sortOrder 排序以保持順序）
             var inventoryChangeEntities: [CDInventoryChangeEntity] = []
+            var productIdMap: [UUID: UUID] = [:]   // 舊商品 id → 新商品 id（套餐成員重對應用）
 
             if let originalCategories = originalEntity.categories as? Set<CDCategoryEntity> {
                 let sortedCategories = originalCategories.sorted { $0.sortOrder < $1.sortOrder }
@@ -380,6 +381,7 @@ class EventRepository: ObservableObject {
                         for originalProduct in originalProducts {
                             let newProductEntity = CDProductEntity(context: context)
                             newProductEntity.id = UUID()
+                            productIdMap[originalProduct.id] = newProductEntity.id
                             newProductEntity.eventId = newEventEntity.id
                             newProductEntity.name = originalProduct.name
                             newProductEntity.price = originalProduct.price
@@ -412,6 +414,23 @@ class EventRepository: ObservableObject {
                         }
                     }
                 }
+            }
+
+            // 複製套餐與組合：成員換成新商品 id，照片帶到新套餐
+            if let data = originalEntity.bundlesData,
+               let originalBundles = try? JSONDecoder().decode([BundleModel].self, from: data) {
+                var newBundles: [BundleModel] = []
+                for original in originalBundles {
+                    guard let copy = original.remapped(productIdMap: productIdMap) else {
+                        // duplicateEvent 會複製全部商品，正常不會發生
+                        print("複製場次：套餐「\(original.name)」有成員不在商品對照表，已略過")
+                        assertionFailure("bundle member missing from product id map")
+                        continue
+                    }
+                    BundleImageStore.copy(from: original.id, to: copy.id)
+                    newBundles.append(copy)
+                }
+                newEventEntity.bundlesData = try? JSONEncoder().encode(newBundles)
             }
 
             if saveContext() {
