@@ -47,13 +47,16 @@ struct POSView: View {
             }
         }
         .sheet(isPresented: $showCheckoutSheet) {
+            let pricing = viewModel.pricing
+            let summary = pricing.summaryItems(categoryName: viewModel.categoryName(for:), timestamp: Date())
             CheckoutFlowView(
                 isPresented: $showCheckoutSheet,
                 checkoutCompleted: $checkoutCompleted,
                 event: event,
-                selectedItems: viewModel.selectedProductsWithQuantity(),
-                totalAmount: viewModel.totalAmount(),
-                appliedDiscounts: viewModel.appliedDiscounts()
+                selectedItems: summary.items,
+                totalAmount: pricing.total,
+                appliedDiscounts: pricing.discounts,
+                bundleDeductions: summary.bundleDeductions
             )
         }
         .onChange(of: checkoutCompleted) {
@@ -259,7 +262,10 @@ struct POSView: View {
                 .disabled(viewModel.subtotal() == 0)
 
                 Button {
-                    showCheckoutSheet = true
+                    // 有失效的套餐行就不開結帳（由 invalidBundleLines 通知使用者）
+                    if viewModel.prepareCheckout() {
+                        showCheckoutSheet = true
+                    }
                 } label: {
                     Text("posCheckoutButton")
                         .font(.system(size: 16, weight: .semibold))

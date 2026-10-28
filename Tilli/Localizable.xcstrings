@@ -1530,6 +1530,74 @@
         }
       }
     },
+    "bundleReasonDisabled" : {
+      "comment" : "套餐已下架",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This bundle is unavailable"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐已下架"
+          }
+        }
+      }
+    },
+    "bundleReasonMemberMissing" : {
+      "comment" : "套餐內有商品已不存在",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A product in this bundle no longer exists"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "套餐內有商品已不存在"
+          }
+        }
+      }
+    },
+    "bundleReasonOutOfStock %@" : {
+      "comment" : "「%@」缺貨",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" is out of stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」缺貨"
+          }
+        }
+      }
+    },
+    "bundleReasonUnavailable %@" : {
+      "comment" : "「%@」已下架",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" is unavailable"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」已下架"
+          }
+        }
+      }
+    },
     "calendarMonthSuffix %lld" : {
       "localizations" : {
         "en" : {
