@@ -432,9 +432,26 @@ class AddEventViewModel: ObservableObject {
         showAlert = true
     }
     
+    /// 類別底下的商品被哪些套餐／組合引用（刪除類別會連帶刪除商品，所以要擋，設計 §4.3）
+    func bundlesReferencing(categoryId: UUID) -> [BundleModel] {
+        guard let event = editingEvent, let productRepo = productRepository else { return [] }
+        let productIds = productRepo.fetchProducts(forEventId: event.id)
+            .filter { $0.categoryId == categoryId }
+            .map(\.id)
+        return BundleValidator.bundles(referencingAnyOf: productIds, in: event.bundles)
+    }
+
     /// 處理刪除操作
     func handleDeleteAction(for category: CategoryModel) {
-        if hasProducts(for: category.id) {
+        let referencing = bundlesReferencing(categoryId: category.id)
+        if !referencing.isEmpty {
+            // 拒絕：只提醒、不刪除（與 EventRepository 的守衛同一份判斷）
+            // 此類別的商品被以下套餐／組合使用：%@。請先修改或刪除它們。
+            let names = referencing.map(\.name).joined(separator: "、")
+            alertMessage = String.localized("addEventCategoryReferencedByBundles \(names)")
+            resetDeletionState()
+            showAlert = true
+        } else if hasProducts(for: category.id) {
             // 有商品 → 警告後再刪除
             // 此類別仍有產品，確定要刪除嗎？
             alertMessage = String.localized("addEventCategoryHasProducts")

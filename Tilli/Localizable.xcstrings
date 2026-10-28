@@ -1136,6 +1136,23 @@
         }
       }
     },
+    "addEventCategoryReferencedByBundles %@" : {
+      "comment" : "此類別的商品被以下套餐／組合使用：%@。請先修改或刪除它們。",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Products in this category are used by these bundles/combos: %@. Edit or delete them first."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此類別的商品被以下套餐／組合使用：%@。請先修改或刪除它們。"
+          }
+        }
+      }
+    },
     "addEventConfirmDeleteTitle" : {
       "localizations" : {
         "en" : {

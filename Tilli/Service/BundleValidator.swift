@@ -74,6 +74,12 @@ enum BundleValidator {
         bundles.filter { $0.productIds.contains(productId) }
     }
 
+    /// 引用到其中任一商品的套餐／組合（刪除類別守衛用：類別會連帶刪除底下所有商品）
+    static func bundles(referencingAnyOf productIds: [UUID], in bundles: [BundleModel]) -> [BundleModel] {
+        let ids = Set(productIds)
+        return bundles.filter { $0.productIds.contains(where: ids.contains) }
+    }
+
     /// 若把 productId 改成 newPrice，會違反價格條件的套餐／組合（改價守衛用）
     static func bundlesViolated(byPrice newPrice: Decimal, of productId: UUID, bundles: [BundleModel], products: [UUID: ProductModel]) -> [BundleModel] {
         guard var changed = products[productId] else { return [] }

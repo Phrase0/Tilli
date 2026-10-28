@@ -126,7 +126,12 @@ class EventRepository: ObservableObject {
             print("saveBundles: event not found")
             return false
         }
-        entity.bundlesData = try? JSONEncoder().encode(bundles)
+        // 編碼失敗就不寫：寫入 nil 等於清空所有套餐，還會回報成功
+        guard let data = try? JSONEncoder().encode(bundles) else {
+            print("saveBundles: encode failed")
+            return false
+        }
+        entity.bundlesData = data
         entity.markPendingSync()
         guard saveContext() else { return false }
         fetchEvents()
@@ -209,10 +214,21 @@ class EventRepository: ObservableObject {
         // ⭐ 判斷一律用 `SummaryItem.categoryId` 快照（`TransactionIndex`），
         // 與 `AddEventViewModel.getSwipeAction` 用同一份答案（A1）。
         // 原本 repository 用「該類別目前的商品清單」推算，商品被搬走後答案就會跟 UI 相反。
+        //
+        // 刪除類別會 Cascade 刪掉底下商品，所以底下有商品被套餐／組合引用時也不予刪除（設計 §4.3），
+        // 否則套餐會留下指向不存在商品的 productIds。設定頁（`AddEventViewModel.handleDeleteAction`）
+        // 會先擋住並列出套餐名，這裡是最後一道防線。
         let index = transactionIndex(forEventId: entity.id)
+        let eventBundles = entity.bundlesData.flatMap { try? JSONDecoder().decode([BundleModel].self, from: $0) } ?? []
         for categoryEntity in categoriesToDelete {
             guard let index, !index.hasTransaction(categoryId: categoryEntity.id) else {
                 print("🔴 類別「\(categoryEntity.name)」已有交易紀錄（或索引建立失敗），不予刪除")
+                continue
+            }
+            let productIds = (categoryEntity.products as? Set<CDProductEntity> ?? []).map(\.id)
+            let referencing = BundleValidator.bundles(referencingAnyOf: productIds, in: eventBundles)
+            guard referencing.isEmpty else {
+                print("🔴 類別「\(categoryEntity.name)」的商品被套餐／組合使用（\(referencing.map(\.name).joined(separator: "、"))），不予刪除")
                 continue
             }
             changes.deletedIds.append(categoryEntity.id)

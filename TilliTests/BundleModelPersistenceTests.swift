@@ -97,6 +97,19 @@ final class BundleModelPersistenceTests: XCTestCase {
         XCTAssertFalse(repository.saveBundles([BundleModel.fixedMock()], forEventId: UUID()))
     }
 
+    func testSaveBundlesReturnsFalseAndKeepsExistingBundlesWhenEncodingFails() {
+        let event = makeEvent()
+        let bundles = [BundleModel.fixedMock(name: "原本的套餐")]
+        XCTAssertTrue(repository.saveBundles(bundles, forEventId: event.id))
+
+        // NaN 日期無法編成 JSON → encode 失敗
+        var broken = BundleModel.fixedMock(name: "壞掉的套餐")
+        broken.createdAt = Date(timeIntervalSinceReferenceDate: .nan)
+
+        XCTAssertFalse(repository.saveBundles([broken], forEventId: event.id))
+        XCTAssertEqual(EventModel(entity: event).bundles, bundles, "編碼失敗不可清掉既有套餐")
+    }
+
     func testUpdateEventDoesNotOverwriteBundles() {
         let event = makeEvent()
         let bundles = [BundleModel.fixedMock()]
