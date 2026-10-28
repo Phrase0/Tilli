@@ -12,6 +12,7 @@ struct CheckoutSummaryView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Decimal
     let appliedDiscounts: [AppliedDiscount]
+    var bundleDeductions: [RevenueAllocator.BundleDeduction] = []
 
     let event: EventModel
 
@@ -178,6 +179,7 @@ struct CheckoutSummaryView: View {
                 event: event,
                 summaryItems: selectedItems,
                 appliedDiscounts: appliedDiscounts,
+                bundleDeductions: bundleDeductions,
                 occurredAt: viewModel.occurredAtValue
             )
         }
@@ -187,6 +189,7 @@ struct CheckoutSummaryView: View {
                 event: event,
                 summaryItems: selectedItems,
                 appliedDiscounts: appliedDiscounts,
+                bundleDeductions: bundleDeductions,
                 occurredAt: viewModel.occurredAtValue
             )
         }

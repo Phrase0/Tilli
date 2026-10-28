@@ -28,6 +28,7 @@ struct CashPaymentView: View {
         event: EventModel,
         summaryItems: [SummaryItemModel],
         appliedDiscounts: [AppliedDiscount] = [],
+        bundleDeductions: [RevenueAllocator.BundleDeduction] = [],
         occurredAt: Date? = nil
     ) {
         self.event = event
@@ -36,6 +37,7 @@ struct CashPaymentView: View {
             event: event,
             summaryItems: summaryItems,
             appliedDiscounts: appliedDiscounts,
+            bundleDeductions: bundleDeductions,
             occurredAt: occurredAt
         ))
     }

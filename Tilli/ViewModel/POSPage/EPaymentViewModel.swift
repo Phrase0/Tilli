@@ -14,16 +14,18 @@ class EPaymentViewModel: ObservableObject {
     let event: EventModel
     let summaryItems: [SummaryItemModel]
     let appliedDiscounts: [AppliedDiscount]
+    let bundleDeductions: [RevenueAllocator.BundleDeduction]
     let occurredAt: Date?  // 補記帳時的實際發生時間
 
     @Published var showDateWarning: Bool = false
     @Published var dateWarningMessage: String = ""
 
-    init(totalAmount: Decimal, event: EventModel, summaryItems: [SummaryItemModel], appliedDiscounts: [AppliedDiscount] = [], occurredAt: Date? = nil) {
+    init(totalAmount: Decimal, event: EventModel, summaryItems: [SummaryItemModel], appliedDiscounts: [AppliedDiscount] = [], bundleDeductions: [RevenueAllocator.BundleDeduction] = [], occurredAt: Date? = nil) {
         self.totalAmount = totalAmount
         self.event = event
         self.summaryItems = summaryItems
         self.appliedDiscounts = appliedDiscounts
+        self.bundleDeductions = bundleDeductions
         self.occurredAt = occurredAt
     }
 
@@ -44,75 +46,29 @@ class EPaymentViewModel: ObservableObject {
         productRepository: ProductRepository,
         inventoryChangeRepository: InventoryChangeRepository
     ) {
-
-        // 批次更新產品庫存
-        var stockUpdates: [UUID: Int] = [:]
-
-        // 首先獲取所有相關產品
-        let allProducts = productRepository.fetchProducts(forEventId: event.id)
-        let productDict = Dictionary(uniqueKeysWithValues: allProducts.map { ($0.id, $0) })
-
-        // 準備批次更新數據
-        for item in summaryItems {
-            guard let currentProduct = productDict[item.productId] else {
-                print("⚠️ 無法在 CoreData 中找到對應的 productId: \(item.productId)")
-                continue
-            }
-
-            let newStock = max(currentProduct.stock - item.quantity, 0)
-            stockUpdates[item.productId] = newStock
-        }
-
-        // 執行批次更新
-        let success = productRepository.batchUpdateProductStock(stockUpdates)
-        if !success {
+        // 批次更新產品庫存（同一商品多列會累加）
+        let currentStock = Dictionary(
+            uniqueKeysWithValues: productRepository.fetchProducts(forEventId: event.id).map { ($0.id, $0.stock) }
+        )
+        let stockUpdates = CheckoutRecorder.stockUpdates(for: summaryItems, currentStock: currentStock)
+        if !productRepository.batchUpdateProductStock(stockUpdates) {
             print("🔴 批次更新產品庫存失敗")
         }
 
-        // 寫進流水帳前收斂折抵金額 —— 不依賴呼叫端先算對
-        // （CONVENTIONS.md「保護要放在寫入邊界」）
-        let safeDiscounts = DiscountCalculator.sanitized(
-            appliedDiscounts,
-            subtotal: summaryItems.subtotal
-        )
-
-        // 結帳當下就把折扣攤到每一項，報表只做加總（FEATURE_PLAN_V1.md §7）
-        let allocatedItems = RevenueAllocator.allocate(
-            summaryItems,
-            discounts: safeDiscounts,
-            currency: event.currency
-        )
-
-        // 創建交易記錄
-        let transaction = TransactionModel(
-            eventId: event.id,
-            eventTitle: event.title,
-            currency: event.currency,
-            items: allocatedItems,
+        let record = CheckoutRecorder.makeRecord(
+            event: event,
+            items: summaryItems,
+            bundleDeductions: bundleDeductions,
+            appliedDiscounts: appliedDiscounts,
             totalAmount: totalAmount,
             paymentMethod: .ePayment,
-            timestamp: Date(),
             occurredAt: occurredAt,
-            appliedDiscounts: safeDiscounts
+            now: Date()
         )
 
-        // 使用 EventDataManager 添加交易記錄
-        eventDataManager.addTransaction(transaction)
-
-        // 記錄庫存異動（銷售出庫）
-        let changeTimestamp = occurredAt ?? Date()
-        for item in summaryItems {
-            let inventoryChange = InventoryChangeModel(
-                productId: item.productId,
-                change: -item.quantity,
-                reason: .salesOut,
-                customReason: nil,
-                transactionId: transaction.id,
-                timestamp: changeTimestamp
-            )
-            inventoryChangeRepository.addChange(inventoryChange, eventId: event.id)
+        eventDataManager.addTransaction(record.transaction)
+        for change in record.inventoryChanges {
+            inventoryChangeRepository.addChange(change, eventId: event.id)
         }
-
-        // 直接返回原 event，UI 更新由 onChange(of: checkoutCompleted) 處理
     }
 }

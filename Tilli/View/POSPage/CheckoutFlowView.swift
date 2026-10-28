@@ -27,6 +27,7 @@ struct CheckoutFlowView: View {
     let selectedItems: [SummaryItemModel]
     let totalAmount: Decimal
     let appliedDiscounts: [AppliedDiscount]
+    var bundleDeductions: [RevenueAllocator.BundleDeduction] = []
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,7 @@ struct CheckoutFlowView: View {
                 selectedItems: selectedItems,
                 totalAmount: totalAmount,
                 appliedDiscounts: appliedDiscounts,
+                bundleDeductions: bundleDeductions,
                 event: event
             )
         }
