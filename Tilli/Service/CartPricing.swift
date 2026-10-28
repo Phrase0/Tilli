@@ -47,7 +47,7 @@ struct CartPricing: Equatable {
     // MARK: - 定價
 
     /// 購物車 → 定價明細。
-    /// 套餐行用 `bundles` 裡的現行套餐計價，找不到的行略過（失效行由收銀頁另行處理）；
+    /// 套餐行用 `bundles` 裡的現行套餐計價；套餐或任一成員找不到的行略過（失效行由收銀頁另行處理）；
     /// 單點商品找不到的也略過。組合只取 `bundles` 中 `.chooseAny` 的，交給 `ComboApplier`。
     static func price(
         cart: Cart,
@@ -58,7 +58,10 @@ struct CartPricing: Equatable {
     ) -> CartPricing {
         let bundleRows = cart.bundleLines
             .compactMap { id, line -> BundleRow? in
-                guard line.quantity > 0, let bundle = bundles[id] else { return nil }
+                // 套餐或任一成員不存在 → 整行略過，定價與 summaryItems 才不會對不起來
+                guard line.quantity > 0,
+                      let bundle = bundles[id],
+                      bundle.productIds.allSatisfy({ products[$0] != nil }) else { return nil }
                 return BundleRow(
                     bundle: bundle,
                     quantity: line.quantity,
@@ -119,7 +122,7 @@ struct CartPricing: Equatable {
     /// - 一個商品被兩個組合涵蓋時，每個組合各一列（依 `combos` 的套用順序），再接未涵蓋的一列。
     /// - 套餐差額 = (Σ 成員單價 − 套餐價) × 份數；組合差額 = `ComboApplication.deduction`。
     ///
-    /// 前提：套餐成員都在 `products` 內（失效的套餐行由結帳前的檢查拒絕）。
+    /// `bundleRows` 只含成員齊全的套餐（`price` 已過濾），所以每個成員都查得到。
     func summaryItems(
         categoryName: (UUID) -> String,
         timestamp: Date

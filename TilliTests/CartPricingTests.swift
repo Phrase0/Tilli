@@ -120,6 +120,23 @@ final class CartPricingTests: XCTestCase {
         XCTAssertEqual(pricing.subtotal, 240)
     }
 
+    func testBundleWithMissingMemberIsSkippedAndStillReconciles() {
+        // 抹茶不在 products 裡 → 下午茶套餐整行略過
+        let pricing = price(
+            mockupCart,
+            products: [daifuku, redBean, strawberry, mango],
+            discounts: [.percentage(10), .amount(25)]
+        )
+
+        XCTAssertTrue(pricing.bundleRows.isEmpty)
+        XCTAssertEqual(pricing.subtotal, 240)
+
+        let items = checkout(pricing)
+        XCTAssertFalse(items.contains { $0.bundleId == teaSet.id })
+        XCTAssertEqual(sum(items.map(\.actualRevenue)), pricing.total)
+        XCTAssertTrue(items.allSatisfy { $0.bundleDiscount >= 0 && $0.actualRevenue >= 0 })
+    }
+
     // MARK: - 結帳寫入
 
     func testSummaryItemsReconcileToTotal() {
