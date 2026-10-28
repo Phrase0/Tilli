@@ -23,7 +23,8 @@ enum RevenueAllocator {
         let amount: Decimal
     }
 
-    /// 依 §7.3 的順序攤提，回傳寫好 `allocatedDiscount` 的項目（順序不變）。
+    /// 依 §7.3 的順序攤提，回傳寫好 `allocatedDiscount`、`bundleDiscount` 的項目（順序不變）。
+    /// `bundleDiscount` 只記步驟 ② 分到的部分；`allocatedDiscount` 是 ②③④ 的合計。
     ///
     /// ① 原價小計 → ② 套餐差額（只攤給成員）→ ③④ 整筆折扣依序攤給所有項目
     /// 每一步都按「前一步之後」的剩餘金額比例分配。
@@ -54,15 +55,17 @@ enum RevenueAllocator {
             let members = items.indices.filter { items[$0].bundleId == bundle.bundleId }
             distribute(bundle.amount, among: members)
         }
+        let bundleShares = allocated
 
         // ③ 百分比 → ④ 定額（順序由 discounts 陣列決定）
         for discount in discounts {
             distribute(discount.amount, among: Array(items.indices))
         }
 
-        return zip(items, allocated).map { item, discount in
-            var item = item
-            item.allocatedDiscount = discount
+        return items.indices.map { index in
+            var item = items[index]
+            item.allocatedDiscount = allocated[index]
+            item.bundleDiscount = bundleShares[index]
             return item
         }
     }

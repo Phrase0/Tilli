@@ -99,6 +99,51 @@ final class RevenueAllocatorTests: XCTestCase {
         XCTAssertNotEqual(result[0].allocatedDiscount - 25, result[2].allocatedDiscount)
     }
 
+    // MARK: - bundleDiscount（第 5 批 5.5）
+
+    /// `bundleDiscount` 只記步驟 ② 分到的部分；整筆折扣分到的留在 `allocatedDiscount − bundleDiscount`。
+    func testBundleDiscountRecordsOnlyTheBundleStepShare() {
+        let bundleId = UUID()
+        let items: [SummaryItemModel] = [
+            .mock(price: 40, bundleId: bundleId),
+            .mock(price: 60, bundleId: bundleId),
+            .mock(price: 20, bundleId: bundleId),
+            .mock(price: 100)
+        ]
+        // 220 − 20（套餐差額）= 200 → 10% 折 20
+        let result = RevenueAllocator.allocate(
+            items,
+            bundles: [.init(bundleId: bundleId, amount: 20)],
+            discounts: [.mock(type: .percentage, value: 10, amount: 20)],
+            currency: "TWD"
+        )
+
+        XCTAssertEqual(MoneyHelper.sum(result.map(\.bundleDiscount)), 20)
+        XCTAssertEqual(result[3].bundleDiscount, 0)
+        let transactionShares = result.map { MoneyHelper.subtract($0.allocatedDiscount, $0.bundleDiscount) }
+        XCTAssertEqual(MoneyHelper.sum(transactionShares), 20)
+        XCTAssertTrue(transactionShares.allSatisfy { $0 >= 0 })
+    }
+
+    /// 設計 §5.1：大福 40、抹茶 60、紅豆 20（合計 120）賣 100 → 實收 34／49／17
+    func testAfternoonTeaSetAllocatesThirtyFourFortyNineSeventeen() {
+        let bundleId = UUID()
+        let items: [SummaryItemModel] = [
+            .mock(name: "大福", price: 40, bundleId: bundleId),
+            .mock(name: "抹茶", price: 60, bundleId: bundleId),
+            .mock(name: "紅豆", price: 20, bundleId: bundleId)
+        ]
+        let result = RevenueAllocator.allocate(
+            items,
+            bundles: [.init(bundleId: bundleId, amount: 20)],
+            discounts: [],
+            currency: "TWD"
+        )
+
+        XCTAssertEqual(result.map(\.actualRevenue), [34, 49, 17])
+        XCTAssertEqual(result.map(\.bundleDiscount), [6, 11, 3])
+    }
+
     func testPercentageThenAmountAllocatedSequentially() {
         let items: [SummaryItemModel] = [.mock(price: 300), .mock(price: 100)]
         // 400 九折 → 折 40，剩 360；再 −36
