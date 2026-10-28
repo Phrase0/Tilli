@@ -21,6 +21,8 @@ extension CDInventoryChangeEntity {
     @NSManaged public var customReason: String?
     @NSManaged public var transactionId: UUID?
     @NSManaged public var timestamp: Date
+    @NSManaged public var bundleId: UUID?        // 來自哪個組合／套餐
+    @NSManaged public var bundleName: String?    // 組合名稱快照
     @NSManaged public var event: CDEventEntity?
     @NSManaged public var product: CDProductEntity?
 
@@ -42,6 +44,8 @@ extension CDInventoryChangeEntity {
         self.transactionId = model.transactionId
         self.timestamp = model.timestamp
         self.eventId = model.eventId
+        self.bundleId = model.bundleId
+        self.bundleName = model.bundleName
     }
 
     func toModel() -> InventoryChangeModel {

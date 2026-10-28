@@ -84,6 +84,8 @@ struct InventoryChangeModel: Identifiable, Codable {
     var transactionId: UUID?               // 關聯的交易 ID（僅銷售出庫時有值）
     var timestamp: Date
     var eventId: UUID?                   // Firestore 同步用
+    var bundleId: UUID? = nil              // 來自哪個組合／套餐（銷售出庫時）
+    var bundleName: String? = nil          // 組合名稱快照
 
     /// 格式化的變化量文字（如 +10 或 -3）
     var changeText: String {
@@ -114,5 +116,7 @@ extension InventoryChangeModel {
         self.transactionId = entity.transactionId
         self.timestamp = entity.timestamp
         self.eventId = entity.eventId ?? entity.event?.id
+        self.bundleId = entity.bundleId
+        self.bundleName = entity.bundleName
     }
 }

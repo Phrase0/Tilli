@@ -116,6 +116,24 @@ class EventRepository: ObservableObject {
         }
     }
 
+    /// 儲存場次的組合與套餐。`updateEvent` 刻意不寫 `bundlesData`（避免設定頁的舊快照覆蓋），
+    /// 套餐一律走這裡。找不到場次回傳 false。
+    @discardableResult
+    func saveBundles(_ bundles: [BundleModel], forEventId eventId: UUID) -> Bool {
+        let request: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
+        guard let entity = try? context.fetch(request).first else {
+            print("saveBundles: event not found")
+            return false
+        }
+        entity.bundlesData = try? JSONEncoder().encode(bundles)
+        entity.markPendingSync()
+        guard saveContext() else { return false }
+        fetchEvents()
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+        return true
+    }
+
     /// 更新 Event（包含 Category 的變更處理）
     func updateEvent(_ model: EventModel) {
         // 驗證場次資料

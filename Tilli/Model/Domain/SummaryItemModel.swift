@@ -24,6 +24,10 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
     var bundleId: UUID? = nil
     /// 快照：組合名稱
     var bundleName: String? = nil
+    /// 快照：`allocatedDiscount` 中來自套餐／組合價差額的部分（其餘為整筆折扣分到的）
+    var bundleDiscount: Decimal = 0
+    /// 快照：套餐或組合，歷史明細靠它決定顯示方式
+    var bundleKind: BundleKind? = nil
 
     /// 原價小計（折扣前）= 單價 × 數量。即 §7.2 的 `originalSubtotal`。
     var total: Decimal {
@@ -42,7 +46,7 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
 extension SummaryItemModel {
     private enum CodingKeys: String, CodingKey {
         case id, productId, name, price, categoryId, category, quantity, timestamp
-        case allocatedDiscount, bundleId, bundleName
+        case allocatedDiscount, bundleId, bundleName, bundleDiscount, bundleKind
     }
 
     /// 第 4 批之前寫入的 itemsData 沒有 `allocatedDiscount`，解碼成 0 而不是失敗
@@ -60,6 +64,8 @@ extension SummaryItemModel {
         allocatedDiscount = try c.decodeIfPresent(Decimal.self, forKey: .allocatedDiscount) ?? 0
         bundleId = try c.decodeIfPresent(UUID.self, forKey: .bundleId)
         bundleName = try c.decodeIfPresent(String.self, forKey: .bundleName)
+        bundleDiscount = try c.decodeIfPresent(Decimal.self, forKey: .bundleDiscount) ?? 0
+        bundleKind = try c.decodeIfPresent(BundleKind.self, forKey: .bundleKind)
     }
 }
 

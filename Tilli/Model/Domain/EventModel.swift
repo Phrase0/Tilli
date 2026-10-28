@@ -17,6 +17,7 @@ struct EventModel: Identifiable, Codable, Hashable {
     var createdAt: Date                 // 場次建立時間
     var currency: String = "TWD"        // 場次使用的幣別，預設為台幣
     var discounts: [DiscountModel] = [] // 場次可用的折扣選項
+    var bundles: [BundleModel] = []     // 場次的組合與套餐
 
     // 計算屬性：顯示用的日期（= startDate）
     var displayDate: Date {
@@ -166,6 +167,14 @@ extension EventModel {
             self.discounts = decoded
         } else {
             self.discounts = []
+        }
+
+        // 解碼 bundles
+        if let data = entity.bundlesData,
+           let decoded = try? JSONDecoder().decode([BundleModel].self, from: data) {
+            self.bundles = decoded
+        } else {
+            self.bundles = []
         }
     }
 }

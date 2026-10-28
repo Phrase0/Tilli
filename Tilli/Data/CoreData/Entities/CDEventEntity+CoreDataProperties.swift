@@ -24,6 +24,7 @@ extension CDEventEntity {
     @NSManaged public var createdAt: Date
     @NSManaged public var currency: String
     @NSManaged public var discountsData: Data?   // 折扣選項（JSON 編碼）
+    @NSManaged public var bundlesData: Data?     // 組合與套餐（JSON 編碼的 [BundleModel]）
     @NSManaged public var categories: NSSet
     @NSManaged public var transactions: NSSet?
     @NSManaged public var inventoryChanges: NSSet?
@@ -96,6 +97,7 @@ extension CDEventEntity {
         self.createdAt = model.createdAt
         self.currency = model.currency
         self.discountsData = try? JSONEncoder().encode(model.discounts)
+        self.bundlesData = try? JSONEncoder().encode(model.bundles)
     }
 
     func toModel() -> EventModel {

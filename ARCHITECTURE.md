@@ -114,7 +114,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `dateType` | L | 現有 | single / multi / permanent。multi 與 permanent 需要 Pro |
 | `currency` | L | 現有 | |
 | `discountsData` | L | 現有 | `[DiscountModel]` 的 JSON。見 §5 |
-| `bundlesData` | L | **新增** | `[BundleModel]` 的 JSON（組合／套餐）。見 §5 |
+| `bundlesData` | L | 現有 | `[BundleModel]` 的 JSON（組合／套餐）。見 §5 |
 | `createdAt` | R | 現有 | |
 | `updatedAt` | M | 現有 | LWW + cursor |
 | `userId` | M | 現有 | |
@@ -194,8 +194,8 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `transactionId` | R | 現有 | 僅銷售出庫時有值 |
 | `timestamp` | S | 現有 | |
 | `eventId` | R | 現有 | |
-| `bundleId` | R | **新增** | 來自哪個組合／套餐 |
-| `bundleName` | S | **新增** | 組合名稱快照 |
+| `bundleId` | R | 現有 | 來自哪個組合／套餐 |
+| `bundleName` | S | 現有 | 組合名稱快照 |
 | `updatedAt` | M | 現有 | ⚠️ pull cursor 必需 |
 | `userId` | M | 現有 | |
 | `syncStatus` | M·X | 現有 | |
@@ -266,8 +266,8 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `bundleName` | S | 現有 | |
 | `total`（= `originalSubtotal`） | D | 現有 | 計算屬性：price × quantity，不存 |
 | `actualRevenue` | D | 現有 | 計算屬性：total − allocatedDiscount，不存 |
-| `bundleDiscount` | S | **新增** | `allocatedDiscount` 中來自套餐／組合價差額的部分（第 5 批；`RevenueAllocator` 寫入）。整筆折扣分到的部分 = `allocatedDiscount − bundleDiscount` |
-| `bundleKind` | S | **新增** | 套餐（fixed）或組合（chooseAny）的快照，歷史明細靠它決定顯示方式（第 5 批） |
+| `bundleDiscount` | S | 現有 | `allocatedDiscount` 中來自套餐／組合價差額的部分（第 5 批；`RevenueAllocator` 寫入）。整筆折扣分到的部分 = `allocatedDiscount − bundleDiscount` |
+| `bundleKind` | S | 現有 | 套餐（fixed）或組合（chooseAny）的快照，歷史明細靠它決定顯示方式（第 5 批） |
 
 ### DiscountModel（存於 `CDEventEntity.discountsData`）
 
@@ -298,13 +298,13 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 
 | 欄位 | 分類 | 狀態 | 說明 |
 |------|------|------|------|
-| `id` | R | **新增** | |
-| `name` | L | **新增** | |
-| `price` | L | **新增** | 組合價 |
-| `mode` | L | **新增** | fixed（套餐）/ chooseAny(N)（任選 N 個） |
-| `productIds` | L | **新增** | 成員或候選清單 |
-| `imageURL` | L | **新增** | 套餐照片（選填）。圖檔存本機，不放進 `bundlesData` |
-| `isDisabled` | L | **新增** | |
+| `id` | R | 現有 | |
+| `name` | L | 現有 | |
+| `price` | L | 現有 | 組合價 |
+| `mode` | L | 現有 | fixed（套餐）/ chooseAny(N)（任選 N 個） |
+| `productIds` | L | 現有 | 成員或候選清單 |
+| `imageURL` | L | 現有 | 套餐照片（選填）。圖檔存本機，不放進 `bundlesData` |
+| `isDisabled` | L | 現有 | |
 
 ---
 
@@ -346,14 +346,14 @@ python3 scripts/check_field_classification.py
 
 腳本確實抓得到漏掉的欄位，不是只會回報成功。
 
-### 目前的計畫中項目（10，2026-10-08 更新）
+### 目前的計畫中項目（7，2026-10-28 更新）
 
 | 類型 | 數量 | 內容 |
 |------|------|------|
-| ⏳ 待實作（表上有、CoreData 還沒有） | 10 | `bundlesData`、`paymentQRCodeId/Label`、InventoryChange 的 `bundleId/bundleName`、PaymentQRCode 的 5 個新欄位 |
+| ⏳ 待實作（表上有、CoreData 還沒有） | 7 | `paymentQRCodeId/Label`、PaymentQRCode 的 5 個新欄位 |
 | ⏳ 待移除（CoreData 有、表上標刪除） | 0 | 原本 11 個（`CDPendingSyncOperation` 8 個、`Product.categoryName`、`Transaction.discountType/discountValue`）都已刪除，列已從表上移除 |
 
-數字校驗：79（CoreData）+ 10（待實作）= 89（分類表列數）✅
+數字校驗：82（CoreData）+ 7（待實作）= 89（分類表列數）✅
 
 > ⚠️ 欄位真的加進／刪出 CoreData 後，要同時把這裡的狀態改成「現有」或把整列刪掉，否則腳本會回報「表過期」。
 
@@ -487,3 +487,4 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-09-12 | **執行 §8 刪除同步層**：刪 4,181 行、新增 3 個檔案、build 通過。補上初版漏掉的 `LocalDataManager`（三個純本機函式）。移除 `CDPendingSyncOperation` 段落。新增 §8.5 重建起點（20 處 SYNC-PENDING） |
 | 2026-10-08 | §5 `SummaryItemModel`：第 4 批落地。`allocatedDiscount`／`bundleId`／`bundleName` 改為現有；`originalSubtotal`／`actualRevenue` 由 S 改為 **D**（計算屬性，不存），理由見 `FEATURE_PLAN_V1.md` 第 4 批差異表 |
 | 2026-10-08 | 清理過期狀態：移除已刪除的 `Product.categoryName`、`Transaction.discountType/discountValue` 三列；`appliedDiscountsData` 與兩個 `updatedAt` 由「新增」改為「現有」；§6 計畫中項目改為 10 項。腳本恢復 0 錯誤 0 警告 |
+| 2026-10-28 | 第 5 批 5.1 落地：`bundlesData`、InventoryChange 的 `bundleId/bundleName` 加進 CoreData；§5 `SummaryItemModel.bundleDiscount/bundleKind` 與 `BundleModel` 全表改為現有；§6 待實作 10 → 7 |

@@ -171,3 +171,42 @@ extension AppliedDiscount {
         AppliedDiscount(discountId: discountId, type: type, value: value, amount: amount)
     }
 }
+
+extension BundleModel {
+    static func mock(
+        id: UUID = UUID(),
+        name: String = "測試套餐",
+        price: Decimal = 100,
+        mode: BundleMode = .fixed,
+        productIds: [UUID] = [UUID(), UUID()],
+        isDisabled: Bool = false,
+        imageURL: String? = nil,
+        createdAt: Date = Date(timeIntervalSince1970: 1_000)
+    ) -> BundleModel {
+        BundleModel(
+            id: id, name: name, price: price, mode: mode, productIds: productIds,
+            isDisabled: isDisabled, imageURL: imageURL, createdAt: createdAt
+        )
+    }
+
+    /// 固定套餐（成員全拿）
+    static func fixedMock(
+        id: UUID = UUID(),
+        name: String = "固定套餐",
+        price: Decimal = 100,
+        productIds: [UUID] = [UUID(), UUID()]
+    ) -> BundleModel {
+        mock(id: id, name: name, price: price, mode: .fixed, productIds: productIds)
+    }
+
+    /// 任選組合（從候選中選 count 個）
+    static func comboMock(
+        id: UUID = UUID(),
+        name: String = "任選組合",
+        price: Decimal = 100,
+        count: Int = 2,
+        productIds: [UUID] = [UUID(), UUID(), UUID()]
+    ) -> BundleModel {
+        mock(id: id, name: name, price: price, mode: .chooseAny(count: count), productIds: productIds)
+    }
+}
