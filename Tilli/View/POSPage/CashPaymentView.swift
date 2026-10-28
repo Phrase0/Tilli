@@ -19,7 +19,7 @@ struct CashPaymentView: View {
 
     @Environment(\.closeCheckoutFlow) private var closeFlow
 
-    @ObservedObject var viewModel: CashPaymentViewModel
+    @StateObject var viewModel: CashPaymentViewModel
 
     @AppStorage("calculatorEnabled") private var calculatorEnabled = true
 
@@ -32,7 +32,7 @@ struct CashPaymentView: View {
         occurredAt: Date? = nil
     ) {
         self.event = event
-        self._viewModel = ObservedObject(wrappedValue: CashPaymentViewModel(
+        self._viewModel = StateObject(wrappedValue: CashPaymentViewModel(
             totalAmount: totalAmount,
             event: event,
             summaryItems: summaryItems,

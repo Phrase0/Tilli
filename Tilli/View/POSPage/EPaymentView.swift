@@ -20,7 +20,7 @@ struct EPaymentView: View {
 
     @Environment(\.closeCheckoutFlow) private var closeFlow
 
-    @ObservedObject var viewModel: EPaymentViewModel
+    @StateObject var viewModel: EPaymentViewModel
 
     init(
         totalAmount: Decimal,
@@ -31,7 +31,7 @@ struct EPaymentView: View {
         occurredAt: Date? = nil
     ) {
         self.event = event
-        self._viewModel = ObservedObject(wrappedValue: EPaymentViewModel(
+        self._viewModel = StateObject(wrappedValue: EPaymentViewModel(
             totalAmount: totalAmount,
             event: event,
             summaryItems: summaryItems,
