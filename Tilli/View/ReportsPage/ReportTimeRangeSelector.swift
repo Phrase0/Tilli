@@ -129,49 +129,62 @@ struct ReportTimeRangeSelector: View {
 
     // MARK: - 自訂日期選擇器
 
+    /// 開始、結束兩欄放得下就並排；放不下（中文長日期在 iPhone 寬度約需 415pt）就上下排，
+    /// 否則整頁會被撐寬、下方清單左右溢出
     private var customDatePicker: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            HStack(spacing: DesignSystem.Spacing.md) {
-                // 開始日期
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    // 開始
-                    Text("timeRangeStart")
-                        .font(DesignSystem.Typography.caption)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: DesignSystem.Spacing.md) {
+                    startDateField
+                    Text("～")
                         .foregroundColor(DesignSystem.ColorToken.muted)
-
-                    DatePicker(
-                        "",
-                        selection: $selectedRange.customStart,
-                        in: startDateRange,
-                        displayedComponents: .date
-                    )
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
+                    endDateField
                 }
 
-                Text("～")
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-
-                // 結束日期
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    // 結束
-                    Text("timeRangeEnd")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-
-                    DatePicker(
-                        "",
-                        selection: $selectedRange.customEnd,
-                        in: endDateRange,
-                        displayedComponents: .date
-                    )
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    startDateField
+                    endDateField
                 }
             }
 
             // 驗證提示
             validationWarning
+        }
+    }
+
+    private var startDateField: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+            // 開始
+            Text("timeRangeStart")
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.ColorToken.muted)
+
+            DatePicker(
+                "",
+                selection: $selectedRange.customStart,
+                in: startDateRange,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.compact)
+        }
+    }
+
+    private var endDateField: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+            // 結束
+            Text("timeRangeEnd")
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.ColorToken.muted)
+
+            DatePicker(
+                "",
+                selection: $selectedRange.customEnd,
+                in: endDateRange,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.compact)
         }
     }
 

@@ -251,12 +251,7 @@ struct BundleFormView: View {
 
                 if isUnavailable {
                     // 已下架
-                    Text("bundleMemberDisabledTag")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .padding(.horizontal, DesignSystem.Spacing.xs)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(DesignSystem.ColorToken.quietFill))
+                    TagLabel("bundleMemberDisabledTag")
                 }
 
                 Spacer()

@@ -83,6 +83,19 @@ enum BundleAvailability {
         return .success(portions)
     }
 
+    /// 收銀頁要不要列出這個套餐（設計 §4.5）：**下架就藏、缺貨就灰**。
+    /// 套餐下架、成員不存在／下架／類別停用 → 不列（攤商決定現在不賣，與下架單品一致）；
+    /// 只是缺貨（含被購物車佔用）→ 照列，由 `check` 給原因讓卡片灰掉。
+    static func isListedOnPOS(
+        _ bundle: BundleModel,
+        products: [UUID: ProductModel],
+        categories: [CategoryModel]
+    ) -> Bool {
+        !bundle.isDisabled
+            && !bundle.productIds.isEmpty
+            && memberProblem(of: bundle, products: products, categories: categories) == nil
+    }
+
     /// 組合的管理頁警告（設計 §4.3：下架候選只是不計入，組合本身不失效）。
     /// 只有「可賣候選的庫存合計 < N」才警告（含沒有任何可賣候選）；不看購物車。
     static func comboWarning(

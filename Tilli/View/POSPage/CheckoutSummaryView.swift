@@ -263,13 +263,7 @@ struct CheckoutSummaryView: View {
 
                     if isInCombo {
                         // 含組合
-                        Text("checkoutInComboTag")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .padding(.horizontal, DesignSystem.Spacing.xxs)
-                            .padding(.vertical, 2)
-                            .background(DesignSystem.ColorToken.quietFill)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                        TagLabel("checkoutInComboTag")
                     }
                 }
 
@@ -334,8 +328,7 @@ struct CheckoutSummaryView: View {
                 .foregroundColor(DesignSystem.ColorToken.ink)
                 .padding(.horizontal, DesignSystem.Spacing.xs)
                 .padding(.vertical, DesignSystem.Spacing.xxs)
-                .background(DesignSystem.ColorToken.quietFill)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .background(Capsule().fill(DesignSystem.ColorToken.quietFill))
         }
         .buttonStyle(.plain)
     }

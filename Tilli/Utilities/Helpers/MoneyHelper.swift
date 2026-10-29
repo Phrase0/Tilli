@@ -104,6 +104,28 @@ class MoneyHelper {
         raiseOnDivideByZero: false
     )
 
+    // MARK: - 金額輸入整理（商品價格、套餐／組合價格、現金收款共用，唯一一份）
+
+    /// 把使用者輸入整理成合法的金額字串：只留數字與第一個小數點；
+    /// 小數位數依幣別（不支援小數的幣別直接去掉小數點）；`maxIntegerDigits` 有給時截斷整數位數。
+    static func sanitizeInput(_ input: String, currency: Currency, maxIntegerDigits: Int? = nil) -> String {
+        let filtered = input.filter { $0.isNumber || $0 == "." }
+
+        func limitInteger(_ digits: String) -> String {
+            guard let maxIntegerDigits else { return digits }
+            return String(digits.prefix(maxIntegerDigits))
+        }
+
+        guard currency.decimalPlaces > 0 else {
+            return limitInteger(filtered.filter { $0 != "." })
+        }
+
+        let parts = filtered.split(separator: ".", omittingEmptySubsequences: false)
+        let integerPart = limitInteger(String(parts[0]))
+        guard parts.count > 1 else { return integerPart }
+        return integerPart + "." + String(parts[1].prefix(currency.decimalPlaces))
+    }
+
     // MARK: - 基本運算（保留完整精度，不四捨五入）
 
     static func add(_ a: Decimal, _ b: Decimal, roundingMode: RoundingMode? = nil) -> Decimal {

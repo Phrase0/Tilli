@@ -447,7 +447,7 @@ class AddEventViewModel: ObservableObject {
         if !referencing.isEmpty {
             // 拒絕：只提醒、不刪除（與 EventRepository 的守衛同一份判斷）
             // 此類別的商品被以下套餐／組合使用：%@。請先修改或刪除它們。
-            let names = referencing.map(\.name).joined(separator: "、")
+            let names = referencing.map(\.name).joinedAsList()
             alertMessage = String.localized("addEventCategoryReferencedByBundles \(names)")
             resetDeletionState()
             showAlert = true

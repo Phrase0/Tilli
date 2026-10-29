@@ -24,6 +24,8 @@ enum ComboApplier {
     ///
     /// 套用順序：每件平均價（price ÷ N）低者先；同分 N 大者先；再以 id.uuidString 升冪。
     /// 單位順序：單價高到低；同價以 productId.uuidString 升冪。每滿 N 個成一組，不足 N 不套用。
+    /// 折抵為 0 的組合不套用（價格剛好等於 N × 最低候選單價時允許儲存，客人拿的都是最便宜的就沒省錢）：
+    /// 不顯示 0 元的組合行，也不標「含組合」。
     static func apply(
         cart: Cart,
         combos: [BundleModel],
@@ -74,18 +76,23 @@ enum ComboApplier {
                 let take = min(remaining[product.id] ?? 0, toTake)
                 guard take > 0 else { continue }
                 covered[product.id] = take
-                remaining[product.id, default: 0] -= take
                 toTake -= take
                 originalTotal = MoneyHelper.add(originalTotal, MoneyHelper.multiply(product.price, Decimal(take)))
             }
 
             let comboTotal = MoneyHelper.multiply(combo.price, Decimal(groups))
+            let deduction = MoneyHelper.subtract(originalTotal, comboTotal)
+            guard deduction > 0 else { continue }
+
+            for (productId, take) in covered {
+                remaining[productId, default: 0] -= take
+            }
             results.append(ComboApplication(
                 bundleId: combo.id,
                 name: combo.name,
                 groupCount: groups,
                 coveredQuantities: covered,
-                deduction: MoneyHelper.subtract(originalTotal, comboTotal)
+                deduction: deduction
             ))
         }
         return results

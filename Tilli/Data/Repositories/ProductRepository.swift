@@ -113,7 +113,7 @@ class ProductRepository: ObservableObject {
                         byPrice: productModel.price, of: productId, bundles: bundles, products: products
                     )
                     if !violated.isEmpty {
-                        let names = violated.map(\.name).joined(separator: "、")
+                        let names = violated.map(\.name).joinedAsList()
                         return .failed(String.localized("productPriceBreaksBundles \(names)"))
                     }
                 }
@@ -216,7 +216,7 @@ class ProductRepository: ObservableObject {
                 referencing: productId, in: bundles(forEventId: productEntity.eventId)
             )
             if !referencing.isEmpty {
-                let names = referencing.map(\.name).joined(separator: "、")
+                let names = referencing.map(\.name).joinedAsList()
                 return .failed(String.localized("productDeleteReferencedByBundles \(names)"))
             } else {
                 // 沒有 Transaction，可以硬刪除

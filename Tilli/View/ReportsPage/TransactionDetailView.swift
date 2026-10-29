@@ -97,7 +97,7 @@ struct TransactionDetailView: View {
                         .font(DesignSystem.Typography.body)
                         .foregroundColor(DesignSystem.ColorToken.ink)
                     // 套餐
-                    tagLabel("transactionDetailBundleTag")
+                    TagLabel("transactionDetailBundleTag")
                 }
 
                 // × %lld
@@ -105,7 +105,7 @@ struct TransactionDetailView: View {
                     .font(DesignSystem.Typography.caption)
                     .foregroundColor(DesignSystem.ColorToken.muted)
 
-                Text(memberNames.joined(separator: "＋"))
+                Text(memberNames.joinedAsBundleMembers())
                     .font(DesignSystem.Typography.caption)
                     .foregroundColor(DesignSystem.ColorToken.muted)
             }
@@ -128,7 +128,7 @@ struct TransactionDetailView: View {
                         .foregroundColor(DesignSystem.ColorToken.ink)
                     if isInCombo {
                         // 含組合
-                        tagLabel("transactionDetailInComboTag")
+                        TagLabel("transactionDetailInComboTag")
                     }
                 }
 
@@ -244,17 +244,6 @@ struct TransactionDetailView: View {
             .font(DesignSystem.Typography.caption)
             .foregroundColor(DesignSystem.ColorToken.muted)
             .padding(.horizontal, DesignSystem.Spacing.xxs)
-    }
-
-    /// 小標籤（套餐／含組合）。⚠️ 不可命名為 `tag`：會被解析成 SwiftUI 的 `View.tag(_:)`，把整頁包進自己而無限遞迴閃退
-    private func tagLabel(_ key: LocalizedStringKey) -> some View {
-        Text(key)
-            .font(DesignSystem.Typography.caption)
-            .foregroundColor(DesignSystem.ColorToken.muted)
-            .padding(.horizontal, DesignSystem.Spacing.xxs)
-            .padding(.vertical, 2)
-            .background(DesignSystem.ColorToken.quietFill)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
     /// 與交易紀錄卡片相同的卡片外觀

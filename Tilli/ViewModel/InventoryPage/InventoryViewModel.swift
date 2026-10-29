@@ -38,10 +38,9 @@ class InventoryViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var searchText: String = ""
     @Published var selectedTimeRange: ReportTimeRange
+    /// 場次內所有商品（含已下架）；已下架的留在原類別、原位置，只在卡片上標「已下架」
     @Published var inventoryItems: [InventoryProductItem] = []
-    @Published var disabledInventoryItems: [InventoryProductItem] = []  // 已下架商品
     @Published var expandedCategoryIds: Set<UUID> = []
-    @Published var showDisabledProducts: Bool = true  // 下架商品區展開/收合狀態（預設展開）
 
     // MARK: - Export Properties
     @Published var selectedExportType: InventoryExportType = .all
@@ -76,25 +75,14 @@ class InventoryViewModel: ObservableObject {
 
     /// 檢查是否有任何商品（用於空狀態判斷）
     var hasNoProducts: Bool {
-        inventoryItems.isEmpty && disabledInventoryItems.isEmpty
+        inventoryItems.isEmpty
     }
 
     /// 檢查搜尋是否無結果
     var isSearchEmpty: Bool {
         !searchText.isEmpty &&
         sortedCategories.allSatisfy { getItemsForCategory($0.id).isEmpty } &&
-        filteredDisabledItems.isEmpty &&
         fixedBundles.isEmpty && comboBundles.isEmpty
-    }
-
-    /// 篩選後的下架商品（套用搜尋）
-    var filteredDisabledItems: [InventoryProductItem] {
-        if searchText.isEmpty {
-            return disabledInventoryItems.sorted { $0.product.name.localizedStandardCompare($1.product.name) == .orderedAscending }
-        }
-        return disabledInventoryItems
-            .filter { $0.product.name.localizedCaseInsensitiveContains(searchText) }
-            .sorted { $0.product.name.localizedStandardCompare($1.product.name) == .orderedAscending }
     }
 
     // MARK: - Init
@@ -117,40 +105,26 @@ class InventoryViewModel: ObservableObject {
 
     /// 從共用資料源重新取一份快照
     ///
-    /// 管理頁刻意按 `product.isDisabled` 分成「銷售中／已下架」兩區 ——
-    /// 這跟 POS 的 `isAvailableForSale`（還要看類別）是不同語意：
-    /// 管理頁本來就要看得到下架商品。
+    /// 管理頁要看得到下架商品（POS 才用 `isAvailableForSale` 隱藏）：
+    /// 已下架的商品留在原類別、原位置，卡片灰掉並標「已下架」，與套餐／組合一致。
     func loadData() {
         dataSource.reload()
 
-        let allProducts = dataSource.products
         let allChanges = dataSource.inventoryChanges
 
-        func items(from products: [ProductModel]) -> [InventoryProductItem] {
-            products.map { product in
-                InventoryProductItem(
-                    id: product.id,
-                    product: product,
-                    changes: allChanges.filter { $0.productId == product.id }
-                )
-            }
+        inventoryItems = dataSource.products.map { product in
+            InventoryProductItem(
+                id: product.id,
+                product: product,
+                changes: allChanges.filter { $0.productId == product.id }
+            )
         }
-
-        inventoryItems = items(from: allProducts.filter { !$0.isDisabled })
-        disabledInventoryItems = items(from: allProducts.filter { $0.isDisabled })
     }
 
     /// 切換商品展開/收起狀態
     func toggleExpanded(for itemId: UUID) {
         if let index = inventoryItems.firstIndex(where: { $0.id == itemId }) {
             inventoryItems[index].isExpanded.toggle()
-        }
-    }
-
-    /// 切換下架商品展開/收起狀態
-    func toggleDisabledExpanded(for itemId: UUID) {
-        if let index = disabledInventoryItems.firstIndex(where: { $0.id == itemId }) {
-            disabledInventoryItems[index].isExpanded.toggle()
         }
     }
 
@@ -178,7 +152,7 @@ class InventoryViewModel: ObservableObject {
         expandedCategoryIds.contains(categoryId)
     }
 
-    /// 取得特定類別的商品列表（有庫存在前、無庫存在後，組內依 sortOrder 排序，跟收銀頁一致；套用搜尋篩選）
+    /// 取得特定類別的商品列表（含已下架；有庫存在前、無庫存在後，組內依 sortOrder 排序，跟收銀頁一致；套用搜尋篩選）
     func getItemsForCategory(_ categoryId: UUID) -> [InventoryProductItem] {
         var items = inventoryItems.filter { $0.product.categoryId == categoryId }
 
@@ -241,7 +215,7 @@ class InventoryViewModel: ObservableObject {
 
         let dateInterval = selectedTimeRange.dateInterval
 
-        let allItems = inventoryItems + disabledInventoryItems
+        let allItems = inventoryItems
 
         for item in allItems {
             let productName = CSVExporter.escape(item.product.name)
@@ -293,7 +267,7 @@ class InventoryViewModel: ObservableObject {
         let dateInterval = selectedTimeRange.dateInterval
 
         // 合併啟用和下架商品
-        let allItems = inventoryItems + disabledInventoryItems
+        let allItems = inventoryItems
 
         // 預先計算每個商品每筆異動的「變動後庫存」
         var afterStockMap: [UUID: Int] = [:]  // changeId -> afterStock
@@ -413,7 +387,7 @@ class InventoryViewModel: ObservableObject {
 
     /// 檢查是否可以匯出
     var isExportDisabled: Bool {
-        inventoryItems.isEmpty && disabledInventoryItems.isEmpty
+        inventoryItems.isEmpty
     }
 
     // MARK: - 商品管理（編輯／下架／刪除／復原）
@@ -518,7 +492,7 @@ class InventoryViewModel: ObservableObject {
     func createAlert() -> Alert {
         if productPendingRestore != nil {
             // 復原操作的警告
-            // 確認復原 / 確定要復原此產品嗎？ / 確認 / 取消
+            // 確認上架 / 確定要重新上架此商品嗎？ / 確認 / 取消
             return Alert(
                 title: Text("productDetailConfirmRestoreTitle"),
                 message: Text("productDetailConfirmRestoreMessage"),
@@ -598,7 +572,7 @@ extension InventoryViewModel {
     func bundleSummary(_ bundle: BundleModel) -> String {
         let names = bundle.productIds
             .compactMap { id in dataSource.products.first { $0.id == id }?.name }
-            .joined(separator: "、")
+            .joinedAsList()
         switch bundle.mode {
         case .fixed:
             return names

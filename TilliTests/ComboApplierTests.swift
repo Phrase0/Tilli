@@ -47,6 +47,14 @@ final class ComboApplierTests: XCTestCase {
         XCTAssertEqual(result[0].coveredQuantities[strawberry.id], 3)
     }
 
+    func testComboThatSavesNothingIsNotApplied() {
+        let strawberry = product("草莓")   // 40
+        let atLimit = BundleModel.comboMock(price: 120, count: 3, productIds: [strawberry.id])
+        let cart = Cart(productQuantities: [strawberry.id: 3])
+
+        XCTAssertEqual(apply(cart, [atLimit], [strawberry]), [])
+    }
+
     func testLowerAveragePriceComboAppliesFirst() {
         let a = product("草莓")
         let three = BundleModel.comboMock(name: "三個", price: 100, count: 3, productIds: [a.id])

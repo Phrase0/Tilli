@@ -3,7 +3,8 @@
 //  Tilli
 //
 //  收銀頁最上方的「套餐」區塊（設計 §4.5）。卡片樣式沿用 POSView 的
-//  posProductCard（列表）／posGridCard（格狀）；不可賣時灰掉、顯示原因、不能加入。
+//  posProductCard（列表）／posGridCard（格狀）。下架類不列（見 POSViewModel.fixedBundles），
+//  缺貨照列：灰掉、顯示原因、不能加入，已在購物車的份數仍可減少。
 //
 
 import SwiftUI
@@ -56,7 +57,7 @@ struct POSBundleSection: View {
     private func memberNames(_ bundle: BundleModel) -> String {
         bundle.productIds
             .compactMap { id in viewModel.products.first { $0.id == id }?.name }
-            .joined(separator: "、")
+            .joinedAsList()
     }
 
     /// 照片：BundleImageStore 的本機照片；沒有時與無照片商品相同的 placeholder
@@ -79,9 +80,10 @@ struct POSBundleSection: View {
                 .opacity(isUnavailable ? 0.6 : 1.0)
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                     Text(bundle.name)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(DesignSystem.Typography.body)
+                        .fontWeight(.bold)
                         .foregroundColor(isUnavailable ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
                         .lineLimit(1)
 
@@ -94,9 +96,10 @@ struct POSBundleSection: View {
                 }
 
                 HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                         Text(MoneyHelper.format(bundle.price, currencyCode: currency))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(DesignSystem.Typography.body)
+                            .fontWeight(.semibold)
                             .foregroundColor(isUnavailable ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
 
                         if let reason {
@@ -139,12 +142,14 @@ struct POSBundleSection: View {
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(bundle.name)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.bold)
                     .foregroundColor(isUnavailable ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
                     .lineLimit(1)
 
                 Text(MoneyHelper.format(bundle.price, currencyCode: currency))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.semibold)
                     .foregroundColor(isUnavailable ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
 
                 if let reason {
@@ -179,15 +184,14 @@ struct POSBundleSection: View {
         viewModel.addBundle(bundle)
     }
 
-    /// 與商品卡片的「無庫存」標籤同樣式
+    /// 缺貨原因（例如「「大福」缺貨」）：膠囊標籤（DESIGN.md 標籤一律滿膠囊）
     private func reasonBadge(_ text: String) -> some View {
         Text(text)
             .font(DesignSystem.Typography.caption)
             .foregroundColor(DesignSystem.ColorToken.alertRed)
-            .padding(.horizontal, DesignSystem.Spacing.xxs)
-            .padding(.vertical, 2)
-            .background(DesignSystem.ColorToken.alertRed.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .padding(.horizontal, DesignSystem.Spacing.xs)
+            .padding(.vertical, DesignSystem.Spacing.xxs)
+            .background(Capsule().fill(DesignSystem.ColorToken.alertRed.opacity(0.1)))
     }
 
     /// 不可賣時 ＋ 停用；已在購物車的份數仍可用 － 減少
@@ -207,7 +211,8 @@ struct POSBundleSection: View {
             .disabled(currentQty == 0)
 
             Text("\(currentQty)")
-                .font(.system(size: 14, weight: .medium))
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.medium)
                 .frame(minWidth: 18)
                 .foregroundColor(isUnavailable ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
 

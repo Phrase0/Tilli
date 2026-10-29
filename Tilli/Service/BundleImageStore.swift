@@ -39,6 +39,27 @@ enum BundleImageStore {
         return image
     }
 
+    /// 照片檔的原始內容（沒有照片為 nil）。存檔前備份用，失敗時交給 `restore` 還原
+    static func data(for bundleId: UUID) -> Data? {
+        guard let url = fileURL(for: bundleId, createDirectory: false) else { return nil }
+        return try? Data(contentsOf: url)
+    }
+
+    /// 還原成 `data(for:)` 備份的狀態：有備份就寫回，備份是 nil 就刪除
+    static func restore(_ data: Data?, for bundleId: UUID) {
+        guard let data else {
+            delete(for: bundleId)
+            return
+        }
+        cache.removeObject(forKey: bundleId as NSUUID)
+        guard let url = fileURL(for: bundleId, createDirectory: true) else { return }
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            print("BundleImageStore.restore failed: \(error)")
+        }
+    }
+
     static func delete(for bundleId: UUID) {
         cache.removeObject(forKey: bundleId as NSUUID)
         guard let url = fileURL(for: bundleId, createDirectory: false),

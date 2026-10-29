@@ -98,18 +98,12 @@ final class BundleFormViewModel: ObservableObject {
         }
     }
 
-    /// 只留數字與一個小數點，小數位數依幣別
+    /// 只留數字與一個小數點，小數位數依幣別（與商品表單同一份規則：MoneyHelper.sanitizeInput）
     func sanitizePrice() {
-        var filtered = priceText.filter { $0.isNumber || $0 == "." }
-        if !supportsDecimal {
-            filtered = filtered.filter { $0 != "." }
-        } else {
-            let parts = filtered.split(separator: ".", omittingEmptySubsequences: false)
-            if parts.count > 1 {
-                filtered = String(parts[0]) + "." + String(parts[1].prefix(currency.decimalPlaces))
-            }
-        }
-        if filtered != priceText { priceText = filtered }
+        let sanitized = MoneyHelper.sanitizeInput(
+            priceText, currency: currency, maxIntegerDigits: AddNewProductViewModel.priceMaxIntegerDigits
+        )
+        if sanitized != priceText { priceText = sanitized }
     }
 
     // MARK: - 計算
@@ -220,22 +214,24 @@ final class BundleFormViewModel: ObservableObject {
     func save(using eventRepository: EventRepository) -> Bool {
         guard let bundles = bundlesToSave() else { return false }
 
-        // 照片先寫：失敗就整個不存
-        var wroteNewImage = false
-        if kind == .fixed && imageChanged {
+        // 照片先寫：失敗就整個不存。寫之前備份原本的照片（新增時為 nil），
+        // 資料存失敗時還原，編輯時換掉或移除的照片才不會遺失
+        let changesImage = kind == .fixed && imageChanged
+        let previousImageData = changesImage ? BundleImageStore.data(for: bundleId) : nil
+        if changesImage {
             if let image {
                 guard BundleImageStore.save(image, for: bundleId) else {
+                    BundleImageStore.restore(previousImageData, for: bundleId)
                     showSaveFailedAlert = true
                     return false
                 }
-                wroteNewImage = editing == nil
             } else {
                 BundleImageStore.delete(for: bundleId)
             }
         }
 
         guard eventRepository.saveBundles(bundles, forEventId: event.id) else {
-            if wroteNewImage { BundleImageStore.delete(for: bundleId) }
+            if changesImage { BundleImageStore.restore(previousImageData, for: bundleId) }
             showSaveFailedAlert = true
             return false
         }

@@ -297,11 +297,16 @@ class EventRepository: ObservableObject {
 
         do {
             if let entity = try context.fetch(request).first {
+                // 套餐照片是本機檔（不在 CoreData），要自己刪；資料刪成功後才刪檔
+                let bundleIds = (entity.bundlesData.flatMap { try? JSONDecoder().decode([BundleModel].self, from: $0) } ?? [])
+                    .map(\.id)
+
                 // 刪除 Event：
                 // - Categories 和 Products 會被級聯刪除（deletionRule="Cascade"）
                 // - Transactions 會保留，但 event 關聯會被設為 nil（deletionRule="Nullify"）
                 context.delete(entity)
                 if saveContext() {
+                    bundleIds.forEach { BundleImageStore.delete(for: $0) }
                     // 調試：刪除後檢查
                     print("🔥 已刪除 Event，檢查交易記錄狀態:")
                     debugTransactionStatus(forEventId: eventId)

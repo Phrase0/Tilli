@@ -174,47 +174,9 @@ class AddNewProductViewModel: ObservableObject {
         return String.localized("addProductStockHint")
     }
     
-    /// 驗證並格式化價格輸入
+    /// 驗證並格式化價格輸入（共用 MoneyHelper.sanitizeInput）
     func validateAndFormatPrice(_ input: String) -> String {
-        // 移除非數字和小數點的字符
-        var filtered = input.filter { $0.isNumber || $0 == "." }
-
-        // 如果不支持小數點，移除所有小數點並限制整數位數
-        if !supportsDecimal {
-            let digitsOnly = filtered.filter { $0 != "." }
-            if digitsOnly.count > Self.priceMaxIntegerDigits {
-                return String(digitsOnly.prefix(Self.priceMaxIntegerDigits))
-            }
-            return digitsOnly
-        }
-
-        // 處理小數點
-        var components = filtered.components(separatedBy: ".")
-
-        // 如果有多個小數點，只保留第一個
-        if components.count > 2 {
-            filtered = components[0] + "." + components[1]
-            components = [components[0], components[1]]
-        }
-
-        // 限制整數位數
-        var integerPart = components[0]
-        if integerPart.count > Self.priceMaxIntegerDigits {
-            integerPart = String(integerPart.prefix(Self.priceMaxIntegerDigits))
-        }
-
-        // 如果沒有小數點
-        if components.count <= 1 {
-            return integerPart
-        }
-
-        // 限制小數位數
-        var decimalPart = components[1]
-        if decimalPart.count > maxDecimalPlaces {
-            decimalPart = String(decimalPart.prefix(maxDecimalPlaces))
-        }
-
-        return integerPart + "." + decimalPart
+        MoneyHelper.sanitizeInput(input, currency: currentCurrency, maxIntegerDigits: Self.priceMaxIntegerDigits)
     }
 
     /// 驗證並格式化庫存數量輸入

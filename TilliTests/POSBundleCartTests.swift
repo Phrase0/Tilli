@@ -106,6 +106,41 @@ final class POSBundleCartTests: XCTestCase {
         XCTAssertEqual(viewModel.fixedBundles.map(\.id), [teaSetId])
     }
 
+    func testOutOfStockBundleStaysListedButOffSaleMemberHidesIt() {
+        // 大福被單點用完 → 缺貨：照列（卡片灰掉）
+        viewModel.increaseQuantity(for: daifuku)
+        viewModel.increaseQuantity(for: daifuku)
+        XCTAssertEqual(viewModel.fixedBundles.map(\.id), [teaSetId])
+        XCTAssertEqual(viewModel.availability(of: teaSet), .failure(.memberOutOfStock(productName: "大福")))
+    }
+
+    func testBundleWithOffSaleMemberIsNotListed() {
+        let products = Dictionary(uniqueKeysWithValues: viewModel.products.map { ($0.id, $0) })
+        var offSale = products
+        offSale[matchaId]?.isDisabled = true
+        let bundle = BundleModel.mock(name: "下午茶套餐", price: 90, mode: .fixed, productIds: [daifukuId, matchaId])
+
+        XCTAssertTrue(BundleAvailability.isListedOnPOS(bundle, products: products, categories: viewModel.categories))
+        XCTAssertFalse(BundleAvailability.isListedOnPOS(bundle, products: offSale, categories: viewModel.categories))
+    }
+
+    func testBundleWithZeroStockMemberIsStillListed() {
+        var products = Dictionary(uniqueKeysWithValues: viewModel.products.map { ($0.id, $0) })
+        products[daifukuId]?.stock = 0
+        let bundle = BundleModel.mock(name: "下午茶套餐", price: 90, mode: .fixed, productIds: [daifukuId, matchaId])
+
+        XCTAssertTrue(BundleAvailability.isListedOnPOS(bundle, products: products, categories: viewModel.categories))
+    }
+
+    func testDisabledOrEmptyBundleIsNotListed() {
+        let products = Dictionary(uniqueKeysWithValues: viewModel.products.map { ($0.id, $0) })
+        let disabled = BundleModel.mock(name: "停", price: 90, mode: .fixed, productIds: [daifukuId, matchaId], isDisabled: true)
+        let empty = BundleModel.mock(name: "空", price: 90, mode: .fixed, productIds: [])
+
+        XCTAssertFalse(BundleAvailability.isListedOnPOS(disabled, products: products, categories: viewModel.categories))
+        XCTAssertFalse(BundleAvailability.isListedOnPOS(empty, products: products, categories: viewModel.categories))
+    }
+
     // MARK: - 雙向佔用（§5.6）
 
     func testBundleLineReservesStockForSingleProducts() {

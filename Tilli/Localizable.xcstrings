@@ -533,6 +533,23 @@
         }
       }
     },
+    "bundleMemberSeparator" : {
+      "comment" : "套餐成員之間的分隔符「＋」",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "＋"
+          }
+        }
+      }
+    },
     "bundleMenuEnable" : {
       "comment" : "上架",
       "localizations" : {
@@ -682,6 +699,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部"
+          }
+        }
+      }
+    },
+    "listSeparator" : {
+      "comment" : "名稱列表的分隔符「、」",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "、"
           }
         }
       }
@@ -5358,22 +5392,6 @@
         }
       }
     },
-    "inventoryDisabledHeader" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delisted Products"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下架商品"
-          }
-        }
-      }
-    },
     "inventoryMenuDelete" : {
       "localizations" : {
         "en" : {
@@ -5546,22 +5564,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "銷售出庫"
-          }
-        }
-      }
-    },
-    "inventoryRestore" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "復原"
           }
         }
       }
@@ -6654,32 +6656,34 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Are you sure you want to restore this product?"
+            "value" : "Make this product available again?"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "確定要復原此產品嗎？"
+            "value" : "確定要重新上架此商品嗎？"
           }
         }
-      }
+      },
+      "comment" : "確定要重新上架此商品嗎？"
     },
     "productDetailConfirmRestoreTitle" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Confirm Restore"
+            "value" : "Make Available"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "確認復原"
+            "value" : "確認上架"
           }
         }
-      }
+      },
+      "comment" : "確認上架"
     },
     "productDetailDiscountExceed" : {
       "localizations" : {

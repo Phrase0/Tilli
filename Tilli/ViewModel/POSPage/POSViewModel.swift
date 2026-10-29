@@ -243,10 +243,12 @@ class POSViewModel: ObservableObject {
         Dictionary(event.bundles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// 收銀頁顯示的套餐（未停用的 `.fixed`，依建立時間；組合不出現在收銀頁，§5.2）
+    /// 收銀頁顯示的套餐（`.fixed`，依建立時間；組合不出現在收銀頁，§5.2）。
+    /// 下架類（套餐／成員下架、類別停用）不列；缺貨照列、卡片灰掉（`BundleAvailability.isListedOnPOS`）
     var fixedBundles: [BundleModel] {
-        event.bundles
-            .filter { $0.kind == .fixed && !$0.isDisabled }
+        let products = productsById
+        return event.bundles
+            .filter { $0.kind == .fixed && BundleAvailability.isListedOnPOS($0, products: products, categories: categories) }
             .sorted { lhs, rhs in
                 if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
                 return lhs.id.uuidString < rhs.id.uuidString
