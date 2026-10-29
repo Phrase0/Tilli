@@ -1707,7 +1707,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 5.9 | `SummaryItemModel.bundleDiscount`／`bundleKind`（`RevenueAllocator` 寫入）；交易明細改成獨立明細頁、還原成訂單摘要版面、「共 N 項」把套餐算 1 項（**CSV 不在本批**） | ✅ 單元測試；⬜ 手動 |
 
 > 「收銀頁互動調整」（設計文件 §8）中，套餐區塊與結帳摘要的組合折抵已隨 5.3 完成；**類別 chip 列留給第 6 批**。
-> Commits：`e3a2b58`（5.1）→ `16ee546`（5.9），共 14 個；最終審查修正 `c713560`、`5235058`、`6b91205`；驗收修正 `6821285`。測試總數 238 個全過（本批前 134 個）。
+> Commits：`e3a2b58`（5.1）→ `16ee546`（5.9），共 14 個；最終審查修正 `c713560`、`5235058`、`6b91205`；驗收修正 `6821285`、`b51578f`、`bab0cb8`。測試總數 239 個全過（本批前 134 個）。
 
 #### 實作與計畫的差異
 
@@ -1739,6 +1739,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 最終審查 | — | 現金／電子支付頁的 VM 改 `@StateObject` | 父層重繪會重建 VM，打到一半的金額消失（commit `6b91205`） |
 | 驗收 | `＋` 用 `confirmationDialog` | 改原生 `Menu`（新增共用元件 `FloatingActionMenu`，外觀同 `FloatingActionButton`） | 系統確認框位置不跟著按鈕，選單跑到畫面上方 |
 | 驗收 | 按儲存時才列出錯誤 | 錯誤即時顯示在欄位下方；**有任何錯誤儲存鈕就變灰**。只顯示「填了但填錯」的紅字（價格超過上限、價格 ≤ 0、重名、成員已不存在）；還沒填完不顯示紅字，只有「至少要選 N 個」灰字提示。價格上限常駐顯示在價格欄下：套餐＝原價合計，組合＝「上限 $X（N × 最便宜的 $Y）」 | 按了才知道錯、錯誤離欄位太遠 |
+| 驗收 | — | 交易明細頁的小標籤 helper 由 `tag(_:)` 改名 `tagLabel(_:)`，並加渲染回歸測試 `testTransactionDetailRendersBundleAndComboTransaction` | **含套餐／組合的交易點進明細會閃退**：`tag("…")` 被解析成 SwiftUI 的 `View.tag(_:)`，把整頁包進自己無限遞迴（stack overflow）。Xcode 把這兩個字串標成 stale 就是線索（commit `bab0cb8`） |
 | 驗收 | — | `TransactionDetailView` 的折扣列標題改由 `DiscountCalculator.detailLineText` 產生 | 原本 View 自己 `switch discount.type`，違反「折扣型別只在 `DiscountCalculator` 判斷」（第 3 批的 grep 檢查抓到） |
 | 驗收 | 交易卡片 `NavigationLink(value:)` ＋ `navigationDestination(for:)` | 改成與商品表單相同的 `navigationDestination(item:)`（工作區持有 `selectedTransaction`，經 `ReportsView` → `TransactionHistoryView` 以 Binding 傳下） | 工作區本身是 `navigationDestination(item:)` 推進來的，混用時 SwiftUI 把明細頁排到工作區下方並重建工作區：點交易先看到收銀頁、返回才是明細、再返回直接回場次列表 |
 
@@ -1746,7 +1747,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 
 #### 測試（本批實際）
 
-##### 自動 —— 單元測試 ✅（總計 238 個全過）
+##### 自動 —— 單元測試 ✅（總計 239 個全過）
 
 新增測試檔：`BundleModelPersistenceTests`、`BundleValidatorTests`（14）、`BundleGuardTests`、`BundleAvailabilityTests`、`ComboApplierTests`（9）、`CartPricingTests`（10）、`RevenueAllocatorTests`（補 2）、`CheckoutRecorderTests`（5）、`POSBundleCartTests`（10）、`BundleFormViewModelTests`（12）、`BundleDuplicationTests`（3）、`TransactionBreakdownTests`（7）、`CategoryDeletionBundleGuardTests`（3）、`ReportRevenueConsistencyTests`（補 R2）。重點：
 
@@ -2232,4 +2233,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-08 | 第 4 批完成（4.1–4.4）：新增 `RevenueAllocator`（結帳時攤提，兩個付款 VM 寫入前呼叫）與 `MoneyHelper.roundDown(_:scale:)`；`SummaryItemModel` 只存 `allocatedDiscount`／`bundleId`／`bundleName`，`originalSubtotal`／`actualRevenue` 為計算屬性；自訂 `init(from:)` 讓舊 `itemsData` 解成「沒有攤提」；刪除 `ProductPerformanceViewModel` 三處攤提與三處 reduce。捨入差額改由「剩餘空間最大」的項目吸收（原計畫「最後一項」）。新增 15 個單元測試，總計 134 個全過；手動驗收已於 2026-10-20 完成。差異見 §11 第 4 批 |
 | 2026-10-12 | 金額 Decimal 全面查核：① CoreData 僅 `price`／`totalAmount` 為 Decimal 屬性，其餘金額都在 `itemsData`／`appliedDiscountsData`／`discountsData` 的 JSON 內，模型欄位一律 `Decimal`；② Double 只出現在圖表座標、`Int` 百分比顯示、UI 比例，沒有任何金額以 Double 儲存或加總；③ 新增 `testNonBinaryExactDecimalsSurviveJSONRoundTrip`（0.1、19.99、33.33…）確認 JSON 往返不經 Double（原有往返測試用 12.5／25.75，二進位剛好精確，抓不到）；④ 刪除沒人呼叫的 `MoneyHelper.fromDouble`；⑤ §14.2 第 2 列日期與欄位數修正（5 欄 → 3 個儲存欄位），並註記接 Firestore 時金額要存字串 |
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：新增 `BundleValidator`／`BundleAvailability`／`ComboApplier`／`CartPricing`／`CheckoutRecorder`／`TransactionBreakdown` 六個共用元件與 `BundleImageStore`；POS 套餐區塊、結帳摘要組合折抵（可取消／恢復）、管理商品頁套餐與組合管理、複製場次、交易明細獨立頁。修正 `stockUpdates` 同商品多筆未累加的少扣庫存問題。§14.2 第 3、4、8 列補日期（仍 ⬜ 未接）。總計 225 個單元測試全過；手動測試待做。差異見 §11 第 5 批 |
-| 2026-10-29 | 第 5 批最終審查修正（刪除類別守衛套餐引用、`saveBundles` 編碼失敗不寫入、`CartPricing.discountBase` 統一、付款頁 VM 改 `@StateObject`）與驗收修正（`＋` 改原生選單、套餐／組合表單即時驗證且有錯不能存、交易明細導航改 `navigationDestination(item:)`、明細頁折扣標題改走 `DiscountCalculator`）。第 2～5 批「預定」清單中已由測試涵蓋者改勾選。總計 238 個單元測試全過 |
+| 2026-10-29 | 第 5 批最終審查修正（刪除類別守衛套餐引用、`saveBundles` 編碼失敗不寫入、`CartPricing.discountBase` 統一、付款頁 VM 改 `@StateObject`）與驗收修正（`＋` 改原生選單、套餐／組合表單即時驗證且有錯不能存、交易明細導航改 `navigationDestination(item:)`、明細頁折扣標題改走 `DiscountCalculator`、修正含套餐／組合交易的明細頁閃退）。第 2～5 批「預定」清單中已由測試涵蓋者改勾選。總計 239 個單元測試全過 |
