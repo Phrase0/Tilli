@@ -754,6 +754,57 @@
         }
       }
     },
+    "quantityStepperDecrease" : {
+      "comment" : "減少",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrease"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "減少"
+          }
+        }
+      }
+    },
+    "quantityStepperIncrease" : {
+      "comment" : "增加",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Increase"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "增加"
+          }
+        }
+      }
+    },
+    "quantityStepperRemove" : {
+      "comment" : "移除",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
+          }
+        }
+      }
+    },
     "transactionDetailAmountLine %@" : {
       "comment" : "減額折扣 %@",
       "localizations" : {
