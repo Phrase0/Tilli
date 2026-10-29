@@ -99,21 +99,6 @@ struct POSView: View {
                     discounts: viewModel.amountDiscounts
                 )
             }
-
-            // 小計 → 折後，只在真的有折抵時顯示
-            if viewModel.discountAmount() > 0 {
-                HStack(spacing: DesignSystem.Spacing.xxs) {
-                    Spacer()
-                    Text(MoneyHelper.format(viewModel.subtotal(), currencyCode: event.currency))
-                        .strikethrough()
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                    Image(systemName: "arrow.right")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                    Text(MoneyHelper.format(viewModel.totalAmount(), currencyCode: event.currency))
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                }
-                .font(DesignSystem.Typography.caption)
-            }
         }
     }
 
@@ -241,17 +226,6 @@ struct POSView: View {
                 }
             }
 
-            HStack {
-                // 總計
-                Text("posTotalLabel")
-                    .font(DesignSystem.Typography.body)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(MoneyHelper.format(viewModel.totalAmount(), currencyCode: event.currency))
-                    .font(DesignSystem.Typography.body)
-                    .fontWeight(.bold)
-            }
-
             HStack(spacing: DesignSystem.Spacing.sm) {
                 Button {
                     showClearAlert = true
@@ -271,10 +245,8 @@ struct POSView: View {
                         showCheckoutSheet = true
                     }
                 } label: {
-                    Text("posCheckoutButton")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
-                        .frame(maxWidth: .infinity)
+                    checkoutButtonLabel
+                        .padding(.horizontal, DesignSystem.Spacing.md)
                         .padding(.vertical, DesignSystem.Spacing.md)
                         .background(viewModel.subtotal() > 0
                                     ? DesignSystem.ColorToken.buttonFilled
@@ -285,6 +257,33 @@ struct POSView: View {
             }
         }
         .padding(DesignSystem.Spacing.md)
+    }
+
+    /// 結帳鈕內容：左邊金額（有優惠時折扣前金額劃線），右邊「結帳 →」
+    private var checkoutButtonLabel: some View {
+        let pricing = viewModel.pricing
+        return HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xs) {
+            if pricing.savings > 0 {
+                Text(MoneyHelper.format(pricing.subtotal, currencyCode: event.currency))
+                    .font(DesignSystem.Typography.caption)
+                    .strikethrough()
+                    .opacity(0.7)
+            }
+            Text(MoneyHelper.format(pricing.total, currencyCode: event.currency))
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.bold)
+
+            Spacer(minLength: DesignSystem.Spacing.xs)
+
+            // 結帳
+            Text("posCheckoutButton")
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.semibold)
+            Image(systemName: "arrow.right")
+                .font(DesignSystem.Typography.body.weight(.semibold))
+        }
+        .lineLimit(1)
+        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
     }
 
     // MARK: - List Product Card

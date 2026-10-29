@@ -6557,22 +6557,6 @@
         }
       }
     },
-    "posTotalLabel" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "總計"
-          }
-        }
-      }
-    },
     "Pro 會員" : {
       "extractionState" : "stale",
       "localizations" : {
