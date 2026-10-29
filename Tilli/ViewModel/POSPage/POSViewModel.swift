@@ -13,6 +13,12 @@ enum ProductLayoutMode: String, Codable {
     case grid
 }
 
+/// 收銀頁與訂單摘要的一個可增減品項：單點商品或套餐
+enum CartItemID: Hashable {
+    case product(UUID)
+    case bundle(UUID)
+}
+
 @MainActor
 class POSViewModel: ObservableObject {
 
@@ -35,6 +41,8 @@ class POSViewModel: ObservableObject {
     /// 用型別當 key 而不是兩個獨立欄位 —— 之後多一種折扣型別時，
     /// 這裡與 `toggleDiscount` / `isSelected` 都不用改。
     @Published private(set) var selectedDiscountIds: [DiscountType: UUID] = [:]
+    /// 目前展開成「− 數量 ＋」的品項；同一時間最多一個，其餘收合成數量圓形
+    @Published private(set) var expandedItem: CartItemID?
 
     // Alert 相關狀態（僅無庫存提醒使用）
     @Published var showAlert = false
@@ -206,6 +214,67 @@ class POSViewModel: ObservableObject {
     func clearAllQuantities() {
         cart = Cart()
         selectedDiscountIds.removeAll()
+        expandedItem = nil
+    }
+
+    var isCartEmpty: Bool {
+        cart.isEmpty
+    }
+
+    // MARK: - 增減元件（商品與套餐共用）
+
+    func quantity(of item: CartItemID) -> Int {
+        switch item {
+        case .product(let id): return cart.productQuantities[id, default: 0]
+        case .bundle(let id): return bundleQuantity(id)
+        }
+    }
+
+    /// 還能不能再加一個：商品要可販售且扣掉購物車佔用後還有庫存；套餐要可賣
+    func canIncrement(_ item: CartItemID) -> Bool {
+        switch item {
+        case .product(let id):
+            guard let product = productsById[id], product.saleAvailability(in: categories) == .available else { return false }
+            return BundleAvailability.remainingStock(of: product, cart: cart) > 0
+        case .bundle(let id):
+            guard let bundle = bundlesById[id], case .success = availability(of: bundle) else { return false }
+            return true
+        }
+    }
+
+    /// 加一個；`expand` 為 true 時讓這一項展開（訂單摘要不需要展開狀態）
+    func increment(_ item: CartItemID, expand: Bool = true) {
+        switch item {
+        case .product(let id):
+            guard let product = productsById[id] else { return }
+            increaseQuantity(for: product)
+        case .bundle(let id):
+            guard let bundle = bundlesById[id] else { return }
+            addBundle(bundle)
+        }
+        if expand { expandedItem = item }
+    }
+
+    /// 減一個；減到 0 時收合
+    func decrement(_ item: CartItemID) {
+        switch item {
+        case .product(let id):
+            guard let product = productsById[id] else { return }
+            decreaseQuantity(for: product)
+        case .bundle(let id):
+            removeBundle(id)
+        }
+        if quantity(of: item) == 0 && expandedItem == item {
+            expandedItem = nil
+        }
+    }
+
+    func expand(_ item: CartItemID) {
+        expandedItem = item
+    }
+
+    func collapseControls() {
+        expandedItem = nil
     }
 
     // MARK: - 套餐與組合
