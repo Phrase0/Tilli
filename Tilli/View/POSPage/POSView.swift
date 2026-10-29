@@ -193,43 +193,27 @@ struct POSView: View {
 
     private func categorySection(category: CategoryModel, products: [ProductModel]) -> some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Button {
-                viewModel.toggleCategoryExpansion(category.id)
-            } label: {
-                HStack {
-                    Text(category.name)
-                        .font(DesignSystem.Typography.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
+            Text(category.name)
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.semibold)
+                .foregroundColor(DesignSystem.ColorToken.ink)
+                .padding(.horizontal, DesignSystem.Spacing.md)
 
-                    Spacer()
-
-                    Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                        .font(DesignSystem.Typography.caption)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
+            if viewModel.layoutMode == .list {
+                ForEach(products) { product in
+                    posProductCard(product)
                 }
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            if viewModel.isCategoryExpanded(category.id) {
-                if viewModel.layoutMode == .list {
+            } else {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
+                    GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
+                    GridItem(.flexible())
+                ], spacing: DesignSystem.Spacing.xs) {
                     ForEach(products) { product in
-                        posProductCard(product)
+                        posGridCard(product)
                     }
-                } else {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible(), spacing: DesignSystem.Spacing.xs),
-                        GridItem(.flexible())
-                    ], spacing: DesignSystem.Spacing.xs) {
-                        ForEach(products) { product in
-                            posGridCard(product)
-                        }
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.md)
                 }
+                .padding(.horizontal, DesignSystem.Spacing.md)
             }
         }
     }

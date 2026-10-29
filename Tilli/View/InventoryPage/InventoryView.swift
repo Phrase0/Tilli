@@ -65,6 +65,8 @@ struct InventoryView: View {
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
     @State private var bundlePendingDeletion: BundleModel?
+    /// 目前選取的 chip（黑底白字）；預設「全部」
+    @State private var selectedAnchor: InventorySectionAnchor = .top
 
     init(
         event: EventModel,
@@ -198,19 +200,17 @@ struct InventoryView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignSystem.Spacing.xs) {
                 // 全部
-                chip(Text("inventoryChipAll")) { scroll(proxy, to: .top) }
+                chip(Text("inventoryChipAll"), anchor: .top, proxy: proxy)
                 if !viewModel.fixedBundles.isEmpty {
                     // 套餐
-                    chip(Text("bundleChipFixed")) { scroll(proxy, to: .fixedBundles) }
+                    chip(Text("bundleChipFixed"), anchor: .fixedBundles, proxy: proxy)
                 }
                 if !viewModel.comboBundles.isEmpty {
                     // 組合
-                    chip(Text("bundleChipCombo")) { scroll(proxy, to: .comboBundles) }
+                    chip(Text("bundleChipCombo"), anchor: .comboBundles, proxy: proxy)
                 }
                 ForEach(visibleCategories, id: \.id) { category in
-                    chip(Text(verbatim: category.name)) {
-                        scroll(proxy, to: .category(category.id))
-                    }
+                    chip(Text(verbatim: category.name), anchor: .category(category.id), proxy: proxy)
                 }
             }
             .padding(.horizontal, DesignSystem.Spacing.md)
@@ -223,21 +223,26 @@ struct InventoryView: View {
         viewModel.sortedCategories.filter { !viewModel.getItemsForCategory($0.id).isEmpty }
     }
 
-    private func scroll(_ proxy: ScrollViewProxy, to anchor: InventorySectionAnchor) {
+    /// 點 chip：標成選取並把對應區塊捲到頂端
+    private func select(_ anchor: InventorySectionAnchor, proxy: ScrollViewProxy) {
+        selectedAnchor = anchor
         withAnimation(.easeInOut(duration: 0.25)) {
             proxy.scrollTo(anchor, anchor: .top)
         }
     }
 
-    /// 樣式同收銀頁的折扣 chip（未選取狀態）
-    private func chip(_ label: Text, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    /// 樣式同收銀頁的折扣 chip：選取時黑底白字，未選取時灰底黑字
+    private func chip(_ label: Text, anchor: InventorySectionAnchor, proxy: ScrollViewProxy) -> some View {
+        let isSelected = selectedAnchor == anchor
+        return Button {
+            select(anchor, proxy: proxy)
+        } label: {
             label
                 .font(DesignSystem.Typography.caption)
                 .padding(.horizontal, DesignSystem.Spacing.sm)
                 .padding(.vertical, DesignSystem.Spacing.xs)
-                .background(DesignSystem.ColorToken.quietFill)
-                .foregroundColor(DesignSystem.ColorToken.ink)
+                .background(isSelected ? DesignSystem.ColorToken.ink : DesignSystem.ColorToken.quietFill)
+                .foregroundColor(isSelected ? DesignSystem.ColorToken.paper : DesignSystem.ColorToken.ink)
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -284,37 +289,36 @@ struct InventoryView: View {
                 let items = viewModel.getItemsForCategory(category.id)
                 if !items.isEmpty {
                     Section {
-                        categoryHeader(category)
+                        sectionTitle(Text(verbatim: category.name))
+                            .productListRow(topSpacing: DesignSystem.Spacing.sm, bottomSpacing: DesignSystem.Spacing.sm)
                             .id(InventorySectionAnchor.category(category.id))
-                        if viewModel.isCategoryExpanded(category.id) {
-                            ForEach(items) { item in
-                                InventoryProductCard(
-                                    item: item,
-                                    filteredChanges: viewModel.filteredChanges(for: item),
-                                    currency: event.currency,
-                                    onToggle: { viewModel.toggleExpanded(for: item.id) },
-                                    actionType: viewModel.getActionType(for: item.id),
-                                    onEdit: {
-                                        formTarget = .edit(item.product)
-                                    },
-                                    onDisableOrDelete: {
-                                        switch viewModel.getActionType(for: item.id) {
-                                        case .disable:
-                                            viewModel.handleDisableAction(for: item.id)
-                                        case .delete:
-                                            viewModel.handleDeleteAction(for: item.id)
-                                        }
-                                    },
-                                    onRestore: { viewModel.handleRestoreAction(for: item.id) }
-                                )
-                                .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
-                            }
-                            .onMove { from, to in
-                                viewModel.moveProduct(in: category.id, from: from, to: to)
-                            }
-                            // 搜尋中不允許拖曳，避免搬動的是過濾後的子集
-                            .moveDisabled(!searchText.isEmpty)
+                        ForEach(items) { item in
+                            InventoryProductCard(
+                                item: item,
+                                filteredChanges: viewModel.filteredChanges(for: item),
+                                currency: event.currency,
+                                onToggle: { viewModel.toggleExpanded(for: item.id) },
+                                actionType: viewModel.getActionType(for: item.id),
+                                onEdit: {
+                                    formTarget = .edit(item.product)
+                                },
+                                onDisableOrDelete: {
+                                    switch viewModel.getActionType(for: item.id) {
+                                    case .disable:
+                                        viewModel.handleDisableAction(for: item.id)
+                                    case .delete:
+                                        viewModel.handleDeleteAction(for: item.id)
+                                    }
+                                },
+                                onRestore: { viewModel.handleRestoreAction(for: item.id) }
+                            )
+                            .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
                         }
+                        .onMove { from, to in
+                            viewModel.moveProduct(in: category.id, from: from, to: to)
+                        }
+                        // 搜尋中不允許拖曳，避免搬動的是過濾後的子集
+                        .moveDisabled(!searchText.isEmpty)
                     }
                 }
             }
@@ -333,20 +337,14 @@ struct InventoryView: View {
     // MARK: - 套餐／組合
 
     /// 區塊標題：字級與收銀頁的類別標題相同（Body 半粗體）
-    private func sectionTitle(_ title: Text, trailing: Image? = nil) -> some View {
+    private func sectionTitle(_ title: Text) -> some View {
         HStack {
             title
                 .font(DesignSystem.Typography.body)
                 .fontWeight(.semibold)
                 .foregroundColor(DesignSystem.ColorToken.ink)
             Spacer()
-            if let trailing {
-                trailing
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-                    .font(DesignSystem.Typography.caption)
-            }
         }
-        .contentShape(Rectangle())
     }
 
     private func bundleRow(_ bundle: BundleModel) -> some View {
@@ -360,21 +358,6 @@ struct InventoryView: View {
             onDelete: { bundlePendingDeletion = bundle }
         )
         .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
-    }
-
-    // MARK: - 類別標題（可展開/收合，內容展開時同類別內可拖曳排序）
-
-    private func categoryHeader(_ category: CategoryModel) -> some View {
-        Button(action: {
-            viewModel.toggleCategoryExpansion(category.id)
-        }) {
-            sectionTitle(
-                Text(verbatim: category.name),
-                trailing: Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .productListRow(topSpacing: DesignSystem.Spacing.sm, bottomSpacing: DesignSystem.Spacing.sm)
     }
 
     // MARK: - 空狀態

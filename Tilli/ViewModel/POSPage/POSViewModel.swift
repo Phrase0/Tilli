@@ -39,7 +39,6 @@ class POSViewModel: ObservableObject {
     @Published var alertMessage = ""
 
     // Product Detail 相關狀態
-    @Published var expandedCategories: Set<UUID> = []
 
     // 布局模式（保存到 UserDefaults）
     @Published var layoutMode: ProductLayoutMode {
@@ -131,28 +130,6 @@ class POSViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Product Detail 相關方法
-    
-    /// 切換分類的展開狀態
-    func toggleCategoryExpansion(_ categoryId: UUID) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if expandedCategories.contains(categoryId) {
-                expandedCategories.remove(categoryId)
-            } else {
-                expandedCategories.insert(categoryId)
-            }
-        }
-    }
-    
-    /// 檢查分類是否展開
-    func isCategoryExpanded(_ categoryId: UUID) -> Bool {
-        return expandedCategories.contains(categoryId)
-    }
-    
-    /// 初始化時展開所有分類
-    func expandAllCategories() {
-        expandedCategories = Set(activeCategories.map { $0.id })
-    }
     
     /// 檢查商品是否無庫存
     func isOutOfStock(_ product: ProductModel) -> Bool {
@@ -187,11 +164,6 @@ class POSViewModel: ObservableObject {
         event = dataSource.event
         categories = dataSource.categories
         products = dataSource.products
-
-        // 首次載入時展開所有分類
-        if expandedCategories.isEmpty {
-            expandAllCategories()
-        }
 
         // 進行中的購物車可能有套餐已被刪除／下架／改價／缺貨
         refreshInvalidBundleLines()

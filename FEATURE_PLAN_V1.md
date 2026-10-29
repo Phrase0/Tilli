@@ -1742,6 +1742,8 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 驗收 2 | 套餐任一成員缺貨或下架 → 卡片灰掉 | **下架就藏、缺貨就灰**：套餐／成員下架、類別停用、成員不存在 → 收銀頁不顯示；只是缺貨 → 照列灰掉並顯示原因（`BundleAvailability.isListedOnPOS`） | 使用者決定；與單品規則一致（下架單品不出現、缺貨單品灰掉）。缺貨照列也讓購物車已有的套餐仍可在卡片上減少 |
 | 驗收 2 | 下架商品集中在管理頁最下方可展開的「下架商品」區 | 留在原類別、原位置，卡片灰掉、名稱後標「已下架」，⋯ 選單「編輯／上架」；刪除 `DisabledInventoryProductCard`、`disabledInventoryItems` 等。上架確認視窗文字改成「確認上架」 | 使用者要求與套餐／組合一致。⚠️ 已停用類別裡的下架商品因類別本身不顯示而看不到（原本會出現在下架區） |
 | 驗收 2 | 管理商品頁區塊標題 22pt、放在 List section header | 標題與收銀頁一致：Body 半粗體（16pt），放在一般列裡，往下捲動時跟著內容走 | 與收銀頁一致；section header 會黏在畫面上方 |
+| 驗收 2 | 管理商品頁與收銀頁的類別標題可點擊展開／收合（▲▼） | 拿掉類別展開／收合：標題只是文字，類別內商品一律顯示；刪除兩個 VM 的 `expandedCategoryIds`／`expandedCategories`、`toggleCategoryExpansion`、`isCategoryExpanded` | 使用者要求；有 chip 列可跳轉後不需要收合。商品卡片本身點擊展開庫存異動的功能保留 |
+| 驗收 2 | 管理商品頁 chip 一律灰底 | 點選的 chip 變黑底白字（與收銀頁折扣 chip 相同的 `ink`／`paper`），預設選「全部」 | 使用者要求；目前依點選決定，捲動時不會自動切換（捲動同步高亮留待第 6 批 6.1） |
 | 驗收 2 | — | 時間範圍選「自訂」時，開始／結束放不下就上下排（`ViewThatFits`），並加版面回歸測試 | 中文長日期並排約需 415pt，比 iPhone 寬，整頁被撐寬讓管理商品頁清單左右溢出（查看分析頁同元件一併修好） |
 | 驗收 2 | — | 名稱分隔符「、」「＋」改走 `Localizable.xcstrings`（`joinedAsList()`／`joinedAsBundleMembers()`），共 6 處 | 英文介面原本會出現全形標點 |
 | 驗收 2 | — | 第 5 批新 UI 依 DESIGN.md 調整：小標籤統一為 `TagLabel`（滿膠囊、內距 8/4）、缺貨原因標籤改膠囊、字級改用 `Typography`（移除 14pt）、警告圖示改外框 | 4px 圓角、內距 2、14pt 都不在 DESIGN.md 的規格內。`Divider()` 與照片虛線框使用者同意保留 |
@@ -1783,6 +1785,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   4. ⭐ **chip 列 scrollTo**：全部｜套餐｜組合｜類別… 每個 chip 都能把對應區塊捲到頂端（`List` section header id 上的 `scrollTo` 是這批風險最高的 UI）；組合 chip 只在有組合時出現
   5. 「⋯」→ 下架（變灰、標「已下架」、POS 消失）／上架／刪除（確認後連照片一起刪）
   5a. **商品**下架後留在原類別原位置、灰掉並標「已下架」，⋯ 只有「編輯／上架」；頁面最下方不再有「下架商品」區；上架後恢復正常卡片
+  5d. 類別標題沒有 ▲▼、點了不會收合（管理商品頁與收銀頁）；點 chip 該 chip 變黑底白字、其他恢復灰底
   5b. 選「自訂」時間範圍：開始／結束日期上下排，清單**不可**左右溢出（全部 chip、類別標題完整）；查看分析頁也檢查一次
   5c. 編輯有照片的套餐、換照片後存檔若失敗（不易手動觸發，已有單元測試）；刪除含套餐照片的場次後重開 App 不殘留（已有單元測試）
   6. 下架成員「抹茶」→ 套餐列 ⚠️「「抹茶」已下架」；組合「大福／抹茶／紅豆 任選 3」在其他候選庫存足夠時**不**顯示 ⚠️，「大福三個」只剩 2 個庫存時顯示「可湊組的商品庫存不足 3 個」
@@ -2253,3 +2256,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：新增 `BundleValidator`／`BundleAvailability`／`ComboApplier`／`CartPricing`／`CheckoutRecorder`／`TransactionBreakdown` 六個共用元件與 `BundleImageStore`；POS 套餐區塊、結帳摘要組合折抵（可取消／恢復）、管理商品頁套餐與組合管理、複製場次、交易明細獨立頁。修正 `stockUpdates` 同商品多筆未累加的少扣庫存問題。§14.2 第 3、4、8 列補日期（仍 ⬜ 未接）。總計 225 個單元測試全過；手動測試待做。差異見 §11 第 5 批 |
 | 2026-10-29 | 第 5 批最終審查修正（刪除類別守衛套餐引用、`saveBundles` 編碼失敗不寫入、`CartPricing.discountBase` 統一、付款頁 VM 改 `@StateObject`）與驗收修正（`＋` 改原生選單、套餐／組合表單即時驗證且有錯不能存、交易明細導航改 `navigationDestination(item:)`、明細頁折扣標題改走 `DiscountCalculator`、修正含套餐／組合交易的明細頁閃退）。第 2～5 批「預定」清單中已由測試涵蓋者改勾選。總計 239 個單元測試全過 |
 | 2026-10-29 | 第 5 批驗收 2：收銀頁套餐「下架就藏、缺貨就灰」、管理頁下架商品留在原位、自訂時間範圍跑版、分隔符中英對照、第 5 批 UI 依 DESIGN.md 調整（`TagLabel`）、`InventoryView` 拆檔、套餐照片存檔失敗還原與刪場次清照片、0 元組合不套用、金額輸入整理合併為 `MoneyHelper.sanitizeInput`、`transactions(in:)` 邊界測試。總計 257 個單元測試全過 |
+| 2026-10-29 | 第 5 批驗收 2（續）：管理商品頁區塊標題與收銀頁一致並跟著捲動、拿掉管理商品頁與收銀頁的類別展開／收合、chip 選取黑底白字；全專案程式碼註解只描述目前行為（沿革記在本文件）。總計 257 個單元測試全過 |

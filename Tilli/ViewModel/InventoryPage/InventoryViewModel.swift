@@ -40,7 +40,6 @@ class InventoryViewModel: ObservableObject {
     @Published var selectedTimeRange: ReportTimeRange
     /// 場次內所有商品（含已下架）；已下架的留在原類別、原位置，只在卡片上標「已下架」
     @Published var inventoryItems: [InventoryProductItem] = []
-    @Published var expandedCategoryIds: Set<UUID> = []
 
     // MARK: - Export Properties
     @Published var selectedExportType: InventoryExportType = .all
@@ -90,8 +89,6 @@ class InventoryViewModel: ObservableObject {
     init(dataSource: EventDataSource) {
         self.dataSource = dataSource
         self.selectedTimeRange = ReportTimeRange(event: dataSource.event)
-        // 預設展開所有類別
-        self.expandedCategoryIds = Set(dataSource.event.categories.active.map { $0.id })
     }
 
     // MARK: - Public Methods
@@ -134,22 +131,6 @@ class InventoryViewModel: ObservableObject {
         return item.changes.filter { change in
             dateInterval.contains(change.timestamp)
         }.sorted { $0.timestamp > $1.timestamp }
-    }
-
-    // MARK: - 類別展開/收起
-
-    /// 切換類別展開/收起狀態
-    func toggleCategoryExpansion(_ categoryId: UUID) {
-        if expandedCategoryIds.contains(categoryId) {
-            expandedCategoryIds.remove(categoryId)
-        } else {
-            expandedCategoryIds.insert(categoryId)
-        }
-    }
-
-    /// 檢查類別是否展開
-    func isCategoryExpanded(_ categoryId: UUID) -> Bool {
-        expandedCategoryIds.contains(categoryId)
     }
 
     /// 取得特定類別的商品列表（含已下架；有庫存在前、無庫存在後，組內依 sortOrder 排序，跟收銀頁一致；套用搜尋篩選）
