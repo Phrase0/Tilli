@@ -8,6 +8,7 @@
 
 import XCTest
 import CoreData
+import Combine
 @testable import Tilli
 
 @MainActor
@@ -193,5 +194,34 @@ final class POSQuantityControlTests: XCTestCase {
         viewModel.clearAllQuantities()
         XCTAssertNil(viewModel.expandedItem)
         XCTAssertTrue(viewModel.isCartEmpty)
+    }
+
+    // MARK: - 審查修正
+
+    func testCollapseWhenNothingExpandedDoesNotPublish() {
+        var publishCount = 0
+        let cancellable = viewModel.objectWillChange.sink { _ in publishCount += 1 }
+        viewModel.collapseControls()
+        viewModel.collapseControls()
+        XCTAssertEqual(publishCount, 0, "捲動時每一幀都會呼叫；沒有展開時不可觸發重繪")
+        cancellable.cancel()
+    }
+
+    func testEmptyingCartForgetsCancelledCombosForNextCustomer() {
+        viewModel.increment(.product(matchaId))
+        viewModel.increment(.product(matchaId))
+        XCTAssertFalse(viewModel.pricing.combos.isEmpty)
+        viewModel.toggleComboCancelled(comboId)
+        XCTAssertTrue(viewModel.pricing.combos.isEmpty)
+
+        // 這位客人把東西全部刪掉
+        viewModel.decrement(.product(matchaId))
+        viewModel.decrement(.product(matchaId))
+        XCTAssertTrue(viewModel.isCartEmpty)
+
+        // 下一位客人買同樣的東西，組合要自動套用
+        viewModel.increment(.product(matchaId))
+        viewModel.increment(.product(matchaId))
+        XCTAssertFalse(viewModel.pricing.combos.isEmpty, "取消組合只對這一筆有效")
     }
 }

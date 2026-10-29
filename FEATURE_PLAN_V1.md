@@ -1934,6 +1934,8 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 「小計 → 折後」一行 | 折扣 chip 下方單獨一行 | 刪除，併入結帳鈕 | 設計 §8.2 |
 | 訂單摘要商品列 | 「數量: N　單價」 | 只留單價，數量在增減元件上 | 不重複顯示 |
 | 優惠明細 | 交易明細頁自己畫；訂單摘要是組合區＋「總計＋折扣 chip」 | 共用 `DiscountBreakdownView`；刪除 `TransactionHistoryViewModel.formatDeduction` 與字串 `posTotalLabel`／`checkoutTotalLabel`／`checkoutItemQuantity`／`checkoutComboLine` | 共用元件只准一份 |
+| 審查修正 | 購物車清空後，本筆取消的組合仍留著 | 購物車一空（任何方式）就清掉已取消的組合（`cart` 的 `didSet`）；已選折扣不動（收銀頁 chip 看得到） | 「取消組合只對這一筆有效」：否則上一位客人取消的組合會讓下一位客人多付錢，且畫面上幾乎看不出來 |
+| 審查修正 | `collapseControls()` 每次都寫入 | 沒有展開時直接 return | iOS 17 捲動時每一幀都會呼叫，`@Published` 同值寫入也會觸發整頁重繪與重算定價 |
 
 ##### 手動 —— 需操作 App（⬜ 尚未做）
 
@@ -2297,4 +2299,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-29 | 第 5 批驗收 2（續）：管理商品頁區塊標題與收銀頁一致並跟著捲動、拿掉管理商品頁與收銀頁的類別展開／收合、chip 選取黑底白字；全專案程式碼註解只描述目前行為（沿革記在本文件）。總計 257 個單元測試全過 |
 | 2026-10-29 | 第 5 批驗收 3：回到收銀頁時單點商品也一起驗證（下架／刪除移除、超過庫存降到剩餘數量，與失效套餐同一個通知）；套餐格狀卡片數量 0 時按 − 不再穿透成加入一份。總計 262 個單元測試全過 |
 | 2026-10-29 | 第 5 批手動測試完成。管理商品頁商品卡片點擊展開庫存異動保留；chip 隨捲動自動高亮留待第 6 批 6.1 與收銀頁 chip 列一起做。下一步：收銀頁互動調整（計畫 `docs/superpowers/plans/2026-10-29-pos-interaction.md`） |
-| 2026-10-29 | 收銀頁互動調整：`QuantityStepper`（Uber Eats 式增減，商品／套餐、列表／格狀、訂單摘要共用）、點卡片不加入、點別處或捲動收合、結帳鈕顯示折扣前後金額、訂單摘要每行可增減並改用共用 `DiscountBreakdownView`（與交易明細同一份）。總計 276 個單元測試全過；手動測試待做 |
+| 2026-10-29 | 收銀頁互動調整：`QuantityStepper`（Uber Eats 式增減，商品／套餐、列表／格狀、訂單摘要共用）、點卡片不加入、點別處或捲動收合、結帳鈕顯示折扣前後金額、訂單摘要每行可增減並改用共用 `DiscountBreakdownView`（與交易明細同一份）；審查修正（清空購物車時清掉已取消的組合、收合不重繪）。總計 278 個單元測試全過；手動測試待做 |

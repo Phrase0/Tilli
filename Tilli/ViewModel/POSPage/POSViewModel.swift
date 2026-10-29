@@ -31,7 +31,14 @@ class POSViewModel: ObservableObject {
     @Published private(set) var categories: [CategoryModel] = []
     @Published private(set) var products: [ProductModel] = []
     /// 購物車：單點商品、套餐行、本筆交易已取消的組合
-    @Published private(set) var cart = Cart()
+    @Published private(set) var cart = Cart() {
+        didSet {
+            // 購物車空了＝這位客人結束；取消組合只對這一筆有效，不可帶到下一位客人
+            if cart.isEmpty && !cart.cancelledComboIds.isEmpty {
+                cart.cancelledComboIds = []
+            }
+        }
+    }
     /// 回到收銀頁（或按結帳）時發現無法結帳的套餐行；非空時由 View 通知，使用者確定後才清除
     @Published var invalidBundleLines: [InvalidBundleLine] = []
     /// 同上，單點商品（下架、刪除、超過目前庫存）；與套餐行同一個通知
@@ -273,7 +280,9 @@ class POSViewModel: ObservableObject {
         expandedItem = item
     }
 
+    /// 捲動時每一幀都會呼叫；沒有展開時不寫入，避免觸發整頁重繪
     func collapseControls() {
+        guard expandedItem != nil else { return }
         expandedItem = nil
     }
 
