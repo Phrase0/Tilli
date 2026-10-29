@@ -44,6 +44,8 @@ struct EventWorkspaceView: View {
     // 商品新增/編輯表單的導航目標，由容器持有並在這裡宣告 navigationDestination，
     // 子頁只透過 Binding 決定要不要開表單。
     @State private var inventoryFormTarget: InventoryFormTarget?
+    // 交易明細頁的導航目標，理由同上（查看分析 → 交易紀錄卡片）
+    @State private var selectedTransaction: TransactionModel?
 
     init(event: EventModel, initialTab: WorkspaceTab) {
         self.event = event
@@ -80,7 +82,12 @@ struct EventWorkspaceView: View {
                 }
                 .tag(WorkspaceTab.pos)
 
-            ReportsView(event: event, viewModel: reportsVM, showingShareSheet: $reportsShowingShareSheet)
+            ReportsView(
+                event: event,
+                viewModel: reportsVM,
+                showingShareSheet: $reportsShowingShareSheet,
+                selectedTransaction: $selectedTransaction
+            )
                 .tabItem {
                     Image(systemName: "chart.bar")
                     // 查看分析
@@ -129,8 +136,10 @@ struct EventWorkspaceView: View {
                 }
             }
         }
-        // 交易紀錄卡片 → 交易明細頁（唯讀，只讀交易快照）
-        .navigationDestination(for: TransactionModel.self) { transaction in
+        // 交易紀錄卡片 → 交易明細頁（唯讀，只讀交易快照）。
+        // 與商品表單同樣用 item 形式：工作區本身是 navigationDestination(item:) 推進來的，
+        // 混用 NavigationLink(value:) 會讓明細頁排到工作區下方、工作區被重建。
+        .navigationDestination(item: $selectedTransaction) { transaction in
             TransactionDetailView(transaction: transaction, viewModel: reportsVM.transactionViewModel)
         }
     }

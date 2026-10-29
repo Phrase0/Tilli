@@ -14,8 +14,6 @@ struct BundleFormView: View {
     @StateObject private var viewModel: BundleFormViewModel
 
     @FocusState private var focusedField: Field?
-    /// 按過一次儲存後才列出錯誤，避免剛打開表單就一片紅字
-    @State private var attemptedSave = false
 
     private enum Field: Hashable { case name, price }
 
@@ -43,6 +41,10 @@ struct BundleFormView: View {
                     .focused($focusedField, equals: .name)
                     .submitLabel(.next)
                     .onSubmit { focusedField = .price }
+
+                if let error = viewModel.nameError {
+                    errorLabel(error)
+                }
             }
 
             priceSection
@@ -58,16 +60,6 @@ struct BundleFormView: View {
 
             productSection
 
-            if attemptedSave && !viewModel.errorMessages.isEmpty {
-                Section {
-                    ForEach(viewModel.errorMessages, id: \.self) { message in
-                        Label(message, systemImage: "exclamationmark.circle")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.alertRed)
-                    }
-                }
-            }
-
             Section {
                 Button {
                     save()
@@ -76,6 +68,8 @@ struct BundleFormView: View {
                     Text("bundleFormSave")
                         .frame(maxWidth: .infinity)
                 }
+                // 有任何錯誤就不能按（錯誤原因即時顯示在各欄位下方）
+                .disabled(!viewModel.canSave)
             }
         }
         .navigationTitle(navigationTitle)
@@ -119,7 +113,6 @@ struct BundleFormView: View {
     }
 
     private func save() {
-        attemptedSave = true
         focusedField = nil
         if viewModel.save(using: eventRepository) {
             onSave?()
@@ -186,10 +179,19 @@ struct BundleFormView: View {
                     viewModel.sanitizePrice()
                 }
 
-            if let hint = viewModel.originalTotalHint {
-                Text(hint)
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.ColorToken.muted)
+            // 價格上限常駐顯示：套餐＝原價合計，組合＝N × 最便宜候選；超過時紅字緊接在下方
+            if let hint = viewModel.originalTotalHint ?? viewModel.comboLimitHint {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                    Text(hint)
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+
+                    if let error = viewModel.priceError {
+                        errorLabel(error)
+                    }
+                }
+            } else if let error = viewModel.priceError {
+                errorLabel(error)
             }
 
             if viewModel.showsNoDiscountHint {
@@ -208,11 +210,29 @@ struct BundleFormView: View {
 
     private var productSection: some View {
         // 套餐成員（各 1 個）／候選商品
-        Section(header: Text(isFixed ? "bundleFormSectionMembers" : "bundleFormSectionCandidates")) {
+        Section {
             ForEach(viewModel.selectableProducts) { product in
                 productRow(product)
             }
+        } header: {
+            // 套餐成員（各 1 個）／候選商品
+            Text(isFixed ? LocalizedStringKey("bundleFormSectionMembers") : LocalizedStringKey("bundleFormSectionCandidates"))
+        } footer: {
+            if let error = viewModel.selectionError {
+                errorLabel(error)
+            } else if let hint = viewModel.selectionHint {
+                // 還沒勾夠：灰字提示，不是錯誤
+                Text(hint)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+            }
         }
+    }
+
+    private func errorLabel(_ message: String) -> some View {
+        Label(message, systemImage: "exclamationmark.circle")
+            .font(DesignSystem.Typography.caption)
+            .foregroundColor(DesignSystem.ColorToken.alertRed)
     }
 
     private func productRow(_ product: ProductModel) -> some View {

@@ -64,7 +64,6 @@ struct InventoryView: View {
 
     @State private var timeRange: ReportTimeRange
     @State private var searchText = ""
-    @State private var showAddMenu = false
     @State private var bundlePendingDeletion: BundleModel?
 
     init(
@@ -91,26 +90,29 @@ struct InventoryView: View {
                 productList
             }
 
-            FloatingActionButton(systemImage: "plus") {
-                // 場次內還沒有商品 → 直接新增商品；有商品後才能建套餐／組合
-                if viewModel.hasAnyProduct {
-                    showAddMenu = true
-                } else {
+            // 場次內還沒有商品 → 直接新增商品；有商品後才能建套餐／組合，選單貼著 ＋ 彈出
+            if viewModel.hasAnyProduct {
+                FloatingActionMenu(systemImage: "plus") {
+                    Button { formTarget = .new } label: {
+                        // 新增商品
+                        Label("bundleAddMenuProduct", systemImage: "shippingbox")
+                    }
+                    Button { formTarget = .newBundle(.fixed) } label: {
+                        // 新增套餐
+                        Label("bundleAddMenuFixed", systemImage: "takeoutbag.and.cup.and.straw")
+                    }
+                    Button { formTarget = .newBundle(.chooseAny) } label: {
+                        // 新增組合
+                        Label("bundleAddMenuCombo", systemImage: "square.stack.3d.up")
+                    }
+                }
+            } else {
+                FloatingActionButton(systemImage: "plus") {
                     formTarget = .new
                 }
             }
         }
         .background(DesignSystem.ColorToken.paper)
-        .confirmationDialog(Text(verbatim: ""), isPresented: $showAddMenu, titleVisibility: .hidden) {
-            // 新增商品
-            Button("bundleAddMenuProduct") { formTarget = .new }
-            // 新增套餐
-            Button("bundleAddMenuFixed") { formTarget = .newBundle(.fixed) }
-            // 新增組合
-            Button("bundleAddMenuCombo") { formTarget = .newBundle(.chooseAny) }
-            // 取消
-            Button("commonCancel", role: .cancel) { }
-        }
         // 確認刪除 / 確定要刪除「%@」嗎？
         .alert(
             "productDetailConfirmDeleteTitle",

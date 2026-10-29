@@ -159,6 +159,23 @@
         }
       }
     },
+    "bundleComboLimitHint %@ %lld %@" : {
+      "comment" : "上限 %1$@（%2$lld × 最便宜的 %3$@）",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max %1$@ (%2$lld × cheapest %3$@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上限 %1$@（%2$lld × 最便宜的 %3$@）"
+          }
+        }
+      }
+    },
     "bundleComboStockWarning %lld" : {
       "comment" : "可湊組的商品庫存不足 %lld 個",
       "localizations" : {

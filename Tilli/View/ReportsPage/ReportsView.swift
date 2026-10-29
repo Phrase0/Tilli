@@ -15,12 +15,14 @@ struct ReportsView: View {
 
     @State private var timeRange: ReportTimeRange
     @Binding var showingShareSheet: Bool
+    @Binding var selectedTransaction: TransactionModel?
 
-    init(event: EventModel, viewModel: ReportsViewModel, showingShareSheet: Binding<Bool>) {
+    init(event: EventModel, viewModel: ReportsViewModel, showingShareSheet: Binding<Bool>, selectedTransaction: Binding<TransactionModel?>) {
         self.event = event
         self.viewModel = viewModel
         self._timeRange = State(initialValue: ReportTimeRange(event: event))
         self._showingShareSheet = showingShareSheet
+        self._selectedTransaction = selectedTransaction
     }
 
     var body: some View {
@@ -35,7 +37,8 @@ struct ReportsView: View {
                 TransactionHistoryView(
                     transactionViewModel: viewModel.transactionViewModel,
                     event: event,
-                    timeRange: timeRange
+                    timeRange: timeRange,
+                    selectedTransaction: $selectedTransaction
                 )
                 .tag(ReportsTab.transactions)
 

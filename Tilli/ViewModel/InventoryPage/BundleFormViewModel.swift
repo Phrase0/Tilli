@@ -140,8 +140,47 @@ final class BundleFormViewModel: ObservableObject {
         BundleValidator.validate(draft, existing: event.bundles, products: productsById)
     }
 
-    var errorMessages: [String] {
-        errors.map(errorText)
+    /// 有任何錯誤（含還沒填完）儲存鈕就變灰
+    var canSave: Bool { errors.isEmpty }
+
+    // 錯誤即時顯示在各欄位下方，但只顯示「填了但填錯」的；還沒填（名稱空白、價格空白）只讓儲存變灰，
+    // 避免剛打開表單就一片紅字。
+
+    /// 名稱欄下方紅字：與現有套餐／組合重名
+    var nameError: String? {
+        errors.contains(.duplicateName) ? errorText(.duplicateName) : nil
+    }
+
+    /// 價格欄下方紅字：超過上限，或填了但不大於 0
+    var priceError: String? {
+        if let aboveLimit = errors.first(where: { if case .priceAboveLimit = $0 { return true } else { return false } }) {
+            return errorText(aboveLimit)
+        }
+        if !priceText.isEmpty && errors.contains(.nonPositivePrice) {
+            return errorText(.nonPositivePrice)
+        }
+        return nil
+    }
+
+    /// 勾選區下方灰字：還沒勾夠（不算填錯，所以不用紅字）
+    var selectionHint: String? {
+        if errors.contains(.tooFewMembers) { return errorText(.tooFewMembers) }
+        if errors.contains(.noCandidates) { return errorText(.noCandidates) }
+        return nil
+    }
+
+    /// 勾選區下方紅字：有成員商品已不存在
+    var selectionError: String? {
+        errors.contains(.unknownProduct) ? errorText(.unknownProduct) : nil
+    }
+
+    /// 組合：「上限 $X（N × 最便宜的 $Y）」，常駐顯示在價格下方；套餐的上限就是原價合計（見 originalTotalHint）
+    var comboLimitHint: String? {
+        guard case .chooseAny(let n) = draft.mode,
+              let limit = BundleValidator.priceLimit(for: draft, products: productsById),
+              let cheapest = selectedProductIds.compactMap({ productsById[$0]?.price }).min() else { return nil }
+        // 上限 %1$@（%2$lld × 最便宜的 %3$@）
+        return String.localized("bundleComboLimitHint \(MoneyHelper.format(limit, currency: currency)) \(n) \(MoneyHelper.format(cheapest, currency: currency))")
     }
 
     var showsNoDiscountHint: Bool {

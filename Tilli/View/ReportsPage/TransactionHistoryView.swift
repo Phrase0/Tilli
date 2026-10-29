@@ -11,13 +11,17 @@ struct TransactionHistoryView: View {
     @ObservedObject var transactionViewModel: TransactionHistoryViewModel
     let event: EventModel
     let timeRange: ReportTimeRange?
+    /// 點卡片要開的交易明細，由 EventWorkspaceView 持有並宣告 navigationDestination
+    @Binding var selectedTransaction: TransactionModel?
 
     init(transactionViewModel: TransactionHistoryViewModel,
          event: EventModel,
-         timeRange: ReportTimeRange? = nil) {
+         timeRange: ReportTimeRange? = nil,
+         selectedTransaction: Binding<TransactionModel?>) {
         self.transactionViewModel = transactionViewModel
         self.event = event
         self.timeRange = timeRange
+        self._selectedTransaction = selectedTransaction
     }
 
     var body: some View {
@@ -210,9 +214,13 @@ struct TransactionHistoryView: View {
         }
     }
 
-    /// 交易卡片：點整張卡片 push 進交易明細頁（destination 在 EventWorkspaceView）
+    /// 交易卡片：點整張卡片 push 進交易明細頁（destination 在 EventWorkspaceView）。
+    /// 不用 NavigationLink(value:)：場次工作區是以 navigationDestination(item:) 推進來的，
+    /// 兩種導航混用時 SwiftUI 會把明細頁排到工作區下面並重建工作區。
     private func transactionCard(_ transaction: TransactionModel) -> some View {
-        NavigationLink(value: transaction) {
+        Button {
+            selectedTransaction = transaction
+        } label: {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 // 第一行：交易編號和支付方式
                 HStack {

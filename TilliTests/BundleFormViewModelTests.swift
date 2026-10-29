@@ -86,6 +86,78 @@ final class BundleFormViewModelTests: XCTestCase {
         XCTAssertTrue(vm.showsNoDiscountHint)
     }
 
+    func testFreshFormCannotSaveButShowsNoRedErrors() {
+        let vm = BundleFormViewModel(kind: .fixed, editing: nil, event: event(), products: products)
+
+        XCTAssertFalse(vm.canSave)
+        XCTAssertNil(vm.nameError)
+        XCTAssertNil(vm.priceError)
+        XCTAssertNil(vm.selectionError)
+        // 還沒勾夠只給灰字提示
+        XCTAssertNotNil(vm.selectionHint)
+    }
+
+    func testPriceAboveLimitShowsInlineErrorAndBlocksSave() {
+        let vm = BundleFormViewModel(kind: .fixed, editing: nil, event: event(), products: products)
+        vm.name = "下午茶套餐"
+        vm.selectedProductIds = [daifuku.id, matcha.id, redBean.id]
+
+        vm.priceText = "121"
+        XCTAssertFalse(vm.canSave)
+        XCTAssertNotNil(vm.priceError)
+
+        vm.priceText = "100"
+        XCTAssertTrue(vm.canSave)
+        XCTAssertNil(vm.priceError)
+        XCTAssertNil(vm.selectionHint)
+    }
+
+    func testZeroPriceShowsErrorOnlyOnceTyped() {
+        let vm = BundleFormViewModel(kind: .fixed, editing: nil, event: event(), products: products)
+        vm.name = "下午茶套餐"
+        vm.selectedProductIds = [daifuku.id, matcha.id]
+        XCTAssertNil(vm.priceError)
+
+        vm.priceText = "0"
+        XCTAssertFalse(vm.canSave)
+        XCTAssertNotNil(vm.priceError)
+    }
+
+    func testDuplicateNameShowsInlineError() {
+        let existing = BundleModel.fixedMock(name: "早餐套餐", price: 50, productIds: [daifuku.id, redBean.id])
+        let vm = BundleFormViewModel(kind: .fixed, editing: nil, event: event(bundles: [existing]), products: products)
+        vm.name = " 早餐套餐 "
+        vm.priceText = "50"
+        vm.selectedProductIds = [daifuku.id, redBean.id]
+
+        XCTAssertFalse(vm.canSave)
+        XCTAssertNotNil(vm.nameError)
+    }
+
+    func testComboLimitHintOnlyForCombosWithCandidates() {
+        let combo = BundleFormViewModel(kind: .chooseAny, editing: nil, event: event(), products: products)
+        XCTAssertNil(combo.comboLimitHint)
+        combo.selectedProductIds = [daifuku.id, matcha.id]
+        XCTAssertNotNil(combo.comboLimitHint)
+
+        let fixed = BundleFormViewModel(kind: .fixed, editing: nil, event: event(), products: products)
+        fixed.selectedProductIds = [daifuku.id, matcha.id]
+        XCTAssertNil(fixed.comboLimitHint)
+    }
+
+    func testComboPriceAboveNTimesCheapestBlocksSave() {
+        let vm = BundleFormViewModel(kind: .chooseAny, editing: nil, event: event(), products: products)
+        vm.name = "任選 3"
+        vm.selectedProductIds = [daifuku.id, matcha.id]   // 最便宜 40 → 上限 120
+
+        vm.priceText = "121"
+        XCTAssertFalse(vm.canSave)
+        XCTAssertNotNil(vm.priceError)
+
+        vm.priceText = "120"
+        XCTAssertTrue(vm.canSave)
+    }
+
     func testOriginalTotalSumsSelectedMembers() {
         let vm = BundleFormViewModel(kind: .fixed, editing: nil, event: event(), products: products)
         vm.selectedProductIds = [daifuku.id, matcha.id, redBean.id]
