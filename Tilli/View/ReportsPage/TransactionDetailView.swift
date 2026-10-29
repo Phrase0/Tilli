@@ -97,7 +97,7 @@ struct TransactionDetailView: View {
                         .font(DesignSystem.Typography.body)
                         .foregroundColor(DesignSystem.ColorToken.ink)
                     // 套餐
-                    tag("transactionDetailBundleTag")
+                    tagLabel("transactionDetailBundleTag")
                 }
 
                 // × %lld
@@ -128,7 +128,7 @@ struct TransactionDetailView: View {
                         .foregroundColor(DesignSystem.ColorToken.ink)
                     if isInCombo {
                         // 含組合
-                        tag("transactionDetailInComboTag")
+                        tagLabel("transactionDetailInComboTag")
                     }
                 }
 
@@ -246,7 +246,8 @@ struct TransactionDetailView: View {
             .padding(.horizontal, DesignSystem.Spacing.xxs)
     }
 
-    private func tag(_ key: LocalizedStringKey) -> some View {
+    /// 小標籤（套餐／含組合）。⚠️ 不可命名為 `tag`：會被解析成 SwiftUI 的 `View.tag(_:)`，把整頁包進自己而無限遞迴閃退
+    private func tagLabel(_ key: LocalizedStringKey) -> some View {
         Text(key)
             .font(DesignSystem.Typography.caption)
             .foregroundColor(DesignSystem.ColorToken.muted)

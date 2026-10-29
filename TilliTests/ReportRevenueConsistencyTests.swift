@@ -12,6 +12,7 @@
 //
 
 import XCTest
+import SwiftUI
 import CoreData
 @testable import Tilli
 
@@ -187,5 +188,22 @@ final class ReportRevenueConsistencyTests: XCTestCase {
             XCTAssertEqual(product.discount, discount, product.name)
             XCTAssertGreaterThanOrEqual(product.actualRevenue, 0, product.name)
         }
+    }
+
+    /// 交易明細頁渲染含套餐＋組合的交易不可閃退
+    /// （曾因 helper 命名為 `tag(_:)` 被解析成 SwiftUI 的 `View.tag`，整頁無限遞迴包進自己）
+    func testTransactionDetailRendersBundleAndComboTransaction() throws {
+        let transaction = try XCTUnwrap(dataSource.transactions.first { $0.items.contains { $0.bundleKind == .fixed } })
+        let viewModel = TransactionHistoryViewModel(dataSource: dataSource)
+        let host = UIHostingController(rootView: NavigationStack {
+            TransactionDetailView(transaction: transaction, viewModel: viewModel)
+        })
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+
+        host.view.layoutIfNeeded()
+
+        XCTAssertGreaterThan(host.view.intrinsicContentSize.height + host.view.bounds.height, 0)
     }
 }
