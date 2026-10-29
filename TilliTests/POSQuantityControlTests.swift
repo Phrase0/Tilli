@@ -168,6 +168,17 @@ final class POSQuantityControlTests: XCTestCase {
         XCTAssertEqual(viewModel.quantity(of: unknown), 0)
     }
 
+    func testUnavailableBundleAlertShowsReasonOnlyWhenUnavailable() {
+        viewModel.showUnavailableAlert(for: teaSet)
+        XCTAssertFalse(viewModel.showAlert, "可賣時不提醒")
+
+        viewModel.increment(.product(daifukuId))
+        viewModel.increment(.product(daifukuId))
+        viewModel.showUnavailableAlert(for: teaSet)
+        XCTAssertTrue(viewModel.showAlert)
+        XCTAssertEqual(viewModel.alertMessage, BundleUnavailableReason.memberOutOfStock(productName: "大福").displayText)
+    }
+
     // MARK: - 購物車清空
 
     func testRemovingLastItemEmptiesCart() {

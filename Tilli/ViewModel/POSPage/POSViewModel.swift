@@ -326,6 +326,13 @@ class POSViewModel: ObservableObject {
         }
     }
 
+    /// 套餐不可賣時，點卡片提醒原因
+    func showUnavailableAlert(for bundle: BundleModel) {
+        guard case .failure(let reason) = availability(of: bundle) else { return }
+        alertMessage = reason.displayText
+        showAlert = true
+    }
+
     /// 減一份，到 0 移除該行
     func removeBundle(_ bundleId: UUID) {
         guard var line = cart.bundleLines[bundleId] else { return }

@@ -186,7 +186,11 @@ struct POSView: View {
                 }
             }
             .padding(.top, DesignSystem.Spacing.md)
+            // 點空白處收合展開中的增減元件
+            .contentShape(Rectangle())
+            .onTapGesture { viewModel.collapseControls() }
         }
+        .collapsesControlsOnScroll(viewModel)
     }
 
     // MARK: - Category Section
@@ -287,7 +291,6 @@ struct POSView: View {
 
     private func posProductCard(_ product: ProductModel) -> some View {
         let isOutOfStock = viewModel.isOutOfStock(product)
-        let currentQty = viewModel.quantity(for: product)
 
         return HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
             EntityImageView(
@@ -342,7 +345,7 @@ struct POSView: View {
 
                     Spacer()
 
-                    quantityControls(product: product, isOutOfStock: isOutOfStock, currentQty: currentQty)
+                    POSItemStepper(item: .product(product.id), viewModel: viewModel)
                 }
             }
         }
@@ -356,16 +359,19 @@ struct POSView: View {
             y: DesignSystem.Shadow.cardY
         )
         .padding(.horizontal, DesignSystem.Spacing.md)
-        .onTapGesture {
-            if isOutOfStock { viewModel.showOutOfStockAlert(for: product.name) }
-        }
+        .onTapGesture { tapCard(product, isOutOfStock: isOutOfStock) }
+    }
+
+    /// 點卡片不加入：收合展開中的增減元件；缺貨時提醒
+    private func tapCard(_ product: ProductModel, isOutOfStock: Bool) {
+        viewModel.collapseControls()
+        if isOutOfStock { viewModel.showOutOfStockAlert(for: product.name) }
     }
 
     // MARK: - Grid Product Card
 
     private func posGridCard(_ product: ProductModel) -> some View {
         let isOutOfStock = viewModel.isOutOfStock(product)
-        let currentQty = viewModel.quantity(for: product)
 
         return VStack(alignment: .leading, spacing: 0) {
             EntityImageView(
@@ -380,6 +386,10 @@ struct POSView: View {
             .clipped()
             .grayscale(isOutOfStock ? 1.0 : 0.0)
             .opacity(isOutOfStock ? 0.6 : 1.0)
+            .overlay(alignment: .bottomTrailing) {
+                POSItemStepper(item: .product(product.id), viewModel: viewModel)
+                    .padding(DesignSystem.Spacing.xxs)
+            }
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(product.name)
@@ -404,13 +414,8 @@ struct POSView: View {
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.muted)
                 }
-
-                HStack {
-                    Spacer()
-                    quantityControls(product: product, isOutOfStock: isOutOfStock, currentQty: currentQty, compact: true)
-                    Spacer()
-                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(DesignSystem.Spacing.xs)
         }
         .background(isOutOfStock ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
@@ -421,42 +426,42 @@ struct POSView: View {
             x: DesignSystem.Shadow.cardX,
             y: DesignSystem.Shadow.cardY
         )
-        .onTapGesture {
-            if isOutOfStock { viewModel.showOutOfStockAlert(for: product.name) }
-        }
+        .onTapGesture { tapCard(product, isOutOfStock: isOutOfStock) }
     }
+}
 
-    // MARK: - Quantity Controls
+// MARK: - 增減元件（商品卡片、套餐卡片共用）
 
-    private func quantityControls(product: ProductModel, isOutOfStock: Bool, currentQty: Int, compact: Bool = false) -> some View {
-        let iconSize: CGFloat = compact ? 20 : 22
-        return HStack(spacing: compact ? DesignSystem.Spacing.xs : DesignSystem.Spacing.sm) {
-            Button {
-                viewModel.decreaseQuantity(for: product)
-            } label: {
-                Image(systemName: "minus.circle.fill")
-                    .font(.system(size: iconSize))
-                    .foregroundColor(isOutOfStock || currentQty == 0
-                                    ? DesignSystem.ColorToken.quietFill
-                                    : DesignSystem.ColorToken.ink.opacity(0.6))
+/// 把 `QuantityStepper` 接到 `POSViewModel`：展開狀態、能不能再加、加減都由 VM 決定
+struct POSItemStepper: View {
+    let item: CartItemID
+    @ObservedObject var viewModel: POSViewModel
+
+    var body: some View {
+        QuantityStepper(
+            quantity: viewModel.quantity(of: item),
+            isExpanded: viewModel.expandedItem == item,
+            canIncrement: viewModel.canIncrement(item),
+            onIncrement: { viewModel.increment(item) },
+            onDecrement: { viewModel.decrement(item) },
+            onExpand: { viewModel.expand(item) }
+        )
+    }
+}
+
+private extension View {
+    /// 開始捲動就收合展開中的增減元件
+    @ViewBuilder
+    func collapsesControlsOnScroll(_ viewModel: POSViewModel) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollPhaseChange { _, phase in
+                if phase == .interacting { viewModel.collapseControls() }
             }
-            .disabled(isOutOfStock || currentQty == 0)
-
-            Text("\(currentQty)")
-                .font(.system(size: 14, weight: .medium))
-                .frame(minWidth: 18)
-                .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-
-            Button {
-                viewModel.increaseQuantity(for: product)
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: iconSize))
-                    .foregroundColor(isOutOfStock || currentQty >= product.stock
-                                    ? DesignSystem.ColorToken.quietFill
-                                    : DesignSystem.ColorToken.ink.opacity(0.6))
-            }
-            .disabled(isOutOfStock || currentQty >= product.stock)
+        } else {
+            // iOS 17 沒有捲動狀態；用同時進行的拖曳手勢偵測，不影響捲動本身
+            simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { _ in
+                viewModel.collapseControls()
+            })
         }
     }
 }

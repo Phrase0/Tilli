@@ -4,7 +4,7 @@
 //
 //  收銀頁最上方的「套餐」區塊。卡片樣式沿用 POSView 的
 //  posProductCard（列表）／posGridCard（格狀）。下架類不列（由 POSViewModel.fixedBundles 篩掉），
-//  缺貨照列：灰掉、顯示原因、不能加入，已在購物車的份數仍可減少。
+//  缺貨照列：灰掉、顯示原因、不能加入，已在購物車的份數仍可減少。增減用 POSItemStepper。
 //
 
 import SwiftUI
@@ -109,7 +109,7 @@ struct POSBundleSection: View {
 
                     Spacer()
 
-                    quantityControls(bundle, isUnavailable: isUnavailable)
+                    POSItemStepper(item: .bundle(bundle.id), viewModel: viewModel)
                 }
             }
         }
@@ -139,6 +139,10 @@ struct POSBundleSection: View {
                 .clipped()
                 .grayscale(isUnavailable ? 1.0 : 0.0)
                 .opacity(isUnavailable ? 0.6 : 1.0)
+                .overlay(alignment: .bottomTrailing) {
+                    POSItemStepper(item: .bundle(bundle.id), viewModel: viewModel)
+                        .padding(DesignSystem.Spacing.xxs)
+                }
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 Text(bundle.name)
@@ -156,13 +160,8 @@ struct POSBundleSection: View {
                     reasonBadge(reason)
                         .lineLimit(1)
                 }
-
-                HStack {
-                    Spacer()
-                    quantityControls(bundle, isUnavailable: isUnavailable, compact: true)
-                    Spacer()
-                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(DesignSystem.Spacing.xs)
         }
         .background(isUnavailable ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.cardSurface)
@@ -178,10 +177,10 @@ struct POSBundleSection: View {
 
     // MARK: - 共用元件
 
-    /// 點卡片即加入一份；不可賣時不能點
+    /// 點卡片不加入：收合展開中的增減元件；不可賣時提醒原因
     private func tapCard(_ bundle: BundleModel, isUnavailable: Bool) {
-        guard !isUnavailable else { return }
-        viewModel.addBundle(bundle)
+        viewModel.collapseControls()
+        if isUnavailable { viewModel.showUnavailableAlert(for: bundle) }
     }
 
     /// 缺貨原因（例如「「大福」缺貨」）：膠囊標籤
@@ -192,43 +191,5 @@ struct POSBundleSection: View {
             .padding(.horizontal, DesignSystem.Spacing.xs)
             .padding(.vertical, DesignSystem.Spacing.xxs)
             .background(Capsule().fill(DesignSystem.ColorToken.alertRed.opacity(0.1)))
-    }
-
-    /// 不可賣時 ＋ 停用；已在購物車的份數仍可用 － 減少
-    private func quantityControls(_ bundle: BundleModel, isUnavailable: Bool, compact: Bool = false) -> some View {
-        let currentQty = viewModel.bundleQuantity(bundle.id)
-        let iconSize: CGFloat = compact ? 20 : 22
-        return HStack(spacing: compact ? DesignSystem.Spacing.xs : DesignSystem.Spacing.sm) {
-            Button {
-                viewModel.removeBundle(bundle.id)
-            } label: {
-                Image(systemName: "minus.circle.fill")
-                    .font(.system(size: iconSize))
-                    .foregroundColor(currentQty == 0
-                                    ? DesignSystem.ColorToken.quietFill
-                                    : DesignSystem.ColorToken.ink.opacity(0.6))
-            }
-            .disabled(currentQty == 0)
-
-            Text("\(currentQty)")
-                .font(DesignSystem.Typography.body)
-                .fontWeight(.medium)
-                .frame(minWidth: 18)
-                .foregroundColor(isUnavailable ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-
-            Button {
-                viewModel.addBundle(bundle)
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: iconSize))
-                    .foregroundColor(isUnavailable
-                                    ? DesignSystem.ColorToken.quietFill
-                                    : DesignSystem.ColorToken.ink.opacity(0.6))
-            }
-            .disabled(isUnavailable)
-        }
-        // 停用的按鈕不接點擊，會穿透到卡片的「點卡片加一份」；整個控制區自己吃掉點擊
-        .contentShape(Rectangle())
-        .onTapGesture { }
     }
 }
