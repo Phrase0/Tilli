@@ -143,10 +143,13 @@ struct POSView: View {
 | `[SummaryItemModel].subtotal` | `Model/Domain/SummaryItemModel.swift` | 3 處重複 reduce | 自己 reduce 算小計 |
 | `RevenueAllocator` | `Service/` | 報表端 3 處各自按比例攤提折扣（2026-10-08 第 4 批） | 報表裡用 `item.total / subtotal` 算比例；報表讀 `appliedDiscounts` 重算每項折扣 —— 一律讀 `item.actualRevenue`／`item.allocatedDiscount` |
 | `BundleValidator` | `Service/BundleValidator.swift` | （新）套餐／組合價格與欄位驗證；被引用守衛（`bundles(referencing:)`、`bundles(referencingAnyOf:)`） | 在 Form VM／Repository 各自算「成員原價合計」或價格上限；各處自己判斷「被套餐引用的商品／類別能不能刪、改價」 |
-| `BundleAvailability`（`check`、`remainingStock`、`invalidLines`、`comboWarning`、`BundleUnavailableReason.displayText`） | `Service/BundleAvailability.swift` | （新）套餐可用性、購物車庫存雙向佔用、管理頁警告文字 | 在 View／VM 自己展開套餐成員算庫存或可售；自己寫「缺貨／已下架」文字（一律用 `displayText`）；**組合**列的 ⚠️ 用套餐規則（組合要看可賣候選庫存合計，一律走 `comboWarning`） |
+| `BundleAvailability`（`check`、`isListedOnPOS`、`remainingStock`、`invalidLines`、`comboWarning`、`BundleUnavailableReason.displayText`） | `Service/BundleAvailability.swift` | （新）套餐可用性、收銀頁要不要列出（下架就藏、缺貨就灰）、購物車庫存雙向佔用、管理頁警告文字 | 在 View／VM 自己展開套餐成員算庫存或可售；自己判斷收銀頁要不要顯示套餐；自己寫「缺貨／已下架」文字（一律用 `displayText`）；**組合**列的 ⚠️ 用套餐規則（組合要看可賣候選庫存合計，一律走 `comboWarning`） |
 | `ComboApplier` | `Service/ComboApplier.swift` | （新）`.chooseAny` 自動套用 | 在 View／VM 自己算組合折抵、自己挑「最貴的 N 個」；自己排序比較「單價／N」（用 `MoneyHelper.multiply` 交叉相乘，不做除法） |
 | `CartPricing` | `Service/CartPricing.swift` | （新）購物車定價：套餐列、商品列、組合、整筆折扣、總計、`summaryItems` | 在 POS／結帳 VM 自己累加小計、總計或「省多少」（省 = 小計 − 總計）；自己把套餐展開成成員 `SummaryItemModel`；折扣基準自己重算（一律用 `CartPricing.discountBase`／`CartPricing.discountBase(subtotal:deductions:)`；收銀頁折扣上限提示與 `CheckoutRecorder` 也走它） |
 | `CheckoutRecorder` | `Service/CheckoutRecorder.swift` | 兩個付款 VM 各自攤提＋建交易＋算庫存異動 | 付款 VM 自己呼叫 `RevenueAllocator`、自己建 `TransactionModel`、**自己累加 `stockUpdates`**（同商品多筆要累加，曾因此少扣庫存）、自己建套餐的 `InventoryChange` |
+| `MoneyHelper.sanitizeInput(_:currency:maxIntegerDigits:)` | `Utilities/Helpers/MoneyHelper.swift` | 商品表單、套餐表單、現金收款 3 份各自的金額輸入整理（2026-10-29） | 在 VM 自己 `filter { $0.isNumber \|\| $0 == "." }`、自己截小數位 |
+| `joinedAsList()`／`joinedAsBundleMembers()` | `Extensions/Sequence+LocalizedJoin.swift` | 6 處寫死的全形「、」「＋」（2026-10-29） | `joined(separator: "、")`、`joined(separator: "＋")` 這類寫死的使用者可見分隔符（`print` 除外）；也不要用 `ListFormatter`（跟系統語言走，不跟 App 語言） |
+| `TagLabel` | `View/Components/TagLabel.swift` | 各畫面自己畫的小標籤（4px 圓角、垂直內距 2，不符 DESIGN.md）（2026-10-29） | 自己用 `RoundedRectangle(cornerRadius: 4)`／`.padding(.vertical, 2)` 畫「已下架／套餐／含組合」這類中性標籤。⚠️ View 裡的 helper **不可命名為 `tag`**：會被解析成 SwiftUI 的 `View.tag(_:)`，把整個 View 包進自己而無限遞迴閃退 |
 | `TransactionBreakdown` | `Service/TransactionBreakdown.swift` | （新）交易明細／摘要的顯示資料 | 歷史畫面（明細頁、卡片）從場次設定重算套餐價或組合折抵；自己 `reduce` 算明細小計。**只准讀交易快照**（`bundleDiscount`、`bundleKind`、`appliedDiscounts`） |
 
 ### 三條原則

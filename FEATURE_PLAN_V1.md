@@ -1336,7 +1336,7 @@ grep -rn "isLoading"         --include="*.swift" Tilli/ViewModel/ReportsPage/   
 >
 > 與其為這個邊界寫特例，不如不判斷 `isDisabled`：骨架直接取
 > `EventDataSource.products`，全部列出。
-- ⬜ **`transactions(in:)` 的邊界**（2.3，`EventDataSource`）— 仍無專屬測試
+- ✅ **`transactions(in:)` 的邊界**（2.3，`EventDataSource`；2026-10-29 補 `EventDataSourceTransactionRangeTests`）
   - `range == nil` → 回傳全部
   - 交易剛好落在 `range.start` / `range.end` → **包含**（與 `TransactionRepository` 的 `>=` / `<=` 一致）
   - 補記帳交易依 `displayDate`（`occurredAt`）落點，不是 `timestamp`
@@ -1707,7 +1707,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 5.9 | `SummaryItemModel.bundleDiscount`／`bundleKind`（`RevenueAllocator` 寫入）；交易明細改成獨立明細頁、還原成訂單摘要版面、「共 N 項」把套餐算 1 項（**CSV 不在本批**） | ✅ 單元測試；⬜ 手動 |
 
 > 「收銀頁互動調整」（設計文件 §8）中，套餐區塊與結帳摘要的組合折抵已隨 5.3 完成；**類別 chip 列留給第 6 批**。
-> Commits：`e3a2b58`（5.1）→ `16ee546`（5.9），共 14 個；最終審查修正 `c713560`、`5235058`、`6b91205`；驗收修正 `6821285`、`b51578f`、`bab0cb8`。測試總數 239 個全過（本批前 134 個）。
+> Commits：`e3a2b58`（5.1）→ `16ee546`（5.9），共 14 個；最終審查修正 `c713560`、`5235058`、`6b91205`；驗收修正 `6821285`、`b51578f`、`bab0cb8`，第二輪驗收修正（見下表「驗收 2」）。測試總數 257 個全過（本批前 134 個）。
 
 #### 實作與計畫的差異
 
@@ -1739,15 +1739,26 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 最終審查 | — | 現金／電子支付頁的 VM 改 `@StateObject` | 父層重繪會重建 VM，打到一半的金額消失（commit `6b91205`） |
 | 驗收 | `＋` 用 `confirmationDialog` | 改原生 `Menu`（新增共用元件 `FloatingActionMenu`，外觀同 `FloatingActionButton`） | 系統確認框位置不跟著按鈕，選單跑到畫面上方 |
 | 驗收 | 按儲存時才列出錯誤 | 錯誤即時顯示在欄位下方；**有任何錯誤儲存鈕就變灰**。只顯示「填了但填錯」的紅字（價格超過上限、價格 ≤ 0、重名、成員已不存在）；還沒填完不顯示紅字，只有「至少要選 N 個」灰字提示。價格上限常駐顯示在價格欄下：套餐＝原價合計，組合＝「上限 $X（N × 最便宜的 $Y）」 | 按了才知道錯、錯誤離欄位太遠 |
+| 驗收 2 | 套餐任一成員缺貨或下架 → 卡片灰掉 | **下架就藏、缺貨就灰**：套餐／成員下架、類別停用、成員不存在 → 收銀頁不顯示；只是缺貨 → 照列灰掉並顯示原因（`BundleAvailability.isListedOnPOS`） | 使用者決定；與單品規則一致（下架單品不出現、缺貨單品灰掉）。缺貨照列也讓購物車已有的套餐仍可在卡片上減少 |
+| 驗收 2 | 下架商品集中在管理頁最下方可展開的「下架商品」區 | 留在原類別、原位置，卡片灰掉、名稱後標「已下架」，⋯ 選單「編輯／上架」；刪除 `DisabledInventoryProductCard`、`disabledInventoryItems` 等。上架確認視窗文字改成「確認上架」 | 使用者要求與套餐／組合一致。⚠️ 已停用類別裡的下架商品因類別本身不顯示而看不到（原本會出現在下架區） |
+| 驗收 2 | — | 時間範圍選「自訂」時，開始／結束放不下就上下排（`ViewThatFits`），並加版面回歸測試 | 中文長日期並排約需 415pt，比 iPhone 寬，整頁被撐寬讓管理商品頁清單左右溢出（查看分析頁同元件一併修好） |
+| 驗收 2 | — | 名稱分隔符「、」「＋」改走 `Localizable.xcstrings`（`joinedAsList()`／`joinedAsBundleMembers()`），共 6 處 | 英文介面原本會出現全形標點 |
+| 驗收 2 | — | 第 5 批新 UI 依 DESIGN.md 調整：小標籤統一為 `TagLabel`（滿膠囊、內距 8/4）、缺貨原因標籤改膠囊、字級改用 `Typography`（移除 14pt）、警告圖示改外框 | 4px 圓角、內距 2、14pt 都不在 DESIGN.md 的規格內。`Divider()` 與照片虛線框使用者同意保留 |
+| 驗收 2 | — | `InventoryView.swift` 拆檔：卡片移到 `InventoryBundleCard.swift`、`InventoryProductCard.swift`（約 1000 → 400 行） | ViewModel 已分離；拆的是同一檔裡的多個卡片 View |
+| 驗收 2 | — | 編輯套餐存檔失敗時還原原本的照片（含「移除照片」的情況）：`BundleImageStore.data(for:)`／`restore(_:for:)` | 原本只處理新增，編輯失敗會遺失舊照片 |
+| 驗收 2 | — | 刪除場次時一併刪除該場次套餐的本機照片（資料刪成功後才刪檔） | 照片不在 CoreData，原本會留下孤兒檔 |
+| 驗收 2 | 組合可存成價格 = N × 最低單價（提醒「沒有優惠」） | 折抵為 0 的組合不套用（不顯示 0 元組合行、不標「含組合」） | 套了沒省錢，只會多一行 0 元 |
+| 驗收 2 | — | 金額輸入整理合併為 `MoneyHelper.sanitizeInput`（商品表單、套餐表單、現金收款 3 份 → 1 份）；套餐價也套用商品的整數位數上限 | 共用計算元件只准一份 |
 | 驗收 | — | 交易明細頁的小標籤 helper 由 `tag(_:)` 改名 `tagLabel(_:)`，並加渲染回歸測試 `testTransactionDetailRendersBundleAndComboTransaction` | **含套餐／組合的交易點進明細會閃退**：`tag("…")` 被解析成 SwiftUI 的 `View.tag(_:)`，把整頁包進自己無限遞迴（stack overflow）。Xcode 把這兩個字串標成 stale 就是線索（commit `bab0cb8`） |
 | 驗收 | — | `TransactionDetailView` 的折扣列標題改由 `DiscountCalculator.detailLineText` 產生 | 原本 View 自己 `switch discount.type`，違反「折扣型別只在 `DiscountCalculator` 判斷」（第 3 批的 grep 檢查抓到） |
 | 驗收 | 交易卡片 `NavigationLink(value:)` ＋ `navigationDestination(for:)` | 改成與商品表單相同的 `navigationDestination(item:)`（工作區持有 `selectedTransaction`，經 `ReportsView` → `TransactionHistoryView` 以 Binding 傳下） | 工作區本身是 `navigationDestination(item:)` 推進來的，混用時 SwiftUI 把明細頁排到工作區下方並重建工作區：點交易先看到收銀頁、返回才是明細、再返回直接回場次列表 |
 
-> 刻意不做、留待之後：套餐照片寫入失敗的回滾（編輯時）、`InventoryView` 拆檔（約 950 行）、英文介面的全形「、」「＋」分隔符、`sanitizePrice` 在商品與套餐表單各一份、刪除場次時套餐照片未清除、0 元組合行可能顯示。（`discountBase` 已於最終審查統一。）
+> 原本刻意留待之後的項目已於 2026-10-29「驗收 2」全部處理（照片回滾、拆檔、分隔符、金額輸入整理、刪場次清照片、0 元組合行；`discountBase` 於最終審查統一）。
+> 仍留待之後：**舊畫面**的 DESIGN.md 不符處（例如商品卡 `.font(.system(size: 16…))`、POS 商品卡 12px 圓角、時間範圍驗證提示的 `.orange`、交易紀錄卡片補記帳圖示的 `.orange`），待第 5 批 UI 驗收後再列清單決定。
 
 #### 測試（本批實際）
 
-##### 自動 —— 單元測試 ✅（總計 239 個全過）
+##### 自動 —— 單元測試 ✅（總計 257 個全過）
 
 新增測試檔：`BundleModelPersistenceTests`、`BundleValidatorTests`（14）、`BundleGuardTests`、`BundleAvailabilityTests`、`ComboApplierTests`（9）、`CartPricingTests`（10）、`RevenueAllocatorTests`（補 2）、`CheckoutRecorderTests`（5）、`POSBundleCartTests`（10）、`BundleFormViewModelTests`（12）、`BundleDuplicationTests`（3）、`TransactionBreakdownTests`（7）、`CategoryDeletionBundleGuardTests`（3）、`ReportRevenueConsistencyTests`（補 R2）。重點：
 
@@ -1770,12 +1781,17 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   3. 建組合「大福三個 100」（任選 3）→ 管理頁顯示「任選 3 個：大福」，無縮圖
   4. ⭐ **chip 列 scrollTo**：全部｜套餐｜組合｜類別… 每個 chip 都能把對應區塊捲到頂端（`List` section header id 上的 `scrollTo` 是這批風險最高的 UI）；組合 chip 只在有組合時出現
   5. 「⋯」→ 下架（變灰、標「已下架」、POS 消失）／上架／刪除（確認後連照片一起刪）
+  5a. **商品**下架後留在原類別原位置、灰掉並標「已下架」，⋯ 只有「編輯／上架」；頁面最下方不再有「下架商品」區；上架後恢復正常卡片
+  5b. 選「自訂」時間範圍：開始／結束日期上下排，清單**不可**左右溢出（全部 chip、類別標題完整）；查看分析頁也檢查一次
+  5c. 編輯有照片的套餐、換照片後存檔若失敗（不易手動觸發，已有單元測試）；刪除含套餐照片的場次後重開 App 不殘留（已有單元測試）
   6. 下架成員「抹茶」→ 套餐列 ⚠️「「抹茶」已下架」；組合「大福／抹茶／紅豆 任選 3」在其他候選庫存足夠時**不**顯示 ⚠️，「大福三個」只剩 2 個庫存時顯示「可湊組的商品庫存不足 3 個」
   7. 編輯套餐後排序位置與上下架狀態不變；POS 卡片照片同步更新
 - **5.3 POS 套餐區塊與結帳（Task 9）**
   1. 列表與格狀兩種版面都有「套餐」區塊在最上方；點卡片或 ＋ 加入、－ 移除
   2. ⭐ **格狀卡片在數量 0 時按 − 不可以加入一份**（卡片有 `onTapGesture`，需實機確認 disabled 的 − 不會穿透）
-  3. 單點大福到庫存用完 → 套餐卡片變灰並顯示「「大福」缺貨」，點不動
+  3. 單點大福到庫存用完 → 套餐卡片**仍顯示**、變灰並顯示「「大福」缺貨」，＋ 點不動；購物車已有該套餐時 − 仍可減少
+  3a. 下架成員「抹茶」（或停用其類別）→ 套餐**從收銀頁消失**；上架回來後再出現
+  3b. 組合價剛好等於上限（例：草莓 40，「任選 3 個 120」），買 3 個草莓 → 訂單摘要**不出現**組合行、草莓不標「含組合」
   4. 6 個大福 + 組合「大福三個 100」→ 摘要顯示「大福三個 100 × 2 組　-40」和「取消」，大福列有「含組合」；取消後總額 +40、百分比折扣重算；「恢復」可還原
   5. ⭐ **套餐失效流程**：購物車有套餐時到管理頁下架該套餐再回 POS → 跳「以下套餐無法結帳」列出「下午茶套餐：套餐已下架」；按確定只移除該行、其他商品保留；失效時按結帳也會跳同一個 alert
   6. 現金與補記帳各結一次含套餐＋組合的帳；結完**不能**誤跳失效 alert（含套餐用掉成員最後庫存的情況）
@@ -1792,7 +1808,8 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   7. 管理商品 → 商品庫存異動（上架與下架兩種卡片）：來自套餐的銷售顯示「來自〈套餐名〉」
   8. 返回列表時捲動位置與日期分組展開狀態保留；淺色／深色模式皆檢查
 - **⭐ 報表營收相等（R2，本批驗收）**：做一筆含套餐＋組合＋整筆折扣的交易後，報表 → 銷售分析的總營收 == 商品績效「實際營收」加總；換 timeRange 重測；成員營收加總 = 套餐售價（不是成員原價總和）
-- **回歸**：完全不使用套餐／組合的原本結帳流程（現金、電子支付、補記帳、折扣）金額不變
+- **回歸**：完全不使用套餐／組合的原本結帳流程（現金、電子支付、補記帳、折扣）金額不變；現金收款輸入小數幣別（USD）時小數位數仍正確
+- **英文語系**：套餐成員顯示「Daifuku + Matcha」、名稱列表「A, B」，沒有全形「、」「＋」
 
 #### 原預定測試清單（保留對照；以上「本批實際」為準）
 
@@ -2234,3 +2251,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-12 | 金額 Decimal 全面查核：① CoreData 僅 `price`／`totalAmount` 為 Decimal 屬性，其餘金額都在 `itemsData`／`appliedDiscountsData`／`discountsData` 的 JSON 內，模型欄位一律 `Decimal`；② Double 只出現在圖表座標、`Int` 百分比顯示、UI 比例，沒有任何金額以 Double 儲存或加總；③ 新增 `testNonBinaryExactDecimalsSurviveJSONRoundTrip`（0.1、19.99、33.33…）確認 JSON 往返不經 Double（原有往返測試用 12.5／25.75，二進位剛好精確，抓不到）；④ 刪除沒人呼叫的 `MoneyHelper.fromDouble`；⑤ §14.2 第 2 列日期與欄位數修正（5 欄 → 3 個儲存欄位），並註記接 Firestore 時金額要存字串 |
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：新增 `BundleValidator`／`BundleAvailability`／`ComboApplier`／`CartPricing`／`CheckoutRecorder`／`TransactionBreakdown` 六個共用元件與 `BundleImageStore`；POS 套餐區塊、結帳摘要組合折抵（可取消／恢復）、管理商品頁套餐與組合管理、複製場次、交易明細獨立頁。修正 `stockUpdates` 同商品多筆未累加的少扣庫存問題。§14.2 第 3、4、8 列補日期（仍 ⬜ 未接）。總計 225 個單元測試全過；手動測試待做。差異見 §11 第 5 批 |
 | 2026-10-29 | 第 5 批最終審查修正（刪除類別守衛套餐引用、`saveBundles` 編碼失敗不寫入、`CartPricing.discountBase` 統一、付款頁 VM 改 `@StateObject`）與驗收修正（`＋` 改原生選單、套餐／組合表單即時驗證且有錯不能存、交易明細導航改 `navigationDestination(item:)`、明細頁折扣標題改走 `DiscountCalculator`、修正含套餐／組合交易的明細頁閃退）。第 2～5 批「預定」清單中已由測試涵蓋者改勾選。總計 239 個單元測試全過 |
+| 2026-10-29 | 第 5 批驗收 2：收銀頁套餐「下架就藏、缺貨就灰」、管理頁下架商品留在原位、自訂時間範圍跑版、分隔符中英對照、第 5 批 UI 依 DESIGN.md 調整（`TagLabel`）、`InventoryView` 拆檔、套餐照片存檔失敗還原與刪場次清照片、0 元組合不套用、金額輸入整理合併為 `MoneyHelper.sanitizeInput`、`transactions(in:)` 邊界測試。總計 257 個單元測試全過 |
