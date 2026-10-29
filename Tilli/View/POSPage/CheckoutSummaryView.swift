@@ -36,6 +36,7 @@ struct CheckoutSummaryView: View {
                 VStack(spacing: DesignSystem.Spacing.md) {
                     ForEach(pricing.bundleRows, id: \.bundle.id) { row in
                         itemRow(
+                            item: .bundle(row.bundle.id),
                             name: row.bundle.name,
                             quantity: row.quantity,
                             unitPrice: row.bundle.price,
@@ -45,6 +46,7 @@ struct CheckoutSummaryView: View {
                     }
                     ForEach(pricing.productRows, id: \.product.id) { row in
                         itemRow(
+                            item: .product(row.product.id),
                             name: row.product.name,
                             quantity: row.quantity,
                             unitPrice: row.product.price,
@@ -96,47 +98,22 @@ struct CheckoutSummaryView: View {
             .padding(.horizontal)
             .padding(.vertical, DesignSystem.Spacing.xs)
 
-            // MARK: 組合折抵（可取消，只對這一筆有效）
-            if !pricing.combos.isEmpty || !posViewModel.cancelledCombos.isEmpty {
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    ForEach(pricing.combos, id: \.bundleId) { combo in
-                        comboRow(combo)
-                    }
-                    ForEach(posViewModel.cancelledCombos) { bundle in
-                        cancelledComboRow(bundle)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, DesignSystem.Spacing.xs)
-            }
-
-            // MARK: 總金額
-            HStack {
-                // 總計
-                Text("checkoutTotalLabel")
-                    .font(DesignSystem.Typography.body)
-                    .fontWeight(.semibold)
-                Spacer()
-
-                ForEach(pricing.discounts) { discount in
-                    // 減額顯示成 -77 而不是 NT$77 —— 這裡表達的是「扣掉多少」，
-                    // 幣別由右邊的總計金額表達（與 POS 的 chip 一致）
-                    Text(DiscountCalculator.deductionText(
-                        type: discount.type,
-                        value: discount.value
-                    ))
-                    .font(DesignSystem.Typography.caption)
-                    .padding(.horizontal, DesignSystem.Spacing.xs)
-                    .padding(.vertical, DesignSystem.Spacing.xxs)
-                    .background(DesignSystem.ColorToken.quietFill)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
-
-                Text(pricing.total.money(currency: event.currency))
-                    .font(DesignSystem.Typography.body)
-                    .fontWeight(.bold)
-            }
-            .padding()
+            // MARK: 優惠明細（組合可取消／恢復，只對這一筆有效）
+            DiscountBreakdownView(
+                subtotal: pricing.subtotal,
+                comboLines: pricing.combos.map {
+                    .init(id: $0.bundleId, name: $0.name, amount: $0.deduction, isCancelled: false)
+                } + posViewModel.cancelledCombos.map {
+                    .init(id: $0.id, name: $0.name, amount: 0, isCancelled: true)
+                },
+                discounts: pricing.discounts,
+                total: pricing.total,
+                savings: pricing.savings,
+                currency: event.currency,
+                onToggleCombo: posViewModel.toggleComboCancelled
+            )
+            .padding(.horizontal)
+            .padding(.top, DesignSystem.Spacing.xs)
 
             // MARK: 支付方式
             VStack(spacing: DesignSystem.Spacing.xs) {
@@ -189,6 +166,10 @@ struct CheckoutSummaryView: View {
                 }
             }
             .padding()
+        }
+        // 訂單摘要裡把最後一項刪掉 → 沒有東西可結帳，回到收銀頁
+        .onChange(of: posViewModel.isCartEmpty) { _, isEmpty in
+            if isEmpty { dismiss() }
         }
         // MARK: - Navigation Destinations
         .navigationDestination(isPresented: $viewModel.navigateToCashPayment) {
@@ -254,12 +235,14 @@ struct CheckoutSummaryView: View {
 
     // MARK: - 列
 
-    private func itemRow(name: String, quantity: Int, unitPrice: Decimal, lineTotal: Decimal, isInCombo: Bool) -> some View {
-        HStack {
+    /// 一行：名稱（＋含組合）與單價；右邊增減元件（數量 1 時 − 是垃圾桶）與行小計
+    private func itemRow(item: CartItemID, name: String, quantity: Int, unitPrice: Decimal, lineTotal: Decimal, isInCombo: Bool) -> some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
                 HStack(spacing: DesignSystem.Spacing.xs) {
                     Text(name)
                         .font(DesignSystem.Typography.body)
+                        .lineLimit(1)
 
                     if isInCombo {
                         // 含組合
@@ -267,69 +250,27 @@ struct CheckoutSummaryView: View {
                     }
                 }
 
-                HStack(spacing: DesignSystem.Spacing.xs) {
-                    // 數量: %d
-                    Text("checkoutItemQuantity \(quantity)")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-
-                    Text(unitPrice.money(currency: event.currency))
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.muted)
-                }
+                Text(unitPrice.money(currency: event.currency))
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.muted)
             }
 
             Spacer()
 
+            QuantityStepper(
+                quantity: quantity,
+                isExpanded: true,
+                canIncrement: posViewModel.canIncrement(item),
+                trashAtOne: true,
+                onIncrement: { posViewModel.increment(item, expand: false) },
+                onDecrement: { posViewModel.decrement(item) },
+                onExpand: {}
+            )
+
             Text(lineTotal.money(currency: event.currency))
                 .font(DesignSystem.Typography.body)
                 .fontWeight(.semibold)
+                .frame(minWidth: 64, alignment: .trailing)
         }
-    }
-
-    /// 「名稱 × N 組　−金額」＋「取消」
-    private func comboRow(_ combo: ComboApplication) -> some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // %@ × %lld 組
-            Text("checkoutComboLine \(combo.name) \(combo.groupCount)")
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-
-            Spacer()
-
-            Text(DiscountCalculator.deductionText(type: .amount, value: combo.deduction))
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-
-            comboToggleButton(bundleId: combo.bundleId, title: "checkoutComboCancel")
-        }
-    }
-
-    /// 已取消的組合：灰色劃線＋「恢復」
-    private func cancelledComboRow(_ bundle: BundleModel) -> some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            Text(bundle.name)
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.muted)
-                .strikethrough()
-
-            Spacer()
-
-            comboToggleButton(bundleId: bundle.id, title: "checkoutComboRestore")
-        }
-    }
-
-    private func comboToggleButton(bundleId: UUID, title: LocalizedStringKey) -> some View {
-        Button {
-            posViewModel.toggleComboCancelled(bundleId)
-        } label: {
-            Text(title)
-                .font(DesignSystem.Typography.caption)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-                .padding(.horizontal, DesignSystem.Spacing.xs)
-                .padding(.vertical, DesignSystem.Spacing.xxs)
-                .background(Capsule().fill(DesignSystem.ColorToken.quietFill))
-        }
-        .buttonStyle(.plain)
     }
 }

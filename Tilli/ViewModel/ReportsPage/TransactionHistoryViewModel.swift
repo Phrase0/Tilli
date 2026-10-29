@@ -253,11 +253,6 @@ class TransactionHistoryViewModel: ObservableObject {
         breakdown(for: transaction).itemCount
     }
 
-    /// 優惠明細的折抵金額，例如 `-NT$40`
-    func formatDeduction(_ amount: Decimal, currency: String) -> String {
-        "-" + formatAmount(amount, currency: currency)
-    }
-
     // MARK: - 日期分組展開/收合
     
     /// 切換日期分組的展開/收合狀態

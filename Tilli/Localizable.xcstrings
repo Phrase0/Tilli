@@ -2993,23 +2993,6 @@
         }
       }
     },
-    "checkoutComboLine %@ %lld" : {
-      "comment" : "%@ × %lld 組",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ × %2$lld"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ × %2$lld 組"
-          }
-        }
-      }
-    },
     "checkoutComboRestore" : {
       "comment" : "恢復",
       "localizations" : {
@@ -3140,22 +3123,6 @@
         }
       }
     },
-    "checkoutItemQuantity %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qty: %lld"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "數量: %lld"
-          }
-        }
-      }
-    },
     "checkoutNoQRCode" : {
       "localizations" : {
         "en" : {
@@ -3216,22 +3183,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "訂單摘要"
-          }
-        }
-      }
-    },
-    "checkoutTotalLabel" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "總計"
           }
         }
       }

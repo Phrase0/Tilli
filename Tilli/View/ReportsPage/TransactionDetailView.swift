@@ -160,78 +160,16 @@ struct TransactionDetailView: View {
             sectionTitle("transactionDetailDiscounts")
 
             card {
-                // 小計
-                amountRow(Text("transactionDetailSubtotal"),
-                          value: viewModel.formatAmount(breakdown.subtotal, currency: currency))
-
-                ForEach(breakdown.comboLines, id: \.bundleId) { combo in
-                    // 組合優惠 %@
-                    amountRow(Text("transactionDetailComboLine \(combo.name)"),
-                              value: viewModel.formatDeduction(combo.amount, currency: currency))
-                }
-
-                ForEach(breakdown.discounts) { discount in
-                    amountRow(discountLabel(discount),
-                              value: viewModel.formatDeduction(discount.amount, currency: currency))
-                }
-
-                Divider()
-
-                totalRow(breakdown)
-            }
-        }
-    }
-
-    /// 「百分比折扣 10%」／「減額折扣 -25」（依型別選字在 DiscountCalculator，View 不 switch 折扣型別）
-    private func discountLabel(_ discount: AppliedDiscount) -> Text {
-        Text(DiscountCalculator.detailLineText(type: discount.type, value: discount.value))
-    }
-
-    private func amountRow(_ label: Text, value: String) -> some View {
-        HStack {
-            label
-                .font(DesignSystem.Typography.body)
-                .foregroundColor(DesignSystem.ColorToken.muted)
-            Spacer()
-            Text(value)
-                .font(DesignSystem.Typography.body)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-        }
-    }
-
-    /// 總計：大字；有優惠時折扣前金額劃線，並顯示「共省」
-    private func totalRow(_ breakdown: TransactionBreakdown) -> some View {
-        let hasSavings = breakdown.savings > 0
-
-        return HStack(alignment: .firstTextBaseline) {
-            // 總計
-            Text("transactionDetailTotal")
-                .font(DesignSystem.Typography.body)
-                .fontWeight(.semibold)
-                .foregroundColor(DesignSystem.ColorToken.ink)
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: DesignSystem.Spacing.xxs) {
-                HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xs) {
-                    if hasSavings {
-                        Text(viewModel.formatAmount(breakdown.subtotal, currency: currency))
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .strikethrough()
-                    }
-                    Text(viewModel.formatAmount(breakdown.total, currency: currency))
-                        .font(DesignSystem.Typography.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(DesignSystem.ColorToken.ink)
-                }
-
-                if hasSavings {
-                    // 共省 %@
-                    Text("transactionDetailSavings \(viewModel.formatAmount(breakdown.savings, currency: currency))")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(DesignSystem.ColorToken.marketGreen)
-                }
+                DiscountBreakdownView(
+                    subtotal: breakdown.subtotal,
+                    comboLines: breakdown.comboLines.map {
+                        .init(id: $0.bundleId, name: $0.name, amount: $0.amount, isCancelled: false)
+                    },
+                    discounts: breakdown.discounts,
+                    total: breakdown.total,
+                    savings: breakdown.savings,
+                    currency: currency
+                )
             }
         }
     }
