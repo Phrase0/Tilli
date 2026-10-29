@@ -107,6 +107,61 @@ final class BundleAvailabilityTests: XCTestCase {
         XCTAssertTrue(result.isEmpty)
     }
 
+    // MARK: - 單點商品超量
+
+    func testInvalidProductLinesDetectUnavailableDeletedAndOverStock() {
+        let soldOut = product("大福", stock: 0)
+        let low = product("抹茶", stock: 2)
+        let offSale = product("紅豆", stock: 5, disabled: true)
+        let fine = product("草莓", stock: 5)
+        let deletedId = UUID()
+
+        var cart = Cart()
+        cart.productQuantities[soldOut.id] = 2
+        cart.productQuantities[low.id] = 3
+        cart.productQuantities[offSale.id] = 1
+        cart.productQuantities[fine.id] = 5
+        cart.productQuantities[deletedId] = 1
+
+        let result = BundleAvailability.invalidProductLines(
+            in: cart,
+            removingBundleLines: [],
+            products: index([soldOut, low, offSale, fine]),
+            categories: [category],
+            previousNames: [deletedId: "已刪商品"]
+        )
+        let byId = Dictionary(uniqueKeysWithValues: result.map { ($0.productId, $0) })
+
+        XCTAssertEqual(result.count, 4)
+        XCTAssertEqual(byId[soldOut.id], InvalidProductLine(productId: soldOut.id, name: "大福", reason: .insufficientStock(remaining: 0)))
+        XCTAssertEqual(byId[low.id]?.reason, .insufficientStock(remaining: 2))
+        XCTAssertEqual(byId[offSale.id]?.reason, .unavailable)
+        XCTAssertEqual(byId[deletedId], InvalidProductLine(productId: deletedId, name: "已刪商品", reason: .deleted))
+        XCTAssertNil(byId[fine.id], "剛好等於庫存不算超量")
+    }
+
+    func testInvalidProductLinesCountOnlyBundleLinesThatStay() {
+        let a = product("大福", stock: 2), b = product("抹茶", stock: 5)
+        let kept = BundleModel.fixedMock(name: "保留", productIds: [a.id, b.id])
+        let removed = BundleModel.fixedMock(name: "失效", productIds: [a.id, b.id])
+        var cart = Cart()
+        cart.bundleLines[kept.id] = line(kept)
+        cart.bundleLines[removed.id] = line(removed)
+        cart.productQuantities[a.id] = 1
+
+        // 失效的套餐行會被移除，不佔庫存：大福剩 2 − 1（保留的套餐）= 1，單點 1 個不超量
+        let withRemoval = BundleAvailability.invalidProductLines(
+            in: cart, removingBundleLines: [removed.id], products: index([a, b]), categories: [category]
+        )
+        XCTAssertTrue(withRemoval.isEmpty)
+
+        // 兩個套餐行都留著：大福 2 個都被套餐佔走，單點只能剩 0
+        let withoutRemoval = BundleAvailability.invalidProductLines(
+            in: cart, removingBundleLines: [], products: index([a, b]), categories: [category]
+        )
+        XCTAssertEqual(withoutRemoval.map(\.reason), [.insufficientStock(remaining: 0)])
+    }
+
     // MARK: - 組合（管理頁 ⚠️）
 
     func testComboOffSaleCandidateGivesNoWarningWhenOthersSuffice() {

@@ -227,5 +227,8 @@ struct POSBundleSection: View {
             }
             .disabled(isUnavailable)
         }
+        // 停用的按鈕不接點擊，會穿透到卡片的「點卡片加一份」；整個控制區自己吃掉點擊
+        .contentShape(Rectangle())
+        .onTapGesture { }
     }
 }

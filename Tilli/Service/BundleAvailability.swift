@@ -57,6 +57,18 @@ struct InvalidBundleLine: Equatable {
     let reason: InvalidBundleReason
 }
 
+enum InvalidProductReason: Equatable {
+    case deleted
+    case unavailable                          // 商品下架或類別停用／不存在
+    case insufficientStock(remaining: Int)    // remaining = 扣掉留下的套餐行後還能單點的數量
+}
+
+struct InvalidProductLine: Equatable {
+    let productId: UUID
+    let name: String
+    let reason: InvalidProductReason
+}
+
 enum BundleAvailability {
 
     /// 可再加入的份數；不可賣時回傳原因。`cart` 用來扣掉已佔用的庫存。
@@ -143,6 +155,38 @@ enum BundleAvailability {
             if oversold { invalid(.insufficientStock) }
         }
         return result
+    }
+
+    /// 回到收銀頁時重新驗證購物車裡的單點商品。
+    /// 庫存只扣「會留下的」套餐行（`removingBundleLines` 是即將移除的失效套餐行）；
+    /// `previousNames` 提供已刪除商品的名稱（購物車只存 id）。
+    static func invalidProductLines(
+        in cart: Cart,
+        removingBundleLines: Set<UUID>,
+        products: [UUID: ProductModel],
+        categories: [CategoryModel],
+        previousNames: [UUID: String] = [:]
+    ) -> [InvalidProductLine] {
+        var keptCart = cart
+        keptCart.productQuantities = [:]
+        keptCart.bundleLines = cart.bundleLines.filter { !removingBundleLines.contains($0.key) }
+
+        var result: [InvalidProductLine] = []
+        for (productId, quantity) in cart.productQuantities where quantity > 0 {
+            guard let product = products[productId] else {
+                result.append(InvalidProductLine(productId: productId, name: previousNames[productId] ?? "", reason: .deleted))
+                continue
+            }
+            if product.saleAvailability(in: categories) != .available {
+                result.append(InvalidProductLine(productId: productId, name: product.name, reason: .unavailable))
+                continue
+            }
+            let remaining = remainingStock(of: product, cart: keptCart)
+            if quantity > remaining {
+                result.append(InvalidProductLine(productId: productId, name: product.name, reason: .insufficientStock(remaining: remaining)))
+            }
+        }
+        return result.sorted { $0.name < $1.name }
     }
 
     /// 成員不存在或不可賣（商品下架、類別停用／不存在）。不用 isAvailableForSale（缺類別會 assertionFailure）。

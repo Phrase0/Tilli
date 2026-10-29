@@ -1755,6 +1755,8 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 驗收 | — | 交易明細頁的小標籤 helper 由 `tag(_:)` 改名 `tagLabel(_:)`，並加渲染回歸測試 `testTransactionDetailRendersBundleAndComboTransaction` | **含套餐／組合的交易點進明細會閃退**：`tag("…")` 被解析成 SwiftUI 的 `View.tag(_:)`，把整頁包進自己無限遞迴（stack overflow）。Xcode 把這兩個字串標成 stale 就是線索（commit `bab0cb8`） |
 | 驗收 | — | `TransactionDetailView` 的折扣列標題改由 `DiscountCalculator.detailLineText` 產生 | 原本 View 自己 `switch discount.type`，違反「折扣型別只在 `DiscountCalculator` 判斷」（第 3 批的 grep 檢查抓到） |
 | 驗收 | 交易卡片 `NavigationLink(value:)` ＋ `navigationDestination(for:)` | 改成與商品表單相同的 `navigationDestination(item:)`（工作區持有 `selectedTransaction`，經 `ReportsView` → `TransactionHistoryView` 以 Binding 傳下） | 工作區本身是 `navigationDestination(item:)` 推進來的，混用時 SwiftUI 把明細頁排到工作區下方並重建工作區：點交易先看到收銀頁、返回才是明細、再返回直接回場次列表 |
+| 驗收 3 | 回到收銀頁只重新驗證購物車的**套餐行**（跳「以下套餐無法結帳」） | 單點商品也一起驗證、同一個通知（標題改「以下品項無法照原數量結帳」）：商品下架／類別停用 →「已下架」、已刪除 →「商品已刪除」、超過庫存 →「無庫存」／「庫存只剩 N 個」；按確定後下架／刪除的移除、超量的降到剩餘數量（0 即移除）。剩餘數量只扣**會留下的**套餐行（`BundleAvailability.invalidProductLines`）；按結帳前也會再驗證一次。`confirmInvalidBundleLines` 改名 `confirmInvalidLines` | 先點商品、到管理頁把庫存改成 0 再回收銀頁，數量不會清掉，而且庫存 0 時 − 會被擋住減不掉，超量的數量會一路帶進結帳。使用者決定與套餐同一個通知（不靜默調整） |
+| 驗收 3 | 套餐卡片數量 0 時 − 設為 `.disabled` | 另外讓 ＋/− 控制區自己接住點擊（`.contentShape` ＋ 空的 `onTapGesture`） | **格狀卡片數量 0 時按 − 會加一份**：`.disabled` 的按鈕不攔點擊，點擊穿透到卡片的「點卡片加一份」。§8 收銀頁互動調整重做 ＋/− 元件時再決定卡片點擊要不要保留 |
 
 > 原本刻意留待之後的項目已於 2026-10-29「驗收 2」全部處理（照片回滾、拆檔、分隔符、金額輸入整理、刪場次清照片、0 元組合行；`discountBase` 於最終審查統一）。
 > 仍留待之後：**舊畫面**的 DESIGN.md 不符處（例如商品卡 `.font(.system(size: 16…))`、POS 商品卡 12px 圓角、時間範圍驗證提示的 `.orange`、交易紀錄卡片補記帳圖示的 `.orange`），待第 5 批 UI 驗收後再列清單決定。
@@ -1792,7 +1794,8 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   7. 編輯套餐後排序位置與上下架狀態不變；POS 卡片照片同步更新
 - **5.3 POS 套餐區塊與結帳（Task 9）**
   1. 列表與格狀兩種版面都有「套餐」區塊在最上方；點卡片或 ＋ 加入、－ 移除
-  2. ⭐ **格狀卡片在數量 0 時按 − 不可以加入一份**（卡片有 `onTapGesture`，需實機確認 disabled 的 − 不會穿透）
+  2. ⭐ **格狀卡片在數量 0 時按 − 不可以加入一份**（卡片有 `onTapGesture`，需實機確認 disabled 的 − 不會穿透）；點數字或按鈕間空隙也不會加入
+  2a. 點商品（例：大福 2 個、抹茶 3 個）後到管理商品頁把大福庫存改 0、抹茶改 2 → 回收銀頁跳「以下品項無法照原數量結帳」：「大福：無庫存」「抹茶：庫存只剩 2 個」；按確定後大福清空、抹茶變 2。下架商品同理顯示「已下架」並移除
   3. 單點大福到庫存用完 → 套餐卡片**仍顯示**、變灰並顯示「「大福」缺貨」，＋ 點不動；購物車已有該套餐時 − 仍可減少
   3a. 下架成員「抹茶」（或停用其類別）→ 套餐**從收銀頁消失**；上架回來後再出現
   3b. 組合價剛好等於上限（例：草莓 40，「任選 3 個 120」），買 3 個草莓 → 訂單摘要**不出現**組合行、草莓不標「含組合」
@@ -2257,3 +2260,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-29 | 第 5 批最終審查修正（刪除類別守衛套餐引用、`saveBundles` 編碼失敗不寫入、`CartPricing.discountBase` 統一、付款頁 VM 改 `@StateObject`）與驗收修正（`＋` 改原生選單、套餐／組合表單即時驗證且有錯不能存、交易明細導航改 `navigationDestination(item:)`、明細頁折扣標題改走 `DiscountCalculator`、修正含套餐／組合交易的明細頁閃退）。第 2～5 批「預定」清單中已由測試涵蓋者改勾選。總計 239 個單元測試全過 |
 | 2026-10-29 | 第 5 批驗收 2：收銀頁套餐「下架就藏、缺貨就灰」、管理頁下架商品留在原位、自訂時間範圍跑版、分隔符中英對照、第 5 批 UI 依 DESIGN.md 調整（`TagLabel`）、`InventoryView` 拆檔、套餐照片存檔失敗還原與刪場次清照片、0 元組合不套用、金額輸入整理合併為 `MoneyHelper.sanitizeInput`、`transactions(in:)` 邊界測試。總計 257 個單元測試全過 |
 | 2026-10-29 | 第 5 批驗收 2（續）：管理商品頁區塊標題與收銀頁一致並跟著捲動、拿掉管理商品頁與收銀頁的類別展開／收合、chip 選取黑底白字；全專案程式碼註解只描述目前行為（沿革記在本文件）。總計 257 個單元測試全過 |
+| 2026-10-29 | 第 5 批驗收 3：回到收銀頁時單點商品也一起驗證（下架／刪除移除、超過庫存降到剩餘數量，與失效套餐同一個通知）；套餐格狀卡片數量 0 時按 − 不再穿透成加入一份。總計 262 個單元測試全過 |

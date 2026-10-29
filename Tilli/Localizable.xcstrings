@@ -720,6 +720,40 @@
         }
       }
     },
+    "posProductReasonDeleted" : {
+      "comment" : "商品已刪除",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This product was deleted"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品已刪除"
+          }
+        }
+      }
+    },
+    "posProductReasonStockLeft %lld" : {
+      "comment" : "庫存只剩 %lld 個",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only %lld left in stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存只剩 %lld 個"
+          }
+        }
+      }
+    },
     "transactionDetailAmountLine %@" : {
       "comment" : "減額折扣 %@",
       "localizations" : {
@@ -6389,7 +6423,7 @@
         }
       }
     },
-    "posInvalidBundleLine %@ %@" : {
+    "posInvalidCartLine %@ %@" : {
       "comment" : "%@：%@",
       "localizations" : {
         "en" : {
@@ -6406,19 +6440,19 @@
         }
       }
     },
-    "posInvalidBundleTitle" : {
-      "comment" : "以下套餐無法結帳",
+    "posInvalidCartTitle" : {
+      "comment" : "以下品項無法照原數量結帳",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "These bundles can't be checked out"
+            "value" : "These items can't be checked out as is"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "以下套餐無法結帳"
+            "value" : "以下品項無法照原數量結帳"
           }
         }
       }

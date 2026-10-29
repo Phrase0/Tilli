@@ -248,11 +248,70 @@ final class POSBundleCartTests: XCTestCase {
         XCTAssertEqual(viewModel.invalidBundleLines.map(\.reason), [.priceChanged])
         XCTAssertFalse(viewModel.prepareCheckout(), "有失效的套餐行不能開結帳")
 
-        viewModel.confirmInvalidBundleLines()
+        viewModel.confirmInvalidLines()
 
         XCTAssertTrue(viewModel.invalidBundleLines.isEmpty)
         XCTAssertEqual(viewModel.bundleQuantity(teaSetId), 0)
         XCTAssertEqual(viewModel.quantity(for: matcha), 1, "其餘商品保留")
         XCTAssertTrue(viewModel.prepareCheckout())
+    }
+
+    // MARK: - 單點商品超量
+
+    private func setStock(_ productId: UUID, _ stock: Int32) throws {
+        let request = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
+        let entity = try XCTUnwrap(container.viewContext.fetch(request).first)
+        entity.stock = stock
+        try container.viewContext.save()
+    }
+
+    func testStockDroppedToZeroBlocksCheckoutUntilConfirmedThenProductIsRemoved() throws {
+        viewModel.increaseQuantity(for: daifuku)
+        viewModel.increaseQuantity(for: matcha)
+
+        // 管理頁把大福庫存改成 0 後回到收銀頁
+        try setStock(daifukuId, 0)
+        viewModel.loadProducts()
+
+        XCTAssertEqual(viewModel.invalidProductLines.map(\.reason), [.insufficientStock(remaining: 0)])
+        XCTAssertFalse(viewModel.prepareCheckout(), "單點超過庫存不能開結帳")
+
+        viewModel.confirmInvalidLines()
+
+        XCTAssertTrue(viewModel.invalidProductLines.isEmpty)
+        XCTAssertEqual(viewModel.quantity(for: daifuku), 0)
+        XCTAssertEqual(viewModel.quantity(for: matcha), 1, "其餘商品保留")
+        XCTAssertTrue(viewModel.prepareCheckout())
+    }
+
+    func testStockLoweredClampsQuantityToRemainingStock() throws {
+        viewModel.increaseQuantity(for: matcha)
+        viewModel.increaseQuantity(for: matcha)
+        viewModel.increaseQuantity(for: matcha)
+
+        try setStock(matchaId, 2)
+        viewModel.loadProducts()
+        XCTAssertEqual(viewModel.invalidProductLines.map(\.reason), [.insufficientStock(remaining: 2)])
+
+        viewModel.confirmInvalidLines()
+        XCTAssertEqual(viewModel.quantity(for: matcha), 2)
+    }
+
+    func testInvalidBundleLineFreesStockForSingleProduct() throws {
+        // 大福庫存 2：套餐 1 份 + 單點 1 個
+        viewModel.addBundle(teaSet)
+        viewModel.increaseQuantity(for: daifuku)
+
+        // 庫存降到 1：套餐行超量被移除，單點那 1 個不受影響
+        try setStock(daifukuId, 1)
+        viewModel.loadProducts()
+
+        XCTAssertEqual(viewModel.invalidBundleLines.map(\.reason), [.insufficientStock])
+        XCTAssertTrue(viewModel.invalidProductLines.isEmpty)
+
+        viewModel.confirmInvalidLines()
+        XCTAssertEqual(viewModel.bundleQuantity(teaSetId), 0)
+        XCTAssertEqual(viewModel.quantity(for: daifuku), 1)
     }
 }

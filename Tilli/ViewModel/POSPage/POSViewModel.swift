@@ -28,6 +28,8 @@ class POSViewModel: ObservableObject {
     @Published private(set) var cart = Cart()
     /// 回到收銀頁（或按結帳）時發現無法結帳的套餐行；非空時由 View 通知，使用者確定後才清除
     @Published var invalidBundleLines: [InvalidBundleLine] = []
+    /// 同上，單點商品（下架、刪除、超過目前庫存）；與套餐行同一個通知
+    @Published var invalidProductLines: [InvalidProductLine] = []
     /// 折扣：每個型別各自單選，可同時一個百分比 + 一個定額。
     ///
     /// 用型別當 key 而不是兩個獨立欄位 —— 之後多一種折扣型別時，
@@ -160,13 +162,14 @@ class POSViewModel: ObservableObject {
     
     /// 從共用資料源重新取一份快照（跨頁回來、結帳完成時呼叫）
     func loadProducts() {
+        let previousNames = Dictionary(products.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
         dataSource.reload()
         event = dataSource.event
         categories = dataSource.categories
         products = dataSource.products
 
-        // 進行中的購物車可能有套餐已被刪除／下架／改價／缺貨
-        refreshInvalidBundleLines()
+        // 進行中的購物車可能有套餐或商品已被刪除／下架／改價／庫存變少
+        refreshInvalidLines(previousNames: previousNames)
     }
     
     func increaseQuantity(for product: ProductModel) {
@@ -301,12 +304,35 @@ class POSViewModel: ObservableObject {
         }
     }
 
-    /// 失效通知的內文：每行「名稱：原因」
-    var invalidBundleLinesMessage: String {
-        invalidBundleLines
-            // %@：%@
-            .map { String.localized("posInvalidBundleLine \($0.name) \(invalidReasonText($0.reason))") }
-            .joined(separator: "\n")
+    /// 單點商品無法結帳的原因文字（失效通知用）
+    func invalidReasonText(_ reason: InvalidProductReason) -> String {
+        switch reason {
+        case .deleted:
+            // 商品已刪除
+            return String.localized("posProductReasonDeleted")
+        case .unavailable:
+            // 已下架
+            return String.localized("bundleMemberDisabledTag")
+        case .insufficientStock(let remaining) where remaining == 0:
+            // 無庫存
+            return String.localized("posOutOfStock")
+        case .insufficientStock(let remaining):
+            // 庫存只剩 %lld 個
+            return String.localized("posProductReasonStockLeft \(remaining)")
+        }
+    }
+
+    /// 失效通知是否要顯示
+    var hasInvalidLines: Bool {
+        !invalidBundleLines.isEmpty || !invalidProductLines.isEmpty
+    }
+
+    /// 失效通知的內文：每行「名稱：原因」，套餐在前、單點在後
+    var invalidLinesMessage: String {
+        // %@：%@
+        let bundles = invalidBundleLines.map { String.localized("posInvalidCartLine \($0.name) \(invalidReasonText($0.reason))") }
+        let singles = invalidProductLines.map { String.localized("posInvalidCartLine \($0.name) \(invalidReasonText($0.reason))") }
+        return (bundles + singles).joined(separator: "\n")
     }
 
     /// 本筆交易已取消的組合（訂單摘要以灰色劃線顯示並可「恢復」）；已刪除或已停用的組合不列
@@ -319,26 +345,44 @@ class POSViewModel: ObservableObject {
             }
     }
 
-    /// 移除 `invalidBundleLines` 列出的套餐行（使用者在通知上按確定後呼叫），其餘商品保留
-    func confirmInvalidBundleLines() {
+    /// 使用者在通知上按確定後呼叫：移除失效套餐行；單點商品下架／刪除就移除，
+    /// 超過庫存就降到剩餘數量（0 即移除）。其餘商品保留
+    func confirmInvalidLines() {
         for line in invalidBundleLines {
             cart.bundleLines[line.bundleId] = nil
         }
+        for line in invalidProductLines {
+            switch line.reason {
+            case .deleted, .unavailable:
+                cart.productQuantities[line.productId] = nil
+            case .insufficientStock(let remaining):
+                cart.productQuantities[line.productId] = remaining > 0 ? remaining : nil
+            }
+        }
         invalidBundleLines = []
+        invalidProductLines = []
     }
 
-    /// 按結帳前重新驗證套餐行；有失效行就不開結帳（`pricing` 會略過失效行，不能帶著它們結帳）
+    /// 按結帳前重新驗證購物車；有失效行就不開結帳（`pricing` 會略過失效套餐行，不能帶著它們結帳）
     func prepareCheckout() -> Bool {
-        refreshInvalidBundleLines()
-        return invalidBundleLines.isEmpty
+        refreshInvalidLines(previousNames: [:])
+        return !hasInvalidLines
     }
 
-    private func refreshInvalidBundleLines() {
+    private func refreshInvalidLines(previousNames: [UUID: String]) {
+        let products = productsById
         invalidBundleLines = BundleAvailability.invalidLines(
             in: cart,
             bundles: bundlesById,
-            products: productsById,
+            products: products,
             categories: categories
+        )
+        invalidProductLines = BundleAvailability.invalidProductLines(
+            in: cart,
+            removingBundleLines: Set(invalidBundleLines.map(\.bundleId)),
+            products: products,
+            categories: categories,
+            previousNames: previousNames
         )
     }
 

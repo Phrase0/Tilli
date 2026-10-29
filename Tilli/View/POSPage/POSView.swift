@@ -46,14 +46,14 @@ struct POSView: View {
                 viewModel.clearAllQuantities()
             }
         }
-        // 以下套餐無法結帳（先通知，確定後只清除這些套餐行）
-        .alert("posInvalidBundleTitle", isPresented: invalidBundleAlertBinding) {
+        // 以下品項無法照原數量結帳（先通知，確定後才移除或降量）
+        .alert("posInvalidCartTitle", isPresented: invalidLinesAlertBinding) {
             // 確定
             Button("commonConfirm", role: .cancel) {
-                viewModel.confirmInvalidBundleLines()
+                viewModel.confirmInvalidLines()
             }
         } message: {
-            Text(viewModel.invalidBundleLinesMessage)
+            Text(viewModel.invalidLinesMessage)
         }
         .sheet(isPresented: $showCheckoutSheet) {
             CheckoutFlowView(
@@ -75,10 +75,10 @@ struct POSView: View {
         }
     }
 
-    /// 有失效套餐行就顯示通知；關閉只能經「確定」（由 confirmInvalidBundleLines 清空陣列）
-    private var invalidBundleAlertBinding: Binding<Bool> {
+    /// 有失效的套餐行或單點商品就顯示通知；關閉只能經「確定」（由 confirmInvalidLines 清空陣列）
+    private var invalidLinesAlertBinding: Binding<Bool> {
         Binding(
-            get: { !viewModel.invalidBundleLines.isEmpty },
+            get: { viewModel.hasInvalidLines },
             set: { _ in }
         )
     }
