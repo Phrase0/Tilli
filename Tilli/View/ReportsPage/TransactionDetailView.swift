@@ -183,17 +183,9 @@ struct TransactionDetailView: View {
         }
     }
 
-    /// 「百分比折扣 10%」／「減額折扣 -25」
+    /// 「百分比折扣 10%」／「減額折扣 -25」（依型別選字在 DiscountCalculator，View 不 switch 折扣型別）
     private func discountLabel(_ discount: AppliedDiscount) -> Text {
-        let valueText = DiscountCalculator.deductionText(type: discount.type, value: discount.value)
-        switch discount.type {
-        case .percentage:
-            // 百分比折扣 %@
-            return Text("transactionDetailPercentageLine \(valueText)")
-        case .amount:
-            // 減額折扣 %@
-            return Text("transactionDetailAmountLine \(valueText)")
-        }
+        Text(DiscountCalculator.detailLineText(type: discount.type, value: discount.value))
     }
 
     private func amountRow(_ label: Text, value: String) -> some View {

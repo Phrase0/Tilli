@@ -201,6 +201,19 @@ enum DiscountCalculator {
         }
     }
 
+    /// 交易明細頁的折扣列標題，例如「百分比折扣 10%」／「減額折扣 -25」
+    static func detailLineText(type: DiscountType, value: Decimal) -> String {
+        let valueText = deductionText(type: type, value: value)
+        switch type {
+        case .percentage:
+            // 百分比折扣 %@
+            return String.localized("transactionDetailPercentageLine \(valueText)")
+        case .amount:
+            // 減額折扣 %@
+            return String.localized("transactionDetailAmountLine \(valueText)")
+        }
+    }
+
     /// 流水帳的折扣顯示文字；沒有折扣時回傳 nil。
     /// 多個折扣以空格相連，例如 `10% -20`。
     static func deductionText(for transaction: TransactionModel) -> String? {
