@@ -1690,21 +1690,21 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - 預期：報表只是單純加總，不再有 `switch discountType` 或比例分攤
 - **回歸**：折扣、無折扣、補記帳三種結帳路徑的金額都正確（G1／G2／G3）
 
-### 第 5 批 — 組合與套餐（最大塊）✅ 2026-10-28 完成；2026-10-29 最終審查修正＋驗收修正（手動測試進行中）
+### 第 5 批 — 組合與套餐（最大塊）✅ 2026-10-28 完成；2026-10-29 最終審查修正＋驗收修正；手動測試 2026-10-29 完成
 
 > 設計文件：`docs/superpowers/specs/2026-10-27-bundles-design.md`；實作計畫：`docs/superpowers/plans/2026-10-28-bundles.md`。
 
 | # | 項目 | 狀態 |
 |---|------|------|
 | 5.1 | `BundleModel` + `CDEventEntity.bundlesData`（另有 `InventoryChange.bundleId/bundleName`、`SummaryItem.bundleDiscount/bundleKind`） | ✅ 單元測試 |
-| 5.2 | 組合／套餐管理 UI（併入管理商品頁：chip、`＋` 選單、「⋯」編輯／下架／刪除、勾選商品、套餐照片、儲存時價格驗證、商品改價／刪除守衛）— 5.2a 驗證、5.2b 守衛、5.2c 介面 | ✅ 單元測試；⬜ 手動 |
-| 5.3 | POS：套餐區塊（`.fixed` 可點選）— 5.3a POSViewModel、5.3b 收銀頁與結帳摘要 | ✅ 單元測試；⬜ 手動 |
+| 5.2 | 組合／套餐管理 UI（併入管理商品頁：chip、`＋` 選單、「⋯」編輯／下架／刪除、勾選商品、套餐照片、儲存時價格驗證、商品改價／刪除守衛）— 5.2a 驗證、5.2b 守衛、5.2c 介面 | ✅ 單元測試；✅ 手動（2026-10-29） |
+| 5.3 | POS：套餐區塊（`.fixed` 可點選）— 5.3a POSViewModel、5.3b 收銀頁與結帳摘要 | ✅ 單元測試；✅ 手動（2026-10-29） |
 | 5.4 | POS：組合自動套用演算法（`.chooseAny`）`ComboApplier` | ✅ 單元測試 |
-| 5.5 | 結帳頁顯示套用結果 + 可手動取消（`CartPricing`） | ✅ 單元測試；⬜ 手動 |
-| 5.6 | 庫存扣成員 + `InventoryChange.bundleId`（`CheckoutRecorder`） | ✅ 單元測試；⬜ 手動 |
-| 5.7 | 可用性判斷（含庫存雙向佔用、購物車失效通知）`BundleAvailability` | ✅ 單元測試；⬜ 手動 |
-| 5.8 | 複製場次一併複製套餐／組合（id 重新對應） | ✅ 單元測試；⬜ 手動 |
-| 5.9 | `SummaryItemModel.bundleDiscount`／`bundleKind`（`RevenueAllocator` 寫入）；交易明細改成獨立明細頁、還原成訂單摘要版面、「共 N 項」把套餐算 1 項（**CSV 不在本批**） | ✅ 單元測試；⬜ 手動 |
+| 5.5 | 結帳頁顯示套用結果 + 可手動取消（`CartPricing`） | ✅ 單元測試；✅ 手動（2026-10-29） |
+| 5.6 | 庫存扣成員 + `InventoryChange.bundleId`（`CheckoutRecorder`） | ✅ 單元測試；✅ 手動（2026-10-29） |
+| 5.7 | 可用性判斷（含庫存雙向佔用、購物車失效通知）`BundleAvailability` | ✅ 單元測試；✅ 手動（2026-10-29） |
+| 5.8 | 複製場次一併複製套餐／組合（id 重新對應） | ✅ 單元測試；✅ 手動（2026-10-29） |
+| 5.9 | `SummaryItemModel.bundleDiscount`／`bundleKind`（`RevenueAllocator` 寫入）；交易明細改成獨立明細頁、還原成訂單摘要版面、「共 N 項」把套餐算 1 項（**CSV 不在本批**） | ✅ 單元測試；✅ 手動（2026-10-29） |
 
 > 「收銀頁互動調整」（設計文件 §8）中，套餐區塊與結帳摘要的組合折抵已隨 5.3 完成；**類別 chip 列留給第 6 批**。
 > Commits：`e3a2b58`（5.1）→ `16ee546`（5.9），共 14 個；最終審查修正 `c713560`、`5235058`、`6b91205`；驗收修正 `6821285`、`b51578f`、`bab0cb8`，第二輪驗收修正（見下表「驗收 2」）。測試總數 257 個全過（本批前 134 個）。
@@ -1774,7 +1774,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 - ✅ `python3 scripts/check_field_classification.py` 通過
 - ✅ 套餐表單：剛打開不能存但沒有紅字；價格超過上限／0 元／重名即時出錯且不能存；組合上限 = N × 最便宜候選
 
-##### 手動 —— 需操作 App（⬜ 尚未做；以下合併自各 task 回報）
+##### 手動 —— 需操作 App（✅ 2026-10-29 完成；以下合併自各 task 回報）
 
 - **5.2 守衛（Task 3）**
   1. 編輯被套餐引用的商品，把價格降到低於套餐價 → 跳 alert、表單不關閉
@@ -2261,3 +2261,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-29 | 第 5 批驗收 2：收銀頁套餐「下架就藏、缺貨就灰」、管理頁下架商品留在原位、自訂時間範圍跑版、分隔符中英對照、第 5 批 UI 依 DESIGN.md 調整（`TagLabel`）、`InventoryView` 拆檔、套餐照片存檔失敗還原與刪場次清照片、0 元組合不套用、金額輸入整理合併為 `MoneyHelper.sanitizeInput`、`transactions(in:)` 邊界測試。總計 257 個單元測試全過 |
 | 2026-10-29 | 第 5 批驗收 2（續）：管理商品頁區塊標題與收銀頁一致並跟著捲動、拿掉管理商品頁與收銀頁的類別展開／收合、chip 選取黑底白字；全專案程式碼註解只描述目前行為（沿革記在本文件）。總計 257 個單元測試全過 |
 | 2026-10-29 | 第 5 批驗收 3：回到收銀頁時單點商品也一起驗證（下架／刪除移除、超過庫存降到剩餘數量，與失效套餐同一個通知）；套餐格狀卡片數量 0 時按 − 不再穿透成加入一份。總計 262 個單元測試全過 |
+| 2026-10-29 | 第 5 批手動測試完成。管理商品頁商品卡片點擊展開庫存異動保留；chip 隨捲動自動高亮留待第 6 批 6.1 與收銀頁 chip 列一起做。下一步：收銀頁互動調整（計畫 `docs/superpowers/plans/2026-10-29-pos-interaction.md`） |
