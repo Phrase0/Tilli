@@ -62,7 +62,7 @@ class QRCodeRepository: ObservableObject {
         DispatchQueue.main.async {
             self.qrCode = model
         }
-        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
     }
 
 
@@ -78,7 +78,7 @@ class QRCodeRepository: ObservableObject {
         }
 
         if let id = deletedId {
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
         }
     }
 

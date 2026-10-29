@@ -2,8 +2,8 @@
 //  POSBundleSection.swift
 //  Tilli
 //
-//  收銀頁最上方的「套餐」區塊（設計 §4.5）。卡片樣式沿用 POSView 的
-//  posProductCard（列表）／posGridCard（格狀）。下架類不列（見 POSViewModel.fixedBundles），
+//  收銀頁最上方的「套餐」區塊。卡片樣式沿用 POSView 的
+//  posProductCard（列表）／posGridCard（格狀）。下架類不列（由 POSViewModel.fixedBundles 篩掉），
 //  缺貨照列：灰掉、顯示原因、不能加入，已在購物車的份數仍可減少。
 //
 
@@ -178,13 +178,13 @@ struct POSBundleSection: View {
 
     // MARK: - 共用元件
 
-    /// 點卡片即加入一份（設計 §4.5）；不可賣時不能點
+    /// 點卡片即加入一份；不可賣時不能點
     private func tapCard(_ bundle: BundleModel, isUnavailable: Bool) {
         guard !isUnavailable else { return }
         viewModel.addBundle(bundle)
     }
 
-    /// 缺貨原因（例如「「大福」缺貨」）：膠囊標籤（DESIGN.md 標籤一律滿膠囊）
+    /// 缺貨原因（例如「「大福」缺貨」）：膠囊標籤
     private func reasonBadge(_ text: String) -> some View {
         Text(text)
             .font(DesignSystem.Typography.caption)

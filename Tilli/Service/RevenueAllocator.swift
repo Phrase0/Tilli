@@ -4,8 +4,7 @@
 //
 //  Created by Peiyun on 2026/10/8.
 //
-//  結帳當下把套餐差額與整筆折扣攤提到每個項目，取代報表端重複 3 次的攤提。
-//  見 FEATURE_PLAN_V1.md §2.4、§7.3（解 A6、B1、B2）。
+//  結帳當下把套餐差額與整筆折扣攤提到每個項目，報表只做加總。
 //
 //  ⭐ 保證（RevenueAllocatorTests 用隨機輸入鎖住）：
 //    - Σ allocatedDiscount == Σ 套餐差額 + Σ 折扣 amount（clamp 到可攤金額內）
@@ -23,7 +22,7 @@ enum RevenueAllocator {
         let amount: Decimal
     }
 
-    /// 依 §7.3 的順序攤提，回傳寫好 `allocatedDiscount`、`bundleDiscount` 的項目（順序不變）。
+    /// 依下列順序攤提，回傳寫好 `allocatedDiscount`、`bundleDiscount` 的項目（順序不變）。
     /// `bundleDiscount` 只記步驟 ② 分到的部分；`allocatedDiscount` 是 ②③④ 的合計。
     ///
     /// ① 原價小計 → ② 套餐差額（只攤給成員）→ ③④ 整筆折扣依序攤給所有項目

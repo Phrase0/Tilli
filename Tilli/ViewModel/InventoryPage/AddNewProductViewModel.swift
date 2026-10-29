@@ -59,7 +59,7 @@ class AddNewProductViewModel: ObservableObject {
     // MARK: - 用於獲取最新狀態的 DataManager
     private var transactionDataManager: TransactionRepository?
 
-    /// 交易索引（建立一次，之後都是 Set.contains；取代原本每次呼叫全表掃描）
+    /// 交易索引（建立一次，之後都是 Set.contains）
     private var transactionIndex: TransactionIndex = .empty
     
     // MARK: - 計算屬性
@@ -275,7 +275,7 @@ class AddNewProductViewModel: ObservableObject {
     }
 
     // MARK: - 交易檢查邏輯
-    /// 檢查產品是否有交易記錄（唯一答案來源是 `TransactionIndex`，A1）
+    /// 檢查產品是否有交易記錄（唯一答案來源是 `TransactionIndex`）
     func hasTransaction(for productId: UUID? = nil) -> Bool {
         guard let productId else { return transactionIndex.hasAnyTransaction }
         return transactionIndex.hasTransaction(productId: productId)

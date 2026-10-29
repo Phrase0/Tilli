@@ -75,7 +75,7 @@ class CashPaymentViewModel: ObservableObject {
 
     // MARK: - 自訂數字鍵盤輸入
 
-    /// 附加一個字元（數字或小數點），套用跟原本輸入框一致的驗證規則
+    /// 附加一個字元（數字或小數點），套用與輸入框相同的驗證規則
     func appendToReceivedAmount(_ character: String) {
         receivedAmountText = validateAndFormatAmount(receivedAmountText + character)
     }

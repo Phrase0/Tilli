@@ -96,7 +96,7 @@ struct CheckoutSummaryView: View {
             .padding(.horizontal)
             .padding(.vertical, DesignSystem.Spacing.xs)
 
-            // MARK: 組合折抵（可取消，只對這一筆有效，§5.4）
+            // MARK: 組合折抵（可取消，只對這一筆有效）
             if !pricing.combos.isEmpty || !posViewModel.cancelledCombos.isEmpty {
                 VStack(spacing: DesignSystem.Spacing.xs) {
                     ForEach(pricing.combos, id: \.bundleId) { combo in

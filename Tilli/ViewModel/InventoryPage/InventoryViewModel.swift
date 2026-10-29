@@ -55,15 +55,15 @@ class InventoryViewModel: ObservableObject {
     @Published var isDisableAction = false
 
     // MARK: - Dependencies
-    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    /// 場次工作區的共用資料源
     private let dataSource: EventDataSource
     private var productRepository: ProductRepository?
     private var eventRepository: EventRepository?
 
-    /// ⭐ 一律從 dataSource 取，商品與類別是同一份快照（A3）
+    /// ⭐ 一律從 dataSource 取，商品與類別是同一份快照
     var event: EventModel { dataSource.event }
 
-    /// 交易索引（唯一的「有沒有賣過」答案來源，A1）
+    /// 交易索引（唯一的「有沒有賣過」答案來源）
     var transactionIndex: TransactionIndex { dataSource.transactionIndex }
 
     // MARK: - Computed Properties
@@ -542,7 +542,7 @@ class InventoryViewModel: ObservableObject {
     }
 }
 
-// MARK: - 套餐／組合管理（設計 §4.1、§4.3）
+// MARK: - 套餐／組合管理
 
 extension InventoryViewModel {
 
@@ -582,7 +582,7 @@ extension InventoryViewModel {
         }
     }
 
-    /// 警告（⚠️）；已下架的列以灰色與「已下架」標示，不再重複顯示原因。
+    /// 警告（⚠️）；已下架的列以灰色與「已下架」標示，不重複顯示原因。
     /// 套餐：任一成員不可賣或缺貨；組合：可賣候選的庫存湊不滿 N 個（下架候選只是不計入）
     func bundleWarning(_ bundle: BundleModel) -> String? {
         guard !bundle.isDisabled else { return nil }
@@ -610,7 +610,7 @@ extension InventoryViewModel {
         saveBundles(bundles)
     }
 
-    /// 刪除（不論有沒有交易紀錄都能刪，設計 §4.3；確認由 View 負責），連同本機照片
+    /// 刪除（不論有沒有交易紀錄都能刪；確認由 View 負責），連同本機照片
     func deleteBundle(_ id: UUID) {
         let bundles = event.bundles.filter { $0.id != id }
         guard bundles.count != event.bundles.count else { return }

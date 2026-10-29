@@ -4,8 +4,8 @@
 //
 //  Created by Peiyun on 2026/10/8.
 //
-//  對應 FEATURE_PLAN_V1.md §7.3 與 §11 第 4 批的 4.1／4.2。
-//  這批是金額正確性的關鍵 —— 捨入處理錯了會讓兩張報表對不起來（A6／R2）。
+//  結帳時的營收攤提：恆等式、順序、捨入、邊界。
+//  這是金額正確性的關鍵 —— 捨入處理錯了會讓兩張報表對不起來。
 //
 
 import XCTest
@@ -32,9 +32,9 @@ final class RevenueAllocatorTests: XCTestCase {
         items.reduce(Decimal(0)) { MoneyHelper.add($0, $1.actualRevenue) }
     }
 
-    // MARK: - ⭐ 恆等式（R2）
+    // MARK: - ⭐ 恆等式
 
-    /// ⭐ A6 的定義：Σ actualRevenue == totalAmount，對任意輸入都成立。
+    /// ⭐ Σ actualRevenue == totalAmount，對任意輸入都成立。
     /// 兩張報表口徑相等不是靠巧合，而是這條恆等式。
     func testRevenueSumEqualsTotalForRandomInputs() {
         var rng = SeededGenerator(seed: 20261008)
@@ -70,7 +70,7 @@ final class RevenueAllocatorTests: XCTestCase {
         }
     }
 
-    // MARK: - 攤提順序（§7.3）
+    // MARK: - 攤提順序
 
     /// ② 套餐差額只攤給成員，③ 整筆折扣再按「② 之後」的金額攤給所有項目。
     /// 順序對調（整筆折扣按原價攤）會得到不同的數字 —— 這個測試要能抓到。
@@ -99,7 +99,7 @@ final class RevenueAllocatorTests: XCTestCase {
         XCTAssertNotEqual(result[0].allocatedDiscount - 25, result[2].allocatedDiscount)
     }
 
-    // MARK: - bundleDiscount（第 5 批 5.5）
+    // MARK: - bundleDiscount
 
     /// `bundleDiscount` 只記步驟 ② 分到的部分；整筆折扣分到的留在 `allocatedDiscount − bundleDiscount`。
     func testBundleDiscountRecordsOnlyTheBundleStepShare() {
@@ -125,7 +125,7 @@ final class RevenueAllocatorTests: XCTestCase {
         XCTAssertTrue(transactionShares.allSatisfy { $0 >= 0 })
     }
 
-    /// 設計 §5.1：大福 40、抹茶 60、紅豆 20（合計 120）賣 100 → 實收 34／49／17
+    /// 大福 40、抹茶 60、紅豆 20（合計 120）賣 100 → 實收 34／49／17
     func testAfternoonTeaSetAllocatesThirtyFourFortyNineSeventeen() {
         let bundleId = UUID()
         let items: [SummaryItemModel] = [
@@ -173,8 +173,8 @@ final class RevenueAllocatorTests: XCTestCase {
         }
     }
 
-    /// ⭐ 原計畫「最後一項吃掉差額」在最後一項是贈品時會吃出負數。
-    /// 改成由剩餘空間最大的那一項吃 —— 贈品永遠不會分到折扣。
+    /// ⭐ 捨入差額由剩餘空間最大的那一項吃 —— 贈品永遠不會分到折扣
+    /// （若固定由最後一項吃，最後一項是贈品時會變成負數）。
     func testRemainderNeverGoesToZeroPriceItem() {
         let items: [SummaryItemModel] = [
             .mock(price: 10),
@@ -281,7 +281,7 @@ final class RevenueAllocatorTests: XCTestCase {
         XCTAssertEqual(decoded.map(\.allocatedDiscount), values)
     }
 
-    /// 第 4 批之前寫入的 itemsData 沒有新欄位 → 解碼成「沒有攤提」，不 crash
+    /// itemsData 缺攤提欄位 → 解碼成「沒有攤提」，不 crash
     func testLegacyItemWithoutNewFieldsDecodes() throws {
         let legacy = """
         {"id":"\(UUID())","productId":"\(UUID())","name":"大福","price":50,

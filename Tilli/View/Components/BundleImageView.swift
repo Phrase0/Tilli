@@ -2,7 +2,7 @@
 //  BundleImageView.swift
 //  Tilli
 //
-//  套餐照片：有本機照片（BundleImageStore）就顯示，否則與無照片商品相同的 placeholder（設計 §3）。
+//  套餐照片：有本機照片（BundleImageStore）就顯示，否則與無照片商品相同的 placeholder。
 //
 
 import SwiftUI

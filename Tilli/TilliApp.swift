@@ -67,7 +67,7 @@ struct TilliApp: App {
                     // 您的帳號已在其他裝置登入。要登出其他裝置並繼續使用嗎？
                     Text("deviceConflictMessage")
                 }
-                // 登出其他裝置失敗——原本的衝突 alert 一按按鈕就會關閉，這裡另開一個顯示失敗原因
+                // 登出其他裝置失敗：衝突 alert 按下按鈕就會關閉，所以失敗原因用另一個 alert 顯示
                 .alert("commonReminder", isPresented: Binding(
                     get: { authenticationManager.kickOtherDeviceErrorMessage != nil },
                     set: { isPresented in

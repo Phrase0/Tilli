@@ -20,7 +20,7 @@ extension Bundle {
 }
 
 extension String {
-    /// 使用 App 語言設定載入 localized 字串（取代 String(localized:)）
+    /// 使用 App 語言設定載入 localized 字串（`String(localized:)` 會跟系統語言走）
     static func localized(_ key: String.LocalizationValue) -> String {
         String(localized: key, bundle: .appLocalized)
     }

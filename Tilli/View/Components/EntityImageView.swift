@@ -37,8 +37,7 @@ enum ImageEntityType {
 /// 2. `imageData` 為 nil 但 `imageURL` 有值 → 下載遠端圖，成功後交給 `ImageCacheStore` 快取
 /// 3. 都沒有 → 灰色 placeholder
 ///
-/// 註：同步層移除後 `imageURL` 目前一律為 nil，情況 2 暫時不會發生；
-/// 保留是因為重建同步後會再用到（見 ARCHITECTURE.md §4）。
+/// 註：目前沒有雲端同步，`imageURL` 一律為 nil，情況 2 不會發生；重建同步後會用到。
 struct EntityImageView: View {
     let imageData: Data?
     let imageURL: String?
@@ -71,7 +70,7 @@ struct EntityImageView: View {
                     }
                 }
                 // TODO: [SYNC-PENDING] 下載失敗目前沒有 fallback，會永遠停在 ProgressView。
-                // 重建同步後要補重試鍵或 placeholder（見 FEATURE_PLAN_V1.md 附錄 A.2 B2）
+                // 重建同步後要補重試鍵或 placeholder
                 .onFailure { _ in }
                 .resizable()
                 .aspectRatio(contentMode: contentMode)

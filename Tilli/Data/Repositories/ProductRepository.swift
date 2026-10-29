@@ -43,7 +43,7 @@ class ProductRepository: ObservableObject {
             saveContext()
             // 同步到 Firestore（用剛存好的 entity 轉回 model，確保 sortOrder 等 repository 算出來的值一起同步，而不是呼叫端傳進來的舊值）
             let savedModel = productEntity.toModel()
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
         } catch {
             print("加入 product 失敗:", error)
         }
@@ -88,7 +88,7 @@ class ProductRepository: ObservableObject {
             }
 
             saveContext()
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
         } catch {
             print("更新商品排序失敗:", error)
         }
@@ -141,7 +141,7 @@ class ProductRepository: ObservableObject {
                 // 同步到 Firestore（用 entity 轉回 model，而非呼叫端傳進來的 productModel——
                 // sortOrder 這裡不會被更新，若直接同步 productModel 會把它預設值 0 誤傳上雲端）
                 let savedModel = entity.toModel()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
             }
             return .updated
         } catch {
@@ -162,7 +162,7 @@ class ProductRepository: ObservableObject {
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
             }
         } catch {
             print("Disable product failed:", error)
@@ -181,7 +181,7 @@ class ProductRepository: ObservableObject {
                 saveContext()
                 // 同步到 Firestore
                 let productModel = entity.toModel()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
             }
         } catch {
             print("Enable product failed:", error)
@@ -192,8 +192,7 @@ class ProductRepository: ObservableObject {
     ///
     /// 有交易紀錄的商品**不可刪除**（刪掉再建同名商品會讓報表統計分裂成兩個 UUID）。
     /// 守衛保留，因為 repository 是最後一道防線（將來的批次刪除／匯入會需要），
-    /// 但它**只拒絕、不偷偷做別的事** —— 原本會靜默改成「停用」，
-    /// 呼叫端以為刪掉了、實際上資料還在。
+    /// 但它**只拒絕、不偷偷做別的事**（不會自動改成下架），呼叫端收到的結果就是實際發生的事。
     func deleteProduct(_ productId: UUID) -> ProductDeletionResult {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
@@ -224,7 +223,7 @@ class ProductRepository: ObservableObject {
                 let deletedChangeIds = inventoryChangeRepository.deleteChanges(forProductId: productId)
                 context.delete(productEntity)
                 saveContext()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
                 return .deleted("Product deleted")
             }
         } catch {
@@ -329,7 +328,7 @@ class ProductRepository: ObservableObject {
 
             // 同步到 Firestore
             let updatedModels = products.map { $0.toModel() }
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
 
             print("✅ Batch updated \(products.count) products stock")
             return true
@@ -372,7 +371,7 @@ class ProductRepository: ObservableObject {
 
             try context.save()
 
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
 
             print("✅ Batch updated \(entities.count) products")
             return true

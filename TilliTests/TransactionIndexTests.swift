@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md §2.1（A1、E1）與 §11 第 1 批的 1.1。
+//  交易索引：「有沒有賣過」只看交易快照。
 //
 
 import XCTest
@@ -49,11 +49,10 @@ final class TransactionIndexTests: XCTestCase {
         XCTAssertFalse(index.hasTransaction(categoryId: categoryYi))
     }
 
-    /// ⭐ A1 的核心：答案只看歷史快照，不隨商品搬移而改變。
+    /// ⭐ 答案只看歷史快照，不隨商品搬移而改變。
     ///
-    /// 目前 UI 走不到這個情境（有交易的商品不能改類別，見 §1.1「A1 的可達性」），
-    /// 所以這條測試是**唯一**能守住這個行為的方式 —— 也是 Backlog 的
-    /// 「開放商品編輯」解禁前必須先綠的護欄。
+    /// 目前 UI 走不到這個情境（有交易的商品不能改類別），所以這條測試是**唯一**能守住
+    /// 這個行為的方式；開放有交易的商品改類別之前，這條必須是綠的。
     func testCategoryAnswerFollowsSnapshotNotCurrentProductCategory() {
         // 商品 A 在「甲」類別時賣掉，交易的 SummaryItem.categoryId 記下的是甲
         let soldItem = SummaryItemModel.mock(productId: productA, categoryId: categoryJia)

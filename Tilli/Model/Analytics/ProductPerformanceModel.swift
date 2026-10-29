@@ -26,7 +26,7 @@ struct ProductPerformanceData: Identifiable {
 /// 本期未售出的商品。
 ///
 /// 只需要「是誰」—— 營收、名次這些欄位對它們一律是 0／沒有意義，
-/// 給了反而讓收攤時的主表變難讀。見 FEATURE_PLAN_V1.md §5.1。
+/// 給了反而讓收攤時的主表變難讀。
 struct UnsoldProductData: Identifiable {
     let id: UUID              // = productId
     let name: String

@@ -18,9 +18,9 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
     var timestamp: Date             // 交易發生時間
 
     /// 快照：結帳時分攤到這一項的折扣（套餐差額 + 整筆折扣），由 `RevenueAllocator` 寫入。
-    /// 報表直接加總，不再重算（FEATURE_PLAN_V1.md §7）。
+    /// 報表直接加總，不重算。
     var allocatedDiscount: Decimal = 0
-    /// 來自哪個組合／套餐（第 5 批起才會有值）
+    /// 來自哪個組合／套餐（單點商品為 nil）
     var bundleId: UUID? = nil
     /// 快照：組合名稱
     var bundleName: String? = nil
@@ -29,7 +29,7 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
     /// 快照：套餐或組合，歷史明細靠它決定顯示方式
     var bundleKind: BundleKind? = nil
 
-    /// 原價小計（折扣前）= 單價 × 數量。即 §7.2 的 `originalSubtotal`。
+    /// 原價小計（折扣前）= 單價 × 數量。
     var total: Decimal {
         return MoneyHelper.multiply(price, Decimal(quantity))
     }
@@ -49,7 +49,7 @@ extension SummaryItemModel {
         case allocatedDiscount, bundleId, bundleName, bundleDiscount, bundleKind
     }
 
-    /// 第 4 批之前寫入的 itemsData 沒有 `allocatedDiscount`，解碼成 0 而不是失敗
+    /// itemsData 缺 `allocatedDiscount` 等欄位時解碼成預設值而不是失敗
     /// （合成的 Decodable 不會套用屬性預設值，缺 key 會整筆交易解不出來）。
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)

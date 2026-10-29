@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md §2.6（B5）與測試清單 U13。
+//  CSV 欄位逸出與匯出檔案。
 //
 
 import XCTest

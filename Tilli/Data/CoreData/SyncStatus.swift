@@ -5,9 +5,8 @@
 //  Created by Peiyun on 2026/9/12.
 //
 //  本機同步狀態標記。
-//  （由原 CDPendingSyncOperation+CoreDataProperties.swift 抽出）
 //
-//  ⚠️ 這是【純本機】欄位，不上傳雲端。見 ARCHITECTURE.md §3.2。
+//  ⚠️ 這是【純本機】欄位，不上傳雲端。
 //  同步層移除期間，所有寫入一律標 .pending；重建同步後才會有 .synced。
 //
 

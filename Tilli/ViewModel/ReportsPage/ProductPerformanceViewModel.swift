@@ -22,7 +22,7 @@ class ProductPerformanceViewModel: ObservableObject {
     @Published var salesInsights: SalesInsightsData = SalesInsightsData()
     
     // MARK: - Dependencies
-    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    /// 場次工作區的共用資料源
     private let dataSource: EventDataSource
     private(set) var currentTimeRange: ReportTimeRange?
 
@@ -40,9 +40,8 @@ class ProductPerformanceViewModel: ObservableObject {
         // 儲存當前時間範圍（用於 CSV 匯出）
         self.currentTimeRange = timeRange
 
-        // 同步計算。資料全部來自記憶體中的 `EventDataSource`（A5／E2），
-        // 原本包了一層 `Task { await MainActor.run { ... } }` —— VM 已是 @MainActor，
-        // 那層只是把結果延到下一個 runloop，沒有讓任何工作離開主執行緒。
+        // 同步計算。資料全部來自記憶體中的 `EventDataSource`；VM 已是 @MainActor，
+        // 不需要包 `Task { await MainActor.run { ... } }`（那只會把結果延到下一個 runloop）。
         calculateTopProducts(timeRange: timeRange)
         calculateCategoryAnalysis(timeRange: timeRange)
         generateSalesInsights(timeRange: timeRange)
@@ -94,7 +93,7 @@ class ProductPerformanceViewModel: ObservableObject {
 
         // 未售出的商品也列進同一張表（銷量 0）。
         // UI 把它們收進摺疊區是為了收攤時好讀；CSV 是回家用 Excel 自己排序分析的，
-        // 全部在一起才好用。見 FEATURE_PLAN_V1.md §5.1。
+        // 全部在一起才好用。
         for product in unsoldProducts {
             csvContent += CSVExporter.row([
                 "-",
@@ -168,11 +167,11 @@ private extension ProductPerformanceViewModel {
     
     /// 計算商品銷售排行與未售出清單（支援時間範圍）
     ///
-    /// 分兩區的理由見 FEATURE_PLAN_V1.md §5.1：
+    /// 分兩區的理由：
     /// 「排行」要有名次才有意義，把 0 銷量的塞進去會讓收攤時的主表變難讀；
     /// 但「哪些沒賣掉」是下次要帶什麼的依據，只從交易反推的話它是隱形的。
     func calculateTopProducts(timeRange: ReportTimeRange? = nil) {
-        // 共用資料源，切換 timeRange 不再重查 DB（A5 / E2）
+        // 共用資料源，切換 timeRange 只在記憶體篩選，不查 DB
         let transactions = dataSource.transactions(in: timeRange?.dateInterval)
         hasSalesInRange = !transactions.isEmpty
 
@@ -192,7 +191,7 @@ private extension ProductPerformanceViewModel {
                     )
                 }
 
-                // 攤提在結帳時已完成，這裡只加總（§7.4）
+                // 攤提在結帳時已完成，這裡只加總
                 productStats[productId]?.addSale(
                     quantity: item.quantity,
                     unitPrice: item.price,
@@ -259,7 +258,7 @@ private extension ProductPerformanceViewModel {
 
         // 未售出 = 該場次的商品扣掉本期有銷售紀錄的。
         // 不對 isDisabled 做任何特例 —— 已下架的商品只是多帶一個標記，
-        // 該不該出現由「有沒有賣出」決定（見 §5.1 的決定）。
+        // 該不該出現由「有沒有賣出」決定。
         let soldProductIds = Set(productStats.keys)
         unsoldProducts = dataSource.products
             .filter { !soldProductIds.contains($0.id) }
@@ -276,7 +275,7 @@ private extension ProductPerformanceViewModel {
     
     /// 計算分類銷售分析（支援時間範圍）
     func calculateCategoryAnalysis(timeRange: ReportTimeRange? = nil) {
-        // 共用資料源，切換 timeRange 不再重查 DB（A5 / E2）
+        // 共用資料源，切換 timeRange 只在記憶體篩選，不查 DB
         let transactions = dataSource.transactions(in: timeRange?.dateInterval)
         
         // 建立分類銷售統計字典
@@ -383,7 +382,7 @@ private extension ProductPerformanceViewModel {
     
     /// 找出折扣最多的商品
     private func findHighestDiscountProduct(timeRange: ReportTimeRange? = nil) -> (name: String, averageDiscountRate: Int, isEmpty: Bool) {
-        // 共用資料源，切換 timeRange 不再重查 DB（A5 / E2）
+        // 共用資料源，切換 timeRange 只在記憶體篩選，不查 DB
         let transactions = dataSource.transactions(in: timeRange?.dateInterval)
 
         // 建立商品折扣統計（累計折扣金額和原價）

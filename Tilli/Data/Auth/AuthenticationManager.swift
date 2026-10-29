@@ -140,7 +140,7 @@ class AuthenticationManager: NSObject, ObservableObject {
             // TODO: [SYNC-PENDING] App 啟動且為 member 時：初始化同步、必要時補全量下載、
             // 重試本機未上傳的個人資料編輯（hasNewerLocalEdit）。
             // ⚠️ 重建時注意：離線時 getUser 失敗【不可】降級成 Guest，
-            //    要讀本機 CDUserProfileEntity 快取維持登入狀態。見 SYNC_ARCHITECTURE_V2.md §9.1
+            //    要讀本機 CDUserProfileEntity 快取維持登入狀態。
             _ = hasNewerLocalEdit
         } catch {
             print("Error fetching user profile: \(error)")
@@ -334,8 +334,8 @@ class AuthenticationManager: NSObject, ObservableObject {
             let localHasData = LocalDataManager.shared.hasLocalData(for: UserProfileModel.guestUserId)
 
             // TODO: [SYNC-PENDING] 2. 檢查雲端是否有資料。
-            // ⚠️ 重建時要改成三態（true / false / unknown），
-            //    unknown（離線、查詢失敗）時不可做任何破壞性動作。見 SYNC_ARCHITECTURE_V2.md §9.1
+            // ⚠️ 重建時結果要分三態（true / false / unknown），
+            //    unknown（離線、查詢失敗）時不可做任何破壞性動作。
 
             // 3. 建立 / 更新 UserProfileModel
             if let profile = try await userRepository.getUser(uid: user.uid) {
@@ -378,7 +378,7 @@ class AuthenticationManager: NSObject, ObservableObject {
             //   只有本機       → 全量上傳（顯示進度條）
             //   只有雲端       → 全量下載
             // ⚠️ 重建時注意：上傳失敗的資料【不可】標記為 synced，
-            //    且 cleanUp 不可在上傳有失敗時執行。見 SYNC_ARCHITECTURE_V2.md 附錄 A
+            //    且 cleanUp 不可在上傳有失敗時執行。
 
             updateAuthState()
         } catch {
@@ -431,8 +431,7 @@ class AuthenticationManager: NSObject, ObservableObject {
     /// TODO: [SYNC-PENDING] 重建同步後，這裡要：
     ///   1. 先把 outbox 推送完（顯示進度，**必須有上限**，例如 30 秒）
     ///   2. 未訂閱／推送未完成 → 詢問使用者「保留或刪除本機資料」，**不可靜默清除**
-    /// ⚠️ 舊版用無上限的 while 迴圈等待，是登出無限轉圈的根因。
-    ///    見 SYNC_ARCHITECTURE_V2.md §9.2、§9.6
+    /// ⚠️ 等待一定要有上限：無上限的等待會讓登出無限轉圈。
     func requestSignOut() async {
         guard !isSigningOut else { return }
         isSigningOut = true
@@ -483,7 +482,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         guard let user = currentUser else { return }
         kickOtherDeviceErrorMessage = nil
 
-        // 原本的衝突 alert 一按按鈕就會關閉，這裡的錯誤要另外顯示，不能沿用同一個 alert
+        // 衝突 alert 按下按鈕就會關閉，這裡的錯誤要用另一個 alert 顯示
         guard NetworkMonitor.shared.isConnected else {
             kickOtherDeviceErrorMessage = String.localized("authKickOtherDeviceNoNetwork")
             showDeviceConflictAlert = true

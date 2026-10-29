@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  組合與套餐的驗證規則（純函式、不碰持久層）。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §4.2。
 //
 
 import Foundation

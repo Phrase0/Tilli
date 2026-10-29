@@ -16,19 +16,19 @@ enum ProductLayoutMode: String, Codable {
 @MainActor
 class POSViewModel: ObservableObject {
 
-    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    /// 場次工作區的共用資料源
     private let dataSource: EventDataSource
 
     /// ⭐ event / categories / products 一律一起從 dataSource 取同一份快照，
-    /// 不再出現「商品是新鮮的、類別是舊快照」（A3）
+    /// 商品與類別永遠是同一個時間點的資料
     @Published private(set) var event: EventModel
     @Published private(set) var categories: [CategoryModel] = []
     @Published private(set) var products: [ProductModel] = []
-    /// 購物車：單點商品、套餐行、本筆交易已取消的組合（設計 §5.6、§9.1 第 1 點）
+    /// 購物車：單點商品、套餐行、本筆交易已取消的組合
     @Published private(set) var cart = Cart()
-    /// 回到收銀頁（或按結帳）時發現無法結帳的套餐行；非空時由 View 通知，使用者確定後才清除（§9.1 第 5 點）
+    /// 回到收銀頁（或按結帳）時發現無法結帳的套餐行；非空時由 View 通知，使用者確定後才清除
     @Published var invalidBundleLines: [InvalidBundleLine] = []
-    /// 折扣：每個型別各自單選，可同時一個百分比 + 一個定額（§6.1）。
+    /// 折扣：每個型別各自單選，可同時一個百分比 + 一個定額。
     ///
     /// 用型別當 key 而不是兩個獨立欄位 —— 之後多一種折扣型別時，
     /// 這裡與 `toggleDiscount` / `isSelected` 都不用改。
@@ -53,7 +53,7 @@ class POSViewModel: ObservableObject {
         products.filter { $0.isAvailableForSale(in: categories) }
     }
 
-    /// 啟用中的類別（POS 的區塊順序；View 也用這個，不再各自過濾 event.categories）
+    /// 啟用中的類別（POS 的區塊順序；View 也用這個，不各自過濾 event.categories）
     var activeCategories: [CategoryModel] {
         categories.active
     }
@@ -72,7 +72,7 @@ class POSViewModel: ObservableObject {
 
     // MARK: - 折扣
 
-    /// 百分比折扣選項，升冪排列（§6.4）
+    /// 百分比折扣選項，升冪排列
     var percentageDiscounts: [DiscountModel] {
         event.discounts.filter { $0.type == .percentage }.sorted { $0.value < $1.value }
     }
@@ -193,7 +193,7 @@ class POSViewModel: ObservableObject {
             expandAllCategories()
         }
 
-        // 進行中的購物車可能有套餐已被刪除／下架／改價／缺貨（§9.1 第 5 點）
+        // 進行中的購物車可能有套餐已被刪除／下架／改價／缺貨
         refreshInvalidBundleLines()
     }
     
@@ -204,7 +204,7 @@ class POSViewModel: ObservableObject {
             return
         }
         
-        // 剩餘庫存要扣掉套餐行佔用的數量（雙向佔用，§5.6）
+        // 剩餘庫存要扣掉套餐行佔用的數量（雙向佔用）
         if BundleAvailability.remainingStock(of: product, cart: cart) > 0 {
             cart.productQuantities[product.id, default: 0] += 1
         }
@@ -243,7 +243,7 @@ class POSViewModel: ObservableObject {
         Dictionary(event.bundles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// 收銀頁顯示的套餐（`.fixed`，依建立時間；組合不出現在收銀頁，§5.2）。
+    /// 收銀頁顯示的套餐（`.fixed`，依建立時間；組合不出現在收銀頁）。
     /// 下架類（套餐／成員下架、類別停用）不列；缺貨照列、卡片灰掉（`BundleAvailability.isListedOnPOS`）
     var fixedBundles: [BundleModel] {
         let products = productsById
@@ -297,7 +297,7 @@ class POSViewModel: ObservableObject {
         cart.bundleLines[bundleId]?.quantity ?? 0
     }
 
-    /// 取消／恢復某個組合，只對這一筆交易有效（§5.4）
+    /// 取消／恢復某個組合，只對這一筆交易有效
     func toggleComboCancelled(_ bundleId: UUID) {
         if cart.cancelledComboIds.contains(bundleId) {
             cart.cancelledComboIds.remove(bundleId)
@@ -372,7 +372,7 @@ class POSViewModel: ObservableObject {
 
     /// 購物車的定價明細（小計、組合、折扣、總計）。
     ///
-    /// 單點商品只用可販售的商品計價 —— 與原本 `subtotal()` 只看 `activeProducts` 一致；
+    /// 單點商品只用可販售的商品（`activeProducts`）計價；
     /// 套餐行若成員不可販售會被 `invalidBundleLines` 擋下，不會進結帳。
     var pricing: CartPricing {
         CartPricing.price(
@@ -414,7 +414,7 @@ class POSViewModel: ObservableObject {
         return String.localized("productDetailDiscountExceed")
     }
 
-    /// 取得類別名稱（從 categories 現查，不再依賴已刪除的 `Product.categoryName` 冗餘欄位）；
+    /// 取得類別名稱（從 categories 現查，商品不另存類別名稱）；
     /// 結帳時交給 `pricing.summaryItems(categoryName:timestamp:)`
     func categoryName(for categoryId: UUID) -> String {
         // 未分類

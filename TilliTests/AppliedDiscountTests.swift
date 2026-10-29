@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/15.
 //
-//  對應 FEATURE_PLAN_V1.md §6.1–§6.3 與 §11 第 3 批的 3.1／3.4。
+//  寫進流水帳的折扣快照（AppliedDiscount）：金額快照、多重折扣、JSON 往返。
 //
 
 import XCTest
@@ -42,7 +42,7 @@ final class AppliedDiscountTests: XCTestCase {
     }
 
     /// ⭐ 核心不變式：快照加總必須等於「小計 − 實收總額」。
-    /// 第 4 批的攤提會依賴這條（§7.3）。
+    /// `RevenueAllocator` 的攤提依賴這條。
     func testAppliedAmountsSumToSubtotalMinusTotal() {
         let cases: [(Decimal, [DiscountModel])] = [
             (200, [.percentage(10), .amount(20)]),

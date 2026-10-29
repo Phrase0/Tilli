@@ -4,11 +4,9 @@
 //
 //  Created by Peiyun on 2026/10/8.
 //
-//  ⭐ R2／A6：銷售分析的總營收 == 商品績效的實際營收加總 == 類別分析加總。
-//  對應 FEATURE_PLAN_V1.md §11 第 4 批的 4.3／4.4。
+//  ⭐ 銷售分析的總營收 == 商品績效的實際營收加總 == 類別分析加總。
 //
-//  原本兩張報表口徑不同（一個用 totalAmount、一個在報表端重新攤提），
-//  只是「目前巧合一致」。現在攤提在結帳時寫進 SummaryItem，報表只加總。
+//  攤提在結帳時寫進 SummaryItem，報表只加總，兩張報表的口徑因此一致。
 //
 
 import XCTest
@@ -90,7 +88,7 @@ final class ReportRevenueConsistencyTests: XCTestCase {
         return event.id
     }
 
-    /// 第 5 批：套餐 + 組合 + 百分比 + 減額，奇數 TWD 金額。走正式結帳流程
+    /// 套餐 + 組合 + 百分比 + 減額，奇數 TWD 金額。走正式結帳流程
     /// （CartPricing → summaryItems → CheckoutRecorder）產生交易。
     private func addBundleTransaction(to event: CDEventEntity, dessert: UUID) {
         let daifuku = ProductModel.mock(name: "大福", price: 37, categoryId: dessert)
@@ -191,7 +189,7 @@ final class ReportRevenueConsistencyTests: XCTestCase {
     }
 
     /// 交易明細頁渲染含套餐＋組合的交易不可閃退
-    /// （曾因 helper 命名為 `tag(_:)` 被解析成 SwiftUI 的 `View.tag`，整頁無限遞迴包進自己）
+    /// （View 裡的 helper 若命名為 `tag(_:)` 會被解析成 SwiftUI 的 `View.tag`，整頁無限遞迴包進自己）
     func testTransactionDetailRendersBundleAndComboTransaction() throws {
         let transaction = try XCTUnwrap(dataSource.transactions.first { $0.items.contains { $0.bundleKind == .fixed } })
         let viewModel = TransactionHistoryViewModel(dataSource: dataSource)

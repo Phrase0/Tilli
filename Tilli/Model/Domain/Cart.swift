@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  購物車的值型別：單點商品、套餐行、已取消自動成組的組合。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §5.6。
 //
 
 import Foundation

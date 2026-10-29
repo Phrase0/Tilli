@@ -2,7 +2,7 @@
 //  POSBundleCartTests.swift
 //  TilliTests
 //
-//  POSViewModel 的套餐行、組合取消與庫存佔用（設計 §4.5、§5.4、§5.6、§9.1 第 5 點）。
+//  POSViewModel 的套餐行、組合取消與庫存佔用、收銀頁顯示規則、失效套餐行。
 //  走真實的 EventDataSource（in-memory CoreData），不呼叫任何碰 Auth 的 Repository 方法。
 //
 
@@ -141,7 +141,7 @@ final class POSBundleCartTests: XCTestCase {
         XCTAssertFalse(BundleAvailability.isListedOnPOS(empty, products: products, categories: viewModel.categories))
     }
 
-    // MARK: - 雙向佔用（§5.6）
+    // MARK: - 雙向佔用
 
     func testBundleLineReservesStockForSingleProducts() {
         viewModel.addBundle(teaSet)
@@ -186,7 +186,7 @@ final class POSBundleCartTests: XCTestCase {
         XCTAssertEqual(viewModel.totalAmount(), 170)
     }
 
-    /// 順序：組合差額 → 百分比（§5.5）
+    /// 順序：組合差額 → 百分比
     func testPercentageDiscountIsBasedOnSubtotalMinusComboDeduction() {
         viewModel.increaseQuantity(for: daifuku)
         viewModel.increaseQuantity(for: matcha)
@@ -231,7 +231,7 @@ final class POSBundleCartTests: XCTestCase {
         XCTAssertEqual(viewModel.cart, Cart())
     }
 
-    // MARK: - 失效套餐行（§9.1 第 5 點）
+    // MARK: - 失效套餐行
 
     func testChangedBundleBlocksCheckoutUntilConfirmedThenOnlyThatLineIsRemoved() {
         viewModel.addBundle(teaSet)

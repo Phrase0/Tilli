@@ -5,19 +5,16 @@
 //  Created by Peiyun on 2026/9/12.
 //
 //  一個場次的完整資料快照，由場次工作區建立一次，三個分頁（POS／庫存／報表）共用。
-//  見 FEATURE_PLAN_V1.md §2.2（解 A2、A3、A5、E1、E2）與
-//  CONVENTIONS.md「資料同步規範」規則 1 的例外 2。
 //
 
 import SwiftUI
 
 /// 場次工作區的唯一資料源。
 ///
-/// 解掉四件事：
-/// - **A2** `event` 只有一個來源，不再有「POS 用 `@Binding` vs 庫存用值複製 + View 層 `onChange` 補救」兩套機制
-/// - **A3** 商品與類別**一起**重載，不會出現「商品是新鮮的、類別是舊快照」
-/// - **A5 / E2** 報表三個方法共用同一份 `transactions`，切換 timeRange 不再各自查一次 DB
-/// - **E1** `transactionIndex` 只建立一次，全場次共用
+/// - `event` 只有一個來源，三個分頁看到的是同一份
+/// - 商品與類別**一起**重載，不會出現「商品是新鮮的、類別是舊快照」
+/// - 報表共用同一份 `transactions`，切換 timeRange 只在記憶體篩選，不查 DB
+/// - `transactionIndex` 只建立一次，全場次共用
 @MainActor
 final class EventDataSource: ObservableObject {
 
@@ -29,8 +26,7 @@ final class EventDataSource: ObservableObject {
     @Published private(set) var transactionIndex: TransactionIndex = .empty
 
     /// 場次已被刪除（由工作區容器監看並 pop 回上一頁）。
-    /// 取代 `InventoryView` 的 `onChange(of: eventDataManager.events)` 補丁 ——
-    /// 「場次還在不在」是容器層的事，不該由其中一個分頁負責。
+    /// 「場次還在不在」是容器層的事，不由其中一個分頁負責。
     @Published private(set) var isEventDeleted = false
 
     private var eventRepository: EventRepository?
@@ -46,7 +42,7 @@ final class EventDataSource: ObservableObject {
     // MARK: - 注入與載入
 
     /// 由場次工作區在 `onAppear` 注入 Repository 並立即載入
-    /// （Repository 走 `@EnvironmentObject`，在 `init` 取不到，見 CONVENTIONS.md 規則 3）
+    /// （Repository 走 `@EnvironmentObject`，在 `init` 取不到）
     func attach(
         eventRepository: EventRepository,
         productRepository: ProductRepository,
@@ -62,7 +58,7 @@ final class EventDataSource: ObservableObject {
 
     /// 重新載入全部資料。
     ///
-    /// ⭐ `event`、`categories`、`products` 一定一起更新 —— 這是 A3 的修正重點：
+    /// ⭐ `event`、`categories`、`products` 一定一起更新：
     /// 不可以只重載商品而讓類別留在舊的 `event` 快照上。
     func reload() {
         guard let productRepository, let transactionRepository, let inventoryChangeRepository else { return }
@@ -108,7 +104,7 @@ final class EventDataSource: ObservableObject {
         products.filter { $0.isAvailableForSale(in: categories) }
     }
 
-    /// 取得類別名稱（取代已刪除的 `Product.categoryName` 冗餘欄位）
+    /// 取得類別名稱（從目前的類別查，商品不另存類別名稱）
     func categoryName(for categoryId: UUID) -> String {
         // 未分類
         categories.first { $0.id == categoryId }?.name ?? String.localized("inventoryUncategorized")
@@ -124,9 +120,7 @@ extension Array where Element == TransactionModel {
 
     /// 交易摘要（筆數 + 總金額）。
     ///
-    /// ⭐ 一律用 `MoneyHelper.add`，不用原生 `+`。
-    /// 原本 `EventsViewModel` 用原生 `+`、`EventsCalendarViewModel` 用 `MoneyHelper.add`，
-    /// 同一個數字兩種算法、捨入可能不同（A4）。這裡是唯一的定義。
+    /// ⭐ 一律用 `MoneyHelper.add`，不用原生 `+`（捨入行為不同）。場次列表與日曆都用這裡，是唯一的定義。
     var summary: (count: Int, total: Decimal) {
         (count: count, total: total)
     }

@@ -22,7 +22,7 @@ enum WorkspaceTab: Hashable {
 struct EventWorkspaceView: View {
     let event: EventModel
 
-    // 三個分頁共用的單一資料源（CONVENTIONS.md 規則 1 例外 2）
+    // 三個分頁共用的單一資料源
     @StateObject private var dataSource: EventDataSource
 
     @EnvironmentObject private var eventRepository: EventRepository
@@ -36,8 +36,8 @@ struct EventWorkspaceView: View {
     @StateObject private var posVM: POSViewModel
     @StateObject private var reportsVM: ReportsViewModel
 
-    // 匯出用的 share sheet 呈現狀態，因匯出動作(Menu)搬到容器的 toolbar，
-    // 所以呈現狀態也一併由容器持有，透過 Binding 傳回子頁。
+    // 匯出用的 share sheet 呈現狀態：匯出動作(Menu)在容器的 toolbar，
+    // 所以呈現狀態也由容器持有，透過 Binding 傳給子頁。
     @State private var inventoryShowShareSheet = false
     @State private var reportsShowingShareSheet = false
 
@@ -105,7 +105,7 @@ struct EventWorkspaceView: View {
             )
         }
         .onChange(of: dataSource.isEventDeleted) {
-            // 場次被刪除 → 整個工作區退回上一頁（原本寫在 InventoryView 的 onChange 補丁）
+            // 場次被刪除 → 整個工作區退回上一頁
             if dataSource.isEventDeleted { dismiss() }
         }
         .navigationTitle(dataSource.event.title)

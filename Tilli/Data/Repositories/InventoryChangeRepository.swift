@@ -34,7 +34,7 @@ class InventoryChangeRepository: ObservableObject {
         entity.eventId = eventId
         entity.product = fetchProductEntity(by: change.productId)
         saveContext()
-        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
     }
 
     /// 批次新增庫存異動紀錄
@@ -57,7 +57,7 @@ class InventoryChangeRepository: ObservableObject {
             entity.product = productEntities[change.productId]
         }
         saveContext()
-        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
     }
 
     /// 根據 eventId 取得 CDEventEntity

@@ -2,7 +2,7 @@
 //  BundleImageStore.swift
 //  Tilli
 //
-//  套餐照片的本機存檔（設計 §3：圖檔不放進 bundlesData，只存本機）。
+//  套餐照片的本機存檔（圖檔不放進 bundlesData，只存本機）。
 //  路徑：Application Support/BundleImages/<bundleId>.jpg
 //
 

@@ -4,9 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/12.
 //
-//  取代 9 處各自重複的「暫存目錄 + 檔名淨化 + 時間戳 + 寫入」樣板，
-//  並補上原本缺少的 CSV 欄位逸出。
-//  見 FEATURE_PLAN_V1.md §2.6（解 B5）。
+//  CSV 匯出的共用流程：暫存目錄、檔名淨化、時間戳、寫入，以及 CSV 欄位逸出。
 //
 
 import Foundation
@@ -35,9 +33,8 @@ enum CSVExporter {
 
     /// CSV 欄位逸出（RFC 4180）。
     ///
-    /// 原本各處只做 `replacingOccurrences(of: ",", with: "，")` —— 把使用者資料改掉了，
-    /// 而且沒處理引號與換行，商品名稱含這些字元時會產生壞掉的 CSV。
-    /// 這裡改成標準逸出：含逗號／引號／換行時整欄加引號，內部引號改成兩個。
+    /// 含逗號／引號／換行時整欄加引號，內部引號變成兩個。使用者資料保持原樣
+    /// （不把逗號替換成全形），商品名稱含這些字元時 CSV 也不會壞掉。
     static func escape(_ field: String) -> String {
         guard field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r") else {
             return field

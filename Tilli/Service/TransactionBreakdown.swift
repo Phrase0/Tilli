@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  交易明細頁的還原：把流水帳快照（SummaryItemModel 列）還原成與訂單摘要相同的版面。純計算，無狀態。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §7、§7.0。
 //
 //  ⭐ 只讀交易快照，不讀場次設定 —— 套餐／組合被刪除或改價後，歷史明細照樣顯示當下的樣子。
 //  ⭐ 恆等式（TransactionBreakdownTests 鎖住）：小計 − Σ 組合折抵 − Σ 整筆折扣 == 總計。

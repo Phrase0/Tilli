@@ -28,7 +28,7 @@ enum ReportExportType {
 @MainActor
 class ReportsViewModel: ObservableObject {
 
-    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    /// 場次工作區的共用資料源
     private let dataSource: EventDataSource
 
     var event: EventModel { dataSource.event }
@@ -57,7 +57,7 @@ class ReportsViewModel: ObservableObject {
     /// 只重算，不查 DB。
     ///
     /// 三張報表共用 `dataSource` 的同一份 `transactions`，切換 timeRange 純粹是
-    /// 換記憶體裡的篩選條件 —— 原本每換一次要查 3 次 DB（A5 / E2 / U6）。
+    /// 換記憶體裡的篩選條件，不查 DB。
     func loadAllData(timeRange: ReportTimeRange) {
         transactionViewModel.loadData(timeRange: timeRange)
         productPerformanceViewModel.loadData(timeRange: timeRange)

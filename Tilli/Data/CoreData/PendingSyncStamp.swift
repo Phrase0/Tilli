@@ -4,9 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/12.
 //
-//  統一的「待同步」標記入口。取代全專案 25 處各自寫
-//  `syncStatus = "pending"` + `updatedAt = Date()` 的樣板。
-//  見 FEATURE_PLAN_V1.md §2.7（解 C1、C4）。
+//  統一的「待同步」標記入口：同時設定 `syncStatus = "pending"` 與 `updatedAt`。
 //
 
 import CoreData
@@ -15,7 +13,7 @@ extension NSManagedObject {
 
     /// 標記為待同步：一律同時設定 `syncStatus` 與 `updatedAt`。
     ///
-    /// `updatedAt` 是同步架構的 LWW 依據（`SYNC_ARCHITECTURE_V2.md` §6.2），
+    /// `updatedAt` 是同步時「最後寫入者勝」的判斷依據，
     /// 漏設會讓衝突判斷選錯版本 —— 所以兩者必須綁在一起，不可分開呼叫。
     ///
     /// 批次寫入時傳入同一個 `date`，讓同一批的 `updatedAt` 完全一致。

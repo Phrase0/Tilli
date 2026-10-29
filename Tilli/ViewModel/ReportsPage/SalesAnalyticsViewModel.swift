@@ -73,7 +73,7 @@ class SalesAnalyticsViewModel: ObservableObject {
     }
 
     // MARK: - Dependencies
-    /// 場次工作區的共用資料源（CONVENTIONS.md 規則 1 例外 2）
+    /// 場次工作區的共用資料源
     private let dataSource: EventDataSource
 
     var event: EventModel { dataSource.event }
@@ -276,7 +276,7 @@ private extension SalesAnalyticsViewModel {
 
     /// 計算銷售分析數據（支援時間範圍）
     func calculateSalesAnalytics(timeRange: ReportTimeRange? = nil) {
-        // 共用資料源，切換 timeRange 不再重查 DB（A5 / E2）
+        // 共用資料源，切換 timeRange 只在記憶體篩選，不查 DB
         let transactions = dataSource.transactions(in: timeRange?.dateInterval)
 
         // 初始化 Helper Classes

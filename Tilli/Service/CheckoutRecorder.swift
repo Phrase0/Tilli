@@ -32,7 +32,7 @@ enum CheckoutRecorder {
             subtotal: CartPricing.discountBase(subtotal: items.subtotal, deductions: bundleDeductions.map(\.amount))
         )
 
-        // 結帳當下就把折扣攤到每一項，報表只做加總（FEATURE_PLAN_V1.md §7）
+        // 結帳當下就把折扣攤到每一項，報表只做加總
         let allocatedItems = RevenueAllocator.allocate(
             items,
             bundles: bundleDeductions,

@@ -3,7 +3,7 @@
 //  Tilli
 //
 //  管理商品頁的商品卡片（可展開看庫存與異動紀錄）。
-//  已下架的商品留在原類別、原位置：卡片灰掉、名稱後標「已下架」，⋯ 選單改成「上架」（與套餐／組合一致）。
+//  已下架的商品留在原類別、原位置：卡片灰掉、名稱後標「已下架」，⋯ 選單為「編輯／上架」（與套餐／組合一致）。
 //
 
 import SwiftUI
@@ -147,7 +147,7 @@ struct InventoryProductCard: View {
         .opacity(isDisabled ? 0.6 : 1.0)
     }
 
-    /// 已下架的商品不再提示低庫存（不會被賣），一律灰字
+    /// 已下架的商品不提示低庫存（不會被賣），一律灰字
     private var showsLowStock: Bool { item.isLowStock && !isDisabled }
 
     private var stockBadge: some View {

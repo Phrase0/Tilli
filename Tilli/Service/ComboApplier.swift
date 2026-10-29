@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  組合（任選 N 個固定價）的自動套用：純函式，無狀態。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §5.3。
 //
 
 import Foundation
@@ -41,7 +40,7 @@ enum ComboApplier {
         }
 
         let ordered = eligible.sorted { lhs, rhs in
-            // price/N 比較改用交叉相乘，避免除法精度問題
+            // price/N 用交叉相乘比較，避免除法精度問題
             let left = MoneyHelper.multiply(lhs.combo.price, Decimal(rhs.count))
             let right = MoneyHelper.multiply(rhs.combo.price, Decimal(lhs.count))
             if left != right { return left < right }

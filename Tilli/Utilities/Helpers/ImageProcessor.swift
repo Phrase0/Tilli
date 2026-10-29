@@ -4,11 +4,9 @@
 //
 //  Created by Peiyun on 2026/9/12.
 //
-//  本機圖片處理：尺寸正規化、裁切為正方形、壓縮編碼。
-//  （由原 Data/Sync/ImageSyncService.swift 抽出，移除所有雲端上傳/下載邏輯）
+//  本機圖片處理：尺寸正規化、裁切為正方形、壓縮編碼。不含任何雲端上傳／下載。
 //
-//  重建同步時，上傳端只要沿用這裡的 ImageType 規格即可，
-//  不要再各自寫一套壓縮參數。見 ARCHITECTURE.md §4（imageData 為 X 純本機）。
+//  重建同步時，上傳端沿用這裡的 ImageType 規格即可，不要另寫一套壓縮參數。
 //
 
 import UIKit

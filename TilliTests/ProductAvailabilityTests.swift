@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md §2.5（B6）與測試清單 U12。
+//  商品可不可以賣：商品本身與所屬類別兩層。
 //
 
 import XCTest
@@ -33,7 +33,7 @@ final class ProductAvailabilityTests: XCTestCase {
     }
 
     func testProductInDisabledCategoryIsNotAvailable() {
-        // ⭐ B6：原本 6 處只有 1 處檢查這第二層
+        // ⭐ 第二層：類別停用時商品也不能賣
         let product = ProductModel.mock(categoryId: categoryId)
         XCTAssertEqual(
             product.saleAvailability(in: [category(isDisabled: true)]),

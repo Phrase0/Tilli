@@ -112,7 +112,7 @@ class EventRepository: ObservableObject {
 
         if saveContext() {
             fetchEvents()
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
         }
     }
 
@@ -135,7 +135,7 @@ class EventRepository: ObservableObject {
         entity.markPendingSync()
         guard saveContext() else { return false }
         fetchEvents()
-        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
         return true
     }
 
@@ -172,7 +172,7 @@ class EventRepository: ObservableObject {
 
             if saveContext() {
                 fetchEvents()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
             }
         } catch {
             print("Update event failed:", error)
@@ -207,15 +207,13 @@ class EventRepository: ObservableObject {
 
         // 刪除不再需要的 categories（但要檢查是否有交易記錄）
         //
-        // 守衛保留（repository 是最後一道防線），但**只拒絕、不偷偷做別的事**：
-        // 原本會靜默把類別改成「停用」，呼叫端以為刪掉了、實際上資料還在而且被改了狀態。
-        // 現在有交易的類別就是**原封不動留著**，UI 重載後會看到它還在 —— 這才是誠實的回饋。
+        // 守衛（repository 是最後一道防線）**只拒絕、不偷偷做別的事**：
+        // 有交易的類別原封不動留著，UI 重載後會看到它還在。
         //
         // ⭐ 判斷一律用 `SummaryItem.categoryId` 快照（`TransactionIndex`），
-        // 與 `AddEventViewModel.getSwipeAction` 用同一份答案（A1）。
-        // 原本 repository 用「該類別目前的商品清單」推算，商品被搬走後答案就會跟 UI 相反。
+        // 與 `AddEventViewModel.getSwipeAction` 用同一份答案；商品之後搬到別的類別，答案也不變。
         //
-        // 刪除類別會 Cascade 刪掉底下商品，所以底下有商品被套餐／組合引用時也不予刪除（設計 §4.3），
+        // 刪除類別會 Cascade 刪掉底下商品，所以底下有商品被套餐／組合引用時也不予刪除，
         // 否則套餐會留下指向不存在商品的 productIds。設定頁（`AddEventViewModel.handleDeleteAction`）
         // 會先擋住並列出套餐名，這裡是最後一道防線。
         let index = transactionIndex(forEventId: entity.id)
@@ -312,7 +310,7 @@ class EventRepository: ObservableObject {
                     debugTransactionStatus(forEventId: eventId)
                     print("")
                     fetchEvents()
-                    // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                    // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
                 }
             }
         } catch {
@@ -341,7 +339,7 @@ class EventRepository: ObservableObject {
 
             if saveContext() {
                 TransactionRepository.shared.notifyTransactionsChanged()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
             }
         } catch {
             print("加入 transaction 失敗:", error)
@@ -460,7 +458,7 @@ class EventRepository: ObservableObject {
                 let newEvent = newEventEntity.toModel()
                 let newEventId = newEventEntity.id
                 let changeModels = inventoryChangeEntities.map { $0.toModel() }
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue，見 ARCHITECTURE.md
+                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
                 return newEvent
             } else {
                 return nil

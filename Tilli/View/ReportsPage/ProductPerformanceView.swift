@@ -101,7 +101,7 @@ struct ProductPerformanceView: View {
     /// 摺疊區：只回答「哪些沒賣掉」。
     ///
     /// 不給名次與營收欄位 —— 對這些商品一律是 0／沒有意義，
-    /// 放進主排行榜只會讓收攤時要看的那張表變長變難讀（見 FEATURE_PLAN_V1.md §5.1）。
+    /// 放進主排行榜只會讓收攤時要看的那張表變長變難讀。
     private var unsoldProductsView: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {

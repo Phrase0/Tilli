@@ -396,10 +396,10 @@ class AddEventViewModel: ObservableObject {
         return nil
     }
     
-    /// 檢查類別是否有交易記錄（唯一答案來源是 `TransactionIndex`，A1）
+    /// 檢查類別是否有交易記錄（唯一答案來源是 `TransactionIndex`）
     ///
-    /// ⭐ 一律用 `SummaryItem.categoryId` 快照 —— 與 `EventRepository` 的刪除守衛
-    /// 現在用同一份索引，不會再出現「UI 說可以刪、repository 說不行」。
+    /// ⭐ 一律用 `SummaryItem.categoryId` 快照，與 `EventRepository` 的刪除守衛用同一份索引，
+    /// UI 與 repository 的答案一致。
     func hasTransaction(for categoryId: UUID? = nil) -> Bool {
         guard let categoryId else { return transactionIndex.hasAnyTransaction }
         return transactionIndex.hasTransaction(categoryId: categoryId)
@@ -432,7 +432,7 @@ class AddEventViewModel: ObservableObject {
         showAlert = true
     }
     
-    /// 類別底下的商品被哪些套餐／組合引用（刪除類別會連帶刪除商品，所以要擋，設計 §4.3）
+    /// 類別底下的商品被哪些套餐／組合引用（刪除類別會連帶刪除商品，所以要擋）
     func bundlesReferencing(categoryId: UUID) -> [BundleModel] {
         guard let event = editingEvent, let productRepo = productRepository else { return [] }
         let productIds = productRepo.fetchProducts(forEventId: event.id)

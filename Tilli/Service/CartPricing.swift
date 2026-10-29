@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  購物車的定價明細（訂單摘要、底部總計列）與結帳寫入用的拆列：純計算，無狀態。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §5.1、§5.5、§7；FEATURE_PLAN_V1.md §7.3。
 //
 //  ⭐ 順序：套餐／組合差額 → 百分比 → 減額。
 //    - 小計 = Σ 單點原價 + Σ 套餐價（套餐差額已不在小計裡）
@@ -32,7 +31,7 @@ struct CartPricing: Equatable {
     let bundleRows: [BundleRow]
     let productRows: [ProductRow]
     let combos: [ComboApplication]
-    let subtotal: Decimal               // Σ 商品原價 + Σ 套餐價（設計 §8.3「小計」）
+    let subtotal: Decimal               // Σ 商品原價 + Σ 套餐價（訂單摘要的「小計」）
     let discounts: [AppliedDiscount]    // 以 subtotal − Σ combo.deduction 為基礎
     let total: Decimal
 

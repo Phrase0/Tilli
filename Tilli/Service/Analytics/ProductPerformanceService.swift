@@ -20,12 +20,8 @@ class ProductSalesStats {
 
     /// 平均成交單價 = 原價總額 ÷ 總銷量。
     ///
-    /// 取代原本的 `unitPrice` —— 它每次 `addSale` 都覆蓋成最後一筆的單價，
-    /// 註解直接寫「假設同商品單價一致」。那個假設在組合優惠與套餐（§8）之後
-    /// 必然不成立：同一個商品會有多種成交單價。見 FEATURE_PLAN_V1.md §4.2（D5）。
-    ///
-    /// `originalRevenue` 本來就是用每筆快照單價逐筆累加，總額一直是對的，
-    /// 這裡只是換一個不會失真的顯示方式。
+    /// 同一個商品可能有多種成交單價（改價、組合、套餐），所以顯示平均值，
+    /// 不取任何一筆的單價。`originalRevenue` 是用每筆快照單價逐筆累加的。
     var averageUnitPrice: Decimal {
         totalQuantity > 0
             ? MoneyHelper.divide(originalRevenue, Decimal(totalQuantity))

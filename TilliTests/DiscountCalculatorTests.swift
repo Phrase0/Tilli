@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md §2.3（B1、B4）、§6.2/§6.3，與測試清單 F1–F5。
+//  折扣計算：金額、順序（先百分比後定額）、clamp、快照。
 //
 
 import XCTest
@@ -12,7 +12,7 @@ import XCTest
 
 final class DiscountCalculatorTests: XCTestCase {
 
-    // MARK: - 單一折扣金額（F1／F2）
+    // MARK: - 單一折扣金額
 
     func testPercentageAmount() {
         // 200 的 10%（打九折）= 20
@@ -29,7 +29,7 @@ final class DiscountCalculatorTests: XCTestCase {
         )
     }
 
-    // MARK: - 計算順序：先百分比、後定額（F3，§6.2）
+    // MARK: - 計算順序：先百分比、後定額
 
     func testPercentageAppliedBeforeFixedAmount() {
         let total = DiscountCalculator.total(
@@ -61,7 +61,7 @@ final class DiscountCalculatorTests: XCTestCase {
         )
     }
 
-    // MARK: - Clamp 上界（F4：報表不可出現負營收）
+    // MARK: - Clamp 上界（報表不可出現負營收）
 
     func testFixedAmountIsClampedToSubtotal() {
         // 小計 50、折抵 100 → 只能折 50
@@ -119,7 +119,7 @@ final class DiscountCalculatorTests: XCTestCase {
         )
     }
 
-    // MARK: - effective：寫進流水帳前的收斂（F5）
+    // MARK: - effective：寫進流水帳前的收斂
 
     func testEffectiveClampsFixedAmountButKeepsIdentity() {
         let id = UUID()
@@ -149,7 +149,7 @@ final class DiscountCalculatorTests: XCTestCase {
         XCTAssertNil(DiscountCalculator.effective(nil, subtotal: 200))
     }
 
-    /// ⭐ F5：即使呼叫端傳進未 clamp 的折扣，寫進流水帳的金額仍然不會讓營收變負。
+    /// ⭐ 即使呼叫端傳進未 clamp 的折扣，寫進流水帳的金額仍然不會讓營收變負。
     func testUnclampedDiscountCannotProduceNegativeRevenue() {
         let subtotal: Decimal = 50
         let effective = DiscountCalculator.effective(.amount(9999), subtotal: subtotal)
@@ -190,7 +190,7 @@ final class DiscountCalculatorTests: XCTestCase {
         XCTAssertEqual(DiscountCalculator.amount(for: transaction), 35)
     }
 
-    /// ⭐ F7：折抵金額是**快照**，不從設定重算。
+    /// ⭐ 折抵金額是**快照**，不從設定重算。
     /// 之後改了場次的折扣設定，歷史交易的金額必須原封不動。
     func testAmountForTransactionDoesNotRecomputeFromValue() {
         let transaction = TransactionModel.mock(
@@ -243,7 +243,7 @@ final class DiscountCalculatorTests: XCTestCase {
     }
 
     func testDiscountModelDisplayTextDelegatesToCalculator() {
-        // DiscountModel.displayText 已改成委派，兩者必須一致
+        // DiscountModel.displayText 委派給 DiscountCalculator，兩者必須一致
         let discount = DiscountModel.amount(5)
         XCTAssertEqual(
             discount.displayText(currency: "TWD"),

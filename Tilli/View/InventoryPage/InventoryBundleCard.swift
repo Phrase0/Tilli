@@ -2,7 +2,7 @@
 //  InventoryBundleCard.swift
 //  Tilli
 //
-//  管理商品頁的套餐／組合卡片（設計 §4.1）。
+//  管理商品頁的套餐／組合卡片。
 //
 
 import SwiftUI

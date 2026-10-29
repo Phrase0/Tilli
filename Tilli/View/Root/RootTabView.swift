@@ -25,8 +25,7 @@ struct RootTabView: View {
             }
 
             // TODO: [SYNC-PENDING] 重建同步後，全量下載期間也要顯示遮罩
-            // ⚠️ 重建時請加上限（見 SYNC_ARCHITECTURE_V2.md §9.2），
-            //    舊版因為等待沒有上限而造成登出無限轉圈
+            // ⚠️ 等待一定要有上限，否則登出會無限轉圈
             if authManager.isLoading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()

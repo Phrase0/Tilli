@@ -4,13 +4,11 @@
 //
 //  Created by Peiyun on 2026/9/12.
 //
-//  折扣計算的唯一入口，取代散落 8 處的 `switch discountType`。
-//  見 FEATURE_PLAN_V1.md §2.3（解 B4、B1）。
+//  折扣計算的唯一入口：依折扣型別計算的邏輯只在這裡。
 //
-//  ⭐ clamp 內建在這裡，不依賴呼叫端記得做。
-//  原本只有 POSViewModel.effectiveDiscount() 有做保護，換個入口（補記帳、
-//  測試資料產生器、未來的批次匯入）就會存進未 clamp 的折扣，
-//  報表攤提會算出【負營收】。
+//  ⭐ clamp 內建在這裡，不依賴呼叫端記得做。不論從哪個入口建立交易
+//  （收銀、補記帳、測試資料、批次匯入），折扣都不會超過小計，
+//  報表攤提也就不會算出【負營收】。
 //
 
 import Foundation
@@ -59,7 +57,7 @@ enum DiscountCalculator {
     /// 但逐筆記下「這一個折扣實際折抵了多少」。
     ///
     /// 保證：`Σ result.amount == subtotal − total(subtotal:discounts:)`
-    /// （第 4 批的攤提會依賴這條，見 §7.3）
+    /// （`RevenueAllocator` 的攤提依賴這條）
     static func applied(for discounts: [DiscountModel], subtotal: Decimal) -> [AppliedDiscount] {
         guard subtotal > 0 else { return [] }
 

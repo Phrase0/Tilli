@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  新增／編輯套餐（fixed）或組合（chooseAny）的表單。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §4.2、§4.3。
 //
 
 import SwiftUI
@@ -81,7 +80,7 @@ final class BundleFormViewModel: ObservableObject {
         }
     }
 
-    /// 已下架或類別停用：可勾選，但灰色並標示（設計 §4.2）
+    /// 已下架或類別停用：可勾選，但灰色並標示
     func isUnavailable(_ product: ProductModel) -> Bool {
         product.saleAvailability(in: event.categories) != .available
     }

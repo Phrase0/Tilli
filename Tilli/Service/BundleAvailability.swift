@@ -2,7 +2,7 @@
 //  BundleAvailability.swift
 //  Tilli
 //
-//  套餐可賣份數與購物車庫存佔用（雙向佔用，設計 §5.6）。純函式，無副作用。
+//  套餐可賣份數與購物車庫存佔用（單點與套餐雙向佔用）。純函式，無副作用。
 //
 
 import Foundation
@@ -83,7 +83,7 @@ enum BundleAvailability {
         return .success(portions)
     }
 
-    /// 收銀頁要不要列出這個套餐（設計 §4.5）：**下架就藏、缺貨就灰**。
+    /// 收銀頁要不要列出這個套餐：**下架就藏、缺貨就灰**。
     /// 套餐下架、成員不存在／下架／類別停用 → 不列（攤商決定現在不賣，與下架單品一致）；
     /// 只是缺貨（含被購物車佔用）→ 照列，由 `check` 給原因讓卡片灰掉。
     static func isListedOnPOS(
@@ -96,7 +96,7 @@ enum BundleAvailability {
             && memberProblem(of: bundle, products: products, categories: categories) == nil
     }
 
-    /// 組合的管理頁警告（設計 §4.3：下架候選只是不計入，組合本身不失效）。
+    /// 組合的管理頁警告（下架候選只是不計入，組合本身不失效）。
     /// 只有「可賣候選的庫存合計 < N」才警告（含沒有任何可賣候選）；不看購物車。
     static func comboWarning(
         _ combo: BundleModel,
@@ -117,7 +117,7 @@ enum BundleAvailability {
         max(0, product.stock - cart.reservedQuantity(of: product.id))
     }
 
-    /// 回到收銀頁時重新驗證（設計 §9.1 第 5 點）
+    /// 回到收銀頁時重新驗證購物車裡的套餐行
     static func invalidLines(
         in cart: Cart,
         bundles: [UUID: BundleModel],

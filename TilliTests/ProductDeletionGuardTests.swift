@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md §3.2／§3.3（D3）與測試清單 D6。
+//  刪除商品的守衛：有交易紀錄就拒絕，不改做別的事。
 //
 
 import XCTest
@@ -88,7 +88,7 @@ final class ProductDeletionGuardTests: XCTestCase {
         transaction.event = event
     }
 
-    // MARK: - ⭐ D6：守衛只拒絕，不偷偷做別的事
+    // MARK: - ⭐ 守衛只拒絕，不偷偷做別的事
 
     func testDeletingProductWithTransactionsFailsAndDoesNotDisableIt() throws {
         let event = makeEvent()

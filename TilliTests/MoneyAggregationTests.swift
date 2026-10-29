@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md 第 1 批的 1.8（A4）與測試清單 U5。
+//  金額加總（小計、交易摘要）一律走 MoneyHelper。
 //
 
 import XCTest
@@ -45,7 +45,7 @@ final class MoneyAggregationTests: XCTestCase {
         XCTAssertEqual(transaction.subtotal, items.subtotal)
     }
 
-    // MARK: - [TransactionModel].summary / .total（A4／U5）
+    // MARK: - [TransactionModel].summary / .total
 
     func testEmptyTransactionsSummaryIsZero() {
         let summary = [TransactionModel]().summary
@@ -66,8 +66,7 @@ final class MoneyAggregationTests: XCTestCase {
         XCTAssertEqual(summary.total, transactions.total)
     }
 
-    /// ⭐ A4：場次列表與日曆頁原本一個用原生 `+`、一個用 `MoneyHelper.add`。
-    /// 現在只有一份實作，這條確認它走的是 `MoneyHelper`，不是原生運算。
+    /// ⭐ 場次列表與日曆頁共用同一份加總，這條確認它走的是 `MoneyHelper`，不是原生運算。
     func testTotalMatchesMoneyHelperAccumulation() {
         let amounts: [Decimal] = [
             Decimal(string: "19.99")!,

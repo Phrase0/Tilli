@@ -4,9 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/12.
 //
-//  把遠端下載回來的圖片回寫到 CoreData 的本機快取。
-//  （由原 View/Components/EntityImageView.swift 抽出 —— View 不該直接操作 CoreData，
-//   見 CONVENTIONS.md「MVVM 規則」規則 2）
+//  把遠端下載回來的圖片回寫到 CoreData 的本機快取（View 不直接操作 CoreData）。
 //
 
 import UIKit
@@ -15,7 +13,7 @@ import CoreData
 /// 圖片本機快取的寫入點
 ///
 /// ⚠️ 這裡只負責「把下載到的圖存進本機」。實際的下載由 View 層的 Kingfisher 負責，
-/// 上傳則等重建同步時由上傳端處理（見 ARCHITECTURE.md §4，`imageData` 分類為 X 純本機）。
+/// 上傳則等重建同步時由上傳端處理（`imageData` 是純本機欄位，不上傳）。
 final class ImageCacheStore {
 
     static let shared = ImageCacheStore()

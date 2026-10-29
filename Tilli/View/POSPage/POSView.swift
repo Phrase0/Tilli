@@ -15,7 +15,7 @@ struct POSView: View {
     @State private var checkoutCompleted = false
     @State private var showClearAlert = false
 
-    /// 場次一律從 ViewModel 的共用快照取，不再另外持有一份（A2）
+    /// 場次一律從 ViewModel 的共用快照取，View 不另外持有一份
     private var event: EventModel { viewModel.event }
 
     init(viewModel: POSViewModel) {
@@ -46,7 +46,7 @@ struct POSView: View {
                 viewModel.clearAllQuantities()
             }
         }
-        // 以下套餐無法結帳（§9.1 第 5 點：先通知，確定後只清除這些套餐行）
+        // 以下套餐無法結帳（先通知，確定後只清除這些套餐行）
         .alert("posInvalidBundleTitle", isPresented: invalidBundleAlertBinding) {
             // 確定
             Button("commonConfirm", role: .cancel) {
@@ -83,7 +83,7 @@ struct POSView: View {
         )
     }
 
-    // MARK: - 折扣（兩區各自單選，可同時一個百分比 + 一個減額，§6.4）
+    // MARK: - 折扣（兩區各自單選，可同時一個百分比 + 一個減額）
 
     private var discountSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {

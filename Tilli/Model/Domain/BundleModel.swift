@@ -3,7 +3,6 @@
 //  Tilli
 //
 //  組合與套餐。存於 `CDEventEntity.bundlesData`（JSON）。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §3。
 //
 
 import Foundation

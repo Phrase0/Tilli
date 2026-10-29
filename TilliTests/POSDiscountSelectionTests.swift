@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/15.
 //
-//  對應 FEATURE_PLAN_V1.md §6.4 與 §11 第 3 批的 3.2。
+//  收銀頁的折扣選擇：兩區各自單選、chip 排序。
 //
 
 import XCTest
@@ -24,7 +24,7 @@ final class POSDiscountSelectionTests: XCTestCase {
         return POSViewModel(dataSource: EventDataSource(event: event))
     }
 
-    // MARK: - 分區與排序（§6.4）
+    // MARK: - 分區與排序
 
     /// POS 的 chip **一律即時升冪**，不管場次設定裡存的是什麼順序。
     /// （設定頁刻意不即時排序，見 `AddEventDiscountTests`）
@@ -58,7 +58,7 @@ final class POSDiscountSelectionTests: XCTestCase {
         XCTAssertTrue(vm.selectedDiscounts.isEmpty)
     }
 
-    /// ⭐ §6.1：可同時一個百分比 + 一個定額
+    /// ⭐ 可同時一個百分比 + 一個定額
     func testPercentageAndAmountCanBeSelectedTogether() {
         let vm = makeViewModel()
 

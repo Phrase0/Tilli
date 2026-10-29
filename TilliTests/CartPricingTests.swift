@@ -3,7 +3,7 @@
 //  TilliTests
 //
 //  購物車定價明細與結帳寫入的拆列／攤提。
-//  數字取自 docs/superpowers/specs/2026-10-27-bundles-design.md §5.1、§5.5。
+//  例子：大福 40、抹茶 60、紅豆 20 的下午茶套餐 100。
 //
 
 import XCTest
@@ -11,7 +11,7 @@ import XCTest
 
 final class CartPricingTests: XCTestCase {
 
-    // MARK: - Fixture（設計 §5.5：小計 340）
+    // MARK: - Fixture（小計 340）
 
     private let category = CategoryModel.mock(name: "甜點")
 

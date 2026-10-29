@@ -2,7 +2,7 @@
 //  TransactionBreakdownTests.swift
 //  TilliTests
 //
-//  交易明細頁的還原規則（設計 §7、§7.0）：只讀交易快照，不讀場次設定。
+//  交易明細頁的還原規則：只讀交易快照，不讀場次設定。
 //
 
 import XCTest
@@ -125,7 +125,7 @@ final class TransactionBreakdownTests: XCTestCase {
     // MARK: - 舊資料與已刪除套餐
 
     func testLegacyTransactionWithoutBundleFieldsStillReconciles() throws {
-        // 第 5 批之前的 itemsData：沒有 bundleKind / bundleDiscount
+        // 沒有 bundleKind / bundleDiscount 的 itemsData
         let legacyJSON = """
         [{"id":"\(UUID().uuidString)","productId":"\(productA.uuidString)","name":"珍奶","price":60,
           "categoryId":"\(UUID().uuidString)","category":"飲料","quantity":2,"timestamp":0,"allocatedDiscount":12}]

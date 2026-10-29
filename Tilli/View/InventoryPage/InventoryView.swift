@@ -8,14 +8,14 @@
 import SwiftUI
 
 private extension View {
-    /// 讓 List 裡的自訂卡片列（商品卡片、類別標題）不要有系統預設的分隔線/灰底/邊界留白，
-    /// 樣式維持跟原本卡片式清單一致，只保留卡片之間的垂直間距。
-    func productListRow(bottomSpacing: CGFloat) -> some View {
+    /// 讓 List 裡的自訂卡片列（商品卡片、區塊標題）不要有系統預設的分隔線/灰底/邊界留白，
+    /// 呈現卡片式清單，只保留列之間的垂直間距。
+    func productListRow(topSpacing: CGFloat = 0, bottomSpacing: CGFloat) -> some View {
         self
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(
-                top: 0,
+                top: topSpacing,
                 leading: DesignSystem.Spacing.md,
                 bottom: bottomSpacing,
                 trailing: DesignSystem.Spacing.md
@@ -253,27 +253,29 @@ struct InventoryView: View {
                 .productListRow(bottomSpacing: 0)
                 .id(InventorySectionAnchor.top)
 
+            // 區塊標題放在一般列（不用 Section header），跟內容一起捲動、不黏在上方，與收銀頁一致
+
             // 套餐
             if !viewModel.fixedBundles.isEmpty {
                 Section {
+                    sectionTitle(Text("bundleChipFixed"))
+                        .productListRow(topSpacing: DesignSystem.Spacing.sm, bottomSpacing: DesignSystem.Spacing.sm)
+                        .id(InventorySectionAnchor.fixedBundles)
                     ForEach(viewModel.fixedBundles) { bundle in
                         bundleRow(bundle)
                     }
-                } header: {
-                    bundleSectionHeader("bundleChipFixed")
-                        .id(InventorySectionAnchor.fixedBundles)
                 }
             }
 
             // 組合
             if !viewModel.comboBundles.isEmpty {
                 Section {
+                    sectionTitle(Text("bundleChipCombo"))
+                        .productListRow(topSpacing: DesignSystem.Spacing.sm, bottomSpacing: DesignSystem.Spacing.sm)
+                        .id(InventorySectionAnchor.comboBundles)
                     ForEach(viewModel.comboBundles) { bundle in
                         bundleRow(bundle)
                     }
-                } header: {
-                    bundleSectionHeader("bundleChipCombo")
-                        .id(InventorySectionAnchor.comboBundles)
                 }
             }
 
@@ -282,6 +284,8 @@ struct InventoryView: View {
                 let items = viewModel.getItemsForCategory(category.id)
                 if !items.isEmpty {
                     Section {
+                        categoryHeader(category)
+                            .id(InventorySectionAnchor.category(category.id))
                         if viewModel.isCategoryExpanded(category.id) {
                             ForEach(items) { item in
                                 InventoryProductCard(
@@ -311,9 +315,6 @@ struct InventoryView: View {
                             // 搜尋中不允許拖曳，避免搬動的是過濾後的子集
                             .moveDisabled(!searchText.isEmpty)
                         }
-                    } header: {
-                        categoryHeader(category)
-                            .id(InventorySectionAnchor.category(category.id))
                     }
                 }
             }
@@ -331,15 +332,21 @@ struct InventoryView: View {
 
     // MARK: - 套餐／組合
 
-    private func bundleSectionHeader(_ title: LocalizedStringKey) -> some View {
+    /// 區塊標題：字級與收銀頁的類別標題相同（Body 半粗體）
+    private func sectionTitle(_ title: Text, trailing: Image? = nil) -> some View {
         HStack {
-            Text(title)
-                .font(DesignSystem.Typography.title2)
+            title
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.semibold)
                 .foregroundColor(DesignSystem.ColorToken.ink)
             Spacer()
+            if let trailing {
+                trailing
+                    .foregroundColor(DesignSystem.ColorToken.muted)
+                    .font(DesignSystem.Typography.caption)
+            }
         }
-        .textCase(nil)
-        .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
+        .contentShape(Rectangle())
     }
 
     private func bundleRow(_ bundle: BundleModel) -> some View {
@@ -361,21 +368,13 @@ struct InventoryView: View {
         Button(action: {
             viewModel.toggleCategoryExpansion(category.id)
         }) {
-            HStack {
-                Text(category.name)
-                    .font(DesignSystem.Typography.title2)
-                    .foregroundColor(DesignSystem.ColorToken.ink)
-
-                Spacer()
-
-                Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
-                    .foregroundColor(DesignSystem.ColorToken.muted)
-                    .font(DesignSystem.Typography.caption)
-            }
+            sectionTitle(
+                Text(verbatim: category.name),
+                trailing: Image(systemName: viewModel.isCategoryExpanded(category.id) ? "chevron.up" : "chevron.down")
+            )
         }
         .buttonStyle(PlainButtonStyle())
-        .textCase(nil)
-        .productListRow(bottomSpacing: DesignSystem.Spacing.sm)
+        .productListRow(topSpacing: DesignSystem.Spacing.sm, bottomSpacing: DesignSystem.Spacing.sm)
     }
 
     // MARK: - 空狀態

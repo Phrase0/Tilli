@@ -3,8 +3,7 @@
 //  Tilli
 //
 //  交易明細頁（唯讀）：資訊區 → 商品 → 優惠明細。
-//  商品與優惠區塊由 `TransactionBreakdown` 從交易快照還原，版面沿用訂單摘要。
-//  見 docs/superpowers/specs/2026-10-27-bundles-design.md §7.0。
+//  商品與優惠區塊由 `TransactionBreakdown` 從交易快照還原，版面與訂單摘要相同。
 //
 
 import SwiftUI

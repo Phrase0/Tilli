@@ -2,7 +2,7 @@ import XCTest
 import SwiftUI
 @testable import Tilli
 
-/// 時間範圍選擇器選「自訂」時不可比螢幕寬（曾約需 415pt，撐寬整頁讓管理商品頁清單左右溢出）
+/// 時間範圍選擇器選「自訂」時不可比螢幕寬（中文長日期並排約需 415pt，超出會撐寬整頁、清單左右溢出）
 @MainActor
 final class ReportTimeRangeSelectorLayoutTests: XCTestCase {
 

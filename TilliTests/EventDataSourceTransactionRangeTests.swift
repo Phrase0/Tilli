@@ -2,7 +2,7 @@
 //  EventDataSourceTransactionRangeTests.swift
 //  TilliTests
 //
-//  EventDataSource.transactions(in:) 的邊界（FEATURE_PLAN §11 第 2 批 2.3）：
+//  EventDataSource.transactions(in:) 的邊界：
 //  nil 回傳全部；落在 start／end 上的交易包含在內；補記帳依 displayDate（occurredAt）落點。
 //
 

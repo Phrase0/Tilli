@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/13.
 //
-//  對應 FEATURE_PLAN_V1.md §2.7（C1、C4）、§14.3 第 1 項，與測試清單 U8／U17。
+//  「待同步」標記：syncStatus 與 updatedAt 一定一起設定。
 //
 
 import XCTest
@@ -37,8 +37,7 @@ final class PendingSyncStampTests: XCTestCase {
         XCTAssertNotNil(product.updatedAt)
     }
 
-    /// ⭐ C1：交易原本**只設 syncStatus、漏設 updatedAt**（而且那時根本沒有這個欄位）。
-    /// `updatedAt` 是 pull-by-cursor 與 LWW 的依據，漏設會讓增量下載抓不到。
+    /// ⭐ 交易也要設 `updatedAt`：它是增量下載與「最後寫入者勝」的依據，漏設會讓增量下載抓不到。
     func testTransactionGetsUpdatedAtWhichWasPreviouslyMissing() {
         let transaction = CDTransactionEntity(context: context)
 

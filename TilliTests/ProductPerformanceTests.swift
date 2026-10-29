@@ -4,7 +4,7 @@
 //
 //  Created by Peiyun on 2026/9/15.
 //
-//  對應 FEATURE_PLAN_V1.md §5.1／§4.2（D5）與 §11 第 2 批的 2.1／2.2。
+//  商品績效：平均成交單價、銷售排行與未售出清單。
 //
 
 import XCTest
@@ -19,8 +19,7 @@ final class ProductSalesStatsTests: XCTestCase {
         ProductSalesStats(productId: UUID(), name: "大福", category: "甜點", categoryId: UUID())
     }
 
-    /// ⭐ D5：原本 `unitPrice` 每次 addSale 覆蓋成最後一筆的單價，
-    /// 註解直接寫「假設同商品單價一致」。多種成交單價時那個值是失真的。
+    /// ⭐ 同一商品有多種成交單價時，顯示的是平均值，不是最後一筆的單價。
     func testAverageUnitPriceAcrossDifferentPrices() {
         let stats = makeStats()
 
@@ -108,7 +107,7 @@ final class ProductPerformanceSplitTests: XCTestCase {
     }
 
     /// 三個商品：1 個賣過、1 個沒賣過、1 個「已下架且沒賣過」
-    /// （最後那個靠複製場次會產生，見 §5.1 的決定）
+    /// （最後那個靠複製場次會產生）
     private func seed() throws {
         let context = container.viewContext
 
@@ -180,7 +179,7 @@ final class ProductPerformanceSplitTests: XCTestCase {
         XCTAssertEqual(viewModel.topProducts.first?.salesCount, 2)
     }
 
-    /// ⭐ §5.1：沒賣掉的商品不能是隱形的 —— 只從交易反推的話根本發現不了它們
+    /// ⭐ 沒賣掉的商品不能是隱形的 —— 只從交易反推的話根本發現不了它們
     func testUnsoldListContainsEveryProductWithoutSales() {
         viewModel.loadData()
 

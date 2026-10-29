@@ -22,7 +22,7 @@ extension EnvironmentValues {
 struct CheckoutFlowView: View {
     @Binding var isPresented: Bool
     @Binding var checkoutCompleted: Bool
-    /// 訂單摘要即時讀購物車定價（取消／恢復組合要立刻重算），不再傳快照
+    /// 訂單摘要即時讀購物車定價（取消／恢復組合要立刻重算）
     @ObservedObject var posViewModel: POSViewModel
 
     var body: some View {

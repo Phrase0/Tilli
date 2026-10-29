@@ -2,7 +2,7 @@
 //  BundleModelPersistenceTests.swift
 //  TilliTests
 //
-//  對應 docs/superpowers/specs/2026-10-27-bundles-design.md §3、§6（第 5 批 5.1）。
+//  套餐／組合的 JSON 往返與 CoreData 讀寫。
 //
 
 import XCTest

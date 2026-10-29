@@ -4,11 +4,9 @@
 //
 //  Created by Peiyun on 2026/9/12.
 //
-//  純本機的資料管理：歸戶、清除、存在性判斷。
-//  （由原 Data/Sync/SyncManager.swift 抽出 —— 這些是 CoreData 操作，跟雲端同步無關）
+//  純本機的資料管理：歸戶、清除、存在性判斷。這些是 CoreData 操作，跟雲端同步無關。
 //
-//  ⚠️ 這裡不做任何網路行為。重建同步時，同步層應該【呼叫】這裡，而不是把這些邏輯搬回去。
-//  見 ARCHITECTURE.md §8。
+//  ⚠️ 這裡不做任何網路行為。重建同步時，同步層應該【呼叫】這裡，不要把這些邏輯放進同步層。
 //
 
 import Foundation
@@ -84,7 +82,6 @@ final class LocalDataManager {
     ///
     /// ⚠️ 重建同步後，這個方法【不可以】被無條件呼叫 ——
     /// 只有「確認資料已備份到雲端」才能清除，否則未上傳的資料會永久消失。
-    /// 見 SYNC_ARCHITECTURE_V2.md §9.6。
     func clearAllLocalData() {
         do {
             // 1. Event → cascade 連帶刪除 Category / Product / InventoryChange
@@ -110,8 +107,7 @@ final class LocalDataManager {
             context.rollback()
         }
 
-        // TODO: [SYNC-PENDING] 原本這裡會發 .syncDidComplete 通知 UI 重讀。
-        // 重建時改由 EventDataSource 統一處理（見 FEATURE_PLAN_V1.md §2.2）
+        // TODO: [SYNC-PENDING] 同步完成後要讓 UI 重讀：由 EventDataSource 統一處理
         NotificationCenter.default.post(name: .localDataDidReset, object: nil)
     }
 }

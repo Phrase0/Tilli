@@ -50,7 +50,7 @@ extension Array where Element == DiscountModel {
 /// 那是**快照**：交易當下實際折抵了多少錢，clamp 之後的值。
 ///
 /// ⭐ 沒有這個快照的話，之後改了場次的折扣設定，
-/// 歷史交易的折抵金額會被重算成錯的。見 FEATURE_PLAN_V1.md §6.1。
+/// 歷史交易的折抵金額會被重算成錯的。
 struct AppliedDiscount: Codable, Hashable, Identifiable {
     /// 對應 `event.discounts` 的設定；設定被刪除後仍保留這個 id 以供追溯
     var discountId: UUID
