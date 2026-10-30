@@ -169,12 +169,38 @@ final class POSQuantityControlTests: XCTestCase {
         XCTAssertEqual(viewModel.quantity(of: unknown), 0)
     }
 
-    func testUnavailableBundleAlertShowsReasonOnlyWhenUnavailable() {
-        viewModel.showUnavailableAlert(for: teaSet)
-        XCTAssertFalse(viewModel.showAlert, "可賣時不提醒")
+    // MARK: - 本來就沒庫存 vs 被購物車用完
 
+    private func setStock(_ productId: UUID, _ stock: Int32) throws {
+        let request = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
+        let entity = try XCTUnwrap(container.viewContext.fetch(request).first)
+        entity.stock = stock
+        try container.viewContext.save()
+    }
+
+    func testBundleLimitedByCartIsNotGreyedButCannotIncrement() {
         viewModel.increment(.product(daifukuId))
         viewModel.increment(.product(daifukuId))
+        XCTAssertNil(viewModel.soldOutReason(of: teaSet), "被購物車用完不灰卡片")
+        XCTAssertFalse(viewModel.canIncrement(.bundle(teaSetId)))
+    }
+
+    func testBundleWithZeroStockMemberIsGreyedRegardlessOfCart() throws {
+        try setStock(daifukuId, 0)
+        viewModel.loadProducts()
+        XCTAssertEqual(viewModel.soldOutReason(of: teaSet), .memberOutOfStock(productName: "大福"))
+    }
+
+    func testUnavailableAlertOnlyWhenSoldOutNotWhenLimitedByCart() throws {
+        viewModel.increment(.product(daifukuId))
+        viewModel.increment(.product(daifukuId))
+        viewModel.showUnavailableAlert(for: teaSet)
+        XCTAssertFalse(viewModel.showAlert, "被購物車用完時點卡片不提醒")
+
+        viewModel.clearAllQuantities()
+        try setStock(daifukuId, 0)
+        viewModel.loadProducts()
         viewModel.showUnavailableAlert(for: teaSet)
         XCTAssertTrue(viewModel.showAlert)
         XCTAssertEqual(viewModel.alertMessage, BundleUnavailableReason.memberOutOfStock(productName: "大福").displayText)

@@ -4,7 +4,7 @@
 //
 //  收銀頁最上方的「套餐」區塊。卡片樣式沿用 POSView 的
 //  posProductCard（列表）／posGridCard（格狀）。下架類不列（由 POSViewModel.fixedBundles 篩掉），
-//  缺貨照列：灰掉、顯示原因、不能加入，已在購物車的份數仍可減少。增減用 POSItemStepper。
+//  本來就缺貨照列：灰掉、顯示原因、不能加入，已在購物車的份數仍可減少；被購物車用完卡片不變，只停用 ＋。增減用 POSItemStepper。
 //
 
 import SwiftUI
@@ -45,12 +45,9 @@ struct POSBundleSection: View {
 
     // MARK: - 狀態
 
-    /// 不可賣的原因文字；可賣時為 nil
+    /// 本來就不能賣的原因文字（卡片變灰）；被購物車用完不算，只讓 ＋ 停用
     private func unavailableText(_ bundle: BundleModel) -> String? {
-        if case .failure(let reason) = viewModel.availability(of: bundle) {
-            return reason.displayText
-        }
-        return nil
+        viewModel.soldOutReason(of: bundle)?.displayText
     }
 
     /// 成員名稱（「大福、抹茶、紅豆」），當作卡片副標

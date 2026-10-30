@@ -27,9 +27,16 @@ class POSViewModel: ObservableObject {
 
     /// ⭐ event / categories / products 一律一起從 dataSource 取同一份快照，
     /// 商品與類別永遠是同一個時間點的資料
-    @Published private(set) var event: EventModel
+    @Published private(set) var event: EventModel {
+        didSet { bundlesById = Self.index(event.bundles) }
+    }
     @Published private(set) var categories: [CategoryModel] = []
-    @Published private(set) var products: [ProductModel] = []
+    @Published private(set) var products: [ProductModel] = [] {
+        didSet { productsById = Self.index(products) }
+    }
+    /// 依 id 查商品／套餐；隨 `products`／`event` 更新，不在每次存取時重建
+    private(set) var productsById: [UUID: ProductModel] = [:]
+    private(set) var bundlesById: [UUID: BundleModel] = [:]
     /// 購物車：單點商品、套餐行、本筆交易已取消的組合
     @Published private(set) var cart = Cart() {
         didSet {
@@ -137,6 +144,7 @@ class POSViewModel: ObservableObject {
     init(dataSource: EventDataSource) {
         self.dataSource = dataSource
         self.event = dataSource.event
+        self.bundlesById = Self.index(dataSource.event.bundles)
 
         // 从 UserDefaults 讀取布局模式
         if let savedMode = UserDefaults.standard.string(forKey: "ProductLayoutMode"),
@@ -288,12 +296,8 @@ class POSViewModel: ObservableObject {
 
     // MARK: - 套餐與組合
 
-    private var productsById: [UUID: ProductModel] {
-        Dictionary(products.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-    }
-
-    private var bundlesById: [UUID: BundleModel] {
-        Dictionary(event.bundles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    private static func index<T: Identifiable>(_ items: [T]) -> [UUID: T] where T.ID == UUID {
+        Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// 收銀頁顯示的套餐（`.fixed`，依建立時間；組合不出現在收銀頁）。
@@ -335,9 +339,18 @@ class POSViewModel: ObservableObject {
         }
     }
 
-    /// 套餐不可賣時，點卡片提醒原因
+    /// 套餐本來就不能賣的原因（不看購物車：只有成員庫存本來就不足時才有）。
+    /// 收銀頁用它決定卡片要不要變灰；被購物車用完只讓 ＋ 停用（`canIncrement`），卡片不變
+    func soldOutReason(of bundle: BundleModel) -> BundleUnavailableReason? {
+        if case .failure(let reason) = BundleAvailability.check(bundle, products: productsById, categories: categories, cart: Cart()) {
+            return reason
+        }
+        return nil
+    }
+
+    /// 套餐本來就不能賣時，點卡片提醒原因
     func showUnavailableAlert(for bundle: BundleModel) {
-        guard case .failure(let reason) = availability(of: bundle) else { return }
+        guard let reason = soldOutReason(of: bundle) else { return }
         alertMessage = reason.displayText
         showAlert = true
     }
