@@ -259,31 +259,14 @@ struct POSView: View {
         .padding(DesignSystem.Spacing.md)
     }
 
-    /// 結帳鈕內容：左邊金額（有優惠時折扣前金額劃線），右邊「結帳 →」
     private var checkoutButtonLabel: some View {
         let pricing = viewModel.pricing
-        return HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xs) {
-            if pricing.savings > 0 {
-                Text(MoneyHelper.format(pricing.subtotal, currencyCode: event.currency))
-                    .font(DesignSystem.Typography.caption)
-                    .strikethrough()
-                    .opacity(0.7)
-            }
-            Text(MoneyHelper.format(pricing.total, currencyCode: event.currency))
-                .font(DesignSystem.Typography.body)
-                .fontWeight(.bold)
-
-            Spacer(minLength: DesignSystem.Spacing.xs)
-
-            // 結帳
-            Text("posCheckoutButton")
-                .font(DesignSystem.Typography.body)
-                .fontWeight(.semibold)
-            Image(systemName: "arrow.right")
-                .font(DesignSystem.Typography.body.weight(.semibold))
-        }
-        .lineLimit(1)
-        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+        return CheckoutButtonLabel(
+            subtotal: pricing.subtotal,
+            total: pricing.total,
+            savings: pricing.savings,
+            currency: event.currency
+        )
     }
 
     // MARK: - List Product Card
@@ -426,6 +409,65 @@ struct POSView: View {
             y: DesignSystem.Shadow.cardY
         )
         .onTapGesture { tapCard(product, isOutOfStock: isOutOfStock) }
+    }
+}
+
+// MARK: - 結帳鈕內容
+
+/// 左邊金額（有優惠時折扣前金額劃線），右邊「結帳 →」。
+/// 放不下時先拿掉劃線原價，再縮小總計字級；金額不會被截成「…」
+struct CheckoutButtonLabel: View {
+    let subtotal: Decimal
+    let total: Decimal
+    let savings: Decimal
+    let currency: String
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            row(showsSubtotal: savings > 0, scalesTotal: false)
+            row(showsSubtotal: false, scalesTotal: false)
+            row(showsSubtotal: false, scalesTotal: true)
+        }
+        .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+    }
+
+    private func row(showsSubtotal: Bool, scalesTotal: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.xs) {
+            if showsSubtotal {
+                Text(MoneyHelper.format(subtotal, currencyCode: currency))
+                    .font(DesignSystem.Typography.caption)
+                    .strikethrough()
+                    .opacity(0.7)
+                    .fixedSize()
+            }
+            Text(MoneyHelper.format(total, currencyCode: currency))
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.bold)
+                .lineLimit(1)
+                .minimumScaleFactor(scalesTotal ? 0.5 : 1)
+                .layoutPriority(1)
+                .modifier(FixedSizeUnless(scalesTotal))
+
+            Spacer(minLength: DesignSystem.Spacing.xs)
+
+            // 結帳
+            Text("posCheckoutButton")
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.semibold)
+                .fixedSize()
+            Image(systemName: "arrow.right")
+                .font(DesignSystem.Typography.body.weight(.semibold))
+        }
+    }
+}
+
+/// 不縮字時固定原尺寸（讓 ViewThatFits 量到真正需要的寬度）
+private struct FixedSizeUnless: ViewModifier {
+    let scales: Bool
+    init(_ scales: Bool) { self.scales = scales }
+
+    func body(content: Content) -> some View {
+        if scales { content } else { content.fixedSize() }
     }
 }
 
