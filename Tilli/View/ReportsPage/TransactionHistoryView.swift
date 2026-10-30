@@ -46,21 +46,23 @@ struct TransactionHistoryView: View {
                 }
             } else {
                 ScrollView {
-                    // 一般 VStack：展開一整天的交易時 LazyVStack 會估錯未顯示的高度，捲動位置跳動
-                    VStack(spacing: DesignSystem.Spacing.md) {
-                        if transactionViewModel.sortType == .time {
-                            // 時間排序：按日期分組顯示
+                    if transactionViewModel.sortType == .time {
+                        // 時間排序：按日期分組。一般 VStack：展開一整天的交易時 LazyVStack 會估錯未顯示的高度，捲動位置跳動
+                        VStack(spacing: DesignSystem.Spacing.md) {
                             ForEach(transactionViewModel.filteredGroupedTransactions) { dailyGroup in
                                 dailyTransactionSection(dailyGroup)
                             }
-                        } else {
-                            // 金額排序：打平列表顯示（使用相同的卡片樣式）
+                        }
+                        .padding(DesignSystem.Spacing.md)
+                    } else {
+                        // 金額排序：打平列表、沒有展開收合，交易多時用 LazyVStack 只建看得到的卡片
+                        LazyVStack(spacing: DesignSystem.Spacing.md) {
                             ForEach(transactionViewModel.sortedFlatTransactions) { transaction in
                                 transactionCard(transaction)
                             }
                         }
+                        .padding(DesignSystem.Spacing.md)
                     }
-                    .padding(DesignSystem.Spacing.md)
                 }
             }
         }

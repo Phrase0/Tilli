@@ -225,6 +225,19 @@ final class POSQuantityControlTests: XCTestCase {
         XCTAssertTrue(viewModel.pricing.combos.isEmpty)
     }
 
+    func testCancelledComboThatNoLongerAppliesIsNotListed() {
+        viewModel.increment(.product(matchaId))
+        viewModel.increment(.product(matchaId))
+        viewModel.toggleComboCancelled(comboId)
+        viewModel.decrement(.product(matchaId))
+        // 只剩 1 個抹茶，恢復也湊不成一組：不列出（不顯示「−NT$0」與按了就消失的「恢復」）
+        XCTAssertTrue(viewModel.comboRows.isEmpty)
+
+        // 再加回來：仍是這一筆已取消的組合
+        viewModel.increment(.product(matchaId))
+        XCTAssertEqual(viewModel.comboRows.map(\.isCancelled), [true])
+    }
+
     // MARK: - 購物車清空
 
     func testRemovingLastItemEmptiesCart() {

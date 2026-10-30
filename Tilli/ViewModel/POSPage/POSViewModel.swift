@@ -444,7 +444,7 @@ class POSViewModel: ObservableObject {
     }
 
     /// 優惠明細的組合列：已套用與本筆已取消的組合，依建立時間固定排序（取消／恢復時位置不變）。
-    /// 已取消的列帶「恢復後可省多少」：把它從取消名單拿掉重算一次定價
+    /// 已取消的列帶「恢復後可省多少」：把它從取消名單拿掉重算一次定價；恢復也湊不成一組的不列
     var comboRows: [DiscountBreakdownView.ComboLine] {
         let applied = Dictionary(pricing.combos.map { ($0.bundleId, $0) }, uniquingKeysWith: { first, _ in first })
         let cancelled = Set(cancelledCombos.map(\.id))
@@ -454,12 +454,12 @@ class POSViewModel: ObservableObject {
                 if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
                 return lhs.id.uuidString < rhs.id.uuidString
             }
-            .map { bundle in
+            .compactMap { bundle in
                 if let combo = applied[bundle.id] {
                     return .init(id: bundle.id, name: combo.name, amount: combo.deduction, groupCount: combo.groupCount, isCancelled: false)
                 }
-                let restored = restoredCombo(bundle.id)
-                return .init(id: bundle.id, name: bundle.name, amount: restored?.deduction ?? 0, groupCount: restored?.groupCount, isCancelled: true)
+                guard let restored = restoredCombo(bundle.id) else { return nil }
+                return .init(id: bundle.id, name: bundle.name, amount: restored.deduction, groupCount: restored.groupCount, isCancelled: true)
             }
     }
 
