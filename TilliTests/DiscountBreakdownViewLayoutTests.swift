@@ -10,15 +10,14 @@ final class DiscountBreakdownViewLayoutTests: XCTestCase {
         let view = DiscountBreakdownView(
             subtotal: 290,
             comboLines: [
-                .init(id: UUID(), name: "大福三個 100", amount: 20, isCancelled: false),
-                .init(id: UUID(), name: "任選兩個非常長的組合名稱測試用", amount: 0, isCancelled: true),
+                .init(id: UUID(), name: "大福三個 100", amount: 20, groupCount: 2, isCancelled: false),
+                .init(id: UUID(), name: "任選兩個非常長的組合名稱測試用", amount: 40, groupCount: 1, isCancelled: true),
             ],
             discounts: [
                 AppliedDiscount(discountId: UUID(), type: .percentage, value: 10, amount: 27),
                 AppliedDiscount(discountId: UUID(), type: .amount, value: 25, amount: 25),
             ],
             total: 218,
-            savings: 72,
             currency: "TWD",
             onToggleCombo: { _ in }
         )

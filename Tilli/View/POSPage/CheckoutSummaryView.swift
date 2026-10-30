@@ -101,14 +101,9 @@ struct CheckoutSummaryView: View {
             // MARK: 優惠明細（組合可取消／恢復，只對這一筆有效）
             DiscountBreakdownView(
                 subtotal: pricing.subtotal,
-                comboLines: pricing.combos.map {
-                    .init(id: $0.bundleId, name: $0.name, amount: $0.deduction, isCancelled: false)
-                } + posViewModel.cancelledCombos.map {
-                    .init(id: $0.id, name: $0.name, amount: 0, isCancelled: true)
-                },
+                comboLines: posViewModel.comboRows,
                 discounts: pricing.discounts,
                 total: pricing.total,
-                savings: pricing.savings,
                 currency: event.currency,
                 onToggleCombo: posViewModel.toggleComboCancelled
             )

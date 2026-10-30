@@ -163,11 +163,10 @@ struct TransactionDetailView: View {
                 DiscountBreakdownView(
                     subtotal: breakdown.subtotal,
                     comboLines: breakdown.comboLines.map {
-                        .init(id: $0.bundleId, name: $0.name, amount: $0.amount, isCancelled: false)
+                        .init(id: $0.bundleId, name: $0.name, amount: $0.amount, groupCount: $0.groupCount, isCancelled: false)
                     },
                     discounts: breakdown.discounts,
                     total: breakdown.total,
-                    savings: breakdown.savings,
                     currency: currency
                 )
             }

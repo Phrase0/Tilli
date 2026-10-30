@@ -141,7 +141,7 @@ struct CartPricing: Equatable {
         var items: [SummaryItemModel] = []
         var deductions: [RevenueAllocator.BundleDeduction] = []
 
-        func makeItem(_ product: ProductModel, quantity: Int, bundleId: UUID?, bundleName: String?, kind: BundleKind?) -> SummaryItemModel {
+        func makeItem(_ product: ProductModel, quantity: Int, bundleId: UUID?, bundleName: String?, kind: BundleKind?, groupCount: Int? = nil) -> SummaryItemModel {
             SummaryItemModel(
                 productId: product.id,
                 name: product.name,
@@ -152,7 +152,8 @@ struct CartPricing: Equatable {
                 timestamp: timestamp,
                 bundleId: bundleId,
                 bundleName: bundleName,
-                bundleKind: kind
+                bundleKind: kind,
+                bundleGroupCount: groupCount
             )
         }
 
@@ -192,7 +193,7 @@ struct CartPricing: Equatable {
             for combo in combos {
                 let covered = min(combo.coveredQuantities[row.product.id] ?? 0, remaining)
                 guard covered > 0 else { continue }
-                items.append(makeItem(row.product, quantity: covered, bundleId: combo.bundleId, bundleName: combo.name, kind: .chooseAny))
+                items.append(makeItem(row.product, quantity: covered, bundleId: combo.bundleId, bundleName: combo.name, kind: .chooseAny, groupCount: combo.groupCount))
                 remaining -= covered
             }
             if remaining > 0 {

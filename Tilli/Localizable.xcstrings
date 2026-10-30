@@ -669,6 +669,23 @@
         }
       }
     },
+    "discountBreakdownComboGroups %@ %lld" : {
+      "comment" : "組合優惠 %@ × %lld 組",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combo %1$@ × %2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "組合優惠 %1$@ × %2$lld 組"
+          }
+        }
+      }
+    },
     "inventoryChangeFromBundle %@" : {
       "comment" : "來自〈%@〉",
       "localizations" : {
@@ -1022,23 +1039,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "記錄時間"
-          }
-        }
-      }
-    },
-    "transactionDetailSavings %@" : {
-      "comment" : "共省 %@",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You saved %@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共省 %@"
           }
         }
       }

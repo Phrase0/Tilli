@@ -180,6 +180,16 @@ final class CartPricingTests: XCTestCase {
         XCTAssertNil(uncovered?.bundleId)
     }
 
+    func testSummaryItemsRecordComboGroupCount() {
+        // 草莓 7 個 → 「草莓三個」套用 2 組，剩 1 個原價
+        let pricing = price(Cart(productQuantities: [strawberry.id: 7]))
+        let (items, _) = pricing.summaryItems(categoryName: { _ in "甜點" }, timestamp: Date())
+        let comboItems = items.filter { $0.bundleId == strawberryCombo.id }
+        XCTAssertFalse(comboItems.isEmpty)
+        XCTAssertEqual(Set(comboItems.map(\.bundleGroupCount)), [2])
+        XCTAssertEqual(items.filter { $0.bundleId == nil }.map(\.bundleGroupCount), [nil])
+    }
+
     func testProductCoveredByTwoCombosGetsOneRowPerCombo() {
         // 五個 100（20/件）先套用，剩 2 個再被兩個 50（25/件）涵蓋，最後 1 個單點
         let five = BundleModel.comboMock(name: "草莓五個", price: 100, count: 5, productIds: [strawberry.id])

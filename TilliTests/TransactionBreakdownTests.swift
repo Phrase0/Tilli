@@ -86,7 +86,7 @@ final class TransactionBreakdownTests: XCTestCase {
         let breakdown = TransactionBreakdown(transaction: designExampleTransaction())
 
         XCTAssertEqual(breakdown.subtotal, 340)
-        XCTAssertEqual(breakdown.comboLines, [.init(bundleId: comboId, name: "任選 3 件", amount: 40)])
+        XCTAssertEqual(breakdown.comboLines, [.init(bundleId: comboId, name: "任選 3 件", amount: 40, groupCount: nil)])
         XCTAssertEqual(breakdown.discounts.map(\.amount), [30, 25])
         XCTAssertEqual(breakdown.total, 245)
 
@@ -151,6 +151,32 @@ final class TransactionBreakdownTests: XCTestCase {
             MoneyHelper.subtract(breakdown.subtotal, MoneyHelper.sum(breakdown.discounts.map(\.amount))),
             breakdown.total
         )
+    }
+
+    func testBreakdownComboLineCarriesGroupCount() {
+        let items = [
+            SummaryItemModel.mock(productId: productA, name: "珍奶", price: 60, quantity: 2,
+                                  bundleId: comboId, bundleName: "任選 3 件", bundleDiscount: 27,
+                                  bundleKind: .chooseAny, bundleGroupCount: 1),
+            SummaryItemModel.mock(productId: productB, name: "紅茶", price: 60, quantity: 1,
+                                  bundleId: comboId, bundleName: "任選 3 件", bundleDiscount: 13,
+                                  bundleKind: .chooseAny, bundleGroupCount: 1)
+        ]
+        let breakdown = TransactionBreakdown(transaction: .mock(items: items, totalAmount: 140))
+        XCTAssertEqual(breakdown.comboLines.map(\.groupCount), [1])
+    }
+
+    func testOldComboItemsWithoutGroupCountDecode() throws {
+        let json = """
+        [{"id":"\(UUID().uuidString)","productId":"\(productA.uuidString)","name":"珍奶","price":60,
+          "categoryId":"\(UUID().uuidString)","category":"飲料","quantity":3,"timestamp":0,
+          "bundleId":"\(comboId.uuidString)","bundleName":"任選 3 件","bundleDiscount":40,"bundleKind":"chooseAny"}]
+        """
+        let items = try JSONDecoder().decode([SummaryItemModel].self, from: Data(json.utf8))
+        XCTAssertNil(items[0].bundleGroupCount)
+        let breakdown = TransactionBreakdown(transaction: .mock(items: items, totalAmount: 140))
+        XCTAssertEqual(breakdown.comboLines.count, 1)
+        XCTAssertNil(breakdown.comboLines[0].groupCount, "舊交易沒有組數，明細不顯示「× N 組」")
     }
 
     func testDeletedBundleStillRendersFromSnapshot() {

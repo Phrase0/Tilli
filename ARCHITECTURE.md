@@ -268,6 +268,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `actualRevenue` | D | 現有 | 計算屬性：total − allocatedDiscount，不存 |
 | `bundleDiscount` | S | 現有 | `allocatedDiscount` 中來自套餐／組合價差額的部分（第 5 批；`RevenueAllocator` 寫入）。整筆折扣分到的部分 = `allocatedDiscount − bundleDiscount` |
 | `bundleKind` | S | 現有 | 套餐（fixed）或組合（chooseAny）的快照，歷史明細靠它決定顯示方式（第 5 批） |
+| `bundleGroupCount` | S | 現有 | 組合在這筆交易套用的組數快照（組合涵蓋列才有，舊交易為 nil），明細顯示「× N 組」（2026-10-30） |
 
 ### DiscountModel（存於 `CDEventEntity.discountsData`）
 
@@ -489,3 +490,4 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-10-08 | 清理過期狀態：移除已刪除的 `Product.categoryName`、`Transaction.discountType/discountValue` 三列；`appliedDiscountsData` 與兩個 `updatedAt` 由「新增」改為「現有」；§6 計畫中項目改為 10 項。腳本恢復 0 錯誤 0 警告 |
 | 2026-10-28 | 第 5 批 5.1 落地：`bundlesData`、InventoryChange 的 `bundleId/bundleName` 加進 CoreData；§5 `SummaryItemModel.bundleDiscount/bundleKind` 與 `BundleModel` 全表改為現有；§6 待實作 10 → 7 |
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：資料結構於 5.1 已落地，其後各批**未再改動 CoreData schema 或 §4 分類表**（`bundleDiscount`／`bundleKind` 在 `itemsData` 內、`BundleModel` 在 `bundlesData` 內；套餐照片 `BundleImageStore` 只存本機檔案，不是 CoreData 欄位）。欄位分類腳本通過 |
+| 2026-10-30 | §5 `SummaryItemModel` 新增 `bundleGroupCount`（在 `itemsData` 內，不改 CoreData schema 或 §4） |

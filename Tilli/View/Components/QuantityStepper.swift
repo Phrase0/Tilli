@@ -48,10 +48,14 @@ struct QuantityStepper: View {
         Button(action: onIncrement) {
             Image(systemName: "plus")
                 .font(DesignSystem.Typography.body.weight(.bold))
-                .foregroundColor(canIncrement ? DesignSystem.ColorToken.onButtonFilled : DesignSystem.ColorToken.muted)
+                .foregroundColor(canIncrement ? DesignSystem.ColorToken.onButtonFilled : DesignSystem.ColorToken.muted.opacity(disabledOpacity))
                 .frame(width: circleSize, height: circleSize)
-                .background(Circle().fill(canIncrement ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.quietFill))
-                .opacity(canIncrement ? 1 : disabledOpacity)
+                // 停用時白底淡陰影（同展開膠囊），疊在佔位圖或照片上仍看得出是按鈕
+                .background(
+                    Circle()
+                        .fill(canIncrement ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.cardSurface)
+                        .shadow(color: canIncrement ? .clear : DesignSystem.Shadow.cardColor, radius: 4, x: 0, y: 1)
+                )
         }
         .buttonStyle(.plain)
         .disabled(!canIncrement)

@@ -206,6 +206,25 @@ final class POSQuantityControlTests: XCTestCase {
         XCTAssertEqual(viewModel.alertMessage, BundleUnavailableReason.memberOutOfStock(productName: "大福").displayText)
     }
 
+    // MARK: - 組合列
+
+    func testComboRowsKeepCreationOrderAndShowRestorableAmount() {
+        // 抹茶 2 個 → 「任選兩個 80」：120 − 80 = 40
+        viewModel.increment(.product(matchaId))
+        viewModel.increment(.product(matchaId))
+        XCTAssertEqual(viewModel.comboRows.map(\.id), [comboId])
+        XCTAssertEqual(viewModel.comboRows.first?.amount, 40)
+        XCTAssertEqual(viewModel.comboRows.first?.groupCount, 1)
+        XCTAssertEqual(viewModel.comboRows.first?.isCancelled, false)
+
+        viewModel.toggleComboCancelled(comboId)
+        XCTAssertEqual(viewModel.comboRows.map(\.id), [comboId], "取消後列還在原位")
+        XCTAssertEqual(viewModel.comboRows.first?.isCancelled, true)
+        XCTAssertEqual(viewModel.comboRows.first?.amount, 40, "顯示恢復後可省的金額")
+        XCTAssertEqual(viewModel.comboRows.first?.groupCount, 1)
+        XCTAssertTrue(viewModel.pricing.combos.isEmpty)
+    }
+
     // MARK: - 購物車清空
 
     func testRemovingLastItemEmptiesCart() {

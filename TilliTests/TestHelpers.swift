@@ -97,7 +97,8 @@ extension SummaryItemModel {
         bundleId: UUID? = nil,
         bundleName: String? = nil,
         bundleDiscount: Decimal = 0,
-        bundleKind: BundleKind? = nil
+        bundleKind: BundleKind? = nil,
+        bundleGroupCount: Int? = nil
     ) -> SummaryItemModel {
         SummaryItemModel(
             id: id,
@@ -111,7 +112,8 @@ extension SummaryItemModel {
             bundleId: bundleId,
             bundleName: bundleName,
             bundleDiscount: bundleDiscount,
-            bundleKind: bundleKind
+            bundleKind: bundleKind,
+            bundleGroupCount: bundleGroupCount
         )
     }
 }

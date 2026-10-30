@@ -23,6 +23,7 @@ struct TransactionBreakdown: Equatable {
         let bundleId: UUID
         let name: String
         let amount: Decimal
+        let groupCount: Int?        // 舊交易沒有組數快照時為 nil
     }
 
     let rows: [Row]
@@ -48,6 +49,7 @@ struct TransactionBreakdown: Equatable {
         var comboOrder: [UUID] = []
         var comboNames: [UUID: String] = [:]
         var comboAmounts: [UUID: Decimal] = [:]
+        var comboGroupCounts: [UUID: Int] = [:]
 
         for item in transaction.items {
             // 套餐成員：依 bundleId 分組成一行
@@ -65,6 +67,7 @@ struct TransactionBreakdown: Equatable {
                     comboNames[comboId] = item.bundleName ?? ""
                 }
                 comboAmounts[comboId] = MoneyHelper.add(comboAmounts[comboId] ?? 0, item.bundleDiscount)
+                if let count = item.bundleGroupCount { comboGroupCounts[comboId] = count }
             }
 
             // 商品列：同一商品（同單價）的拆列合併
@@ -101,7 +104,7 @@ struct TransactionBreakdown: Equatable {
         rows = bundleRows + productRows
         subtotal = MoneyHelper.sum(rows.map(\.lineTotal))
         comboLines = comboOrder.map { id in
-            ComboLine(bundleId: id, name: comboNames[id] ?? "", amount: comboAmounts[id] ?? 0)
+            ComboLine(bundleId: id, name: comboNames[id] ?? "", amount: comboAmounts[id] ?? 0, groupCount: comboGroupCounts[id])
         }
         discounts = transaction.appliedDiscounts
         total = transaction.totalAmount

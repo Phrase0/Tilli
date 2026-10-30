@@ -443,6 +443,33 @@ class POSViewModel: ObservableObject {
             }
     }
 
+    /// 優惠明細的組合列：已套用與本筆已取消的組合，依建立時間固定排序（取消／恢復時位置不變）。
+    /// 已取消的列帶「恢復後可省多少」：把它從取消名單拿掉重算一次定價
+    var comboRows: [DiscountBreakdownView.ComboLine] {
+        let applied = Dictionary(pricing.combos.map { ($0.bundleId, $0) }, uniquingKeysWith: { first, _ in first })
+        let cancelled = Set(cancelledCombos.map(\.id))
+        return event.bundles
+            .filter { applied[$0.id] != nil || cancelled.contains($0.id) }
+            .sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+            .map { bundle in
+                if let combo = applied[bundle.id] {
+                    return .init(id: bundle.id, name: combo.name, amount: combo.deduction, groupCount: combo.groupCount, isCancelled: false)
+                }
+                let restored = restoredCombo(bundle.id)
+                return .init(id: bundle.id, name: bundle.name, amount: restored?.deduction ?? 0, groupCount: restored?.groupCount, isCancelled: true)
+            }
+    }
+
+    /// 假設恢復這個組合時它的套用結果
+    private func restoredCombo(_ bundleId: UUID) -> ComboApplication? {
+        var restoredCart = cart
+        restoredCart.cancelledComboIds.remove(bundleId)
+        return pricing(for: restoredCart).combos.first { $0.bundleId == bundleId }
+    }
+
     /// 使用者在通知上按確定後呼叫：移除失效套餐行；單點商品下架／刪除就移除，
     /// 超過庫存就降到剩餘數量（0 即移除）。其餘商品保留
     func confirmInvalidLines() {
@@ -489,6 +516,10 @@ class POSViewModel: ObservableObject {
     /// 單點商品只用可販售的商品（`activeProducts`）計價；
     /// 套餐行若成員不可販售會被 `invalidBundleLines` 擋下，不會進結帳。
     var pricing: CartPricing {
+        pricing(for: cart)
+    }
+
+    private func pricing(for cart: Cart) -> CartPricing {
         CartPricing.price(
             cart: cart,
             products: Dictionary(activeProducts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }),

@@ -28,6 +28,8 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
     var bundleDiscount: Decimal = 0
     /// 快照：套餐或組合，歷史明細靠它決定顯示方式
     var bundleKind: BundleKind? = nil
+    /// 快照：組合在這筆交易套用的組數（組合涵蓋列才有；明細顯示「× N 組」）
+    var bundleGroupCount: Int? = nil
 
     /// 原價小計（折扣前）= 單價 × 數量。
     var total: Decimal {
@@ -46,7 +48,7 @@ struct SummaryItemModel: Identifiable, Codable, Hashable {
 extension SummaryItemModel {
     private enum CodingKeys: String, CodingKey {
         case id, productId, name, price, categoryId, category, quantity, timestamp
-        case allocatedDiscount, bundleId, bundleName, bundleDiscount, bundleKind
+        case allocatedDiscount, bundleId, bundleName, bundleDiscount, bundleKind, bundleGroupCount
     }
 
     /// itemsData 缺 `allocatedDiscount` 等欄位時解碼成預設值而不是失敗
@@ -66,6 +68,7 @@ extension SummaryItemModel {
         bundleName = try c.decodeIfPresent(String.self, forKey: .bundleName)
         bundleDiscount = try c.decodeIfPresent(Decimal.self, forKey: .bundleDiscount) ?? 0
         bundleKind = try c.decodeIfPresent(BundleKind.self, forKey: .bundleKind)
+        bundleGroupCount = try c.decodeIfPresent(Int.self, forKey: .bundleGroupCount)
     }
 }
 
