@@ -3,7 +3,8 @@
 //  Tilli
 //
 //  商品／套餐的增減元件（收銀頁列表與格狀卡片、訂單摘要共用）。
-//  數量 0：只有一個 ＋；有數量未展開：圓形只顯示數量（點了展開）；展開：膠囊「− 數量 ＋」。
+//  數量 0：只有一個 ＋；有數量未展開：圓形只顯示數量（點了展開）；展開：白底膠囊「− 數量 ＋」。
+//  不能再加時 ＋ 淡化停用，大小不變。
 //
 
 import SwiftUI
@@ -20,6 +21,8 @@ struct QuantityStepper: View {
 
     private let circleSize: CGFloat = 28
     private let buttonSize: CGFloat = 22
+    /// 到上限的 ＋：淡化、點了沒反應（不提醒）
+    private let disabledOpacity: Double = 0.55
 
     var body: some View {
         content
@@ -48,6 +51,7 @@ struct QuantityStepper: View {
                 .foregroundColor(canIncrement ? DesignSystem.ColorToken.onButtonFilled : DesignSystem.ColorToken.muted)
                 .frame(width: circleSize, height: circleSize)
                 .background(Circle().fill(canIncrement ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.quietFill))
+                .opacity(canIncrement ? 1 : disabledOpacity)
         }
         .buttonStyle(.plain)
         .disabled(!canIncrement)
@@ -77,7 +81,7 @@ struct QuantityStepper: View {
                     .font(DesignSystem.Typography.caption.weight(.bold))
                     .foregroundColor(showsTrash ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.onButtonFilled)
                     .frame(width: buttonSize, height: buttonSize)
-                    .background(Circle().fill(showsTrash ? DesignSystem.ColorToken.cardSurface : DesignSystem.ColorToken.buttonFilled))
+                    .background(Circle().fill(showsTrash ? DesignSystem.ColorToken.quietFill : DesignSystem.ColorToken.buttonFilled))
             }
             .buttonStyle(.plain)
             // 移除／減少
@@ -94,7 +98,8 @@ struct QuantityStepper: View {
                     .font(DesignSystem.Typography.caption.weight(.bold))
                     .foregroundColor(canIncrement ? DesignSystem.ColorToken.onButtonFilled : DesignSystem.ColorToken.muted)
                     .frame(width: buttonSize, height: buttonSize)
-                    .background(Circle().fill(canIncrement ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.cardSurface))
+                    .background(Circle().fill(canIncrement ? DesignSystem.ColorToken.buttonFilled : DesignSystem.ColorToken.quietFill))
+                    .opacity(canIncrement ? 1 : disabledOpacity)
             }
             .buttonStyle(.plain)
             .disabled(!canIncrement)
@@ -103,6 +108,11 @@ struct QuantityStepper: View {
         }
         .padding(.horizontal, DesignSystem.Spacing.xxs)
         .frame(height: circleSize)
-        .background(Capsule().fill(DesignSystem.ColorToken.quietFill))
+        // 卡片白底＋淡陰影：疊在灰色佔位圖或照片上都看得出膠囊
+        .background(
+            Capsule()
+                .fill(DesignSystem.ColorToken.cardSurface)
+                .shadow(color: DesignSystem.Shadow.cardColor, radius: 4, x: 0, y: 1)
+        )
     }
 }

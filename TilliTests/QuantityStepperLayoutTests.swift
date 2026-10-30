@@ -6,11 +6,11 @@ import SwiftUI
 @MainActor
 final class QuantityStepperLayoutTests: XCTestCase {
 
-    private func size(quantity: Int, isExpanded: Bool, trashAtOne: Bool = false) -> CGSize {
+    private func size(quantity: Int, isExpanded: Bool, trashAtOne: Bool = false, canIncrement: Bool = true) -> CGSize {
         let stepper = QuantityStepper(
             quantity: quantity,
             isExpanded: isExpanded,
-            canIncrement: true,
+            canIncrement: canIncrement,
             trashAtOne: trashAtOne,
             onIncrement: {},
             onDecrement: {},
@@ -26,6 +26,12 @@ final class QuantityStepperLayoutTests: XCTestCase {
             XCTAssertLessThanOrEqual(s.height, 32, "數量 \(quantity) 展開 \(expanded) 高度超過")
             XCTAssertLessThanOrEqual(s.width, 120, "數量 \(quantity) 展開 \(expanded) 寬度超過")
         }
+    }
+
+    func testDisabledPlusKeepsTheSameSize() {
+        // 到上限時只淡化 ＋，大小不變，避免元件跳動
+        XCTAssertEqual(size(quantity: 2, isExpanded: true, canIncrement: false), size(quantity: 2, isExpanded: true))
+        XCTAssertEqual(size(quantity: 0, isExpanded: false, canIncrement: false), size(quantity: 0, isExpanded: false))
     }
 
     func testCollapsedStatesAreSingleCircle() {
