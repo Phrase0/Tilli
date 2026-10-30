@@ -46,7 +46,8 @@ struct TransactionHistoryView: View {
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: DesignSystem.Spacing.md) {
+                    // 一般 VStack：展開一整天的交易時 LazyVStack 會估錯未顯示的高度，捲動位置跳動
+                    VStack(spacing: DesignSystem.Spacing.md) {
                         if transactionViewModel.sortType == .time {
                             // 時間排序：按日期分組顯示
                             ForEach(transactionViewModel.filteredGroupedTransactions) { dailyGroup in

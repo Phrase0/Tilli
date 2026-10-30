@@ -256,13 +256,12 @@ class TransactionHistoryViewModel: ObservableObject {
     // MARK: - 日期分組展開/收合
     
     /// 切換日期分組的展開/收合狀態
+    /// 展開／收合不加動畫（動畫會讓列表跳動）
     func toggleDailyGroupExpansion(_ date: Date) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if expandedDailyGroupIds.contains(date) {
-                expandedDailyGroupIds.remove(date)
-            } else {
-                expandedDailyGroupIds.insert(date)
-            }
+        if expandedDailyGroupIds.contains(date) {
+            expandedDailyGroupIds.remove(date)
+        } else {
+            expandedDailyGroupIds.insert(date)
         }
     }
     
