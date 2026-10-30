@@ -236,11 +236,6 @@ class TransactionHistoryViewModel: ObservableObject {
         )
     }
 
-    /// 折扣標籤的顯示文字（無折扣時回傳 nil，View 直接顯示不做判斷）
-    func discountText(for transaction: TransactionModel) -> String? {
-        DiscountCalculator.deductionText(for: transaction)
-    }
-
     // MARK: - 交易明細
 
     /// 明細頁與卡片共用的還原結果（只讀交易快照）

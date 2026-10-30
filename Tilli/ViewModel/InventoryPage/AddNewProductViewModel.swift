@@ -28,7 +28,6 @@ class AddNewProductViewModel: ObservableObject {
     @Published var price: String = ""
     @Published var quantity: String = ""
     @Published var selectedCategoryID: UUID?
-    @Published var description: String = ""
     
     // MARK: - 圖片選擇
     @Published var image: UIImage? {
@@ -95,21 +94,6 @@ class AddNewProductViewModel: ObservableObject {
     /// 截斷產品名稱至上限
     func enforceProductNameLimit() {
         name = TextHelper.truncateToLimit(name, limit: TextHelper.productNameLimit)
-    }
-
-    /// 產品描述字數上限
-    var productDescriptionMaxLength: Int {
-        return TextHelper.productDescriptionLimit
-    }
-
-    /// 產品描述剩餘字數
-    var productDescriptionRemainingCharacters: Int {
-        return TextHelper.remainingCharacters(for: description, limit: TextHelper.productDescriptionLimit)
-    }
-
-    /// 截斷產品描述至上限
-    func enforceProductDescriptionLimit() {
-        description = TextHelper.truncateToLimit(description, limit: TextHelper.productDescriptionLimit)
     }
 
     /// 當前幣別是否支持小數點
@@ -257,7 +241,6 @@ class AddNewProductViewModel: ObservableObject {
             self.quantity = String(product.stock)
             self.selectedCategoryID = product.categoryId
             // optional 欄位
-            self.description = product.note ?? ""   // description 先初始化成原有值或空字串
             self.image = product.image
             // 記錄原始庫存（用於計算變化量）
             self.originalStock = product.stock
@@ -314,7 +297,6 @@ class AddNewProductViewModel: ObservableObject {
                     price: editing.price,              // 保持原價格
                     stock: quantityValue,              // 允許更新庫存
                     categoryId: editing.categoryId,    // 保持原類別 ID
-                    note: description,                 // 允許更新描述
                     imageData: processedImageData,     // 允許更新圖片
                     isDisabled: editing.isDisabled,
                     sortOrder: editing.sortOrder       // 保持原排序（編輯不影響排序）
@@ -328,7 +310,6 @@ class AddNewProductViewModel: ObservableObject {
                     price: priceValue,                 // 允許更新價格
                     stock: quantityValue,              // 允許更新庫存
                     categoryId: category.id,           // 允許更新類別 ID
-                    note: description,                 // 允許更新描述
                     imageData: processedImageData,     // 允許更新圖片
                     isDisabled: editing.isDisabled,
                     sortOrder: editing.sortOrder       // 保持原排序（編輯不影響排序）
@@ -342,7 +323,6 @@ class AddNewProductViewModel: ObservableObject {
                 price: priceValue,
                 stock: quantityValue,
                 categoryId: category.id,
-                note: description,
                 imageData: processedImageData,
                 isDisabled: false
             )

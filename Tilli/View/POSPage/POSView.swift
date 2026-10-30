@@ -288,19 +288,10 @@ struct POSView: View {
             .opacity(isOutOfStock ? 0.6 : 1.0)
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
-                        .lineLimit(1)
-
-                    if let note = product.note, !note.isEmpty {
-                        Text(note)
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundColor(DesignSystem.ColorToken.muted)
-                            .lineLimit(1)
-                    }
-                }
+                Text(product.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(isOutOfStock ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
+                    .lineLimit(1)
 
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {

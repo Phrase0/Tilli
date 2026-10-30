@@ -286,6 +286,18 @@ class AddEventViewModel: ObservableObject {
         return nil
     }
 
+    /// 輸入欄的 + 能不能按：有輸入且通過驗證（重複、非整數、超過 100% 時不能按，錯誤直接顯示在輸入欄下方）
+    func canAddDiscount(type: DiscountType) -> Bool {
+        !newValue(for: type).trimmingCharacters(in: .whitespaces).isEmpty && validateDiscountValue(for: type) == nil
+    }
+
+    /// 輸入欄的值是否與同一區既有的折扣相同
+    private func isDuplicatePending(type: DiscountType) -> Bool {
+        let trimmed = newValue(for: type).trimmingCharacters(in: .whitespaces)
+        guard let value = Decimal(string: trimmed) else { return false }
+        return discounts.contains { $0.type == type && $0.value == value }
+    }
+
     /// 嘗試新增折扣
     ///
     /// ⭐ **新增時不排序**，一律 append 在最後。
@@ -373,6 +385,11 @@ class AddEventViewModel: ObservableObject {
         }
 
         return nil
+    }
+
+    /// 新增類別的 + 能不能按：有輸入且通過驗證（重複時不能按，錯誤直接顯示在輸入欄下方）
+    var canAddCategory: Bool {
+        !newCategory.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && validateCategoryValue() == nil
     }
 
     // 嘗試將 newCategory 加入,成功則清空 newCategory,失敗回傳錯誤訊息
@@ -522,14 +539,21 @@ class AddEventViewModel: ObservableObject {
             return .failure(error)
         }
 
-        // 儲存前嘗試新增 newCategory
-        if let error = tryAddCategory() {
+        // 儲存前嘗試新增 newCategory；與既有類別同名時只清掉輸入欄（該類別本來就有，儲存結果相同）
+        if validateCategoryValue() != nil {
+            newCategory = ""
+        } else if let error = tryAddCategory() {
             return .failure(error)
         }
 
-        // 儲存前嘗試新增未按 + 的折扣（兩區各自檢查）
+        // 儲存前嘗試新增未按 + 的折扣（兩區各自檢查）。
+        // 與既有折扣相同時只清掉輸入欄：那個折扣本來就有，儲存結果相同
         for type in [DiscountType.percentage, .amount]
         where !newValue(for: type).trimmingCharacters(in: .whitespaces).isEmpty {
+            if isDuplicatePending(type: type) {
+                clearNewValue(for: type)
+                continue
+            }
             if let error = tryAddDiscount(type: type) {
                 return .failure(error)
             }

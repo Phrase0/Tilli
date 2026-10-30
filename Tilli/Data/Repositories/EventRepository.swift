@@ -406,7 +406,6 @@ class EventRepository: ObservableObject {
                             newProductEntity.price = originalProduct.price
                             newProductEntity.stock = originalProduct.stock
                             newProductEntity.categoryId = newCategoryEntity.id
-                            newProductEntity.note = originalProduct.note
                             newProductEntity.imageData = originalProduct.imageData
                             newProductEntity.isDisabled = originalProduct.isDisabled
                             newProductEntity.sortOrder = originalProduct.sortOrder

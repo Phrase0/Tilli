@@ -128,7 +128,6 @@ class ProductRepository: ObservableObject {
                 // 更新類別相關屬性
                 entity.categoryId = productModel.categoryId
                 
-                entity.note = productModel.note
                 if let imageData = productModel.imageData {
                     entity.imageData = imageData
                 }
@@ -361,7 +360,6 @@ class ProductRepository: ObservableObject {
                     entity.price = NSDecimalNumber(decimal: productModel.price)
                     updateStockWithBusinessLogic(entity: entity, newStock: productModel.stock)
                     entity.categoryId = productModel.categoryId
-                    entity.note = productModel.note
                     if let imageData = productModel.imageData {
                         entity.imageData = imageData
                     }

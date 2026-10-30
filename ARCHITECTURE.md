@@ -145,7 +145,6 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `id` | R | 現有 | |
 | `name` | L | 現有 | 有交易後不可編輯（UI 限制） |
 | `price` | L | 現有 | 有交易後不可編輯（UI 限制） |
-| `note` | L | 現有 | 隨時可改 |
 | `isDisabled` | L | 現有 | 下架。**語意純化：不再兼任偽刪除** |
 | `sortOrder` | L | 現有 | |
 | `categoryId` | R | 現有 | 有交易後不可編輯（UI 限制） |
@@ -491,3 +490,4 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-10-28 | 第 5 批 5.1 落地：`bundlesData`、InventoryChange 的 `bundleId/bundleName` 加進 CoreData；§5 `SummaryItemModel.bundleDiscount/bundleKind` 與 `BundleModel` 全表改為現有；§6 待實作 10 → 7 |
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：資料結構於 5.1 已落地，其後各批**未再改動 CoreData schema 或 §4 分類表**（`bundleDiscount`／`bundleKind` 在 `itemsData` 內、`BundleModel` 在 `bundlesData` 內；套餐照片 `BundleImageStore` 只存本機檔案，不是 CoreData 欄位）。欄位分類腳本通過 |
 | 2026-10-30 | §5 `SummaryItemModel` 新增 `bundleGroupCount`（在 `itemsData` 內，不改 CoreData schema 或 §4） |
+| 2026-10-30 | §4 `CDProductEntity` 刪除 `note`（商品描述；使用者決定移除，尚未上架不需遷移） |

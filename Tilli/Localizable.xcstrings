@@ -1235,7 +1235,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此類別仍有產品，確定要刪除嗎？"
+            "value" : "此類別仍有商品，確定要刪除嗎？"
           }
         }
       }
@@ -1801,22 +1801,6 @@
         }
       }
     },
-    "addProductDescriptionPlaceholder" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter description"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "請輸入產品描述"
-          }
-        }
-      }
-    },
     "addProductDuplicateMessage %@ %@" : {
       "localizations" : {
         "en" : {
@@ -1844,7 +1828,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "產品名稱重複"
+            "value" : "商品名稱重複"
           }
         }
       }
@@ -1860,7 +1844,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請輸入產品名稱"
+            "value" : "請輸入商品名稱"
           }
         }
       }
@@ -1876,7 +1860,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "編輯產品"
+            "value" : "編輯商品"
           }
         }
       }
@@ -1892,7 +1876,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新增產品"
+            "value" : "新增商品"
           }
         }
       }
@@ -1977,22 +1961,6 @@
         }
       }
     },
-    "addProductSectionDescription" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Description (Optional)"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "產品描述（選填）"
-          }
-        }
-      }
-    },
     "addProductSectionImage" : {
       "localizations" : {
         "en" : {
@@ -2004,7 +1972,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "產品圖片（選填）"
+            "value" : "商品圖片（選填）"
           }
         }
       }
@@ -2020,7 +1988,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "產品名稱"
+            "value" : "商品名稱"
           }
         }
       }
@@ -2116,7 +2084,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此產品已有交易記錄，無法更改名稱、價格和類別"
+            "value" : "此商品已有交易記錄，無法更改名稱、價格和類別"
           }
         }
       }
@@ -6634,7 +6602,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "確定要刪除此產品嗎？"
+            "value" : "確定要刪除此商品嗎？"
           }
         }
       }
@@ -7198,7 +7166,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "產品績效"
+            "value" : "商品績效"
           }
         }
       }

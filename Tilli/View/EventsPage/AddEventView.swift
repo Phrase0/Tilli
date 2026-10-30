@@ -187,30 +187,37 @@ struct AddEventView: View {
                     viewModel.moveCategory(from: from, to: to)
                 }
 
-                HStack {
-                    // 新增類別
-                    TextField("addEventNewCategoryPlaceholder", text: $viewModel.newCategory)
-                        .focused($focusedField, equals: .newCategory)
-                        .submitLabel(.done)
-                        .onSubmit {
-                            if viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty {
-                                focusedField = nil
-                            } else {
-                                addCategoryAction()
-                            }
-                        }
+                // 新增類別：與折扣輸入列同一套規則
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                    HStack {
+                        // 新增類別
+                        TextField("addEventNewCategoryPlaceholder", text: $viewModel.newCategory)
+                            .focused($focusedField, equals: .newCategory)
+                            .submitLabel(.done)
+                            // 鍵盤的完成只收起鍵盤，文字留在這一行；要新增請按旁邊的 +（儲存時也會自動補送）
+                            .onSubmit { focusedField = nil }
 
-                    if !viewModel.newCategory.trimmingCharacters(in: .whitespaces).isEmpty {
+                        // + 固定在最右方，沒輸入或名稱重複時變灰且不可按
                         Button {
                             addCategoryAction()
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(DesignSystem.ColorToken.ink)
+                                .foregroundColor(viewModel.canAddCategory
+                                                 ? DesignSystem.ColorToken.ink
+                                                 : DesignSystem.ColorToken.muted)
                         }
+                        .disabled(!viewModel.canAddCategory)
+                    }
+                    .frame(height: 36)
+
+                    // 名稱重複直接顯示在輸入欄下方，不跳提醒視窗
+                    if let error = viewModel.validateCategoryValue() {
+                        Text(error)
+                            .font(DesignSystem.Typography.caption)
+                            .foregroundColor(DesignSystem.ColorToken.alertRed)
                     }
                 }
-                .frame(height: 36)
 
                 if viewModel.showCategoryEditWarning {
                     HStack {
@@ -317,6 +324,7 @@ struct AddEventView: View {
 
     // MARK: - Helper Methods
 
+    /// 按 + 新增：成功後游標移到下一行的新增欄並打開鍵盤，方便連續輸入
     private func addCategoryAction() {
         if let error = viewModel.tryAddCategory() {
             viewModel.alertMessage = error
@@ -357,40 +365,49 @@ struct AddEventView: View {
         focus: FocusField,
         unit: String? = nil
     ) -> some View {
-        let hasInput = !viewModel.newValue(for: type).trimmingCharacters(in: .whitespaces).isEmpty
+        let canAdd = viewModel.canAddDiscount(type: type)
 
-        return HStack(spacing: DesignSystem.Spacing.sm) {
-            // 數值
-            TextField(
-                "addEventDiscountValuePlaceholder",
-                text: type == .percentage ? $viewModel.newPercentageValue : $viewModel.newAmountValue
-            )
-            .keyboardType(.numberPad)
-            .frame(width: 80)
-            .focused($focusedField, equals: focus)
-            .submitLabel(.done)
-            .onSubmit { addDiscountAction(type: type) }
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                // 數值
+                TextField(
+                    "addEventDiscountValuePlaceholder",
+                    text: type == .percentage ? $viewModel.newPercentageValue : $viewModel.newAmountValue
+                )
+                .keyboardType(.numberPad)
+                .frame(width: 80)
+                .focused($focusedField, equals: focus)
+                .submitLabel(.done)
+                .onSubmit { if canAdd { addDiscountAction(type: type) } }
 
-            if let unit {
-                Text(unit)
-                    .foregroundColor(DesignSystem.ColorToken.muted)
+                if let unit {
+                    Text(unit)
+                        .foregroundColor(DesignSystem.ColorToken.muted)
+                }
+
+                Spacer()
+
+                // + 固定在最右方，沒輸入或輸入有誤時變灰且不可按 —— 讓「要按這裡新增」一直看得見
+                Button {
+                    addDiscountAction(type: type)
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(canAdd
+                                         ? DesignSystem.ColorToken.ink
+                                         : DesignSystem.ColorToken.muted)
+                }
+                .disabled(!canAdd)
             }
+            .frame(height: 36)
 
-            Spacer()
-
-            // + 固定在最右方，沒輸入時變灰且不可按 —— 讓「要按這裡新增」一直看得見
-            Button {
-                addDiscountAction(type: type)
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(hasInput
-                                     ? DesignSystem.ColorToken.ink
-                                     : DesignSystem.ColorToken.muted)
+            // 輸入有誤（例如此折扣已存在）直接顯示在輸入欄下方，不跳提醒視窗
+            if let error = viewModel.validateDiscountValue(for: type) {
+                Text(error)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.ColorToken.alertRed)
             }
-            .disabled(!hasInput)
         }
-        .frame(height: 36)
     }
 
     private func addDiscountAction(type: DiscountType) {

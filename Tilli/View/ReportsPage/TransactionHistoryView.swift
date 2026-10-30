@@ -266,18 +266,8 @@ struct TransactionHistoryView: View {
 
                     Spacer()
 
+                    // 折扣細節只在交易明細頁顯示，卡片只放總額
                     HStack(alignment: .center, spacing: DesignSystem.Spacing.xs) {
-                        // 顯示折扣標籤
-                        if let discountText = transactionViewModel.discountText(for: transaction) {
-                            Text(discountText)
-                                .font(DesignSystem.Typography.caption)
-                                .padding(.horizontal, DesignSystem.Spacing.xxs)
-                                .padding(.vertical, 2)
-                                .background(DesignSystem.ColorToken.quietFill)
-                                .foregroundColor(DesignSystem.ColorToken.ink)
-                                .cornerRadius(DesignSystem.Radius.sm)
-                        }
-
                         Text(transactionViewModel.formatAmount(transaction.totalAmount))
                             .font(.headline)
                             .bold()

@@ -121,4 +121,83 @@ final class AddEventDiscountTests: XCTestCase {
         let vm = makeViewModel()
         XCTAssertNotNil(vm.tryAddDiscount(type: .percentage))
     }
+
+    // MARK: - 重複的折扣
+
+    func testCannotAddDuplicateOrInvalidButCanAddNewValue() {
+        let vm = makeViewModel()
+        add(vm, .percentage, "10")
+
+        vm.newPercentageValue = "10"
+        XCTAssertFalse(vm.canAddDiscount(type: .percentage), "重複時 + 不能按")
+        XCTAssertEqual(vm.validateDiscountValue(for: .percentage), String.localized("addEventDiscountDuplicate"))
+
+        vm.newPercentageValue = "150"
+        XCTAssertFalse(vm.canAddDiscount(type: .percentage))
+
+        vm.newPercentageValue = ""
+        XCTAssertFalse(vm.canAddDiscount(type: .percentage), "沒輸入時 + 不能按")
+
+        vm.newPercentageValue = "20"
+        XCTAssertTrue(vm.canAddDiscount(type: .percentage))
+    }
+
+    func testSavingWithDuplicatePendingDiscountClearsItAndSucceeds() {
+        let vm = makeViewModel()
+        vm.eventName = "市集"
+        vm.newCategory = "甜點"
+        XCTAssertNil(vm.tryAddCategory())
+        add(vm, .percentage, "10")
+        add(vm, .amount, "25")
+
+        // 輸入欄留著已存在的值就按儲存：該折扣本來就有，清掉輸入欄、照常儲存
+        vm.newPercentageValue = "10"
+        vm.newAmountValue = "25"
+        guard case .success = vm.validateSave() else {
+            return XCTFail("重複的未送出折扣不應擋住儲存")
+        }
+        XCTAssertEqual(vm.newPercentageValue, "")
+        XCTAssertEqual(vm.newAmountValue, "")
+        XCTAssertEqual(vm.discounts.count, 2)
+    }
+
+    func testSavingWithInvalidPendingDiscountStillFails() {
+        let vm = makeViewModel()
+        vm.eventName = "市集"
+        vm.newCategory = "甜點"
+        XCTAssertNil(vm.tryAddCategory())
+        vm.newPercentageValue = "150"
+        guard case .failure = vm.validateSave() else {
+            return XCTFail("超過 100% 仍要擋下")
+        }
+    }
+
+    // MARK: - 類別（與折扣同一套輸入規則）
+
+    func testCannotAddEmptyOrDuplicateCategory() {
+        let vm = makeViewModel()
+        XCTAssertFalse(vm.canAddCategory, "沒輸入時 + 不能按")
+
+        vm.newCategory = "甜點"
+        XCTAssertTrue(vm.canAddCategory)
+        XCTAssertNil(vm.tryAddCategory())
+
+        vm.newCategory = " 甜點 "
+        XCTAssertFalse(vm.canAddCategory, "重複時 + 不能按")
+        XCTAssertEqual(vm.validateCategoryValue(), String.localized("addEventCategoryExists"))
+    }
+
+    func testSavingWithDuplicatePendingCategoryClearsItAndSucceeds() {
+        let vm = makeViewModel()
+        vm.eventName = "市集"
+        vm.newCategory = "甜點"
+        XCTAssertNil(vm.tryAddCategory())
+
+        vm.newCategory = "甜點"
+        guard case .success = vm.validateSave() else {
+            return XCTFail("重複的未送出類別不應擋住儲存")
+        }
+        XCTAssertEqual(vm.newCategory, "")
+        XCTAssertEqual(vm.categories.count, 1)
+    }
 }

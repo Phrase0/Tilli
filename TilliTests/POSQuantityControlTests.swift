@@ -203,7 +203,8 @@ final class POSQuantityControlTests: XCTestCase {
         viewModel.loadProducts()
         viewModel.showUnavailableAlert(for: teaSet)
         XCTAssertTrue(viewModel.showAlert)
-        XCTAssertEqual(viewModel.alertMessage, BundleUnavailableReason.memberOutOfStock(productName: "大福").displayText)
+        // 與點缺貨商品的提醒相同（「大福」目前無庫存，無法加入訂單…）
+        XCTAssertEqual(viewModel.alertMessage, String.localized("productDetailNoStock \("大福")"))
     }
 
     // MARK: - 組合列

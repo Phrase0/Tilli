@@ -12,7 +12,6 @@ struct TextHelper {
     /// 預定義的字數限制
     static let eventNameLimit = 40
     static let productNameLimit = 40
-    static let productDescriptionLimit = 20
 
     /// 檢查文字是否超過上限
     static func isOverLimit(_ text: String, limit: Int) -> Bool {

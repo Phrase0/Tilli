@@ -14,7 +14,6 @@ struct ProductModel: Identifiable, Hashable, Codable {
     var price: Decimal
     var stock: Int                   // 初始庫存
     var categoryId: UUID
-    var note: String?
     var imageData: Data?             // 可選圖片（轉 UIImage 用 image）
     var isDisabled: Bool
     var imageURL: String?            // Firebase Storage URL（雲端圖片）
@@ -44,7 +43,6 @@ extension ProductModel {
         self.name = entity.name
         self.price = entity.price.decimalValue
         self.stock = Int(entity.stock)
-        self.note = entity.note
         self.imageData = entity.imageData
 
         self.categoryId = entity.categoryId

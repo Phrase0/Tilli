@@ -348,9 +348,13 @@ class POSViewModel: ObservableObject {
         return nil
     }
 
-    /// 套餐本來就不能賣時，點卡片提醒原因
+    /// 套餐本來就不能賣時，點卡片提醒原因；成員缺貨時與點缺貨商品的提醒相同
     func showUnavailableAlert(for bundle: BundleModel) {
         guard let reason = soldOutReason(of: bundle) else { return }
+        if case .memberOutOfStock(let productName) = reason {
+            showOutOfStockAlert(for: productName)
+            return
+        }
         alertMessage = reason.displayText
         showAlert = true
     }

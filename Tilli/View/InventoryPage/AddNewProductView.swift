@@ -16,7 +16,6 @@ struct AddNewProductView: View {
 
     enum FocusField: Hashable {
         case name
-        case description
         case price
         case quantity
     }
@@ -47,7 +46,7 @@ struct AddNewProductView: View {
                 TextField("addProductNamePlaceholder", text: $viewModel.name)
                     .focused($focusedField, equals: .name)
                     .submitLabel(.next)
-                    .onSubmit { focusedField = .description }
+                    .onSubmit { focusedField = .price }
                     .disabled(viewModel.isEditingWithTransaction)
                     .foregroundColor(viewModel.isEditingWithTransaction ? DesignSystem.ColorToken.muted : DesignSystem.ColorToken.ink)
                     .onChange(of: viewModel.name) {
@@ -60,23 +59,6 @@ struct AddNewProductView: View {
                             .font(DesignSystem.Typography.caption)
                             .foregroundColor(viewModel.productNameRemainingCharacters <= 5 ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                     }
-                }
-            }
-
-            // MARK: - 產品描述
-            Section(header: Text("addProductSectionDescription")) {
-                TextField("addProductDescriptionPlaceholder", text: $viewModel.description)
-                    .focused($focusedField, equals: .description)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .price }
-                    .onChange(of: viewModel.description) {
-                        viewModel.enforceProductDescriptionLimit()
-                    }
-
-                HStack {
-                    Text("\(viewModel.description.count)/\(viewModel.productDescriptionMaxLength)")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundColor(viewModel.productDescriptionRemainingCharacters <= 5 ? DesignSystem.ColorToken.alertRed : DesignSystem.ColorToken.muted)
                 }
             }
 
