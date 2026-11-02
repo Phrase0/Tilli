@@ -1912,17 +1912,17 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - 預期：同一件商品**只被算進一個**組合，沒有重複折抵
 - **回歸**：完全不使用組合／套餐的原本結帳流程不受任何影響（G1／G2）
 
-### 收銀頁互動調整（設計文件 §8）✅ 2026-10-29 完成（手動測試待做）
+### 收銀頁互動調整（設計文件 §8）✅ 2026-10-29 完成；驗收修正 2026-10-30；手動測試 2026-11-02 完成
 
 計畫：`docs/superpowers/plans/2026-10-29-pos-interaction.md`。
 
 | 項目 | 內容 | 驗證 |
 |------|------|------|
-| 增減規則 | `POSViewModel`：`CartItemID`（商品／套餐）、`increment`／`decrement`／`expand`／`collapseControls`／`canIncrement`／`expandedItem`／`isCartEmpty`、`showUnavailableAlert` | ✅ 單元測試（`POSQuantityControlTests`）；⬜ 手動 |
-| 共用增減元件 | `QuantityStepper`：數量 0 只有 ＋；有數量收合成數量圓形；展開「− 數量 ＋」；訂單摘要數量 1 時 − 為垃圾桶 | ✅ 版面測試；⬜ 手動 |
-| 收銀頁卡片 | 列表在卡片右下、格狀疊在圖片右下（商品與套餐）；點卡片不加入；點別處／開始捲動收合 | ⬜ 手動 |
-| 結帳鈕 | 「~~小計~~ 總計　結帳 →」 | ⬜ 手動 |
-| 訂單摘要 | 每行可增減／垃圾桶；總計區改「優惠明細」（`DiscountBreakdownView`，與交易明細共用），組合取消／恢復在明細列；購物車清空自動關閉 | ✅ 版面測試；⬜ 手動 |
+| 增減規則 | `POSViewModel`：`CartItemID`（商品／套餐）、`increment`／`decrement`／`expand`／`collapseControls`／`canIncrement`／`expandedItem`／`isCartEmpty`、`showUnavailableAlert` | ✅ 單元測試（`POSQuantityControlTests`）；✅ 手動 |
+| 共用增減元件 | `QuantityStepper`：數量 0 只有 ＋；有數量收合成數量圓形；展開「− 數量 ＋」；訂單摘要數量 1 時 − 為垃圾桶 | ✅ 版面測試；✅ 手動 |
+| 收銀頁卡片 | 列表在卡片右下、格狀疊在圖片右下（商品與套餐）；點卡片不加入；點別處／開始捲動收合 | ✅ 手動 |
+| 結帳鈕 | 「~~小計~~ 總計　結帳 →」 | ✅ 手動 |
+| 訂單摘要 | 每行可增減／垃圾桶；總計區改「優惠明細」（`DiscountBreakdownView`，與交易明細共用），組合取消／恢復在明細列；購物車清空自動關閉 | ✅ 版面測試；✅ 手動 |
 
 #### 實作與設計／計畫的差異
 
@@ -1951,7 +1951,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 驗收 2026-10-30（續） | 新增／編輯商品表單有「產品描述（選填）」；介面用語「產品」 | 刪除描述欄與整個 `note` 欄位（CoreData `CDProductEntity.note`、`ProductModel.note`、Repository、複製場次、收銀頁卡片描述、ARCHITECTURE §4 列；`TextHelper.productDescriptionLimit` 與兩個字串）；所有使用者可見的「產品」改「商品」（標題「新增商品／編輯商品」、商品名稱、商品圖片、商品績效等 10 個字串） | 使用者要求；尚未上架，CoreData 欄位直接刪除 |
 | 不做（使用者決定） | — | 按鈕點擊範圍放大、點折扣 chip／結帳列收合、程式捲動收合、查看分析頁 DESIGN.md 調整（之後重新設計） | — |
 
-##### 手動 —— 需操作 App（⬜ 尚未做）
+##### 手動 —— 需操作 App（✅ 2026-11-02 完成）
 
 1. 列表與格狀：商品與套餐按 ＋ → 數量 1 並展開「− 1 ＋」；點別的商品的 ＋ → 前一個收合成數量圓形；點數量圓形再展開；− 到 0 回到只有 ＋
 2. 點卡片本身不加入；缺貨商品點卡片跳「無庫存」提醒；缺貨套餐點卡片跳原因（例如「「大福」缺貨」）
@@ -2321,3 +2321,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-29 | 收銀頁互動調整：`QuantityStepper`（Uber Eats 式增減，商品／套餐、列表／格狀、訂單摘要共用）、點卡片不加入、點別處或捲動收合、結帳鈕顯示折扣前後金額、訂單摘要每行可增減並改用共用 `DiscountBreakdownView`（與交易明細同一份）；審查修正（清空購物車時清掉已取消的組合、收合不重繪）。總計 278 個單元測試全過；手動測試待做 |
 | 2026-10-30 | 收銀頁互動驗收修正（計畫 `docs/superpowers/plans/2026-10-30-pos-interaction-polish.md`）：被購物車用完不灰卡片只淡化 ＋、白底膠囊、組合列固定位置＋「× N 組」（`bundleGroupCount`）、刪「共省」、結帳鈕不截斷、字典快取、交易紀錄日期分組不跳動；審查修正（湊不成的已取消組合不列、金額排序維持 LazyVStack）。總計 288 個單元測試全過；手動測試待做 |
 | 2026-10-30 | 驗收回饋：套餐缺貨提醒與商品一致、交易紀錄卡片不顯示折扣、新增類別與折扣輸入同一套規則（+ 常駐、重複時輸入欄紅字且 + 變灰、鍵盤完成只收鍵盤、儲存時重複的輸入只清掉）、移除商品描述欄位（含 CoreData）、介面「產品」統一為「商品」。總計 295 個單元測試全過 |
+| 2026-11-02 | 收銀頁互動調整（含 10-30 驗收修正與回饋）手動測試完成 |
