@@ -62,8 +62,9 @@ final class VoidTransactionViewModel: ObservableObject {
         return String.localized("voidConfirmMessage") + "\n" + restockLine
     }
 
-    /// 寫入順序：作廢紀錄 → （回流時）庫存異動＋商品庫存 → 重新載入 dataSource。
+    /// 寫入順序：作廢紀錄 → （回流時）庫存異動 → 商品庫存 → 重新載入 dataSource。
     /// 作廢紀錄是判斷「已作廢」的依據，先寫它；它失敗就什麼都不寫。
+    /// 庫存異動存檔成功才更新商品庫存；異動或庫存任一失敗回傳 `.restockFailed`。
     func performVoid(
         eventRepository: EventRepository,
         productRepository: ProductRepository,
@@ -88,10 +89,13 @@ final class VoidTransactionViewModel: ObservableObject {
 
         var outcome = VoidOutcome.done
         if !record.inventoryChanges.isEmpty {
-            inventoryChangeRepository.addChanges(record.inventoryChanges, eventId: transaction.eventId)
-            let currentStock = Dictionary(uniqueKeysWithValues: dataSource.products.map { ($0.id, $0.stock) })
-            let stockUpdates = VoidRecorder.stockUpdates(for: record.inventoryChanges, currentStock: currentStock)
-            if !productRepository.batchUpdateProductStock(stockUpdates) {
+            if inventoryChangeRepository.addChanges(record.inventoryChanges, eventId: transaction.eventId) {
+                let currentStock = Dictionary(uniqueKeysWithValues: dataSource.products.map { ($0.id, $0.stock) })
+                let stockUpdates = VoidRecorder.stockUpdates(for: record.inventoryChanges, currentStock: currentStock)
+                if !productRepository.batchUpdateProductStock(stockUpdates) {
+                    outcome = .restockFailed
+                }
+            } else {
                 outcome = .restockFailed
             }
         }

@@ -37,11 +37,12 @@ class InventoryChangeRepository: ObservableObject {
         // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
     }
 
-    /// 批次新增庫存異動紀錄
-    func addChanges(_ changes: [InventoryChangeModel], eventId: UUID) {
+    /// 批次新增庫存異動紀錄。找不到場次或儲存失敗回傳 false（儲存失敗時這批異動已 rollback）
+    @discardableResult
+    func addChanges(_ changes: [InventoryChangeModel], eventId: UUID) -> Bool {
         guard let eventEntity = fetchEventEntity(by: eventId) else {
             print("Event not found for id: \(eventId)")
-            return
+            return false
         }
         let currentUserId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
         // 一次撈出這批用到的 product entity，避免每筆異動各查一次
@@ -56,8 +57,9 @@ class InventoryChangeRepository: ObservableObject {
             entity.eventId = eventId
             entity.product = productEntities[change.productId]
         }
-        saveContext()
+        let saved = saveContext()
         // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+        return saved
     }
 
     /// 根據 eventId 取得 CDEventEntity
@@ -209,13 +211,17 @@ class InventoryChangeRepository: ObservableObject {
 
     // MARK: - Save Context
 
-    private func saveContext() {
+    /// 儲存成功回傳 true；失敗時 rollback 並回傳 false
+    @discardableResult
+    private func saveContext() -> Bool {
         do {
             try context.save()
             print("InventoryChange data saved to CoreData")
+            return true
         } catch {
             print("Core Data save failed:", error)
             context.rollback()
+            return false
         }
     }
 }

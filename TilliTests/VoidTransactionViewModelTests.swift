@@ -2,7 +2,7 @@
 //  VoidTransactionViewModelTests.swift
 //  TilliTests
 //
-//  作廢視窗 VM：原因與庫存方式都選了才可送出；已作廢不可送出；確認框文字。
+//  作廢視窗 VM：原因與庫存方式都選了才可送出；已作廢不可送出；確認框文字；回流異動寫入失敗會回報。
 //
 
 import XCTest
@@ -125,5 +125,16 @@ final class VoidTransactionViewModelTests: XCTestCase {
         viewModel.restockChoice = false
         XCTAssertEqual(viewModel.confirmMessage,
                        String.localized("voidConfirmMessage") + "\n" + String.localized("voidConfirmNoRestock"))
+    }
+
+    /// performVoid 依 addChanges 的結果決定是否更新商品庫存；找不到場次時必須回報失敗
+    func testAddChangesReportsFailureWhenEventMissing() {
+        let change = InventoryChangeModel(
+            productId: UUID(), change: 1, reason: .voidRestock, customReason: nil,
+            transactionId: openTransactionId, timestamp: Date(), eventId: UUID(),
+            bundleId: nil, bundleName: nil
+        )
+        let saved = InventoryChangeRepository(container: container).addChanges([change], eventId: UUID())
+        XCTAssertFalse(saved)
     }
 }
