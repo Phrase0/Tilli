@@ -2069,18 +2069,65 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - `list` 與 `grid` 兩種 `layoutMode` 下，跳躍與高亮都要正確
 - **視覺**：對照 `DESIGN.md` 的 token（間距、圓角、選中/未選中顏色），不要自創樣式
 
+### 第 7 批 — 交易作廢（7 項全部 ✅ 2026-11-04 完成；手動測試待做）
+
+設計：`docs/superpowers/specs/2026-11-04-void-transaction-design.md`；計畫：`docs/superpowers/plans/2026-11-04-void-transaction.md`。
+
+| # | 項目 | 驗證 |
+|---|------|------|
+| 7.1 | 作廢紀錄實體 `CDTransactionVoidEntity`、`TransactionVoidModel`、`VoidReason`、庫存原因「作廢回流」 | ✅ 單元測試 |
+| 7.2 | `TransactionVoidIndex`；場次摘要（`TransactionRepository.effectiveSummary`）排除作廢 | ✅ 單元測試 |
+| 7.3 | `EventDataSource` 報表只用有效交易 | ✅ 單元測試 |
+| 7.4 | `VoidRecorder` 與 `addVoid` | ✅ 單元測試 |
+| 7.5 | 交易明細作廢流程（`VoidTransactionView`／`VoidTransactionViewModel`、確認框、已作廢卡片） | ✅ 單元測試 |
+| 7.6 | 交易紀錄顯示已作廢、當日統計排除、交易 CSV 排除 | ✅ 單元測試 |
+| 7.7 | 文件與手動測試清單 | ✅ |
+
+#### 實作與計畫的差異（相對 2026-10-28 Backlog 草案）
+
+| 項目 | 原規格 | 實際 | 原因 |
+|------|--------|------|------|
+| 作廢資料位置 | 交易上標記作廢時間、原因 | 獨立、只新增的 `CDTransactionVoidEntity`（無 relationship，存 `transactionId`／`eventId`），交易本身不動 | 交易是流水帳，快照不改；與場次刪除後交易保留的規則一致 |
+| 回流的庫存原因 | 原因寫「作廢交易 TXN…」 | 新增庫存原因 `.voidRestock`（作廢回流），交易編號放 `transactionId` | 不借用「退貨入庫」加 `customReason`，原因可被篩選與測試 |
+| 入口 | 未定 | 只在交易明細（交易紀錄卡片不放作廢入口） | 避免誤觸；明細才看得到整筆內容 |
+| 原因輸入 | 輸入錯誤／客人取消／退貨／其他（可補文字） | 作廢視窗用 Picker，**沒有預設值**，未選不能作廢；補充說明選填 | 不讓預設值替使用者決定 |
+| 回流預設 | 待定（猜測：依原因預設） | 「回流／不回流」**沒有預設**，未選不能作廢 | 使用者決定；退貨的食物常不能再賣 |
+| 確認 | 作廢前跳確認視窗 | 確認框文字依回流與否不同；取消不會作廢 | 作廢不可還原 |
+| 作廢視窗 | — | 獨立頁面＋`VoidTransactionViewModel`（CONVENTIONS MVVM 規則 5） | 一個頁面一個 ViewModel |
+| 回流寫入失敗 | — | `InventoryChangeRepository.addChanges` 改回傳 `Bool`；失敗回報 `.restockFailed`，且不更新庫存、不寫作廢紀錄 | 避免庫存與異動紀錄不一致 |
+| `EventDataSource.transactions` | 作廢交易從報表排除 | `transactions` 改為「有效交易」，新增 `allTransactions`（交易紀錄用）；場次列表／日曆走 `TransactionRepository.effectiveSummary` | 排除邏輯集中一處（`TransactionVoidIndex`） |
+| 商品鎖定 | 有交易的商品仍鎖定 | 不變（`TransactionIndex` 看全部交易，作廢不解除） | — |
+
+#### 測試
+
+##### 自動 —— 指令驗證
+
+```bash
+python3 scripts/check_field_classification.py
+xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
+##### 自動 —— 單元測試
+
+`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`。
+
+##### 手動 —— 需操作 App（⬜ 待做）
+
+1. 結帳一筆含單點＋套餐的交易 → 明細作廢、選「輸入錯誤」＋回流 → 確認框文字正確 → 明細出現已作廢卡片、按鈕消失。
+2. 管理商品頁：該商品庫存加回、異動列表出現「作廢回流」（套餐成員各一筆、顯示來自〈套餐〉）。
+3. 交易紀錄：卡片變淡＋刪除線＋標籤；當日總額與筆數排除；匯出交易 CSV 不含該筆；庫存 CSV 作廢回流列有交易編號。
+4. 查看分析銷售／商品成效數字排除；回場次列表與日曆，筆數與總額一致。
+5. 另一筆選「不回流」→ 庫存不變、無異動。
+6. 作廢視窗未選原因或回流時作廢按鈕不可按；取消確認框不會作廢。
+7. 已作廢交易的商品仍不能刪除；已結束場次的交易也能作廢。
+8. 深色模式檢查卡片、標籤、已作廢卡片可讀。
+
 ### Backlog
 
 - 庫存 +/− 與盤點雙模式（§10）
 - 組合／套餐績效報表
-- **交易明細 CSV 重新設計**（排在套餐、交易作廢之後）。現況問題（2026-10-28 檢查 `generateCSVContent`）：① 交易編號、整單折扣、總金額每個商品列都重複，直接加總會多算；② 「整單折扣」匯出的是文字（如 `10% -25`）不是金額，也沒匯出每項的實際營收（`allocatedDiscount`），小計與總金額對不起來；③ 付款方式等欄位沒有逸出、沒用共用的 `CSVExporter.row`；④ 沒有測試。重新設計時要涵蓋套餐／組合欄位與作廢狀態。
-- **交易作廢**（排在套餐之後；2026-10-28 設計草案，尚未細化）：
-  - 做法：交易上標記已作廢（作廢時間、原因），**原快照不改**；只能作廢一次，不能還原（要重來用新增／補記帳）。
-  - 報表：作廢的交易從營收、銷量、類別、折扣洞察排除，排除邏輯集中在 `EventDataSource`；交易紀錄仍顯示並標「已作廢」。
-  - 庫存：**使用者可選「庫存回流」或「不回流」**（✅ 使用者決定；退貨的食物常不能再賣）。回流時每個商品新增一筆回流的 `InventoryChange`（套餐對每個成員各一筆，沿用 `bundleId`），原因寫「作廢交易 TXN…」。
-  - 原因：輸入錯誤／客人取消／退貨／其他（可補文字，選填）。
-  - 有交易的商品仍鎖定（作廢不解除）；作廢前跳確認視窗。
-  - 待定：「回流」開關的預設值（我的猜測：輸入錯誤、客人取消預設回流；退貨預設不回流）。
+- **交易明細 CSV 重新設計**（排在套餐、交易作廢之後）。現況問題（2026-10-28 檢查 `generateCSVContent`）：① 交易編號、整單折扣、總金額每個商品列都重複，直接加總會多算；② 「整單折扣」匯出的是文字（如 `10% -25`）不是金額，也沒匯出每項的實際營收（`allocatedDiscount`），小計與總金額對不起來；③ 付款方式等欄位沒有逸出、沒用共用的 `CSVExporter.row`；④ 沒有測試。重新設計時要涵蓋套餐／組合欄位與作廢狀態。作廢狀態欄位：第 7 批已讓現行交易 CSV 排除已作廢交易，重新設計時改為「作廢狀態、作廢時間、原因、是否回流」欄位（資料來自 `CDTransactionVoidEntity`），決定是否保留作廢列。
+- **交易作廢**：已於第 7 批實作，見 §11「第 7 批」與設計 `docs/superpowers/specs/2026-11-04-void-transaction-design.md`。
 - 類別 icon
 - 商品編輯開放（等本輪統一穩定後再評估）
 - 本地化三條通道收斂（§1.7 F1–F4，等語言切換去留的產品決定）
@@ -2382,3 +2429,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-11-02 | 收銀頁互動調整（含 10-30 驗收修正與回饋）手動測試完成 |
 | 2026-11-04 | 第 6 批 6.1 重寫（前兩版驗收失敗、退回 `4cf4d26`）：共用 `SectionedScrollView`（點 chip 根因修正、捲動依序高亮含最後一段平均分配）、管理商品頁改一般捲動畫面＋右上角「排序」按鈕與排序畫面（含套餐／組合 `sortOrder`）、網格／列表設定可注入、互動驗證工具。全部 331 個測試於 iOS 18.3、26.3 通過；iOS 17.5（暫改最低版本跑測試，跑完還原）本批測試全過，另有 1 個既有的 `ReportTimeRangeSelectorLayoutTests` 在 iOS 17.5 寬 393pt 時超出 0.33pt（本批未修改該畫面，之前未在 iOS 17 跑過）；手動測試完成 |
 | 2026-11-04 | 6.1 驗收後調整：排序畫面左側 ≡＋按住整列拖曳並拆出 `InventoryReorderViewModel`、交易明細拆出 `TransactionDetailViewModel`（交易編號／付款方式文字改共用）、年月選擇搬到獨立檔案、登入完成判斷搬進 `AuthenticationManager`、套餐／組合「儲存」移到右上角、新增商品圖片移到最上方、套餐圖片標題改「商品圖片（選填）」。335 個測試於 iOS 18.3、26.3 通過；iOS 17.5 僅既有的版面測試失敗；手動測試完成 |
+| 2026-11-04 | 第 7 批 交易作廢（7.1–7.7）：獨立作廢紀錄實體 `CDTransactionVoidEntity`、`TransactionVoidIndex`、`VoidRecorder`、庫存原因「作廢回流」、交易明細作廢流程（Picker 原因、無預設回流、確認框）、`EventDataSource.transactions` 改為有效交易並新增 `allTransactions`、交易紀錄與交易 CSV 處理作廢。手動測試待做 |

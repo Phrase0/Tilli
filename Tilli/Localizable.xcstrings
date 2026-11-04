@@ -687,6 +687,7 @@
       }
     },
     "inventoryReasonVoidRestock" : {
+      "comment" : "作廢回流",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8034,6 +8035,7 @@
       }
     },
     "voidReasonCustomerCancelled" : {
+      "comment" : "客人取消",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8050,6 +8052,7 @@
       }
     },
     "voidReasonInputError" : {
+      "comment" : "輸入錯誤",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8083,6 +8086,7 @@
       }
     },
     "voidReasonOther" : {
+      "comment" : "其他",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8116,6 +8120,7 @@
       }
     },
     "voidReasonReturned" : {
+      "comment" : "退貨",
       "localizations" : {
         "en" : {
           "stringUnit" : {

@@ -484,3 +484,4 @@ grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
 | 2026-10-28 | 「共用計算元件」表新增 `BundleValidator`、`BundleAvailability`（含 `comboWarning`、`displayText`）、`ComboApplier`、`CartPricing`、`CheckoutRecorder`、`TransactionBreakdown`（第 5 批） |
 | 2026-10-28 | 第 5 批最終審查：`CartPricing.discountBase` 成為折扣基準唯一實作；`BundleValidator.bundles(referencingAnyOf:)` 供刪除類別守衛使用 |
 | 2026-11-04 | MVVM 規則新增第 5 條「一個頁面一個 ViewModel」與例外清單；「共用計算元件」表新增交易編號與付款方式顯示文字 |
+| 2026-11-04 | 第 7 批 交易作廢：「共用計算元件」表新增 `TransactionVoidIndex`（交易是否作廢／有效交易的唯一來源）；`EventDataSource.transactions` 改為有效交易、`allTransactions` 為全部 |
