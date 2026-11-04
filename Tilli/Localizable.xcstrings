@@ -7965,6 +7965,23 @@
         }
       }
     },
+    "voidedTag" : {
+      "comment" : "已作廢",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voided"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已作廢"
+          }
+        }
+      }
+    },
     "voidedTitle" : {
       "comment" : "已作廢",
       "localizations" : {

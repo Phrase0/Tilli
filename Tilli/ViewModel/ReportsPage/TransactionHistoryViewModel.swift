@@ -100,6 +100,7 @@ class TransactionHistoryViewModel: ObservableObject {
         let groups = grouped.map { date, txs in
             DailyTransactionGroup(
                 date: date,
+                voidedIds: voidedIds(in: txs),
                 transactions: sortAscending
                     ? txs.sorted { $0.displayDate < $1.displayDate }
                     : txs.sorted { $0.displayDate > $1.displayDate }
@@ -110,6 +111,11 @@ class TransactionHistoryViewModel: ObservableObject {
         return sortAscending
             ? groups.sorted { $0.date < $1.date }
             : groups.sorted { $0.date > $1.date }
+    }
+
+    /// 是否為作廢交易（經場次共用的作廢索引）
+    func isVoided(_ transaction: TransactionModel) -> Bool {
+        dataSource.voidIndex.isVoided(transaction.id)
     }
 
     /// 是否有套用篩選（用於顯示篩選狀態）
@@ -162,6 +168,7 @@ class TransactionHistoryViewModel: ObservableObject {
         groupedTransactions = grouped.map { date, txs in
             DailyTransactionGroup(
                 date: date,
+                voidedIds: voidedIds(in: txs),
                 transactions: txs.sorted { $0.displayDate > $1.displayDate }
             )
         }.sorted { $0.date > $1.date }
@@ -170,6 +177,10 @@ class TransactionHistoryViewModel: ObservableObject {
         initializeDailyGroupExpansion()
     }
     
+    private func voidedIds(in transactions: [TransactionModel]) -> Set<UUID> {
+        Set(transactions.filter { isVoided($0) }.map(\.id))
+    }
+
     private func initializeDailyGroupExpansion() {
         expandedDailyGroupIds = Set(groupedTransactions.map { $0.date })
     }
@@ -202,7 +213,7 @@ class TransactionHistoryViewModel: ObservableObject {
         let h11 = String.localized("csvBackdated")
         csvContent += "\(h1),\(h2),\(h3),\(h4),\(h5),\(h6),\(h7),\(h8),\(h9),\(h10),\(h11)\n"
 
-        for transaction in transactions.sorted(by: { $0.displayDate > $1.displayDate }) {
+        for transaction in dataSource.voidIndex.effective(transactions).sorted(by: { $0.displayDate > $1.displayDate }) {
             let transactionId = transaction.displayNumber
             let dateTime = DateFormatter.dateTime.string(from: transaction.displayDate)
             let paymentMethod = transaction.paymentMethod.displayName
@@ -286,16 +297,24 @@ class TransactionHistoryViewModel: ObservableObject {
 struct DailyTransactionGroup: Identifiable {
     let id = UUID()
     let date: Date
+    /// 當日交易中已作廢者的 id
+    let voidedIds: Set<UUID>
+    /// 當日所有交易（含作廢，列表要顯示）
     let transactions: [TransactionModel]
-    
-    /// 當日總金額
-    var totalAmount: Decimal {
-        transactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+
+    /// 當日有效交易（排除作廢）
+    private var effectiveTransactions: [TransactionModel] {
+        transactions.filter { !voidedIds.contains($0.id) }
     }
-    
-    /// 當日交易筆數
+
+    /// 當日總金額（只算有效交易）
+    var totalAmount: Decimal {
+        effectiveTransactions.reduce(0) { MoneyHelper.add($0, $1.totalAmount) }
+    }
+
+    /// 當日交易筆數（只算有效交易）
     var count: Int {
-        transactions.count
+        effectiveTransactions.count
     }
     
     /// 日期顯示文字

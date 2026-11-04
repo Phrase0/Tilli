@@ -221,15 +221,29 @@ struct TransactionHistoryView: View {
     /// 不用 NavigationLink(value:)：場次工作區是以 navigationDestination(item:) 推進來的，
     /// 兩種導航混用時 SwiftUI 會把明細頁排到工作區下面並重建工作區。
     private func transactionCard(_ transaction: TransactionModel) -> some View {
-        Button {
+        let isVoided = transactionViewModel.isVoided(transaction)
+        return Button {
             selectedTransaction = transaction
         } label: {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 // 第一行：交易編號和支付方式
                 HStack {
-                    Text(transaction.displayNumber)
-                        .font(.subheadline)
-                        .foregroundColor(DesignSystem.ColorToken.ink)
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Text(transaction.displayNumber)
+                            .font(.subheadline)
+                            .foregroundColor(DesignSystem.ColorToken.ink)
+
+                        if isVoided {
+                            // 已作廢
+                            Text("voidedTag")
+                                .font(DesignSystem.Typography.caption)
+                                .padding(.horizontal, DesignSystem.Spacing.xs)
+                                .padding(.vertical, 2)
+                                .background(DesignSystem.ColorToken.quietFill)
+                                .foregroundColor(DesignSystem.ColorToken.alertRed)
+                                .cornerRadius(DesignSystem.Radius.sm)
+                        }
+                    }
 
                     Spacer()
 
@@ -271,6 +285,7 @@ struct TransactionHistoryView: View {
                         Text(transactionViewModel.formatAmount(transaction.totalAmount))
                             .font(.headline)
                             .bold()
+                            .strikethrough(isVoided)
                             .foregroundColor(DesignSystem.ColorToken.ink)
 
                         Image(systemName: "chevron.right")
@@ -289,6 +304,8 @@ struct TransactionHistoryView: View {
                 x: DesignSystem.Shadow.cardX,
                 y: DesignSystem.Shadow.cardY
             )
+            // 作廢卡片降透明度；0.55 在淺色與深色模式下文字對比仍可讀
+            .opacity(isVoided ? 0.55 : 1)
         }
         .buttonStyle(PlainButtonStyle())
     }

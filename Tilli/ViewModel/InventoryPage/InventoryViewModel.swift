@@ -290,9 +290,9 @@ class InventoryViewModel: ObservableObject {
             let change = entry.change
             let product = entry.product
 
-            // 交易編號（僅銷售出庫有值）
+            // 交易編號（銷售出庫與作廢回流有值）
             let transactionIdText: String
-            if change.reason == .salesOut, let txId = change.transactionId {
+            if change.reason == .salesOut || change.reason == .voidRestock, let txId = change.transactionId {
                 transactionIdText = TransactionModel.displayNumber(for: txId)
             } else {
                 transactionIdText = "-"
