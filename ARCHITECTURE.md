@@ -190,7 +190,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `change` | S | 現有 | +10 進貨 / −3 銷售 |
 | `reason` | S | 現有 | |
 | `customReason` | S | 現有 | |
-| `transactionId` | R | 現有 | 僅銷售出庫時有值 |
+| `transactionId` | R | 現有 | 銷售出庫與作廢回流時有值 |
 | `timestamp` | S | 現有 | |
 | `eventId` | R | 現有 | |
 | `bundleId` | R | 現有 | 來自哪個組合／套餐 |
@@ -200,6 +200,23 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `syncStatus` | M·X | 現有 | |
 
 > ⚠️ 另需新增 `product` relationship + inverse。現況有 `event` 卻沒有 `product`，不對稱。
+
+### CDTransactionVoidEntity
+
+> 資料類型：**流水帳** —— 作廢紀錄，只新增；無 relationship，存 `eventId`，場次刪除後比照交易保留
+
+| 欄位 | 分類 | 狀態 | 說明 |
+|------|------|------|------|
+| `id` | R | 現有 | |
+| `transactionId` | R | 現有 | 被作廢的交易 |
+| `eventId` | R | 現有 | |
+| `voidedAt` | S | 現有 | |
+| `reason` | S | 現有 | `VoidReason` |
+| `note` | S | 現有 | 空字串存 nil |
+| `restocked` | S | 現有 | 作廢時是否回補庫存 |
+| `updatedAt` | M | 現有 | ⚠️ pull cursor 必需 |
+| `userId` | M | 現有 | |
+| `syncStatus` | M·X | 現有 | |
 
 ### CDQRCodeEntity
 

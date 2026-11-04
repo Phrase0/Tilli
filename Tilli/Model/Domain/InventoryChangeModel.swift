@@ -16,7 +16,7 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
     case internalUse    // 內部領用（公司自用或樣品提供）
     case purchase       // 進貨入庫（廠商採購）
     case adjustment     // 其他調整
-
+    case voidRestock    // 作廢回流（交易作廢時回補庫存，自動記錄）
 
     var displayName: String {
         switch self {
@@ -28,13 +28,14 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
         case .internalUse: return String.localized("inventoryReasonInternalUse") // 內部領用
         case .purchase: return String.localized("inventoryReasonPurchase") // 進貨入庫
         case .adjustment: return String.localized("inventoryReasonAdjustment") // 其他調整
+        case .voidRestock: return String.localized("inventoryReasonVoidRestock") // 作廢回流
         }
     }
 
     /// 是否為增加庫存的操作
     var isIncrease: Bool {
         switch self {
-        case .returnIn, .purchase: return true
+        case .returnIn, .purchase, .voidRestock: return true
         default: return false
         }
     }
@@ -59,7 +60,7 @@ enum InventoryChangeReason: String, Codable, CaseIterable {
         [.salesOut, .inventoryLoss, .damaged, .expired, .internalUse, .adjustment]
     }
 
-    /// 根據庫存變化量取得可用原因（不包含 salesOut，因為那是自動記錄的）
+    /// 根據庫存變化量取得可用原因（不包含 salesOut、voidRestock，因為那是自動記錄的）
     static func availableReasons(for stockDelta: Int) -> [InventoryChangeReason] {
         if stockDelta > 0 {
             // 增加庫存：進貨入庫、退貨入庫、其他調整
@@ -81,7 +82,7 @@ struct InventoryChangeModel: Identifiable, Codable {
     var change: Int                        // +10 進貨，-3 銷售
     var reason: InventoryChangeReason      // 異動原因
     var customReason: String?              // 「其他調整」時的自定義原因
-    var transactionId: UUID?               // 關聯的交易 ID（僅銷售出庫時有值）
+    var transactionId: UUID?               // 關聯的交易 ID（銷售出庫與作廢回流時有值）
     var timestamp: Date
     var eventId: UUID?                   // Firestore 同步用
     var bundleId: UUID? = nil              // 來自哪個組合／套餐（銷售出庫時）

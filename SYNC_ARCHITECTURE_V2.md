@@ -96,7 +96,7 @@
 
 | 類別 | 成員 | 上傳 | 下載合併 | 衝突 |
 |------|------|------|----------|------|
-| **流水帳** (Ledger) | `Transaction`、`InventoryChange` | 只新增，永不改/刪 | 聯集（id 已存在就跳過） | **不可能發生** |
+| **流水帳** (Ledger) | `Transaction`、`InventoryChange`、`TransactionVoid` | 只新增，永不改/刪 | 聯集（id 已存在就跳過） | **不可能發生** |
 | **文件** (Document) | `Event`、`Category`、`Product`、`PaymentQRCode`、`UserProfile` | `setData` 整份覆蓋（upsert） | LWW by `serverTimestamp` + tombstone | 罕見、可接受 |
 | **推導** (Derived) | `stock`、營收統計、庫存報表 | **永不上傳** | 本機從前兩類重算 | 不存在 |
 

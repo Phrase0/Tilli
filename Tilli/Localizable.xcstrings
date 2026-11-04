@@ -686,6 +686,22 @@
         }
       }
     },
+    "inventoryReasonVoidRestock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Void restock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢回流"
+          }
+        }
+      }
+    },
     "inventoryReorderButton" : {
       "comment" : "排序",
       "localizations" : {
@@ -7775,6 +7791,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "時間"
+          }
+        }
+      }
+    },
+    "voidReasonCustomerCancelled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customer cancelled"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "客人取消"
+          }
+        }
+      }
+    },
+    "voidReasonInputError" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input error"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入錯誤"
+          }
+        }
+      }
+    },
+    "voidReasonOther" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他"
+          }
+        }
+      }
+    },
+    "voidReasonReturned" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Returned"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退貨"
           }
         }
       }

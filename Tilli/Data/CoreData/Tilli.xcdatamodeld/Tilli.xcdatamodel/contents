@@ -105,4 +105,16 @@
         <attribute name="userId" optional="YES" attributeType="String"/>
         <relationship name="event" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDEventEntity" inverseName="transactions" inverseEntity="CDEventEntity"/>
     </entity>
+    <entity name="CDTransactionVoidEntity" representedClassName="CDTransactionVoidEntity" syncable="YES">
+        <attribute name="eventId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="reason" attributeType="String"/>
+        <attribute name="restocked" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="syncStatus" optional="YES" attributeType="String" defaultValueString="synced"/>
+        <attribute name="transactionId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="userId" optional="YES" attributeType="String"/>
+        <attribute name="voidedAt" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
 </model>
