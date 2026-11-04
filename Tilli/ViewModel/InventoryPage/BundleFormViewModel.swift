@@ -120,8 +120,14 @@ final class BundleFormViewModel: ObservableObject {
             productIds: selectedProductIds,
             isDisabled: editing?.isDisabled ?? false,
             imageURL: editing?.imageURL,
-            createdAt: createdAt
+            createdAt: createdAt,
+            sortOrder: editing?.sortOrder ?? nextSortOrder
         )
+    }
+
+    /// 新增時排在同一 kind 的最後
+    private var nextSortOrder: Int {
+        (event.bundles.filter { $0.kind == kind }.map(\.sortOrder).max() ?? -1) + 1
     }
 
     /// 表單「原價合計」提示：已勾選成員的單價合計

@@ -33,6 +33,25 @@ enum InventoryExportType {
     case detail    // 庫存異動明細
 }
 
+/// 管理商品頁的一個區塊（chip 列與清單共用）
+enum InventorySectionID: Hashable {
+    case comboBundles
+    case fixedBundles
+    case category(UUID)
+}
+
+/// 排序畫面的草稿：組合、套餐、各類別商品（不套搜尋、含已下架）
+struct ReorderDraft: Equatable {
+    struct CategoryGroup: Equatable {
+        let category: CategoryModel
+        var products: [ProductModel]
+    }
+
+    var combos: [BundleModel]
+    var fixed: [BundleModel]
+    var categories: [CategoryGroup]
+}
+
 @MainActor
 class InventoryViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -70,6 +89,19 @@ class InventoryViewModel: ObservableObject {
     /// 從 event 取得類別列表（只顯示啟用的，按 sortOrder 排序）
     var sortedCategories: [CategoryModel] {
         event.categories.active
+    }
+
+    // MARK: - 區塊（chip 列與清單區塊的單一定義）
+
+    /// 畫面上的區塊與順序（套用搜尋）：組合、套餐，接著是有商品的類別
+    var sectionIDs: [InventorySectionID] {
+        var ids: [InventorySectionID] = []
+        if !comboBundles.isEmpty { ids.append(.comboBundles) }
+        if !fixedBundles.isEmpty { ids.append(.fixedBundles) }
+        ids += sortedCategories
+            .filter { !getItemsForCategory($0.id).isEmpty }
+            .map { .category($0.id) }
+        return ids
     }
 
     /// 檢查是否有任何商品（用於空狀態判斷）
@@ -150,23 +182,63 @@ class InventoryViewModel: ObservableObject {
         return inStock + outOfStock
     }
 
-    // MARK: - 商品排序（長按拖曳，僅限同一類別內）
+    // MARK: - 排序畫面
 
-    /// 拖曳排序後呼叫：把同類別商品依新順序重新編號並寫回 Repository
-    func moveProduct(in categoryId: UUID, from source: IndexSet, to destination: Int) {
-        guard let productRepo = productRepository else { return }
+    /// 是否開著排序畫面（工作區右上角的「排序」按鈕打開）
+    @Published var isReordering = false
+    /// 排序寫入失敗（排序畫面自己顯示提示；管理頁的 `showAlert` 被 sheet 蓋住看不到）
+    @Published var reorderSaveFailed = false
 
-        var items = getItemsForCategory(categoryId)
-        items.move(fromOffsets: source, toOffset: destination)
+    /// 排序畫面的草稿：組合、套餐依顯示順序，各類別商品依 sortOrder（不套搜尋、含已下架）
+    func makeReorderDraft() -> ReorderDraft {
+        ReorderDraft(
+            combos: event.bundles.filter { $0.kind == .chooseAny }.sortedForDisplay(),
+            fixed: event.bundles.filter { $0.kind == .fixed }.sortedForDisplay(),
+            categories: sortedCategories.compactMap { category in
+                let products = inventoryItems
+                    .map(\.product)
+                    .filter { $0.categoryId == category.id }
+                    .sorted { $0.sortOrder < $1.sortOrder }
+                return products.isEmpty ? nil : .init(category: category, products: products)
+            }
+        )
+    }
 
-        // 依新順序重新編號 0...n-1，並同步更新畫面上的 inventoryItems（避免等下次 loadData 才刷新）
-        for (index, item) in items.enumerated() {
-            if let itemIndex = inventoryItems.firstIndex(where: { $0.id == item.id }) {
-                inventoryItems[itemIndex].product.sortOrder = index
+    /// 按「完成」：套餐／組合依草稿寫入 sortOrder 0…n-1，各類別商品重新編號；沒變動的不寫。
+    /// 任何一步失敗就提示並回傳 false（畫面不關閉，可再按一次）
+    @discardableResult
+    func saveOrder(_ draft: ReorderDraft) -> Bool {
+        guard let productRepository else {
+            reorderSaveFailed = true
+            return false
+        }
+        let original = makeReorderDraft()
+
+        if draft.combos != original.combos || draft.fixed != original.fixed {
+            var order: [UUID: Int] = [:]
+            for (index, bundle) in draft.combos.enumerated() { order[bundle.id] = index }
+            for (index, bundle) in draft.fixed.enumerated() { order[bundle.id] = index }
+            let bundles = event.bundles.map { bundle -> BundleModel in
+                var copy = bundle
+                if let index = order[bundle.id] { copy.sortOrder = index }
+                return copy
+            }
+            guard writeBundles(bundles) else {
+                reorderSaveFailed = true
+                return false
             }
         }
 
-        productRepo.updateProductOrder(items.map { $0.id })
+        let changedGroups = draft.categories.filter { group in
+            original.categories.first { $0.category.id == group.category.id }?.products.map(\.id) != group.products.map(\.id)
+        }
+        for group in changedGroups where !productRepository.updateProductOrder(group.products.map(\.id)) {
+            loadData()
+            reorderSaveFailed = true
+            return false
+        }
+        if !changedGroups.isEmpty { loadData() }
+        return true
     }
 
     // MARK: - CSV 匯出
@@ -543,10 +615,7 @@ extension InventoryViewModel {
         event.bundles
             .filter { $0.kind == kind }
             .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
-            .sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+            .sortedForDisplay()
     }
 
     /// 列的副標：套餐 = 成員名稱；組合 = 「任選 N 個：候選名稱」
@@ -602,13 +671,18 @@ extension InventoryViewModel {
 
     @discardableResult
     private func saveBundles(_ bundles: [BundleModel]) -> Bool {
-        guard let eventRepository else { return false }
-        guard eventRepository.saveBundles(bundles, forEventId: event.id) else {
+        guard writeBundles(bundles) else {
             // 儲存失敗，請再試一次
             alertMessage = String.localized("bundleSaveFailed")
             showAlert = true
             return false
         }
+        return true
+    }
+
+    /// 寫入套餐／組合並重新載入；不顯示提示（由呼叫端決定在哪裡提示）
+    private func writeBundles(_ bundles: [BundleModel]) -> Bool {
+        guard let eventRepository, eventRepository.saveBundles(bundles, forEventId: event.id) else { return false }
         loadData()
         return true
     }

@@ -703,19 +703,36 @@
         }
       }
     },
-    "inventoryChipAll" : {
-      "comment" : "全部",
+    "inventoryReorderButton" : {
+      "comment" : "排序",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "All"
+            "value" : "Reorder"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "全部"
+            "value" : "排序"
+          }
+        }
+      }
+    },
+    "inventoryReorderTitle" : {
+      "comment" : "排序",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reorder"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序"
           }
         }
       }

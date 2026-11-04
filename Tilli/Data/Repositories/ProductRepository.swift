@@ -69,8 +69,10 @@ class ProductRepository: ObservableObject {
 
     /// 依拖曳後的新順序，重新寫入同一類別內商品的 sortOrder（管理商品頁長按拖曳排序用）
     /// `orderedProductIds` 必須是「同一個類別」內、拖曳後的完整順序。
-    func updateProductOrder(_ orderedProductIds: [UUID]) {
-        guard !orderedProductIds.isEmpty else { return }
+    /// 依傳入順序把 sortOrder 重新編號 0…n-1；寫入失敗回傳 false
+    @discardableResult
+    func updateProductOrder(_ orderedProductIds: [UUID]) -> Bool {
+        guard !orderedProductIds.isEmpty else { return true }
 
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id IN %@", orderedProductIds)
@@ -87,10 +89,11 @@ class ProductRepository: ObservableObject {
                 updatedModels.append(entity.toModel())
             }
 
-            saveContext()
             // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+            return saveContext()
         } catch {
             print("更新商品排序失敗:", error)
+            return false
         }
     }
 
@@ -383,13 +386,16 @@ class ProductRepository: ObservableObject {
     
 
     // MARK: - Save Context
-    private func saveContext() {
+    @discardableResult
+    private func saveContext() -> Bool {
         do {
             try context.save()
             print("Product data saved to CoreData")
+            return true
         } catch {
             print("Core Data save failed:", error)
             context.rollback()
+            return false
         }
     }
 }

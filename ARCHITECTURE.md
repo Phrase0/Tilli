@@ -293,6 +293,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 ### BundleModel（存於 `CDEventEntity.bundlesData`）
 
 > 2026-10-27 修訂：移除 `sortOrder`（套用順序由系統自動決定）、新增 `imageURL`。細節見 `docs/superpowers/specs/2026-10-27-bundles-design.md`。
+> 2026-11-04 修訂：加回 `sortOrder`，但**只決定顯示順序**（排序畫面寫入），組合的自動套用順序仍由系統決定。
 
 > 資料類型：**文件**
 
@@ -305,6 +306,8 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 | `productIds` | L | 現有 | 成員或候選清單 |
 | `imageURL` | L | 現有 | 套餐照片（選填）。圖檔存本機，不放進 `bundlesData` |
 | `isDisabled` | L | 現有 | |
+| `createdAt` | L | 現有 | 建立時間；`sortOrder` 相同時依此排序 |
+| `sortOrder` | L | 現有 | 同一 kind 內的顯示順序（排序畫面寫入，新增時排在最後）。只影響顯示，組合的自動套用順序仍由系統決定（2026-11-04） |
 
 ---
 
@@ -491,3 +494,4 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：資料結構於 5.1 已落地，其後各批**未再改動 CoreData schema 或 §4 分類表**（`bundleDiscount`／`bundleKind` 在 `itemsData` 內、`BundleModel` 在 `bundlesData` 內；套餐照片 `BundleImageStore` 只存本機檔案，不是 CoreData 欄位）。欄位分類腳本通過 |
 | 2026-10-30 | §5 `SummaryItemModel` 新增 `bundleGroupCount`（在 `itemsData` 內，不改 CoreData schema 或 §4） |
 | 2026-10-30 | §4 `CDProductEntity` 刪除 `note`（商品描述；使用者決定移除，尚未上架不需遷移） |
+| 2026-11-04 | §5 `BundleModel` 加回 `sortOrder`（只決定顯示順序；在 `bundlesData` 內，不改 CoreData schema）、補上既有的 `createdAt` 列 |

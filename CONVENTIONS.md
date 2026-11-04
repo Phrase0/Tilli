@@ -151,6 +151,7 @@ struct POSView: View {
 | `joinedAsList()`／`joinedAsBundleMembers()` | `Extensions/Sequence+LocalizedJoin.swift` | 6 處寫死的全形「、」「＋」（2026-10-29） | `joined(separator: "、")`、`joined(separator: "＋")` 這類寫死的使用者可見分隔符（`print` 除外）；也不要用 `ListFormatter`（跟系統語言走，不跟 App 語言） |
 | `TagLabel` | `View/Components/TagLabel.swift` | 各畫面自己畫的小標籤（4px 圓角、垂直內距 2，不符 DESIGN.md）（2026-10-29） | 自己用 `RoundedRectangle(cornerRadius: 4)`／`.padding(.vertical, 2)` 畫「已下架／套餐／含組合」這類中性標籤。⚠️ View 裡的 helper **不可命名為 `tag`**：會被解析成 SwiftUI 的 `View.tag(_:)`，把整個 View 包進自己而無限遞迴閃退 |
 | `TransactionBreakdown` | `Service/TransactionBreakdown.swift` | （新）交易明細／摘要的顯示資料 | 歷史畫面（明細頁、卡片）從場次設定重算套餐價或組合折抵；自己 `reduce` 算明細小計。**只准讀交易快照**（`bundleDiscount`、`bundleKind`、`appliedDiscounts`） |
+| `SectionedScrollView`／`SectionChipRow`／`SectionHighlight`／`SectionScrollState`／`onUserScroll` | `View/Components/SectionedScrollView.swift`、`SectionChipRow.swift` | 管理商品頁自己畫的 chip 列與收銀頁私有的捲動收合（2026-11-04） | 頁面自己做區塊 chip 列或捲動追蹤（一律用 `SectionedScrollView`）；chip 的身分（`ForEach` id 或 `.id`）與區塊 id 相同（點 chip 會捲動 chip 列而不是商品列表）；`ScrollViewReader` 同時包住 chip 列與商品列表；自己寫偵測手指捲動的手勢 |
 | `QuantityStepper` | `View/Components/QuantityStepper.swift` | 收銀頁列表／格狀卡片、套餐卡片各自的 `minus.circle.fill`／`plus.circle.fill` 增減列（2026-10-29） | 卡片或訂單摘要自己畫 ＋/− 按鈕列；自己管「哪一項展開」（一律用 `POSViewModel.expandedItem`／`increment`／`decrement`／`canIncrement`） |
 | `DiscountBreakdownView` | `View/Components/DiscountBreakdownView.swift` | 交易明細頁與訂單摘要各自畫的「小計／組合／折扣／總計」（2026-10-29） | 自己排小計、組合優惠、折扣、總計與「共省」；自己寫 `"-" + 金額` 的折抵格式 |
 

@@ -27,6 +27,8 @@ struct BundleModel: Identifiable, Codable, Hashable {
     var isDisabled: Bool = false
     var imageURL: String? = nil     // 套餐照片（選填）；圖檔存本機
     var createdAt: Date = Date()
+    /// 同一 kind（套餐／組合）內的顯示順序（排序畫面寫入；新增時排在最後）。不影響組合的自動套用順序
+    var sortOrder: Int = 0
 
     /// 由 mode 推導，不另外存
     var kind: BundleKind {
@@ -47,7 +49,7 @@ struct BundleModel: Identifiable, Codable, Hashable {
 
 extension BundleModel {
     private enum CodingKeys: String, CodingKey {
-        case id, name, price, mode, productIds, isDisabled, imageURL, createdAt
+        case id, name, price, mode, productIds, isDisabled, imageURL, createdAt, sortOrder
     }
 
     /// 合成的 Decodable 不套用屬性預設值，缺 key 會整份解不出來，所以手寫。
@@ -61,12 +63,25 @@ extension BundleModel {
         isDisabled = try c.decodeIfPresent(Bool.self, forKey: .isDisabled) ?? false
         imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date(timeIntervalSince1970: 0)
+        sortOrder = try c.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
+    }
+}
+
+extension Sequence where Element == BundleModel {
+    /// 套餐／組合的顯示順序（唯一比較實作）：sortOrder → 建立時間 → id。
+    /// 只影響顯示；組合的自動套用順序由 `ComboApplier` 自己決定
+    func sortedForDisplay() -> [BundleModel] {
+        sorted { lhs, rhs in
+            if lhs.sortOrder != rhs.sortOrder { return lhs.sortOrder < rhs.sortOrder }
+            if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
     }
 }
 
 extension BundleModel {
     /// 複製場次用：換新 bundle id，productIds 依對照表換成新商品 id；任一成員不在對照表 → nil。
-    /// 保留名稱／價格／mode／停用狀態／createdAt（維持列表順序）；imageURL 清空（新圖待同步上傳）。
+    /// 保留名稱／價格／mode／停用狀態／createdAt／sortOrder（維持列表順序）；imageURL 清空（新圖待同步上傳）。
     func remapped(productIdMap: [UUID: UUID]) -> BundleModel? {
         var newProductIds: [UUID] = []
         for oldId in productIds {

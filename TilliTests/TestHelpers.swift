@@ -185,11 +185,12 @@ extension BundleModel {
         productIds: [UUID] = [UUID(), UUID()],
         isDisabled: Bool = false,
         imageURL: String? = nil,
-        createdAt: Date = Date(timeIntervalSince1970: 1_000)
+        createdAt: Date = Date(timeIntervalSince1970: 1_000),
+        sortOrder: Int = 0
     ) -> BundleModel {
         BundleModel(
             id: id, name: name, price: price, mode: mode, productIds: productIds,
-            isDisabled: isDisabled, imageURL: imageURL, createdAt: createdAt
+            isDisabled: isDisabled, imageURL: imageURL, createdAt: createdAt, sortOrder: sortOrder
         )
     }
 

@@ -13,6 +13,12 @@ enum ProductLayoutMode: String, Codable {
     case grid
 }
 
+/// 收銀頁的一個區塊（chip 列與商品列表共用）
+enum POSSectionID: Hashable {
+    case bundles
+    case category(UUID)
+}
+
 /// 收銀頁與訂單摘要的一個可增減品項：單點商品或套餐
 enum CartItemID: Hashable {
     case product(UUID)
@@ -64,12 +70,15 @@ class POSViewModel: ObservableObject {
 
     // Product Detail 相關狀態
 
-    // 布局模式（保存到 UserDefaults）
+    /// 網格／列表（存在 `defaults`，下次進場次讀回）
     @Published var layoutMode: ProductLayoutMode {
         didSet {
-            UserDefaults.standard.set(layoutMode.rawValue, forKey: "ProductLayoutMode")
+            defaults.set(layoutMode.rawValue, forKey: Self.layoutModeKey)
         }
     }
+    /// App 用 `.standard`；測試傳入獨立的 suite，不改到模擬器上 App 的設定
+    private let defaults: UserDefaults
+    private static let layoutModeKey = "ProductLayoutMode"
     
     /// 可販售的商品（商品未下架 + 所屬類別存在且未停用）
     var activeProducts: [ProductModel] {
@@ -141,17 +150,18 @@ class POSViewModel: ObservableObject {
         pricing.discounts
     }
 
-    init(dataSource: EventDataSource) {
+    init(dataSource: EventDataSource, defaults: UserDefaults = .standard) {
         self.dataSource = dataSource
+        self.defaults = defaults
         self.event = dataSource.event
         self.bundlesById = Self.index(dataSource.event.bundles)
 
-        // 从 UserDefaults 讀取布局模式
-        if let savedMode = UserDefaults.standard.string(forKey: "ProductLayoutMode"),
+        // 讀回上次的網格／列表；沒有時預設列表
+        if let savedMode = defaults.string(forKey: Self.layoutModeKey),
            let mode = ProductLayoutMode(rawValue: savedMode) {
             self.layoutMode = mode
         } else {
-            self.layoutMode = .list  // 默認為列表模式
+            self.layoutMode = .list
         }
     }
     
@@ -168,6 +178,27 @@ class POSViewModel: ObservableObject {
         showAlert = true
     }
     
+    // MARK: - 區塊（chip 列與商品列表的單一定義）
+
+    /// 畫面上的區塊與順序：有收銀頁套餐時「套餐」第一，接著是有可販售商品的類別
+    var sectionIDs: [POSSectionID] {
+        var ids: [POSSectionID] = fixedBundles.isEmpty ? [] : [.bundles]
+        ids += activeCategories
+            .filter { !getSortedProductsForCategory($0.id).isEmpty }
+            .map { .category($0.id) }
+        return ids
+    }
+
+    func sectionTitle(_ id: POSSectionID) -> String {
+        switch id {
+        case .bundles:
+            // 套餐
+            return String.localized("posBundleSection")
+        case .category(let categoryId):
+            return categories.first { $0.id == categoryId }?.name ?? ""
+        }
+    }
+
     /// 取得分類下已排序的商品（有庫存在前，無庫存在後；組內依 sortOrder 排序，跟管理商品頁一致）
     func getSortedProductsForCategory(_ categoryId: UUID) -> [ProductModel] {
         let categoryProducts = activeProducts.filter { $0.categoryId == categoryId }
@@ -300,16 +331,13 @@ class POSViewModel: ObservableObject {
         Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// 收銀頁顯示的套餐（`.fixed`，依建立時間；組合不出現在收銀頁）。
+    /// 收銀頁顯示的套餐（`.fixed`，依顯示順序 `sortedForDisplay`；組合不出現在收銀頁）。
     /// 下架類（套餐／成員下架、類別停用）不列；缺貨照列、卡片灰掉（`BundleAvailability.isListedOnPOS`）
     var fixedBundles: [BundleModel] {
         let products = productsById
         return event.bundles
             .filter { $0.kind == .fixed && BundleAvailability.isListedOnPOS($0, products: products, categories: categories) }
-            .sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+            .sortedForDisplay()
     }
 
     /// 還能再加幾份；不可賣時回傳原因（已扣掉購物車佔用的庫存）
@@ -441,23 +469,17 @@ class POSViewModel: ObservableObject {
     var cancelledCombos: [BundleModel] {
         event.bundles
             .filter { cart.cancelledComboIds.contains($0.id) && $0.kind == .chooseAny && !$0.isDisabled }
-            .sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+            .sortedForDisplay()
     }
 
-    /// 優惠明細的組合列：已套用與本筆已取消的組合，依建立時間固定排序（取消／恢復時位置不變）。
+    /// 優惠明細的組合列：已套用與本筆已取消的組合，依顯示順序固定排列（取消／恢復時位置不變）。
     /// 已取消的列帶「恢復後可省多少」：把它從取消名單拿掉重算一次定價；恢復也湊不成一組的不列
     var comboRows: [DiscountBreakdownView.ComboLine] {
         let applied = Dictionary(pricing.combos.map { ($0.bundleId, $0) }, uniquingKeysWith: { first, _ in first })
         let cancelled = Set(cancelledCombos.map(\.id))
         return event.bundles
             .filter { applied[$0.id] != nil || cancelled.contains($0.id) }
-            .sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+            .sortedForDisplay()
             .compactMap { bundle in
                 if let combo = applied[bundle.id] {
                     return .init(id: bundle.id, name: combo.name, amount: combo.deduction, groupCount: combo.groupCount, isCancelled: false)

@@ -156,26 +156,30 @@ struct POSView: View {
 
     // MARK: - Product List
 
+    /// 區塊 chip 列＋商品區塊；點 chip、手指捲動、點空白處都收合展開中的增減元件
     private var productListSection: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                if !viewModel.fixedBundles.isEmpty {
-                    POSBundleSection(viewModel: viewModel)
-                }
-
-                ForEach(viewModel.activeCategories, id: \.id) { category in
-                    let items = viewModel.getSortedProductsForCategory(category.id)
-                    if !items.isEmpty {
-                        categorySection(category: category, products: items)
-                    }
-                }
-            }
-            .padding(.top, DesignSystem.Spacing.md)
-            // 點空白處收合展開中的增減元件
-            .contentShape(Rectangle())
-            .onTapGesture { viewModel.collapseControls() }
+        SectionedScrollView(
+            ids: viewModel.sectionIDs,
+            title: { Text(verbatim: viewModel.sectionTitle($0)) },
+            topPadding: DesignSystem.Spacing.md,
+            onSelect: { viewModel.collapseControls() },
+            onUserScroll: { viewModel.collapseControls() },
+            onBackgroundTap: { viewModel.collapseControls() }
+        ) { section in
+            sectionView(section)
         }
-        .collapsesControlsOnScroll(viewModel)
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: POSSectionID) -> some View {
+        switch section {
+        case .bundles:
+            POSBundleSection(viewModel: viewModel)
+        case .category(let categoryId):
+            if let category = viewModel.activeCategories.first(where: { $0.id == categoryId }) {
+                categorySection(category: category, products: viewModel.getSortedProductsForCategory(categoryId))
+            }
+        }
     }
 
     // MARK: - Category Section
@@ -478,22 +482,5 @@ struct POSItemStepper: View {
             onDecrement: { viewModel.decrement(item) },
             onExpand: { viewModel.expand(item) }
         )
-    }
-}
-
-private extension View {
-    /// 開始捲動就收合展開中的增減元件
-    @ViewBuilder
-    func collapsesControlsOnScroll(_ viewModel: POSViewModel) -> some View {
-        if #available(iOS 18.0, *) {
-            onScrollPhaseChange { _, phase in
-                if phase == .interacting { viewModel.collapseControls() }
-            }
-        } else {
-            // iOS 17 沒有捲動狀態；用同時進行的拖曳手勢偵測，不影響捲動本身
-            simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { _ in
-                viewModel.collapseControls()
-            })
-        }
     }
 }

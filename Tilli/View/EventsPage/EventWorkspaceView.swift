@@ -150,7 +150,10 @@ struct EventWorkspaceView: View {
     private var trailingToolbarContent: some View {
         switch selectedTab {
         case .inventory:
-            inventoryExportMenu
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                inventoryReorderButton
+                inventoryExportMenu
+            }
         case .pos:
             posLayoutToggle
         case .reports:
@@ -168,6 +171,19 @@ struct EventWorkspaceView: View {
         } label: {
             Image(systemName: posVM.layoutMode == .list ? "square.grid.2x2" : "list.bullet")
         }
+    }
+
+    // MARK: - 管理商品：排序
+
+    /// 獨立的「排序」按鈕（不放在選單裡），打開排序畫面
+    private var inventoryReorderButton: some View {
+        Button {
+            inventoryVM.isReordering = true
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+        }
+        // 排序
+        .accessibilityLabel(Text("inventoryReorderButton"))
     }
 
     // MARK: - 管理商品：匯出 Menu
