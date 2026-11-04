@@ -346,6 +346,34 @@ class EventRepository: ObservableObject {
         }
     }
 
+    /// 新增作廢紀錄（僅允許新增）。同一筆交易已有作廢紀錄時不寫入並回傳 false。
+    @discardableResult
+    func addVoid(_ model: TransactionVoidModel) -> Bool {
+        let existing: NSFetchRequest<CDTransactionVoidEntity> = CDTransactionVoidEntity.fetchRequest()
+        existing.predicate = NSPredicate(format: "transactionId == %@", model.transactionId as CVarArg)
+        existing.fetchLimit = 1
+
+        do {
+            if try context.count(for: existing) > 0 {
+                print("交易已作廢，不重複寫入")
+                return false
+            }
+
+            let entity = CDTransactionVoidEntity(context: context)
+            entity.update(from: model, context: context)
+            entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
+            entity.markPendingSync()
+
+            guard saveContext() else { return false }
+            TransactionRepository.shared.notifyTransactionsChanged()
+            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+            return true
+        } catch {
+            print("加入作廢紀錄失敗:", error)
+            return false
+        }
+    }
+
     /// 複製場次（包含所有類別和產品，但不包含交易記錄）
     func duplicateEvent(
         originalEventId: UUID,
