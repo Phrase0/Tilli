@@ -2,8 +2,9 @@
 //  TransactionDetailView.swift
 //  Tilli
 //
-//  交易明細頁（唯讀）：資訊區 → 商品 → 優惠明細。
-//  商品與優惠區塊由 `TransactionBreakdown` 從交易快照還原，版面與訂單摘要相同。
+//  交易明細頁：（已作廢卡片）→ 資訊區 → 商品 → 優惠明細 →（作廢交易按鈕）。
+//  商品與優惠區塊由 `TransactionBreakdown` 從交易快照還原，版面與訂單摘要相同；作廢後快照照常顯示。
+//  「作廢交易」開作廢視窗（`VoidTransactionView`），寫入後回呼這頁重新讀取作廢狀態。
 //
 
 import SwiftUI
@@ -11,8 +12,11 @@ import SwiftUI
 struct TransactionDetailView: View {
     @StateObject private var viewModel: TransactionDetailViewModel
 
-    init(transaction: TransactionModel) {
-        _viewModel = StateObject(wrappedValue: TransactionDetailViewModel(transaction: transaction))
+    @State private var showVoidSheet = false
+    @State private var showRestockFailed = false
+
+    init(transaction: TransactionModel, dataSource: EventDataSource) {
+        _viewModel = StateObject(wrappedValue: TransactionDetailViewModel(transaction: transaction, dataSource: dataSource))
     }
 
     private var transaction: TransactionModel { viewModel.transaction }
@@ -22,9 +26,15 @@ struct TransactionDetailView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                if let voidRecord = viewModel.voidRecord {
+                    voidedCard(voidRecord)
+                }
                 infoSection
                 productSection(breakdown)
                 discountSection(breakdown)
+                if !viewModel.isVoided {
+                    voidButton
+                }
             }
             .padding(DesignSystem.Spacing.md)
         }
@@ -32,6 +42,81 @@ struct TransactionDetailView: View {
         // 交易明細
         .navigationTitle("transactionDetailTitle")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showVoidSheet) {
+            VoidTransactionView(transaction: transaction, dataSource: viewModel.dataSource) { outcome in
+                viewModel.refreshVoidState()
+                if outcome == .restockFailed {
+                    showRestockFailed = true
+                }
+            }
+        }
+        // 交易已作廢，但庫存回流失敗，請到管理商品手動調整庫存
+        .alert("voidRestockFailedMessage", isPresented: $showRestockFailed) {
+            // 好
+            Button("commonOK", role: .cancel) {}
+        }
+    }
+
+    // MARK: - 已作廢卡片
+
+    private func voidedCard(_ record: TransactionVoidModel) -> some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // 已作廢
+            Text("voidedTitle")
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.bold)
+                .foregroundColor(DesignSystem.ColorToken.alertRed)
+
+            // 作廢時間
+            infoRow("voidedAt", value: DateFormatter.dateTime.string(from: record.voidedAt))
+            // 原因
+            infoRow("voidedReason", value: record.reason.displayName)
+            if let note = record.note {
+                // 說明
+                infoRow("voidedNote", value: note)
+            }
+            // 庫存
+            infoRow("voidedRestock", value: record.restocked
+                    // 已回流
+                    ? String.localized("voidedRestocked")
+                    // 未回流
+                    : String.localized("voidedNotRestocked"))
+        }
+        .padding(DesignSystem.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DesignSystem.ColorToken.cardSurface)
+        // 左側警示紅細條
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(DesignSystem.ColorToken.alertRed)
+                .frame(width: DesignSystem.Spacing.xxs)
+        }
+        .cornerRadius(DesignSystem.Radius.md)
+        .shadow(
+            color: DesignSystem.Shadow.cardColor,
+            radius: DesignSystem.Shadow.cardRadius,
+            x: DesignSystem.Shadow.cardX,
+            y: DesignSystem.Shadow.cardY
+        )
+    }
+
+    // MARK: - 作廢交易按鈕（靜謐填色底＋警示紅字）
+
+    private var voidButton: some View {
+        Button {
+            showVoidSheet = true
+        } label: {
+            // 作廢交易
+            Text("voidTransactionButton")
+                .font(DesignSystem.Typography.body)
+                .fontWeight(.semibold)
+                .foregroundColor(DesignSystem.ColorToken.alertRed)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DesignSystem.Spacing.md)
+                .background(DesignSystem.ColorToken.quietFill)
+                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.md))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - 資訊區

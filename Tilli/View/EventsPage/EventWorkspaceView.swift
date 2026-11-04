@@ -138,7 +138,7 @@ struct EventWorkspaceView: View {
                 }
             }
         }
-        // 交易紀錄卡片 → 交易明細頁（唯讀，只讀交易快照）。
+        // 交易紀錄卡片 → 交易明細頁（讀交易快照與 dataSource 的作廢狀態，可作廢）。
         // 與商品表單同樣用 item 形式：工作區本身是 navigationDestination(item:) 推進來的，
         // 混用 NavigationLink(value:) 會讓明細頁排到工作區下方、工作區被重建。
         // 排序畫面：寫入後管理頁重新載入（收銀頁進入分頁時本來就會重新載入）
@@ -148,7 +148,7 @@ struct EventWorkspaceView: View {
             }
         }
         .navigationDestination(item: $selectedTransaction) { transaction in
-            TransactionDetailView(transaction: transaction)
+            TransactionDetailView(transaction: transaction, dataSource: dataSource)
         }
     }
 

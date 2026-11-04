@@ -193,7 +193,7 @@ final class ReportRevenueConsistencyTests: XCTestCase {
     func testTransactionDetailRendersBundleAndComboTransaction() throws {
         let transaction = try XCTUnwrap(dataSource.transactions.first { $0.items.contains { $0.bundleKind == .fixed } })
         let host = UIHostingController(rootView: NavigationStack {
-            TransactionDetailView(transaction: transaction)
+            TransactionDetailView(transaction: transaction, dataSource: dataSource)
         })
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
         window.rootViewController = host

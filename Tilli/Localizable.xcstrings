@@ -7795,6 +7795,227 @@
         }
       }
     },
+    "voidConfirmMessage" : {
+      "comment" : "作廢後無法還原。",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This can't be undone."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢後無法還原。"
+          }
+        }
+      }
+    },
+    "voidConfirmNoRestock" : {
+      "comment" : "庫存：不回流",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock: don't restock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存：不回流"
+          }
+        }
+      }
+    },
+    "voidConfirmRestock" : {
+      "comment" : "庫存：回流",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock: restock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存：回流"
+          }
+        }
+      }
+    },
+    "voidConfirmTitle %@ %@" : {
+      "comment" : "作廢 %@（%@）？",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Void %@ (%@)?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢 %@（%@）？"
+          }
+        }
+      }
+    },
+    "voidedAt" : {
+      "comment" : "作廢時間",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voided At"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢時間"
+          }
+        }
+      }
+    },
+    "voidedNote" : {
+      "comment" : "說明",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說明"
+          }
+        }
+      }
+    },
+    "voidedNotRestocked" : {
+      "comment" : "未回流",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Restocked"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未回流"
+          }
+        }
+      }
+    },
+    "voidedReason" : {
+      "comment" : "原因",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原因"
+          }
+        }
+      }
+    },
+    "voidedRestock" : {
+      "comment" : "庫存",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存"
+          }
+        }
+      }
+    },
+    "voidedRestocked" : {
+      "comment" : "已回流",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restocked"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已回流"
+          }
+        }
+      }
+    },
+    "voidedTitle" : {
+      "comment" : "已作廢",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voided"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已作廢"
+          }
+        }
+      }
+    },
+    "voidFailedMessage" : {
+      "comment" : "作廢失敗，請再試一次",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't void the transaction. Please try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢失敗，請再試一次"
+          }
+        }
+      }
+    },
+    "voidNotePlaceholder" : {
+      "comment" : "請輸入作廢原因",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入作廢原因"
+          }
+        }
+      }
+    },
     "voidReasonCustomerCancelled" : {
       "localizations" : {
         "en" : {
@@ -7827,6 +8048,23 @@
         }
       }
     },
+    "voidReasonLabel" : {
+      "comment" : "原因",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原因"
+          }
+        }
+      }
+    },
     "voidReasonOther" : {
       "localizations" : {
         "en" : {
@@ -7839,6 +8077,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他"
+          }
+        }
+      }
+    },
+    "voidReasonPlaceholder" : {
+      "comment" : "請選擇",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇"
           }
         }
       }
@@ -7937,6 +8192,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "總營收"
+          }
+        }
+      }
+    },
+    "voidReasonSection" : {
+      "comment" : "作廢原因",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Void Reason"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢原因"
+          }
+        }
+      }
+    },
+    "voidRestockFailedMessage" : {
+      "comment" : "交易已作廢，但庫存回流失敗，請到管理商品手動調整庫存",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transaction was voided, but restocking failed. Please adjust stock manually in Manage Products."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易已作廢，但庫存回流失敗，請到管理商品手動調整庫存"
+          }
+        }
+      }
+    },
+    "voidRestockHint" : {
+      "comment" : "回流：把這筆交易的商品數量加回庫存",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restock: add this transaction's item quantities back to stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回流：把這筆交易的商品數量加回庫存"
+          }
+        }
+      }
+    },
+    "voidRestockNo" : {
+      "comment" : "不回流",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't Restock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不回流"
+          }
+        }
+      }
+    },
+    "voidRestockSection" : {
+      "comment" : "庫存",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "庫存"
+          }
+        }
+      }
+    },
+    "voidRestockYes" : {
+      "comment" : "回流",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restock"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回流"
+          }
+        }
+      }
+    },
+    "voidSheetTitle" : {
+      "comment" : "作廢交易",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Void Transaction"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢交易"
+          }
+        }
+      }
+    },
+    "voidSubmitButton" : {
+      "comment" : "作廢",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Void"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢"
+          }
+        }
+      }
+    },
+    "voidTransactionButton" : {
+      "comment" : "作廢交易",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Void Transaction"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作廢交易"
           }
         }
       }
