@@ -127,7 +127,7 @@ final class VoidTransactionViewModelTests: XCTestCase {
                        String.localized("voidConfirmMessage") + "\n" + String.localized("voidConfirmNoRestock"))
     }
 
-    /// performVoid 依 addChanges 的結果決定是否更新商品庫存；找不到場次時必須回報失敗
+    /// `InventoryChangeRepository.addChanges` 找不到場次時回傳 false（performVoid 據此回報 `.restockFailed`；這裡只測 addChanges 本身）
     func testAddChangesReportsFailureWhenEventMissing() {
         let change = InventoryChangeModel(
             productId: UUID(), change: 1, reason: .voidRestock, customReason: nil,

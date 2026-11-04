@@ -58,10 +58,6 @@ class TransactionHistoryViewModel: ObservableObject {
     // 篩選狀態
     @Published var paymentFilter: PaymentMethodFilter = .all
 
-    var eventTotalAmount: Decimal {
-        dataSource.transactions.total
-    }
-
     // MARK: - 篩選後的交易（用於金額排序的打平列表）
 
     /// 篩選後的交易列表
@@ -100,7 +96,7 @@ class TransactionHistoryViewModel: ObservableObject {
         let groups = grouped.map { date, txs in
             DailyTransactionGroup(
                 date: date,
-                voidedIds: voidedIds(in: txs),
+                effectiveTransactions: dataSource.voidIndex.effective(txs),
                 transactions: sortAscending
                     ? txs.sorted { $0.displayDate < $1.displayDate }
                     : txs.sorted { $0.displayDate > $1.displayDate }
@@ -168,7 +164,7 @@ class TransactionHistoryViewModel: ObservableObject {
         groupedTransactions = grouped.map { date, txs in
             DailyTransactionGroup(
                 date: date,
-                voidedIds: voidedIds(in: txs),
+                effectiveTransactions: dataSource.voidIndex.effective(txs),
                 transactions: txs.sorted { $0.displayDate > $1.displayDate }
             )
         }.sorted { $0.date > $1.date }
@@ -177,10 +173,6 @@ class TransactionHistoryViewModel: ObservableObject {
         initializeDailyGroupExpansion()
     }
     
-    private func voidedIds(in transactions: [TransactionModel]) -> Set<UUID> {
-        Set(transactions.filter { isVoided($0) }.map(\.id))
-    }
-
     private func initializeDailyGroupExpansion() {
         expandedDailyGroupIds = Set(groupedTransactions.map { $0.date })
     }
@@ -297,15 +289,10 @@ class TransactionHistoryViewModel: ObservableObject {
 struct DailyTransactionGroup: Identifiable {
     let id = UUID()
     let date: Date
-    /// 當日交易中已作廢者的 id
-    let voidedIds: Set<UUID>
+    /// 當日有效交易（由 `TransactionVoidIndex.effective` 算好傳入，統計只看這份）
+    let effectiveTransactions: [TransactionModel]
     /// 當日所有交易（含作廢，列表要顯示）
     let transactions: [TransactionModel]
-
-    /// 當日有效交易（排除作廢）
-    private var effectiveTransactions: [TransactionModel] {
-        transactions.filter { !voidedIds.contains($0.id) }
-    }
 
     /// 當日總金額（只算有效交易）
     var totalAmount: Decimal {

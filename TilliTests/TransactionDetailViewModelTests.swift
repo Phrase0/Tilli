@@ -15,6 +15,7 @@ final class TransactionDetailViewModelTests: XCTestCase {
     private var container: NSPersistentContainer!
     private var dataSource: EventDataSource!
     private let voidedTransactionId = UUID()
+    private let restockedTransactionId = UUID()
     private let voidedAt = Date(timeIntervalSince1970: 1_800_000_000)
 
     override func setUp() async throws {
@@ -38,7 +39,9 @@ final class TransactionDetailViewModelTests: XCTestCase {
         try await super.tearDown()
     }
 
-    /// 一筆已作廢的交易（附說明、已回流）
+    /// 兩筆已作廢的交易：
+    /// - `voidedTransactionId`：作廢紀錄 restocked = true，但沒有任何作廢回流異動（例如回流寫入失敗）
+    /// - `restockedTransactionId`：作廢紀錄 restocked = true，且有一筆作廢回流異動
     private func seed() throws -> UUID {
         let context = container.viewContext
 
@@ -70,6 +73,36 @@ final class TransactionDetailViewModelTests: XCTestCase {
         void.reason = VoidReason.returned.rawValue
         void.note = "客人退回"
         void.restocked = true
+
+        let restockedEntity = CDTransactionEntity(context: context)
+        restockedEntity.id = restockedTransactionId
+        restockedEntity.eventId = event.id
+        restockedEntity.eventTitle = event.title
+        restockedEntity.currency = "TWD"
+        restockedEntity.totalAmount = 0
+        restockedEntity.paymentMethod = PaymentMethod.cash.rawValue
+        restockedEntity.timestamp = Date()
+        restockedEntity.items = []
+        restockedEntity.appliedDiscounts = []
+        restockedEntity.event = event
+
+        let restockedVoid = CDTransactionVoidEntity(context: context)
+        restockedVoid.id = UUID()
+        restockedVoid.transactionId = restockedTransactionId
+        restockedVoid.eventId = event.id
+        restockedVoid.voidedAt = voidedAt
+        restockedVoid.reason = VoidReason.inputError.rawValue
+        restockedVoid.restocked = true
+
+        let restockChange = CDInventoryChangeEntity(context: context)
+        restockChange.id = UUID()
+        restockChange.productId = UUID()
+        restockChange.change = 1
+        restockChange.reason = InventoryChangeReason.voidRestock.rawValue
+        restockChange.transactionId = restockedTransactionId
+        restockChange.timestamp = Date()
+        restockChange.eventId = event.id
+        restockChange.event = event
 
         try context.save()
         return event.id
@@ -121,5 +154,16 @@ final class TransactionDetailViewModelTests: XCTestCase {
         XCTAssertEqual(voided.voidRecord?.note, "客人退回")
         XCTAssertEqual(voided.voidRecord?.restocked, true)
         XCTAssertEqual(voided.voidRecord?.voidedAt, voidedAt)
+    }
+
+    func testRestockTextIsRestockedOnlyWhenVoidRestockChangesExist() {
+        let restocked = makeViewModel(dataSource.allTransactions.first { $0.id == restockedTransactionId }!)
+        XCTAssertEqual(restocked.restockText, String.localized("voidedRestocked"))
+    }
+
+    func testRestockTextIsNotRestockedWhenRecordSaysRestockedButNoChangesExist() {
+        let voided = makeViewModel(dataSource.allTransactions.first { $0.id == voidedTransactionId }!)
+        XCTAssertEqual(voided.voidRecord?.restocked, true)
+        XCTAssertEqual(voided.restockText, String.localized("voidedNotRestocked"))
     }
 }

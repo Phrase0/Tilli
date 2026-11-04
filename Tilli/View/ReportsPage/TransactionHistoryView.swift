@@ -304,7 +304,7 @@ struct TransactionHistoryView: View {
                 x: DesignSystem.Shadow.cardX,
                 y: DesignSystem.Shadow.cardY
             )
-            // 作廢卡片降透明度；0.55 在淺色與深色模式下文字對比仍可讀
+            // 作廢卡片降透明度（0.55 為設計決定；淺色／深色模式可讀性待手動測試第 8 項確認）
             .opacity(isVoided ? 0.55 : 1)
         }
         .buttonStyle(PlainButtonStyle())

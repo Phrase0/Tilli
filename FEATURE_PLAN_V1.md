@@ -2094,9 +2094,20 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 回流預設 | 待定（猜測：依原因預設） | 「回流／不回流」**沒有預設**，未選不能作廢 | 使用者決定；退貨的食物常不能再賣 |
 | 確認 | 作廢前跳確認視窗 | 確認框文字依回流與否不同；取消不會作廢 | 作廢不可還原 |
 | 作廢視窗 | — | 獨立頁面＋`VoidTransactionViewModel`（CONVENTIONS MVVM 規則 5） | 一個頁面一個 ViewModel |
-| 回流寫入失敗 | — | `InventoryChangeRepository.addChanges` 改回傳 `Bool`；失敗回報 `.restockFailed`，且不更新庫存、不寫作廢紀錄 | 避免庫存與異動紀錄不一致 |
+| 回流寫入失敗 | — | `InventoryChangeRepository.addChanges` 改回傳 `Bool`；作廢紀錄先寫；異動寫入失敗則不更新庫存，回報 `.restockFailed` 並提示手動調整 | 避免庫存與異動紀錄不一致；作廢紀錄是「已作廢」的依據，不因回流失敗而不作廢 |
 | `EventDataSource.transactions` | 作廢交易從報表排除 | `transactions` 改為「有效交易」，新增 `allTransactions`（交易紀錄用）；場次列表／日曆走 `TransactionRepository.effectiveSummary` | 排除邏輯集中一處（`TransactionVoidIndex`） |
 | 商品鎖定 | 有交易的商品仍鎖定 | 不變（`TransactionIndex` 看全部交易，作廢不解除） | — |
+
+#### 最終審查修正（2026-11-04）
+
+| 項目 | 修正前 | 修正後 | 原因 |
+|------|--------|--------|------|
+| 回流失敗提示 | 作廢視窗 `onFinished` 在 sheet 還在時設定明細頁的 alert 狀態並同時 `dismiss()`，alert 可能出不來 | `onFinished` 只把結果存起來；明細頁在 `.sheet(onDismiss:)` 重新讀取作廢狀態，結果是 `.restockFailed` 才跳提示 | UIKit 不能在 sheet 正在關閉時從同一頁 present alert；這個提示是規格 §5 唯一的告知方式 |
+| 登出清除／歸戶 | `LocalDataManager` 漏掉 `CDTransactionVoidEntity`：歸戶不改它的 `userId`，登出不刪 | 加進 `userOwnedEntityNames`；`clearAllLocalData()` 比照交易明確刪除作廢紀錄（無 relationship，不會被 cascade）；新增 `LocalDataManagerTests` | 作廢紀錄也是使用者資料 |
+| 已作廢卡片「庫存」列 | 依作廢紀錄的 `restocked` 顯示「已回流」，回流寫入失敗或交易沒有銷售出庫時也會顯示已回流 | `TransactionDetailViewModel.restockText`：場次異動中有這筆交易的 `.voidRestock` 才顯示「已回流」，否則「未回流」；作廢紀錄本身不改 | 作廢紀錄只新增；畫面要反映實際有沒有加回庫存 |
+| 每日分組統計 | `DailyTransactionGroup` 拿 `voidedIds` 自己再篩一次有效交易 | 由 VM 以 `voidIndex.effective(txs)` 算好 `effectiveTransactions` 傳入；刪除沒有呼叫端的 `eventTotalAmount` | CONVENTIONS：排除作廢只走 `TransactionVoidIndex` |
+| 差異表「回流寫入失敗」 | 寫「不更新庫存、不寫作廢紀錄」 | 改為「作廢紀錄先寫；異動寫入失敗則不更新庫存，回報 `.restockFailed`」 | 原文與實作不符 |
+| 文件與註解 | 掃描基準仍是 7 entity／79 屬性／8 關聯；兩筆作廢紀錄的規則只寫在設計文件；`onFinished`、0.55 透明度、`testAddChangesReportsFailureWhenEventMissing` 的註解與實際不符 | ARCHITECTURE §2 改為 8／91／10、補版本記錄；ARCHITECTURE §4 與 SYNC_ARCHITECTURE_V2 寫明「以 `voidedAt` 最早者為準」；三處註解改寫為目前行為 | 文件要反映現況 |
 
 #### 測試
 
@@ -2109,7 +2120,7 @@ xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iO
 
 ##### 自動 —— 單元測試
 
-`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`。
+`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`、`LocalDataManagerTests`。
 
 ##### 手動 —— 需操作 App（⬜ 待做）
 

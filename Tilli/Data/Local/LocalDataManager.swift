@@ -19,12 +19,13 @@ final class LocalDataManager {
 
     private let context: NSManagedObjectContext
 
-    /// 受 userId 標記的 entity（`clearAll` 靠 cascade，這裡是歸戶用的完整清單）
+    /// 受 userId 標記的 entity（歸戶用的完整清單；`clearAllLocalData` 的刪除方式見該方法）
     private static let userOwnedEntityNames = [
         "CDEventEntity",
         "CDCategoryEntity",
         "CDProductEntity",
         "CDTransactionEntity",
+        "CDTransactionVoidEntity",
         "CDInventoryChangeEntity",
         "CDQRCodeEntity"
     ]
@@ -79,6 +80,8 @@ final class LocalDataManager {
     ///
     /// ⚠️ CDEventEntity 設有 cascade delete rule，刪除 event 會自動連帶刪除
     /// CDCategoryEntity / CDProductEntity / CDInventoryChangeEntity。
+    /// CDTransactionEntity（與 Event 是 Nullify）與 CDTransactionVoidEntity（沒有 relationship）
+    /// 不會被 cascade，要各自明確刪除。
     ///
     /// ⚠️ 重建同步後，這個方法【不可以】被無條件呼叫 ——
     /// 只有「確認資料已備份到雲端」才能清除，否則未上傳的資料會永久消失。
@@ -92,11 +95,15 @@ final class LocalDataManager {
             let txRequest: NSFetchRequest<CDTransactionEntity> = CDTransactionEntity.fetchRequest()
             try context.fetch(txRequest).forEach { context.delete($0) }
 
-            // 3. QRCode（獨立 entity）
+            // 3. TransactionVoid（沒有 relationship，不會被 cascade）
+            let voidRequest: NSFetchRequest<CDTransactionVoidEntity> = CDTransactionVoidEntity.fetchRequest()
+            try context.fetch(voidRequest).forEach { context.delete($0) }
+
+            // 4. QRCode（獨立 entity）
             let qrRequest: NSFetchRequest<CDQRCodeEntity> = CDQRCodeEntity.fetchRequest()
             try context.fetch(qrRequest).forEach { context.delete($0) }
 
-            // 4. UserProfile 本機快取（避免同一台裝置換帳號登入時被舊快取誤導）
+            // 5. UserProfile 本機快取（避免同一台裝置換帳號登入時被舊快取誤導）
             let profileRequest: NSFetchRequest<CDUserProfileEntity> = CDUserProfileEntity.fetchRequest()
             try context.fetch(profileRequest).forEach { context.delete($0) }
 

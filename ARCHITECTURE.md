@@ -46,7 +46,7 @@
 
 ```
 程式碼      94 個 Swift 檔（排除 _Deprecated）、17341 行
-CoreData    7 個 entity、79 個屬性、8 個關聯
+CoreData    8 個 entity、91 個屬性、10 個關聯（2026-11-04 依 model 檔重新計算）
 內嵌模型    2 個（SummaryItemModel、DiscountModel，以 JSON 存在 Binary 欄位內）
 ```
 
@@ -203,7 +203,7 @@ CoreData    7 個 entity、79 個屬性、8 個關聯
 
 ### CDTransactionVoidEntity
 
-> 資料類型：**流水帳** —— 作廢紀錄，只新增；無 relationship，存 `eventId`，場次刪除後比照交易保留
+> 資料類型：**流水帳** —— 作廢紀錄，只新增；無 relationship，存 `eventId`，場次刪除後比照交易保留。一筆交易本機只寫一筆作廢紀錄（已存在就拒絕）；若同步後同一 `transactionId` 有兩筆，以 `voidedAt` 最早者為準（`TransactionVoidIndex`）
 
 | 欄位 | 分類 | 狀態 | 說明 |
 |------|------|------|------|
@@ -511,4 +511,5 @@ grep -rn "SYNC-PENDING" Tilli/
 | 2026-10-28 | 第 5 批完成（5.1–5.9）：資料結構於 5.1 已落地，其後各批**未再改動 CoreData schema 或 §4 分類表**（`bundleDiscount`／`bundleKind` 在 `itemsData` 內、`BundleModel` 在 `bundlesData` 內；套餐照片 `BundleImageStore` 只存本機檔案，不是 CoreData 欄位）。欄位分類腳本通過 |
 | 2026-10-30 | §5 `SummaryItemModel` 新增 `bundleGroupCount`（在 `itemsData` 內，不改 CoreData schema 或 §4） |
 | 2026-10-30 | §4 `CDProductEntity` 刪除 `note`（商品描述；使用者決定移除，尚未上架不需遷移） |
+| 2026-11-04 | §4 新增 `CDTransactionVoidEntity`（交易作廢紀錄，流水帳、無 relationship，10 個屬性）；§2 掃描基準 CoreData 行依 model 檔重算為 8 entity / 91 屬性 / 10 關聯 |
 | 2026-11-04 | §5 `BundleModel` 加回 `sortOrder`（只決定顯示順序；在 `bundlesData` 內，不改 CoreData schema）、補上既有的 `createdAt` 列 |

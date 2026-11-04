@@ -112,7 +112,7 @@ final class TransactionHistoryVoidTests: XCTestCase {
     }
 
     func testDailyGroupTotalsExcludeVoided() throws {
-        try addTransaction(price: 100, voided: false)
+        let keptId = try addTransaction(price: 100, voided: false)
         let voidedId = try addTransaction(price: 200, voided: true)
 
         let viewModel = loadedViewModel()
@@ -121,8 +121,7 @@ final class TransactionHistoryVoidTests: XCTestCase {
         XCTAssertEqual(group.transactions.count, 2)
         XCTAssertEqual(group.totalAmount, 100)
         XCTAssertEqual(group.count, 1)
-        XCTAssertEqual(group.voidedIds, [voidedId])
-        XCTAssertEqual(viewModel.eventTotalAmount, 100)
+        XCTAssertEqual(group.effectiveTransactions.map(\.id), [keptId])
         XCTAssertTrue(viewModel.isVoided(group.transactions.first { $0.id == voidedId }!))
     }
 

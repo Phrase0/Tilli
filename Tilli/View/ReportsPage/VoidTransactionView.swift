@@ -3,7 +3,7 @@
 //  Tilli
 //
 //  作廢視窗（sheet，系統 Form 樣式）：交易編號與金額 → 作廢原因（選單＋補充文字）→ 庫存回流與否 → 「作廢」。
-//  按「作廢」先跳確認框，確認後由 VM 寫入；結束時以 `onFinished` 通知明細頁重新讀取作廢狀態。
+//  按「作廢」先跳確認框，確認後由 VM 寫入；結束時以 `onFinished` 回報結果給明細頁，再關閉視窗。
 //
 
 import SwiftUI
@@ -20,7 +20,8 @@ struct VoidTransactionView: View {
 
     private let onFinished: (VoidTransactionViewModel.VoidOutcome) -> Void
 
-    /// - Parameter onFinished: 有寫入作廢紀錄時呼叫（`.done` 或 `.restockFailed`），明細頁據此重新讀取
+    /// - Parameter onFinished: 關閉視窗前呼叫，傳入 `.done`、`.restockFailed` 或 `.rejected`（如已被作廢）；
+    ///   `.voidFailed` 不呼叫（留在視窗顯示錯誤）。明細頁在視窗關閉後據此重新讀取並決定是否提示
     init(
         transaction: TransactionModel,
         dataSource: EventDataSource,
