@@ -46,6 +46,8 @@ struct EventWorkspaceView: View {
     @State private var inventoryFormTarget: InventoryFormTarget?
     // 交易明細頁的導航目標，理由同上（查看分析 → 交易紀錄卡片）
     @State private var selectedTransaction: TransactionModel?
+    // 管理商品的排序畫面：「排序」按鈕在容器的 toolbar，呈現狀態也由容器持有
+    @State private var isReordering = false
 
     init(event: EventModel, initialTab: WorkspaceTab) {
         self.event = event
@@ -139,8 +141,14 @@ struct EventWorkspaceView: View {
         // 交易紀錄卡片 → 交易明細頁（唯讀，只讀交易快照）。
         // 與商品表單同樣用 item 形式：工作區本身是 navigationDestination(item:) 推進來的，
         // 混用 NavigationLink(value:) 會讓明細頁排到工作區下方、工作區被重建。
+        // 排序畫面：寫入後管理頁重新載入（收銀頁進入分頁時本來就會重新載入）
+        .sheet(isPresented: $isReordering) {
+            InventoryReorderView(dataSource: dataSource) {
+                inventoryVM.loadData()
+            }
+        }
         .navigationDestination(item: $selectedTransaction) { transaction in
-            TransactionDetailView(transaction: transaction, viewModel: reportsVM.transactionViewModel)
+            TransactionDetailView(transaction: transaction)
         }
     }
 
@@ -178,7 +186,7 @@ struct EventWorkspaceView: View {
     /// 獨立的「排序」按鈕（不放在選單裡），打開排序畫面
     private var inventoryReorderButton: some View {
         Button {
-            inventoryVM.isReordering = true
+            isReordering = true
         } label: {
             Image(systemName: "arrow.up.arrow.down")
         }

@@ -1970,7 +1970,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 
 ### 第 6 批 — POS UI（6.1 ✅ 2026-11-04 完成；手動測試 2026-11-04 完成）
 
-設計：`docs/superpowers/specs/2026-11-02-category-chip-row-design.md`（第 8 節為準）。前兩版實作手動驗收失敗，已退回 `4cf4d26` 重寫（舊嘗試保留在本機分支 `backup/6.1-attempts`）。
+設計：`docs/superpowers/specs/2026-11-02-category-chip-row-design.md`（第 8 節為準）。前兩版實作手動驗收失敗，已退回 `4cf4d26` 重寫（舊嘗試的本機分支 `backup/6.1-attempts` 已於 2026-11-04 刪除）。
 
 | # | 項目 | 驗證 |
 |---|------|------|
@@ -1985,7 +1985,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 沒有可販售商品的類別 | 「依設計決定」 | 不顯示 chip（與不顯示區塊一致；區塊清單由 `POSViewModel.sectionIDs`／`InventoryViewModel.sectionIDs` 單一定義） | 使用者決定 |
 | 捲動連動高亮 | 「高亮跟著目前可見的類別」 | 依序：平常是佔據頂端的區塊；最後幾區捲不到頂端時最後一段距離平均分配（每區至少 60pt），往下、往上都依序；點 chip 鎖定直到手指捲動；切回分頁保留，區塊消失回到第一個；無「到底高亮最後一個」 | 使用者決定（前兩版的到底規則造成反覆跳、跳過倒數第二個） |
 | 點 chip | — | chip 的身分與區塊 id 分開，`ScrollViewReader` 只包住商品列表；點第一個 chip 捲到內容最頂端 | 前兩版點擊失靈的根因（chip 與區塊撞名）經調查確認 |
-| 管理商品頁 | `List`（長按拖曳排序）＋只依點選高亮的 chip 列 | 改用共用 `SectionedScrollView`（一般捲動畫面），區塊順序「組合｜套餐｜類別」；排序改由右上角獨立的「排序」按鈕打開 `InventoryReorderView`（組合｜套餐｜各類別，系統拖曳把手，「完成」才寫入、失敗在排序畫面提示且不關閉，「取消」不變；含已下架、不套搜尋）；刪除 `moveProduct` | 使用者決定 |
+| 管理商品頁 | `List`（長按拖曳排序）＋只依點選高亮的 chip 列 | 改用共用 `SectionedScrollView`（一般捲動畫面），區塊順序「組合｜套餐｜類別」；排序改由右上角獨立的「排序」按鈕打開 `InventoryReorderView`（組合｜套餐｜各類別，左側 ≡＋按住整列拖曳（見下方「驗收後調整」），「完成」才寫入、失敗在排序畫面提示且不關閉，「取消」不變；含已下架、不套搜尋）；刪除 `moveProduct` | 使用者決定 |
 | 套餐／組合順序 | 依建立時間，不能排 | `BundleModel.sortOrder`（整數；相同時依建立時間），唯一比較 `sortedForDisplay()`；新增的排在同 kind 最後；收銀頁套餐區塊、訂單摘要組合列也依此順序；組合自動套用順序不變 | 使用者要求；不處理舊資料（尚未上架） |
 | 網格／列表 | — | `POSViewModel(dataSource:defaults:)` 可注入 `UserDefaults`，測試用獨立 suite | 測試共用模擬器的 App 設定，會改到使用者的選擇 |
 | 驗證方式 | 手動 | 新增 `InteractionHarness`（測試中開啟無障礙自動化，「按」按鈕、程式捲動、讀選中狀態）；限制：無法模擬手指拖動、「按」不是真的觸控 | 前兩版只看靜態截圖就交付 |
@@ -2000,6 +2000,31 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 6. 新增套餐／組合 → 排在同一組最後
 7. 收銀頁切換列表／格狀 → 切到其他分頁、離開場次再進來 → 維持最後的選擇
 8. 只有一個區塊 → 沒有 chip 列；商品卡片展開／收合、右下角 ＋ 不蓋住最後一張卡片
+
+#### 驗收後調整（2026-11-04，6.1 commit `437aecb` 之後）
+
+| 項目 | 調整前 | 調整後 | 原因 |
+|------|--------|--------|------|
+| 排序畫面的拖曳 | 開編輯模式，系統把手在右邊 | 不開編輯模式；每列左邊 ≡，按住整列拖曳（與編輯場次的類別列表同一套） | 使用者要求把手在前；系統把手只能在右邊 |
+| 排序畫面的 ViewModel | 借用 `InventoryViewModel`（`isReordering`／`reorderSaveFailed`／`makeReorderDraft`／`saveOrder`） | 新增 `InventoryReorderViewModel`（讀 `EventDataSource`，草稿、拖曳、寫入、`saveFailed`；有寫入時 callback 讓管理頁重新載入）；sheet 改由 `EventWorkspaceView` 用 `@State` 開關；測試搬到 `InventoryReorderTests` | 使用者要求 View／ViewModel 一對一（`CONVENTIONS.md` MVVM 規則 5） |
+| 交易明細頁的 ViewModel | 借用 `TransactionHistoryViewModel` | 新增 `TransactionDetailViewModel`；交易編號、付款方式文字改成共用的 `TransactionModel.displayNumber`／`PaymentMethod.displayName`（交易紀錄列表、交易明細、交易 CSV、庫存異動 CSV 共用） | 同上；避免兩份格式化 |
+| 年月選擇 | 寫在 `EventsCalendarView.swift` 裡 | 搬到 `CalendarMonthYearPicker.swift`（只有畫面狀態，不加 ViewModel） | 頁面不寫在別頁的檔案裡 |
+| 登入頁 | View 自己判斷「登入完成要關閉」（兩處） | `AuthenticationManager.hasCompletedSignIn`；`signInWithGoogle()` 回傳是否成功 | 判斷邏輯不寫在 View |
+| 我的、登入、Tilli Pro、容器頁 | — | 維持（不加 ViewModel；理由見 `CONVENTIONS.md` MVVM 規則 5 的例外） | 盤點後的建議，使用者同意 |
+| 新增／編輯套餐、組合的「儲存」 | 表單最下方 | 右上角（與新增商品相同位置與文字） | 使用者要求 |
+| 新增商品的商品圖片 | 表單最下方 | 表單最上方 | 使用者要求 |
+| 套餐圖片標題 | 「照片（選填）」／「Photo (optional)」（`bundleFormSectionPhoto`，已刪） | 與新增商品同一條：「商品圖片（選填）」／「Product Image (Optional)」（`addProductSectionImage`） | 使用者要求 |
+
+自動測試：全部 335 個測試在 iOS 18.3、26.3 通過；iOS 17.5 只有既有的 `ReportTimeRangeSelectorLayoutTests` 失敗（超出 0.33pt，與 6.1 相同，本次未修改該畫面）。新增 `InventoryReorderTests`（8）、`TransactionDetailViewModelTests`（3）；`InventorySectionTests` 的排序測試搬到 `InventoryReorderTests`。
+
+##### 手動 —— 需操作 App（✅ 2026-11-04 完成）
+
+1. 管理商品頁「排序」：每列左邊有 ≡；按住整列拖曳可在同一組內移動；「完成」寫入、「取消」不變（驗證工具無法模擬拖曳）
+2. 查看分析 → 交易紀錄卡片 → 交易明細：交易編號、付款方式、金額與之前相同
+3. 行事曆點年月 → 年月選擇正常
+4. Google 登入成功後登入頁自動關閉；取消或失敗時留在登入頁並提示
+5. 新增／編輯套餐、組合：右上角「儲存」，有錯誤時不能按；套餐圖片標題為「商品圖片（選填）」（切英文為「Product Image (Optional)」）
+6. 新增／編輯商品：商品圖片在最上方
 
 #### 原預定（保留對照）
 
@@ -2356,3 +2381,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-10-30 | 驗收回饋：套餐缺貨提醒與商品一致、交易紀錄卡片不顯示折扣、新增類別與折扣輸入同一套規則（+ 常駐、重複時輸入欄紅字且 + 變灰、鍵盤完成只收鍵盤、儲存時重複的輸入只清掉）、移除商品描述欄位（含 CoreData）、介面「產品」統一為「商品」。總計 295 個單元測試全過 |
 | 2026-11-02 | 收銀頁互動調整（含 10-30 驗收修正與回饋）手動測試完成 |
 | 2026-11-04 | 第 6 批 6.1 重寫（前兩版驗收失敗、退回 `4cf4d26`）：共用 `SectionedScrollView`（點 chip 根因修正、捲動依序高亮含最後一段平均分配）、管理商品頁改一般捲動畫面＋右上角「排序」按鈕與排序畫面（含套餐／組合 `sortOrder`）、網格／列表設定可注入、互動驗證工具。全部 331 個測試於 iOS 18.3、26.3 通過；iOS 17.5（暫改最低版本跑測試，跑完還原）本批測試全過，另有 1 個既有的 `ReportTimeRangeSelectorLayoutTests` 在 iOS 17.5 寬 393pt 時超出 0.33pt（本批未修改該畫面，之前未在 iOS 17 跑過）；手動測試完成 |
+| 2026-11-04 | 6.1 驗收後調整：排序畫面左側 ≡＋按住整列拖曳並拆出 `InventoryReorderViewModel`、交易明細拆出 `TransactionDetailViewModel`（交易編號／付款方式文字改共用）、年月選擇搬到獨立檔案、登入完成判斷搬進 `AuthenticationManager`、套餐／組合「儲存」移到右上角、新增商品圖片移到最上方、套餐圖片標題改「商品圖片（選填）」。335 個測試於 iOS 18.3、26.3 通過；iOS 17.5 僅既有的版面測試失敗；手動測試完成 |

@@ -63,6 +63,11 @@ class AuthenticationManager: NSObject, ObservableObject {
         currentUser != nil && currentUser?.accountStatus == .member
     }
 
+    /// 已完成登入（profile 不論是否設定完成）；登入頁看到就關閉
+    var hasCompletedSignIn: Bool {
+        authState == .needsSetup || authState == .ready
+    }
+
     // MARK: - Init
     override init() {
         super.init()
@@ -165,7 +170,14 @@ class AuthenticationManager: NSObject, ObservableObject {
     }
 
     // MARK: - Google 登入
-    func signInWithGoogle() async {
+    /// - Returns: 沒有錯誤且已完成登入時為 true（登入頁據此關閉）
+    @discardableResult
+    func signInWithGoogle() async -> Bool {
+        await performGoogleSignIn()
+        return errorMessage == nil && hasCompletedSignIn
+    }
+
+    private func performGoogleSignIn() async {
         guard NetworkMonitor.shared.isConnected else {
             errorMessage = String.localized("authNetworkRequiredForSignIn")
             return

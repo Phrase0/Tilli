@@ -227,13 +227,13 @@ struct TransactionHistoryView: View {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 // 第一行：交易編號和支付方式
                 HStack {
-                    Text(transactionViewModel.formatTransactionId(transaction.id.uuidString))
+                    Text(transaction.displayNumber)
                         .font(.subheadline)
                         .foregroundColor(DesignSystem.ColorToken.ink)
 
                     Spacer()
 
-                    Text(transactionViewModel.paymentMethodText(transaction.paymentMethod))
+                    Text(transaction.paymentMethod.displayName)
                         .font(DesignSystem.Typography.caption)
                         .padding(.horizontal, DesignSystem.Spacing.xs)
                         .padding(.vertical, 2)

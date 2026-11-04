@@ -203,9 +203,9 @@ class TransactionHistoryViewModel: ObservableObject {
         csvContent += "\(h1),\(h2),\(h3),\(h4),\(h5),\(h6),\(h7),\(h8),\(h9),\(h10),\(h11)\n"
 
         for transaction in transactions.sorted(by: { $0.displayDate > $1.displayDate }) {
-            let transactionId = formatTransactionId(transaction.id.uuidString)
+            let transactionId = transaction.displayNumber
             let dateTime = DateFormatter.dateTime.string(from: transaction.displayDate)
-            let paymentMethod = paymentMethodText(transaction.paymentMethod)
+            let paymentMethod = transaction.paymentMethod.displayName
             let totalAmount = MoneyHelper.toDisplayString(transaction.totalAmount, currency: currency)
 
             let transactionDiscount = DiscountCalculator.deductionText(for: transaction) ?? "-"
@@ -265,25 +265,9 @@ class TransactionHistoryViewModel: ObservableObject {
         return expandedDailyGroupIds.contains(date)
     }
     
-    func formatTransactionId(_ id: String) -> String {
-        let prefix = String(id.prefix(8)).uppercased()
-        return "TXN\(prefix)"
-    }
-    
     func formatAmount(_ amount: Decimal, currency: String? = nil) -> String {
         let currencyCode = currency ?? event.currency
         return MoneyHelper.format(amount, currencyCode: currencyCode)
-    }
-
-    func paymentMethodText(_ method: PaymentMethod) -> String {
-        switch method {
-        case .cash:
-            // 現金
-            return String.localized("transactionPaymentCash")
-        case .ePayment:
-            // 電子支付
-            return String.localized("transactionPaymentEPayment")
-        }
     }
 
     func paymentMethodColor(_ method: PaymentMethod) -> Color {

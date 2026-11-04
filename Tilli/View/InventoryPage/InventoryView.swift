@@ -132,10 +132,6 @@ struct InventoryView: View {
         .onChange(of: searchText) {
             viewModel.searchText = searchText
         }
-        // 排序（工作區右上角的「排序」按鈕打開）
-        .sheet(isPresented: $viewModel.isReordering) {
-            InventoryReorderView(viewModel: viewModel)
-        }
         .onChange(of: timeRange.type) {
             viewModel.selectedTimeRange = timeRange
         }

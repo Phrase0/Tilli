@@ -9,13 +9,16 @@
 import SwiftUI
 
 struct TransactionDetailView: View {
-    let transaction: TransactionModel
-    @ObservedObject var viewModel: TransactionHistoryViewModel
+    @StateObject private var viewModel: TransactionDetailViewModel
 
-    private var currency: String { transaction.currency }
+    init(transaction: TransactionModel) {
+        _viewModel = StateObject(wrappedValue: TransactionDetailViewModel(transaction: transaction))
+    }
+
+    private var transaction: TransactionModel { viewModel.transaction }
 
     var body: some View {
-        let breakdown = viewModel.breakdown(for: transaction)
+        let breakdown = viewModel.breakdown
 
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
@@ -36,7 +39,7 @@ struct TransactionDetailView: View {
     private var infoSection: some View {
         card {
             // 交易編號
-            infoRow("transactionDetailId", value: viewModel.formatTransactionId(transaction.id.uuidString))
+            infoRow("transactionDetailId", value: viewModel.transactionNumber)
 
             if let occurredAt = transaction.occurredAt {
                 // 補記帳：實際發生時間＋記錄時間
@@ -50,7 +53,7 @@ struct TransactionDetailView: View {
             }
 
             // 付款方式
-            infoRow("transactionDetailPaymentMethod", value: viewModel.paymentMethodText(transaction.paymentMethod))
+            infoRow("transactionDetailPaymentMethod", value: viewModel.paymentMethodText)
             // 場次
             infoRow("transactionDetailEvent", value: transaction.eventTitle)
         }
@@ -111,7 +114,7 @@ struct TransactionDetailView: View {
 
             Spacer()
 
-            Text(viewModel.formatAmount(lineTotal, currency: currency))
+            Text(viewModel.formatAmount(lineTotal))
                 .font(DesignSystem.Typography.body)
                 .fontWeight(.semibold)
                 .foregroundColor(DesignSystem.ColorToken.ink)
@@ -137,7 +140,7 @@ struct TransactionDetailView: View {
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.muted)
 
-                    Text(viewModel.formatAmount(item.price, currency: currency))
+                    Text(viewModel.formatAmount(item.price))
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.ColorToken.muted)
                 }
@@ -145,7 +148,7 @@ struct TransactionDetailView: View {
 
             Spacer()
 
-            Text(viewModel.formatAmount(item.total, currency: currency))
+            Text(viewModel.formatAmount(item.total))
                 .font(DesignSystem.Typography.body)
                 .fontWeight(.semibold)
                 .foregroundColor(DesignSystem.ColorToken.ink)
@@ -167,7 +170,7 @@ struct TransactionDetailView: View {
                     },
                     discounts: breakdown.discounts,
                     total: breakdown.total,
-                    currency: currency
+                    currency: viewModel.currency
                 )
             }
         }

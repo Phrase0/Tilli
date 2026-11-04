@@ -59,18 +59,6 @@ struct BundleFormView: View {
             }
 
             productSection
-
-            Section {
-                Button {
-                    save()
-                } label: {
-                    // 儲存
-                    Text("bundleFormSave")
-                        .frame(maxWidth: .infinity)
-                }
-                // 有任何錯誤就不能按（錯誤原因即時顯示在各欄位下方）
-                .disabled(!viewModel.canSave)
-            }
         }
         .navigationTitle(navigationTitle)
         .toolbar {
@@ -79,6 +67,13 @@ struct BundleFormView: View {
                     Spacer()
                     Button("commonDone") { focusedField = nil }
                 }
+            }
+            // 右上角儲存（與新增商品相同位置）
+            ToolbarItem(placement: .confirmationAction) {
+                // 儲存
+                Button("bundleFormSave") { save() }
+                    // 有任何錯誤就不能按（錯誤原因即時顯示在各欄位下方）
+                    .disabled(!viewModel.canSave)
             }
         }
         // 提醒 / 儲存失敗，請再試一次
@@ -120,11 +115,11 @@ struct BundleFormView: View {
         }
     }
 
-    // MARK: - 照片（僅套餐，選填；樣式同新增商品）
+    // MARK: - 商品圖片（僅套餐，選填；樣式同新增商品）
 
     private var photoSection: some View {
-        // 照片（選填）
-        Section(header: Text("bundleFormSectionPhoto")) {
+        // 商品圖片（選填）：與新增商品同一條文字
+        Section(header: Text("addProductSectionImage")) {
             ZStack {
                 RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
                     .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))

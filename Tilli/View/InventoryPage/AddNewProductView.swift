@@ -41,6 +41,56 @@ struct AddNewProductView: View {
         )
 
         Form {
+            // MARK: - 商品圖片（最上方）
+            Section(header: Text("addProductSectionImage")) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
+                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
+                        .foregroundColor(DesignSystem.ColorToken.muted.opacity(0.4))
+                        .aspectRatio(1, contentMode: .fit)
+
+                    if let image = viewModel.image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .clipped()
+                            .cornerRadius(DesignSystem.Radius.sm)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
+                                    .stroke(DesignSystem.Border.cardColor, lineWidth: DesignSystem.Border.cardWidth)
+                            )
+                            .overlay(
+                                VStack {
+                                    Spacer()
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "camera.fill")
+                                            .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
+                                            .background(Circle().fill(DesignSystem.ColorToken.buttonFilled))
+                                            .font(DesignSystem.Typography.caption)
+                                            .padding(DesignSystem.Spacing.xxs)
+                                            .padding(.trailing, DesignSystem.Spacing.xs)
+                                            .padding(.bottom, DesignSystem.Spacing.xs)
+                                    }
+                                }
+                            )
+                    } else {
+                        VStack(spacing: DesignSystem.Spacing.xxs) {
+                            Image(systemName: "camera")
+                                .font(.title2)
+                                .foregroundColor(DesignSystem.ColorToken.muted)
+                            Text("addProductUploadImage")
+                                .foregroundColor(DesignSystem.ColorToken.muted)
+                                .font(DesignSystem.Typography.caption)
+                        }
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    viewModel.selectImage()
+                }
+            }
+
             // MARK: - 產品名稱
             Section(header: Text("addProductSectionName")) {
                 TextField("addProductNamePlaceholder", text: $viewModel.name)
@@ -159,57 +209,6 @@ struct AddNewProductView: View {
                             .font(DesignSystem.Typography.caption)
                             .foregroundColor(DesignSystem.ColorToken.alertRed)
                     }
-                }
-            }
-
-
-            // MARK: - 產品圖片
-            Section(header: Text("addProductSectionImage")) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
-                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
-                        .foregroundColor(DesignSystem.ColorToken.muted.opacity(0.4))
-                        .aspectRatio(1, contentMode: .fit)
-
-                    if let image = viewModel.image {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .clipped()
-                            .cornerRadius(DesignSystem.Radius.sm)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: DesignSystem.Radius.sm)
-                                    .stroke(DesignSystem.Border.cardColor, lineWidth: DesignSystem.Border.cardWidth)
-                            )
-                            .overlay(
-                                VStack {
-                                    Spacer()
-                                    HStack {
-                                        Spacer()
-                                        Image(systemName: "camera.fill")
-                                            .foregroundColor(DesignSystem.ColorToken.onButtonFilled)
-                                            .background(Circle().fill(DesignSystem.ColorToken.buttonFilled))
-                                            .font(DesignSystem.Typography.caption)
-                                            .padding(DesignSystem.Spacing.xxs)
-                                            .padding(.trailing, DesignSystem.Spacing.xs)
-                                            .padding(.bottom, DesignSystem.Spacing.xs)
-                                    }
-                                }
-                            )
-                    } else {
-                        VStack(spacing: DesignSystem.Spacing.xxs) {
-                            Image(systemName: "camera")
-                                .font(.title2)
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                            Text("addProductUploadImage")
-                                .foregroundColor(DesignSystem.ColorToken.muted)
-                                .font(DesignSystem.Typography.caption)
-                        }
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    viewModel.selectImage()
                 }
             }
         }

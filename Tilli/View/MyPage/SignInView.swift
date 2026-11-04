@@ -55,9 +55,7 @@ struct SignInView: View {
 
                     Button {
                         Task {
-                            await authManager.signInWithGoogle()
-                            if authManager.errorMessage == nil &&
-                               (authManager.authState == .needsSetup || authManager.authState == .ready) {
+                            if await authManager.signInWithGoogle() {
                                 dismiss()
                             }
                         }
@@ -87,8 +85,8 @@ struct SignInView: View {
         .navigationTitle("signInTitle")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(authManager.isLoading)
-        .onChange(of: authManager.authState) { newState in
-            if newState == .needsSetup || newState == .ready {
+        .onChange(of: authManager.authState) { _ in
+            if authManager.hasCompletedSignIn {
                 dismiss()
             }
         }

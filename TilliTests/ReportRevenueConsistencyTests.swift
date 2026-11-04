@@ -192,9 +192,8 @@ final class ReportRevenueConsistencyTests: XCTestCase {
     /// （View 裡的 helper 若命名為 `tag(_:)` 會被解析成 SwiftUI 的 `View.tag`，整頁無限遞迴包進自己）
     func testTransactionDetailRendersBundleAndComboTransaction() throws {
         let transaction = try XCTUnwrap(dataSource.transactions.first { $0.items.contains { $0.bundleKind == .fixed } })
-        let viewModel = TransactionHistoryViewModel(dataSource: dataSource)
         let host = UIHostingController(rootView: NavigationStack {
-            TransactionDetailView(transaction: transaction, viewModel: viewModel)
+            TransactionDetailView(transaction: transaction)
         })
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
         window.rootViewController = host

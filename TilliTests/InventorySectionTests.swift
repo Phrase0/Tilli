@@ -2,7 +2,7 @@
 //  InventorySectionTests.swift
 //  TilliTests
 //
-//  管理商品頁：區塊清單（組合｜套餐｜類別）、排序畫面的草稿與寫入，以及實際點 chip、捲動。
+//  管理商品頁：區塊清單（組合｜套餐｜類別），以及實際點 chip、捲動。
 //
 
 import XCTest
@@ -42,85 +42,6 @@ final class InventorySectionTests: XCTestCase {
     func testSearchListsOnlyMatchingSections() {
         viewModel.searchText = "咖啡"
         XCTAssertEqual(viewModel.sectionIDs, [category("飲料")])
-    }
-
-    // MARK: - 排序畫面
-
-    func testDraftListsAllItemsIgnoringSearchIncludingDisabled() throws {
-        try fixture.setProductDisabled("抹茶", true)
-        viewModel.loadData()
-        viewModel.searchText = "大福"
-        let draft = viewModel.makeReorderDraft()
-        XCTAssertEqual(draft.combos.map(\.id), [fixture.comboId])
-        XCTAssertEqual(draft.fixed.map(\.id), [fixture.teaSetId])
-        XCTAssertEqual(draft.categories.map(\.category.name), ["甜點", "飲料", "季節"])
-        XCTAssertEqual(draft.categories[0].products.map(\.name), ["大福", "抹茶", "紅豆"], "不套搜尋、含已下架")
-    }
-
-    func testSaveAppliesProductAndBundleOrder() throws {
-        var draft = viewModel.makeReorderDraft()
-        draft.categories[1].products.reverse()
-        XCTAssertTrue(viewModel.saveOrder(draft))
-        let saved = viewModel.makeReorderDraft()
-        XCTAssertEqual(saved.categories[1].products.map(\.name), ["咖啡", "奶茶", "綠茶", "紅茶"])
-        XCTAssertFalse(viewModel.reorderSaveFailed)
-    }
-
-    func testBundleOrderAppliesToInventoryAndPOS() throws {
-        // 再加一個套餐，排序後收銀頁套餐順序跟著變
-        let context = fixture.container.viewContext
-        let event = try XCTUnwrap(context.fetch(CDEventEntity.fetchRequest()).first)
-        var bundles = try JSONDecoder().decode([BundleModel].self, from: XCTUnwrap(event.bundlesData))
-        let second = BundleModel.mock(name: "飲料套餐", price: 90, mode: .fixed,
-                                      productIds: [fixture.productIds["紅茶"]!, fixture.productIds["咖啡"]!], sortOrder: 1)
-        bundles.append(second)
-        event.bundlesData = try JSONEncoder().encode(bundles)
-        try context.save()
-        viewModel.loadData()
-
-        var draft = viewModel.makeReorderDraft()
-        XCTAssertEqual(draft.fixed.map(\.name), ["下午茶套餐", "飲料套餐"])
-        draft.fixed.reverse()
-        XCTAssertTrue(viewModel.saveOrder(draft))
-
-        XCTAssertEqual(viewModel.fixedBundles.map(\.name), ["飲料套餐", "下午茶套餐"])
-        let pos = POSViewModel(dataSource: try fixture.makeDataSource(), defaults: UserDefaults(suiteName: "InventorySectionTests")!)
-        pos.loadProducts()
-        XCTAssertEqual(pos.fixedBundles.map(\.name), ["飲料套餐", "下午茶套餐"], "收銀頁套餐順序同步")
-    }
-
-    func testCancelLeavesOrderUnchanged() {
-        let before = viewModel.makeReorderDraft()
-        var draft = before
-        draft.categories[1].products.reverse()
-        // 取消：不呼叫 saveOrder
-        XCTAssertEqual(viewModel.makeReorderDraft(), before)
-    }
-
-    func testSaveFailureIsReportedAndSheetStays() throws {
-        let unattached = InventoryViewModel(dataSource: try fixture.makeDataSource())
-        XCTAssertFalse(unattached.saveOrder(unattached.makeReorderDraft()))
-        XCTAssertTrue(unattached.reorderSaveFailed)
-        XCTAssertFalse(unattached.showAlert, "管理頁的提示不跳（被排序畫面蓋住）")
-    }
-
-    func testComboApplyOrderUnaffectedBySortOrder() {
-        let cheap = ProductModel.mock(name: "便宜", price: 30)
-        let pricey = ProductModel.mock(name: "貴", price: 60)
-        let category = CategoryModel.mock()
-        var first = BundleModel.mock(name: "任兩個便宜", price: 50, mode: .chooseAny(count: 2), productIds: [cheap.id, pricey.id])
-        var second = BundleModel.mock(name: "任兩個貴", price: 100, mode: .chooseAny(count: 2), productIds: [cheap.id, pricey.id])
-        var cart = Cart()
-        cart.productQuantities = [cheap.id: 2, pricey.id: 2]
-        let products = [cheap.id: cheap, pricey.id: pricey].mapValues { p -> ProductModel in var p = p; p.categoryId = category.id; return p }
-        func applied() -> [UUID] {
-            CartPricing.price(cart: cart, products: products, bundles: [first.id: first, second.id: second],
-                              categories: [category], selectedDiscounts: []).combos.map(\.bundleId)
-        }
-        first.sortOrder = 0; second.sortOrder = 1
-        let a = applied()
-        first.sortOrder = 1; second.sortOrder = 0
-        XCTAssertEqual(applied(), a)
     }
 
     // MARK: - 實際點 chip、捲動

@@ -40,18 +40,6 @@ enum InventorySectionID: Hashable {
     case category(UUID)
 }
 
-/// 排序畫面的草稿：組合、套餐、各類別商品（不套搜尋、含已下架）
-struct ReorderDraft: Equatable {
-    struct CategoryGroup: Equatable {
-        let category: CategoryModel
-        var products: [ProductModel]
-    }
-
-    var combos: [BundleModel]
-    var fixed: [BundleModel]
-    var categories: [CategoryGroup]
-}
-
 @MainActor
 class InventoryViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -182,65 +170,6 @@ class InventoryViewModel: ObservableObject {
         return inStock + outOfStock
     }
 
-    // MARK: - 排序畫面
-
-    /// 是否開著排序畫面（工作區右上角的「排序」按鈕打開）
-    @Published var isReordering = false
-    /// 排序寫入失敗（排序畫面自己顯示提示；管理頁的 `showAlert` 被 sheet 蓋住看不到）
-    @Published var reorderSaveFailed = false
-
-    /// 排序畫面的草稿：組合、套餐依顯示順序，各類別商品依 sortOrder（不套搜尋、含已下架）
-    func makeReorderDraft() -> ReorderDraft {
-        ReorderDraft(
-            combos: event.bundles.filter { $0.kind == .chooseAny }.sortedForDisplay(),
-            fixed: event.bundles.filter { $0.kind == .fixed }.sortedForDisplay(),
-            categories: sortedCategories.compactMap { category in
-                let products = inventoryItems
-                    .map(\.product)
-                    .filter { $0.categoryId == category.id }
-                    .sorted { $0.sortOrder < $1.sortOrder }
-                return products.isEmpty ? nil : .init(category: category, products: products)
-            }
-        )
-    }
-
-    /// 按「完成」：套餐／組合依草稿寫入 sortOrder 0…n-1，各類別商品重新編號；沒變動的不寫。
-    /// 任何一步失敗就提示並回傳 false（畫面不關閉，可再按一次）
-    @discardableResult
-    func saveOrder(_ draft: ReorderDraft) -> Bool {
-        guard let productRepository else {
-            reorderSaveFailed = true
-            return false
-        }
-        let original = makeReorderDraft()
-
-        if draft.combos != original.combos || draft.fixed != original.fixed {
-            var order: [UUID: Int] = [:]
-            for (index, bundle) in draft.combos.enumerated() { order[bundle.id] = index }
-            for (index, bundle) in draft.fixed.enumerated() { order[bundle.id] = index }
-            let bundles = event.bundles.map { bundle -> BundleModel in
-                var copy = bundle
-                if let index = order[bundle.id] { copy.sortOrder = index }
-                return copy
-            }
-            guard writeBundles(bundles) else {
-                reorderSaveFailed = true
-                return false
-            }
-        }
-
-        let changedGroups = draft.categories.filter { group in
-            original.categories.first { $0.category.id == group.category.id }?.products.map(\.id) != group.products.map(\.id)
-        }
-        for group in changedGroups where !productRepository.updateProductOrder(group.products.map(\.id)) {
-            loadData()
-            reorderSaveFailed = true
-            return false
-        }
-        if !changedGroups.isEmpty { loadData() }
-        return true
-    }
-
     // MARK: - CSV 匯出
 
     /// 生成庫存總覽 CSV
@@ -364,7 +293,7 @@ class InventoryViewModel: ObservableObject {
             // 交易編號（僅銷售出庫有值）
             let transactionIdText: String
             if change.reason == .salesOut, let txId = change.transactionId {
-                transactionIdText = "TXN\(txId.uuidString.prefix(8))"
+                transactionIdText = TransactionModel.displayNumber(for: txId)
             } else {
                 transactionIdText = "-"
             }
@@ -671,18 +600,13 @@ extension InventoryViewModel {
 
     @discardableResult
     private func saveBundles(_ bundles: [BundleModel]) -> Bool {
-        guard writeBundles(bundles) else {
+        guard let eventRepository else { return false }
+        guard eventRepository.saveBundles(bundles, forEventId: event.id) else {
             // 儲存失敗，請再試一次
             alertMessage = String.localized("bundleSaveFailed")
             showAlert = true
             return false
         }
-        return true
-    }
-
-    /// 寫入套餐／組合並重新載入；不顯示提示（由呼叫端決定在哪裡提示）
-    private func writeBundles(_ bundles: [BundleModel]) -> Bool {
-        guard let eventRepository, eventRepository.saveBundles(bundles, forEventId: event.id) else { return false }
         loadData()
         return true
     }

@@ -153,6 +153,7 @@ struct POSView: View {
 | `TransactionBreakdown` | `Service/TransactionBreakdown.swift` | （新）交易明細／摘要的顯示資料 | 歷史畫面（明細頁、卡片）從場次設定重算套餐價或組合折抵；自己 `reduce` 算明細小計。**只准讀交易快照**（`bundleDiscount`、`bundleKind`、`appliedDiscounts`） |
 | `SectionedScrollView`／`SectionChipRow`／`SectionHighlight`／`SectionScrollState`／`onUserScroll` | `View/Components/SectionedScrollView.swift`、`SectionChipRow.swift` | 管理商品頁自己畫的 chip 列與收銀頁私有的捲動收合（2026-11-04） | 頁面自己做區塊 chip 列或捲動追蹤（一律用 `SectionedScrollView`）；chip 的身分（`ForEach` id 或 `.id`）與區塊 id 相同（點 chip 會捲動 chip 列而不是商品列表）；`ScrollViewReader` 同時包住 chip 列與商品列表；自己寫偵測手指捲動的手勢 |
 | `QuantityStepper` | `View/Components/QuantityStepper.swift` | 收銀頁列表／格狀卡片、套餐卡片各自的 `minus.circle.fill`／`plus.circle.fill` 增減列（2026-10-29） | 卡片或訂單摘要自己畫 ＋/− 按鈕列；自己管「哪一項展開」（一律用 `POSViewModel.expandedItem`／`increment`／`decrement`／`canIncrement`） |
+| `TransactionModel.displayNumber`／`displayNumber(for:)`、`PaymentMethod.displayName` | `Model/Domain/TransactionModel.swift` | 交易紀錄 VM、交易明細頁、庫存異動 CSV 各自組 `TXN` 編號與付款方式文字（2026-11-04） | 自己寫 `"TXN\(id.uuidString.prefix(8))"`；自己 `switch` 付款方式組顯示文字 |
 | `DiscountBreakdownView` | `View/Components/DiscountBreakdownView.swift` | 交易明細頁與訂單摘要各自畫的「小計／組合／折扣／總計」（2026-10-29） | 自己排小計、組合優惠、折扣、總計與「共省」；自己寫 `"-" + 金額` 的折抵格式 |
 
 ### 三條原則
@@ -258,10 +259,17 @@ UI 視覺規範已統一以 [`DESIGN.md`](./DESIGN.md) 為唯一依據（single 
 2. **View 不直接持有或呼叫 Repository**：Repository 一律經由 ViewModel 的 `updateDataManagers()` 注入（見「資料同步規範」規則 3），View 不可跳過 ViewModel 直接操作資料層。
 3. **`@State` 只放純 UI 狀態**：sheet 開關、選中的 tab index、動畫觸發旗標這類跟商業邏輯無關的狀態，可以留在 View 的 `@State`；一旦這個狀態會影響資料或觸發商業判斷，就該搬進 ViewModel 的 `@Published`。
 4. **格式化字串盡量由 ViewModel 提供成品字串**：例如金額格式化、庫存不足文案，讓 ViewModel 暴露 `totalAmountText: String` 這類已經算好的欄位，View 直接顯示，避免商業規則（貨幣符號、四捨五入方式）散落在多個 View 裡。
+5. **一個頁面一個 ViewModel，檔名一一對應**（`XxxView` ↔ `XxxViewModel`）：獨立推入或彈出的頁面不借用別頁的 ViewModel（例如排序畫面不用管理頁的、交易明細頁不用交易紀錄列表的）；別頁需要的資料經 `EventDataSource` 取得，寫入後用 callback 通知原頁重新載入。頁面放在自己的檔案，不寫在別頁的檔案裡。
 
 ### 例外
 
 - 子元件（`@ObservedObject` 接收父層 VM，見「資料同步規範」規則 1 的例外）同樣遵守以上標準：子元件內不寫商業邏輯，只轉發父層 VM 已經算好的狀態。
+- 規則 5 的例外（2026-11-04 盤點後決定）：
+  - **容器**（`EventWorkspaceView`、`CheckoutFlowView`、`RootTabView`）只裝其他頁面、狀態只有分頁與 sheet 開關，不加 ViewModel。
+  - **只有畫面狀態的頁面**（`CalendarMonthYearPicker`）不加 ViewModel，但仍放自己的檔案。
+  - **我的、登入、Tilli Pro** 以全 App 共用的 `AuthenticationManager` 當 ViewModel，不再包一層（會出現兩份登入狀態）；判斷邏輯寫在 `AuthenticationManager`（例如 `hasCompletedSignIn`），不寫在 View。
+  - **頁面的一部分**（商品卡片、套餐區塊、增減元件、報表小卡等）屬於子元件，用父層 VM。
+  - 共用狀態本來就該共用：訂單摘要有自己的 `CheckoutSummaryViewModel`，購物車讀收銀頁的 `POSViewModel`。
 
 ---
 
@@ -474,3 +482,4 @@ grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
 | 2026-10-08 | 「共用計算元件」表新增 `RevenueAllocator`（第 4 批）：攤提在付款 VM 寫入流水帳前完成，報表只加總 |
 | 2026-10-28 | 「共用計算元件」表新增 `BundleValidator`、`BundleAvailability`（含 `comboWarning`、`displayText`）、`ComboApplier`、`CartPricing`、`CheckoutRecorder`、`TransactionBreakdown`（第 5 批） |
 | 2026-10-28 | 第 5 批最終審查：`CartPricing.discountBase` 成為折扣基準唯一實作；`BundleValidator.bundles(referencingAnyOf:)` 供刪除類別守衛使用 |
+| 2026-11-04 | MVVM 規則新增第 5 條「一個頁面一個 ViewModel」與例外清單；「共用計算元件」表新增交易編號與付款方式顯示文字 |

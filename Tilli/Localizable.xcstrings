@@ -448,23 +448,6 @@
         }
       }
     },
-    "bundleFormSectionPhoto" : {
-      "comment" : "照片（選填）",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Photo (optional)"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "照片（選填）"
-          }
-        }
-      }
-    },
     "bundleFormSectionPrice" : {
       "comment" : "價格",
       "localizations" : {

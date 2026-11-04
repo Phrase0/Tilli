@@ -39,6 +39,30 @@ enum PaymentMethod: String, Codable {
     case ePayment
 }
 
+// MARK: - 顯示文字（交易紀錄、交易明細、CSV 共用，唯一一份）
+
+extension TransactionModel {
+    /// 交易編號：`TXN` ＋ id 前 8 碼（大寫）
+    static func displayNumber(for id: UUID) -> String {
+        "TXN\(id.uuidString.prefix(8).uppercased())"
+    }
+
+    var displayNumber: String { Self.displayNumber(for: id) }
+}
+
+extension PaymentMethod {
+    var displayName: String {
+        switch self {
+        case .cash:
+            // 現金
+            return String.localized("transactionPaymentCash")
+        case .ePayment:
+            // 電子支付
+            return String.localized("transactionPaymentEPayment")
+        }
+    }
+}
+
 // MARK: - CoreData 轉換
 extension TransactionModel {
     init(entity: CDTransactionEntity) {
