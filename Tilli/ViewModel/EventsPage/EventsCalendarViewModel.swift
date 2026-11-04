@@ -126,6 +126,6 @@ class EventsCalendarViewModel: ObservableObject {
         guard let transactionManager = transactionDataManager else {
             return (count: 0, total: 0)
         }
-        return transactionManager.fetchTransactions(forEventId: event.id).summary
+        return transactionManager.effectiveSummary(forEventId: event.id)
     }
 }

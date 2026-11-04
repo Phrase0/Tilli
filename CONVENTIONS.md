@@ -133,6 +133,7 @@ struct POSView: View {
 | 元件 | 位置 | 取代了什麼 | 不准再出現 |
 |------|------|-----------|-----------|
 | `TransactionIndex` | `Service/` | 5 個各自全表掃描的 `hasTransaction` | 自己寫迴圈找 `transaction.items` 判斷有沒有賣過 |
+| `TransactionVoidIndex` | `Service/` | 各處自己判斷交易有沒有作廢 | 在 VM／View 自己比對 `transactionId` 或另查作廢紀錄過濾（「交易是否作廢／有效交易」唯一來源） |
 | `EventDataSource` | `Service/` | 各分頁自己 fetch products/transactions | 場次工作區內另外呼叫 Repository 讀資料 |
 | `DiscountCalculator` | `Service/` | 8 處 `switch discountType` | `switch` 折扣型別；自己算 `value / 100` |
 | `CSVExporter` | `Service/` | 9 處建檔樣板 + 假逸出 | `FileManager.default.temporaryDirectory`；`replacingOccurrences(of: ",", with: "，")` |

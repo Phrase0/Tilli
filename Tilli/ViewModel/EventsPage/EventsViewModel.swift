@@ -52,7 +52,7 @@ class EventsViewModel: ObservableObject {
 
     func transactionSummary(for event: EventModel) -> (count: Int, total: Decimal) {
         guard let manager = transactionDataManager else { return (0, 0) }
-        return manager.fetchTransactions(forEventId: event.id).summary
+        return manager.effectiveSummary(forEventId: event.id)
     }
 
     /// 結束日期的可選範圍（開始日期的隔天到 +30 天）

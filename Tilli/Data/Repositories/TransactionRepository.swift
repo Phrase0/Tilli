@@ -56,6 +56,25 @@ class TransactionRepository: ObservableObject {
         }
     }
 
+    /// 取得指定 Event 的作廢紀錄
+    func fetchVoids(forEventId eventId: UUID) -> [TransactionVoidModel] {
+        let request: NSFetchRequest<CDTransactionVoidEntity> = CDTransactionVoidEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "eventId == %@", eventId as CVarArg)
+
+        do {
+            return try context.fetch(request).map { $0.toModel() }
+        } catch {
+            print("Fetch voids for event failed:", error)
+            return []
+        }
+    }
+
+    /// 場次的有效交易摘要（排除已作廢交易的筆數與總金額）
+    func effectiveSummary(forEventId eventId: UUID) -> (count: Int, total: Decimal) {
+        let voidIndex = TransactionVoidIndex(voids: fetchVoids(forEventId: eventId))
+        return voidIndex.effective(fetchTransactions(forEventId: eventId)).summary
+    }
+
     /// 根據場次和日期範圍查詢交易記錄（用於多日場次報表）
     /// 使用 displayDate（優先 occurredAt，否則 timestamp）進行日期篩選
     func fetchTransactions(forEventId eventId: UUID, dateRange: DateInterval?) -> [TransactionModel] {
