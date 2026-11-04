@@ -13,15 +13,21 @@ import SwiftUI
 ///
 /// - `event` 只有一個來源，三個分頁看到的是同一份
 /// - 商品與類別**一起**重載，不會出現「商品是新鮮的、類別是舊快照」
-/// - 報表共用同一份 `transactions`，切換 timeRange 只在記憶體篩選，不查 DB
-/// - `transactionIndex` 只建立一次，全場次共用
+/// - `allTransactions` 含已作廢交易（交易紀錄列表用）；`transactions` 是有效交易
+///   （= `voidIndex.effective(allTransactions)`），報表共用這一份，所以報表自動排除作廢
+/// - 切換 timeRange 只在記憶體篩選，不查 DB
+/// - `transactionIndex` 由 `allTransactions` 建立一次，全場次共用（作廢不解鎖商品／類別）
 @MainActor
 final class EventDataSource: ObservableObject {
 
     @Published private(set) var event: EventModel
     @Published private(set) var products: [ProductModel] = []
     @Published private(set) var categories: [CategoryModel] = []
+    /// 含已作廢交易
+    @Published private(set) var allTransactions: [TransactionModel] = []
+    /// 有效交易（排除已作廢）
     @Published private(set) var transactions: [TransactionModel] = []
+    @Published private(set) var voidIndex: TransactionVoidIndex = .empty
     @Published private(set) var inventoryChanges: [InventoryChangeModel] = []
     @Published private(set) var transactionIndex: TransactionIndex = .empty
 
@@ -73,25 +79,28 @@ final class EventDataSource: ObservableObject {
         }
         categories = event.categories
         products = productRepository.fetchProducts(forEventId: event.id)
-        transactions = transactionRepository.fetchTransactions(forEventId: event.id)
+        allTransactions = transactionRepository.fetchTransactions(forEventId: event.id)
+        voidIndex = TransactionVoidIndex(voids: transactionRepository.fetchVoids(forEventId: event.id))
+        transactions = voidIndex.effective(allTransactions)
         inventoryChanges = inventoryChangeRepository.fetchChanges(forEventId: event.id)
-        transactionIndex = TransactionIndex(transactions: transactions)
+        transactionIndex = TransactionIndex(transactions: allTransactions)
     }
 
     // MARK: - 查詢
 
-    /// 依時間範圍取交易（報表用，從記憶體篩選，不重複查 DB）。
+    /// 依時間範圍取含作廢的全部交易（交易紀錄列表用）。篩選條件同 `transactions(in:)`。
+    func allTransactions(in range: DateInterval?) -> [TransactionModel] {
+        guard let range else { return allTransactions }
+        return allTransactions.filter { $0.displayDate >= range.start && $0.displayDate <= range.end }
+    }
+
+    /// 依時間範圍取有效交易（報表用，從記憶體篩選，不重複查 DB）。
     ///
     /// 篩選條件與 `TransactionRepository.fetchTransactions(forEventId:dateRange:)` 一致：
     /// 都用 `displayDate`（優先 `occurredAt`，否則 `timestamp`）。
     func transactions(in range: DateInterval?) -> [TransactionModel] {
         guard let range else { return transactions }
         return transactions.filter { $0.displayDate >= range.start && $0.displayDate <= range.end }
-    }
-
-    /// 該場次的交易摘要（筆數 + 總金額）
-    var transactionSummary: (count: Int, total: Decimal) {
-        transactions.summary
     }
 
     /// 啟用中的類別（依 sortOrder）

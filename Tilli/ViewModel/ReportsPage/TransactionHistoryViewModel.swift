@@ -143,7 +143,7 @@ class TransactionHistoryViewModel: ObservableObject {
         self.currentTimeRange = timeRange
 
         // 共用資料源，切換 timeRange 只在記憶體篩選，不查 DB
-        transactions = dataSource.transactions(in: timeRange?.dateInterval)
+        transactions = dataSource.allTransactions(in: timeRange?.dateInterval)
 
         // 按日分組交易
         groupTransactionsByDate()
