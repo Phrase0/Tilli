@@ -351,7 +351,8 @@ App 目前有**三條**本地化通道，各自的 locale 來源不同 —— �
    `SalesAnalyticsViewModel:21/25` 的日期標籤）。
 3. **錢一律走 `MoneyHelper.format`**，不要用 SwiftUI 原生的 `format: .currency(...)`。
    通道 1 注入的是純語言碼 `Locale(identifier: "zh-Hant")`，`region` 與 `currency` 都是 `nil`，
-   原生幣別格式會印出 `XXX 1,234.50`。
+   原生幣別格式會印出 `XXX 1,234.50`。畫面金額是整數時不顯示小數（`$88`），有分才顯示幣別的完整小數位數（`$88.50`）；
+   CSV 的金額欄用 `MoneyHelper.toDisplayString`，固定小數位數（`88.00`）、不加幣別符號與千分位。
 4. **機器可讀的欄位**（CSV 日期欄、匯出檔名）不該跟著顯示語言跑，用固定數字 pattern
    （`isoDate`、`fileTimestamp`）。
 
@@ -492,3 +493,4 @@ grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
 | 2026-11-04 | MVVM 規則新增第 5 條「一個頁面一個 ViewModel」與例外清單；「共用計算元件」表新增交易編號與付款方式顯示文字 |
 | 2026-11-04 | 第 7 批 交易作廢：「共用計算元件」表新增 `TransactionVoidIndex`（交易是否作廢／有效交易的唯一來源）；`EventDataSource.transactions` 改為有效交易、`allTransactions` 為全部 |
 | 2026-11-05 | 「共用計算元件」表新增一次存檔的寫入 API（`recordCheckout`／`recordVoid`／`addProduct(initialChange:)`／`updateProduct(stockChange:)`）與 `SuccessHUD`；原則新增第 4 條「庫存與庫存異動紀錄在同一次存檔完成」 |
+| 2026-11-05 | 多語言規則 3 補充：畫面金額整數不顯示小數、有分顯示兩位（`MoneyHelper.format`）；CSV 固定小數位數（`toDisplayString`） |

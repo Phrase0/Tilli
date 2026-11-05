@@ -255,15 +255,18 @@ class MoneyHelper {
         return result
     }
 
+    /// 畫面顯示用金額（含幣別符號）：先依幣別四捨五入；結果是整數就不顯示小數（$88），
+    /// 否則顯示幣別的完整小數位數（$88.50）。CSV 用 `toDisplayString`，固定小數位數。
     static func format(_ value: Decimal, currency: Currency) -> String {
-        // 先根據貨幣規則四捨五入
         let handler = getHandlerForCurrency(currency)
         let roundedValue = NSDecimalNumber(decimal: value).rounding(accordingToBehavior: handler).decimalValue
+        let isWhole = roundedValue == roundDown(roundedValue, scale: 0)
+        let fractionDigits = isWhole ? 0 : currency.decimalPlaces
 
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = currency.decimalPlaces
-        formatter.maximumFractionDigits = currency.decimalPlaces
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
 
         if let formattedNumber = formatter.string(from: NSDecimalNumber(decimal: roundedValue)) {
             return "\(currency.symbol)\(formattedNumber)"

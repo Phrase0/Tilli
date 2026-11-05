@@ -2069,7 +2069,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - `list` 與 `grid` 兩種 `layoutMode` 下，跳躍與高亮都要正確
 - **視覺**：對照 `DESIGN.md` 的 token（間距、圓角、選中/未選中顏色），不要自創樣式
 
-### 第 7 批 — 交易作廢（7 項全部 ✅ 2026-11-04 完成；2026-11-05 寫入改為同一次存檔；手動測試待做）
+### 第 7 批 — 交易作廢（7 項全部 ✅ 2026-11-04 完成；2026-11-05 寫入改為同一次存檔；手動測試 ✅ 2026-11-05）
 
 設計：`docs/superpowers/specs/2026-11-04-void-transaction-design.md`；計畫：`docs/superpowers/plans/2026-11-04-void-transaction.md`。
 
@@ -2123,6 +2123,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 編輯商品 | `updateProduct` 存一次（存檔失敗仍回 `.updated`）、`addChange` 再存一次 | `updateProduct(stockChange:)` 一次存檔；存檔失敗或找不到商品回 `.failed(productSaveFailed)` | 守衛只准拒絕，不能假裝成功 |
 | 刪除的 API | — | `InventoryChangeRepository.addChange`／`addChanges`、`EventRepository.addTransaction`／`addVoid`、`ProductRepository.batchUpdateProductStock` | 異動只能跟著結帳、作廢、商品存檔一起寫（`InventoryChangeRepository.insertChange` 只建立、不存檔） |
 | 現金數字鍵盤（無小數幣別） | 最後一列左邊留一格空白：「（空）0 ⌫」 | 「0」佔左邊兩格、右邊是 ⌫；有小數點的幣別仍是「. 0 ⌫」 | 使用者要求，左下不要空白 |
+| 畫面金額（有小數的幣別） | 固定兩位小數：$88.00 | 四捨五入後是整數就不顯示小數：$88；有分照樣兩位：$88.50。台幣、日圓不變；CSV 維持固定兩位（88.00） | 使用者要求；CSV 給試算表用，欄位對齊 |
 | 已作廢卡片「庫存」列 | 依實際有無 `.voidRestock` 異動 | 不變 | 一次存檔後兩者一致；交易當初沒有銷售出庫時仍顯示「未回流」 |
 
 #### 測試
@@ -2136,7 +2137,7 @@ xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iO
 
 ##### 自動 —— 單元測試
 
-`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`、`LocalDataManagerTests`、`AtomicLedgerWriteTests`（10：結帳／作廢／新增／編輯商品各自「成功時只存檔 1 次、全部寫入」與「存檔失敗時一筆不留、庫存不變」）。
+`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`、`LocalDataManagerTests`、`AtomicLedgerWriteTests`（10：結帳／作廢／新增／編輯商品各自「成功時只存檔 1 次、全部寫入」與「存檔失敗時一筆不留、庫存不變」）、`MoneyFormatTests`（7：畫面金額整數不顯示小數、有分顯示兩位、台幣不變、CSV 固定兩位）。
 
 ##### 手動 —— 需操作 App（⬜ 待做）
 
@@ -2461,3 +2462,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-11-04 | 6.1 驗收後調整：排序畫面左側 ≡＋按住整列拖曳並拆出 `InventoryReorderViewModel`、交易明細拆出 `TransactionDetailViewModel`（交易編號／付款方式文字改共用）、年月選擇搬到獨立檔案、登入完成判斷搬進 `AuthenticationManager`、套餐／組合「儲存」移到右上角、新增商品圖片移到最上方、套餐圖片標題改「商品圖片（選填）」。335 個測試於 iOS 18.3、26.3 通過；iOS 17.5 僅既有的版面測試失敗；手動測試完成 |
 | 2026-11-04 | 第 7 批 交易作廢（7.1–7.7）：獨立作廢紀錄實體 `CDTransactionVoidEntity`、`TransactionVoidIndex`、`VoidRecorder`、庫存原因「作廢回流」、交易明細作廢流程（Picker 原因、無預設回流、確認框）、`EventDataSource.transactions` 改為有效交易並新增 `allTransactions`、交易紀錄與交易 CSV 處理作廢。手動測試待做 |
 | 2026-11-05 | 第 7 批追加：結帳（`EventRepository.recordCheckout`）、作廢（`recordVoid`）、新增／編輯商品的庫存與異動紀錄改為同一次存檔，失敗全部撤回並提示（結帳失敗留在付款頁）；移除 `.restockFailed` 與舊的分開寫入 API；結帳成功回 POS 顯示「付款完成」方塊（`SuccessHUD`）。新增 `AtomicLedgerWriteTests`（10）。手動測試待做。差異見 §11 第 7 批 |
+| 2026-11-05 | 第 7 批手動測試完成。畫面金額（`MoneyHelper.format`）整數不顯示小數、有分顯示兩位；CSV 維持固定兩位。新增 `MoneyFormatTests`（7）。總計 386 個單元測試全過 |
