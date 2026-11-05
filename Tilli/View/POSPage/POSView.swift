@@ -12,7 +12,12 @@ struct POSView: View {
     @ObservedObject var viewModel: POSViewModel
 
     @State private var showCheckoutSheet = false
-    @State private var checkoutCompleted = false
+    /// 結帳流程回報的付款金額（成功才有值）
+    @State private var completedCheckoutAmount: Decimal?
+    /// 付款成功、等結帳視窗完全關閉後才要顯示的金額（視窗關閉途中顯示會被擋住、吃掉顯示時間）
+    @State private var pendingSuccessAmount: Decimal?
+    /// 正在顯示的「付款完成」方塊；每次結帳都是新的 id，連續兩筆同金額也會重新計時
+    @State private var successHUD: SuccessHUDItem?
     @State private var showClearAlert = false
 
     /// 場次一律從 ViewModel 的共用快照取，View 不另外持有一份
@@ -55,24 +60,49 @@ struct POSView: View {
         } message: {
             Text(viewModel.invalidLinesMessage)
         }
-        .sheet(isPresented: $showCheckoutSheet) {
+        .sheet(isPresented: $showCheckoutSheet, onDismiss: showPendingSuccessHUD) {
             CheckoutFlowView(
                 isPresented: $showCheckoutSheet,
-                checkoutCompleted: $checkoutCompleted,
+                completedAmount: $completedCheckoutAmount,
                 posViewModel: viewModel
             )
         }
-        .onChange(of: checkoutCompleted) {
+        .onChange(of: completedCheckoutAmount) {
+            guard let amount = completedCheckoutAmount else { return }
             // 先清購物車再重新載入：否則剛結帳的套餐行會對著已扣過的庫存被判成「庫存不足」而跳通知
             viewModel.clearAllQuantities()
             viewModel.loadProducts()
+            pendingSuccessAmount = amount
             DispatchQueue.main.async {
-                checkoutCompleted = false
+                completedCheckoutAmount = nil
             }
+        }
+        .overlay {
+            if let successHUD {
+                // 付款完成
+                SuccessHUD(title: "checkoutSuccessHUD", detail: successHUD.amount.money(currency: event.currency))
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .allowsHitTesting(false)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: successHUD)
+        .task(id: successHUD) {
+            // 約 0.5 秒後自動收起，不擋操作
+            guard successHUD != nil else { return }
+            try? await Task.sleep(for: .seconds(0.5))
+            guard !Task.isCancelled else { return }
+            successHUD = nil
         }
         .onAppear {
             viewModel.loadProducts()
         }
+    }
+
+    /// 結帳視窗關閉後，付款成功才顯示「付款完成」方塊
+    private func showPendingSuccessHUD() {
+        guard let amount = pendingSuccessAmount else { return }
+        pendingSuccessAmount = nil
+        successHUD = SuccessHUDItem(amount: amount)
     }
 
     /// 有失效的套餐行或單點商品就顯示通知；關閉只能經「確定」（由 confirmInvalidLines 清空陣列）
@@ -483,4 +513,10 @@ struct POSItemStepper: View {
             onExpand: { viewModel.expand(item) }
         )
     }
+}
+
+/// POS 頁「付款完成」方塊的顯示內容
+private struct SuccessHUDItem: Equatable {
+    let id = UUID()
+    let amount: Decimal
 }

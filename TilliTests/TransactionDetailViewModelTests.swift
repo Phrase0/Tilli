@@ -40,7 +40,7 @@ final class TransactionDetailViewModelTests: XCTestCase {
     }
 
     /// 兩筆已作廢的交易：
-    /// - `voidedTransactionId`：作廢紀錄 restocked = true，但沒有任何作廢回流異動（例如回流寫入失敗）
+    /// - `voidedTransactionId`：作廢紀錄 restocked = true，但沒有任何作廢回流異動（例如交易當初沒有銷售出庫異動）
     /// - `restockedTransactionId`：作廢紀錄 restocked = true，且有一筆作廢回流異動
     private func seed() throws -> UUID {
         let context = container.viewContext

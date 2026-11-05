@@ -4,7 +4,7 @@
 //
 //  交易明細頁：（已作廢卡片）→ 資訊區 → 商品 → 優惠明細 →（作廢交易按鈕）。
 //  商品與優惠區塊由 `TransactionBreakdown` 從交易快照還原，版面與訂單摘要相同；作廢後快照照常顯示。
-//  「作廢交易」開作廢視窗（`VoidTransactionView`）；視窗關閉後（onDismiss）重新讀取作廢狀態，回流失敗時再跳提示。
+//  「作廢交易」開作廢視窗（`VoidTransactionView`）；視窗關閉後（onDismiss）重新讀取作廢狀態。
 //
 
 import SwiftUI
@@ -13,9 +13,6 @@ struct TransactionDetailView: View {
     @StateObject private var viewModel: TransactionDetailViewModel
 
     @State private var showVoidSheet = false
-    @State private var showRestockFailed = false
-    /// 作廢視窗回報的結果，等 sheet 完全關閉後（onDismiss）才處理
-    @State private var pendingVoidOutcome: VoidTransactionViewModel.VoidOutcome?
 
     init(transaction: TransactionModel, dataSource: EventDataSource) {
         _viewModel = StateObject(wrappedValue: TransactionDetailViewModel(transaction: transaction, dataSource: dataSource))
@@ -44,25 +41,9 @@ struct TransactionDetailView: View {
         // 交易明細
         .navigationTitle("transactionDetailTitle")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showVoidSheet, onDismiss: handleVoidSheetDismissed) {
-            VoidTransactionView(transaction: transaction, dataSource: viewModel.dataSource) { outcome in
-                pendingVoidOutcome = outcome
-            }
+        .sheet(isPresented: $showVoidSheet, onDismiss: { viewModel.refreshVoidState() }) {
+            VoidTransactionView(transaction: transaction, dataSource: viewModel.dataSource)
         }
-        // 交易已作廢，但庫存回流失敗，請到管理商品手動調整庫存
-        .alert("voidRestockFailedMessage", isPresented: $showRestockFailed) {
-            // 好
-            Button("commonOK", role: .cancel) {}
-        }
-    }
-
-    /// sheet 關閉後才重新讀取作廢狀態並視需要跳回流失敗提示（sheet 關閉途中無法 present alert）
-    private func handleVoidSheetDismissed() {
-        viewModel.refreshVoidState()
-        if pendingVoidOutcome == .restockFailed {
-            showRestockFailed = true
-        }
-        pendingVoidOutcome = nil
     }
 
     // MARK: - 已作廢卡片

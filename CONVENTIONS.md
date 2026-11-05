@@ -156,8 +156,10 @@ struct POSView: View {
 | `QuantityStepper` | `View/Components/QuantityStepper.swift` | 收銀頁列表／格狀卡片、套餐卡片各自的 `minus.circle.fill`／`plus.circle.fill` 增減列（2026-10-29） | 卡片或訂單摘要自己畫 ＋/− 按鈕列；自己管「哪一項展開」（一律用 `POSViewModel.expandedItem`／`increment`／`decrement`／`canIncrement`） |
 | `TransactionModel.displayNumber`／`displayNumber(for:)`、`PaymentMethod.displayName` | `Model/Domain/TransactionModel.swift` | 交易紀錄 VM、交易明細頁、庫存異動 CSV 各自組 `TXN` 編號與付款方式文字（2026-11-04） | 自己寫 `"TXN\(id.uuidString.prefix(8))"`；自己 `switch` 付款方式組顯示文字 |
 | `DiscountBreakdownView` | `View/Components/DiscountBreakdownView.swift` | 交易明細頁與訂單摘要各自畫的「小計／組合／折扣／總計」（2026-10-29） | 自己排小計、組合優惠、折扣、總計與「共省」；自己寫 `"-" + 金額` 的折抵格式 |
+| `EventRepository.recordCheckout`／`recordVoid`、`ProductRepository.addProduct(initialChange:)`／`updateProduct(stockChange:)`（內部共用 `InventoryChangeRepository.insertChange`） | `Data/Repositories/` | 結帳、作廢、商品存檔把庫存、異動紀錄、交易／作廢紀錄分成多次存檔（2026-11-05） | 另外呼叫一次 `save` 寫異動或庫存；新增「只寫異動」「只改庫存」的公開 API。庫存異動一律跟著造成它的那筆寫入**同一次存檔**，失敗時全部撤回並回報 |
+| `SuccessHUD` | `View/Components/SuccessHUD.swift` | （新）畫面正中間的成功方塊（綠勾＋標題＋金額），目前用於 POS「付款完成」（2026-11-05） | 自己畫置中的成功提示；綠色勾勾只用於結帳完成（DESIGN.md 市集綠規則） |
 
-### 三條原則
+### 四條原則
 
 1. **金額一律走 `MoneyHelper`**，不要用原生 `+ - * /`（捨入行為不同）。
 2. **保護要放在寫入邊界，不能依賴呼叫端記得呼叫。**
@@ -167,6 +169,10 @@ struct POSView: View {
 3. **守衛只准拒絕，不准偷偷做別的事。**
    `deleteProduct` 原本在有交易時靜默改成「停用」並回報成功，呼叫端以為刪掉了。
    現在一律回 `.failed(...)`；`ProductDeletionResult.disabledInstead` 已移除。
+4. **庫存與庫存異動紀錄在同一次存檔完成。**
+   結帳（交易＋銷售出庫＋庫存）、作廢（作廢紀錄＋回流＋庫存）、新增／編輯商品（商品＋異動）各自只 `save` 一次，
+   失敗時 rollback、什麼都不留，並讓使用者看到提示（結帳失敗留在付款頁）。
+   原本分成多次存檔，任一步失敗庫存就和異動紀錄對不起來，且結帳失敗沒有任何提示。
 
 ### 歷史快照 vs 冗餘欄位
 
@@ -485,3 +491,4 @@ grep -nE "^(struct|class|enum|extension|protocol|func|var|let) " <file>
 | 2026-10-28 | 第 5 批最終審查：`CartPricing.discountBase` 成為折扣基準唯一實作；`BundleValidator.bundles(referencingAnyOf:)` 供刪除類別守衛使用 |
 | 2026-11-04 | MVVM 規則新增第 5 條「一個頁面一個 ViewModel」與例外清單；「共用計算元件」表新增交易編號與付款方式顯示文字 |
 | 2026-11-04 | 第 7 批 交易作廢：「共用計算元件」表新增 `TransactionVoidIndex`（交易是否作廢／有效交易的唯一來源）；`EventDataSource.transactions` 改為有效交易、`allTransactions` 為全部 |
+| 2026-11-05 | 「共用計算元件」表新增一次存檔的寫入 API（`recordCheckout`／`recordVoid`／`addProduct(initialChange:)`／`updateProduct(stockChange:)`）與 `SuccessHUD`；原則新增第 4 條「庫存與庫存異動紀錄在同一次存檔完成」 |

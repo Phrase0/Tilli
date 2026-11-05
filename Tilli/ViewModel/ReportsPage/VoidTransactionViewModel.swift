@@ -13,14 +13,12 @@ import Foundation
 final class VoidTransactionViewModel: ObservableObject {
 
     enum VoidOutcome: Equatable {
-        /// 作廢紀錄（與回流）都寫入成功
+        /// 作廢紀錄（與回流異動、庫存）一次寫入成功
         case done
         /// 寫入前被拒絕（已作廢、原因或庫存方式未選），什麼都沒寫
         case rejected
-        /// 作廢紀錄寫入失敗，什麼都沒寫
+        /// 存檔失敗，什麼都沒寫
         case voidFailed
-        /// 作廢紀錄已寫入，但商品庫存回流失敗
-        case restockFailed
     }
 
     let transaction: TransactionModel
@@ -62,15 +60,8 @@ final class VoidTransactionViewModel: ObservableObject {
         return String.localized("voidConfirmMessage") + "\n" + restockLine
     }
 
-    /// 寫入順序：作廢紀錄 → （回流時）庫存異動 → 商品庫存 → 重新載入 dataSource。
-    /// 作廢紀錄是判斷「已作廢」的依據，先寫它；它失敗就什麼都不寫。
-    /// 庫存異動存檔成功才更新商品庫存；異動或庫存任一失敗回傳 `.restockFailed`。
-    func performVoid(
-        eventRepository: EventRepository,
-        productRepository: ProductRepository,
-        inventoryChangeRepository: InventoryChangeRepository,
-        now: Date = Date()
-    ) -> VoidOutcome {
+    /// 作廢紀錄、（回流時）作廢回流異動、商品庫存一次存檔（`EventRepository.recordVoid`），失敗時都不留。
+    func performVoid(eventRepository: EventRepository, now: Date = Date()) -> VoidOutcome {
         // 先重新載入，作廢判斷與目前庫存都用最新資料
         dataSource.reload()
 
@@ -85,22 +76,11 @@ final class VoidTransactionViewModel: ObservableObject {
         )
         guard case .success(let record) = result else { return .rejected }
 
-        guard eventRepository.addVoid(record.void) else { return .voidFailed }
-
-        var outcome = VoidOutcome.done
-        if !record.inventoryChanges.isEmpty {
-            if inventoryChangeRepository.addChanges(record.inventoryChanges, eventId: transaction.eventId) {
-                let currentStock = Dictionary(uniqueKeysWithValues: dataSource.products.map { ($0.id, $0.stock) })
-                let stockUpdates = VoidRecorder.stockUpdates(for: record.inventoryChanges, currentStock: currentStock)
-                if !productRepository.batchUpdateProductStock(stockUpdates) {
-                    outcome = .restockFailed
-                }
-            } else {
-                outcome = .restockFailed
-            }
-        }
+        let currentStock = Dictionary(uniqueKeysWithValues: dataSource.products.map { ($0.id, $0.stock) })
+        let stockUpdates = VoidRecorder.stockUpdates(for: record.inventoryChanges, currentStock: currentStock)
+        guard eventRepository.recordVoid(record, stockUpdates: stockUpdates) else { return .voidFailed }
 
         dataSource.reload()
-        return outcome
+        return .done
     }
 }

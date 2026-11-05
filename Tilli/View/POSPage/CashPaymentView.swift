@@ -13,7 +13,6 @@ struct CashPaymentView: View {
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     let event: EventModel
 
@@ -43,11 +42,14 @@ struct CashPaymentView: View {
     }
 
     var body: some View {
-        if calculatorEnabled {
-            calculatorModeView
-        } else {
-            simpleModeView
+        Group {
+            if calculatorEnabled {
+                calculatorModeView
+            } else {
+                simpleModeView
+            }
         }
+        .checkoutFailedAlert(isPresented: $viewModel.showCheckoutFailed)
     }
 
     // MARK: - 完整計算機模式（自訂數字鍵盤，不使用系統鍵盤，不需要處理彈出/收起的避讓）
@@ -192,25 +194,24 @@ struct CashPaymentView: View {
 
     private func completePayment() {
         guard viewModel.isAmountValid else { return }
-
-        viewModel.performCheckout(
-            eventDataManager: eventDataManager,
-            productRepository: productRepository,
-            inventoryChangeRepository: inventoryChangeRepository
-        )
-
-        DispatchQueue.main.async {
-            closeFlow()
-        }
+        finishCheckout()
     }
 
     private func completePaymentSimple() {
-        viewModel.performCheckout(
+        finishCheckout()
+    }
+
+    /// 寫入成功才關閉結帳流程；失敗時 ViewModel 會跳出「結帳失敗」，留在付款頁
+    private func finishCheckout() {
+        let saved = viewModel.performCheckout(
             eventDataManager: eventDataManager,
-            productRepository: productRepository,
-            inventoryChangeRepository: inventoryChangeRepository
+            productRepository: productRepository
         )
-        closeFlow()
+        guard saved else { return }
+        let amount = viewModel.totalAmount
+        DispatchQueue.main.async {
+            closeFlow(amount)
+        }
     }
 }
 
@@ -228,23 +229,25 @@ private struct NumericKeypad: View {
         ["7", "8", "9"]
     ]
 
+    /// 有小數點時最後一列是「. 0 ⌫」；沒有小數點時「0」佔兩格、左邊不留空白
     var body: some View {
-        VStack(spacing: DesignSystem.Spacing.sm) {
+        Grid(horizontalSpacing: DesignSystem.Spacing.sm, verticalSpacing: DesignSystem.Spacing.sm) {
             ForEach(digitRows, id: \.self) { row in
-                HStack(spacing: DesignSystem.Spacing.sm) {
+                GridRow {
                     ForEach(row, id: \.self) { digit in
                         keyButton(label: digit) { onDigit(digit) }
                     }
                 }
             }
 
-            HStack(spacing: DesignSystem.Spacing.sm) {
+            GridRow {
                 if showsDecimalPoint {
                     keyButton(label: ".") { onDecimalPoint() }
+                    keyButton(label: "0") { onDigit("0") }
                 } else {
-                    Color.clear
+                    keyButton(label: "0") { onDigit("0") }
+                        .gridCellColumns(2)
                 }
-                keyButton(label: "0") { onDigit("0") }
                 keyButton(systemImage: "delete.left") { onDelete() }
             }
         }

@@ -319,59 +319,110 @@ class EventRepository: ObservableObject {
     }
 
     // MARK: - Transaction Operations (僅允許新增)
-    
-    /// 新增交易記錄（永久保留）
-    func addTransaction(_ model: TransactionModel) {
-        let eventRequest: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
-        eventRequest.predicate = NSPredicate(format: "id == %@", model.eventId as CVarArg)
 
-        do {
-            guard let eventEntity = try context.fetch(eventRequest).first else {
-                print("找不到對應 event，無法加入 transaction")
-                return
+    /// 結帳寫入：交易、銷售扣庫存異動、商品庫存在**同一次存檔**完成。
+    /// 找不到場次或存檔失敗回傳 false，失敗時全部撤回（交易、異動、庫存都不留）。
+    /// `stockUpdates` 是各商品結帳後的庫存（`CheckoutRecorder.stockUpdates`），寫入時不低於 0。
+    func recordCheckout(
+        _ record: CheckoutRecorder.Record,
+        stockUpdates: [UUID: Int],
+        userId: String = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
+    ) -> Bool {
+        guard let eventEntity = fetchEventEntity(by: record.transaction.eventId) else {
+            print("找不到對應 event，無法寫入結帳")
+            return false
+        }
+        let now = Date()
+
+        let transaction = CDTransactionEntity(context: context)
+        transaction.update(from: record.transaction, context: context)
+        transaction.userId = userId
+        transaction.markPendingSync(at: now)
+        eventEntity.addToTransactions(transaction)
+
+        insertLedgerChanges(record.inventoryChanges, stockUpdates: stockUpdates,
+                            event: eventEntity, userId: userId, at: now)
+
+        guard saveContext() else { return false }
+        TransactionRepository.shared.notifyTransactionsChanged()
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+        return true
+    }
+
+    /// 作廢寫入：作廢紀錄、（回流時）作廢回流異動、商品庫存在**同一次存檔**完成。
+    /// 同一筆交易已有作廢紀錄、有回流異動卻找不到場次、或存檔失敗時回傳 false，什麼都不留。
+    /// `stockUpdates` 是各商品回流後的庫存（`VoidRecorder.stockUpdates`）。
+    func recordVoid(
+        _ record: VoidRecorder.Record,
+        stockUpdates: [UUID: Int],
+        userId: String = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
+    ) -> Bool {
+        let existing: NSFetchRequest<CDTransactionVoidEntity> = CDTransactionVoidEntity.fetchRequest()
+        existing.predicate = NSPredicate(format: "transactionId == %@", record.void.transactionId as CVarArg)
+        existing.fetchLimit = 1
+        guard (try? context.count(for: existing)) == 0 else {
+            print("交易已作廢或無法確認，不重複寫入")
+            return false
+        }
+        let now = Date()
+
+        if !record.inventoryChanges.isEmpty {
+            guard let eventEntity = fetchEventEntity(by: record.void.eventId) else {
+                print("找不到對應 event，無法寫入作廢回流")
+                return false
             }
+            insertLedgerChanges(record.inventoryChanges, stockUpdates: stockUpdates,
+                                event: eventEntity, userId: userId, at: now)
+        }
 
-            let entity = CDTransactionEntity(context: context)
-            entity.update(from: model, context: context)
-            entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-            entity.markPendingSync()
-            eventEntity.addToTransactions(entity)
+        let void = CDTransactionVoidEntity(context: context)
+        void.update(from: record.void, context: context)
+        void.userId = userId
+        void.markPendingSync(at: now)
 
-            if saveContext() {
-                TransactionRepository.shared.notifyTransactionsChanged()
-                // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
-            }
-        } catch {
-            print("加入 transaction 失敗:", error)
+        guard saveContext() else { return false }
+        TransactionRepository.shared.notifyTransactionsChanged()
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+        return true
+    }
+
+    /// 建立異動 entity 並套用庫存，不存檔（給 recordCheckout／recordVoid 共用）
+    private func insertLedgerChanges(
+        _ changes: [InventoryChangeModel],
+        stockUpdates: [UUID: Int],
+        event: CDEventEntity,
+        userId: String,
+        at date: Date
+    ) {
+        let productIds = Set(changes.map(\.productId)).union(stockUpdates.keys)
+        let products = fetchProductEntities(by: productIds)
+
+        for change in changes {
+            InventoryChangeRepository.insertChange(
+                change, event: event, product: products[change.productId],
+                userId: userId, at: date, in: context
+            )
+        }
+        for (productId, newStock) in stockUpdates {
+            guard let product = products[productId] else { continue }
+            product.stock = Int32(max(newStock, 0))
+            product.markPendingSync(at: date)
         }
     }
 
-    /// 新增作廢紀錄（僅允許新增）。同一筆交易已有作廢紀錄時不寫入並回傳 false。
-    @discardableResult
-    func addVoid(_ model: TransactionVoidModel) -> Bool {
-        let existing: NSFetchRequest<CDTransactionVoidEntity> = CDTransactionVoidEntity.fetchRequest()
-        existing.predicate = NSPredicate(format: "transactionId == %@", model.transactionId as CVarArg)
-        existing.fetchLimit = 1
+    private func fetchEventEntity(by eventId: UUID) -> CDEventEntity? {
+        let request: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
+    }
 
-        do {
-            if try context.count(for: existing) > 0 {
-                print("交易已作廢，不重複寫入")
-                return false
-            }
-
-            let entity = CDTransactionVoidEntity(context: context)
-            entity.update(from: model, context: context)
-            entity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-            entity.markPendingSync()
-
-            guard saveContext() else { return false }
-            TransactionRepository.shared.notifyTransactionsChanged()
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
-            return true
-        } catch {
-            print("加入作廢紀錄失敗:", error)
-            return false
-        }
+    private func fetchProductEntities(by productIds: Set<UUID>) -> [UUID: CDProductEntity] {
+        guard !productIds.isEmpty else { return [:] }
+        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id IN %@", Array(productIds))
+        let entities = (try? context.fetch(request)) ?? []
+        return Dictionary(entities.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// 複製場次（包含所有類別和產品，但不包含交易記錄）

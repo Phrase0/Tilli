@@ -2069,7 +2069,7 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
   - `list` 與 `grid` 兩種 `layoutMode` 下，跳躍與高亮都要正確
 - **視覺**：對照 `DESIGN.md` 的 token（間距、圓角、選中/未選中顏色），不要自創樣式
 
-### 第 7 批 — 交易作廢（7 項全部 ✅ 2026-11-04 完成；手動測試待做）
+### 第 7 批 — 交易作廢（7 項全部 ✅ 2026-11-04 完成；2026-11-05 寫入改為同一次存檔；手動測試待做）
 
 設計：`docs/superpowers/specs/2026-11-04-void-transaction-design.md`；計畫：`docs/superpowers/plans/2026-11-04-void-transaction.md`。
 
@@ -2109,6 +2109,22 @@ grep -rnE "switch (discountType|discount\.type)" --include="*.swift" Tilli \
 | 差異表「回流寫入失敗」 | 寫「不更新庫存、不寫作廢紀錄」 | 改為「作廢紀錄先寫；異動寫入失敗則不更新庫存，回報 `.restockFailed`」 | 原文與實作不符 |
 | 文件與註解 | 掃描基準仍是 7 entity／79 屬性／8 關聯；兩筆作廢紀錄的規則只寫在設計文件；`onFinished`、0.55 透明度、`testAddChangesReportsFailureWhenEventMissing` 的註解與實際不符 | ARCHITECTURE §2 改為 8／91／10、補版本記錄；ARCHITECTURE §4 與 SYNC_ARCHITECTURE_V2 寫明「以 `voidedAt` 最早者為準」；三處註解改寫為目前行為 | 文件要反映現況 |
 
+#### 寫入改為同一次存檔（2026-11-05）
+
+討論回流失敗的成因時發現：結帳、作廢、新增／編輯商品都把「庫存」與「庫存異動紀錄」分成好幾次存檔，任一步失敗兩邊就對不起來，且結帳與商品存檔失敗時完全沒有提示。
+
+| 項目 | 修改前 | 修改後 | 原因 |
+|------|--------|--------|------|
+| 結帳寫入 | 先 `batchUpdateProductStock`，再 `addTransaction`，再逐列 `addChange`，共多次存檔；失敗只印 log，畫面照樣關閉 | `EventRepository.recordCheckout`：交易、銷售出庫異動、庫存一次存檔，失敗全部撤回並回傳 false | 庫存、交易、異動不會只寫一半 |
+| 結帳失敗 | 無提示 | 留在付款頁，系統提示框「結帳失敗／交易沒有儲存，請再試一次」，購物車保留，可直接重按 | 使用者要知道這筆沒記到 |
+| 結帳成功 | 直接回 POS | 結帳視窗關閉後，畫面正中間顯示「付款完成」方塊（綠勾＋金額），約 1 秒淡出、不擋操作（共用元件 `SuccessHUD`） | 使用者要求；攤位上低頭一瞥就能確認 |
+| 作廢寫入 | 作廢紀錄先存；回流異動、庫存各自再存；可能出現 `.restockFailed` | `EventRepository.recordVoid`：作廢紀錄、回流異動、庫存一次存檔；失敗時都不留、沿用「作廢失敗」提示並留在視窗 | `.restockFailed`、明細頁的回流失敗提示與 `voidRestockFailedMessage` 一併移除；作廢視窗不再需要 `onFinished` |
+| 新增商品 | `addProduct` 存一次、`addChange` 再存一次；`addProduct` 失敗無提示 | `addProduct(initialChange:)` 一次存檔、回傳 `Bool`；失敗跳「儲存失敗，請再試一次」並留在頁面 | 統一做法 |
+| 編輯商品 | `updateProduct` 存一次（存檔失敗仍回 `.updated`）、`addChange` 再存一次 | `updateProduct(stockChange:)` 一次存檔；存檔失敗或找不到商品回 `.failed(productSaveFailed)` | 守衛只准拒絕，不能假裝成功 |
+| 刪除的 API | — | `InventoryChangeRepository.addChange`／`addChanges`、`EventRepository.addTransaction`／`addVoid`、`ProductRepository.batchUpdateProductStock` | 異動只能跟著結帳、作廢、商品存檔一起寫（`InventoryChangeRepository.insertChange` 只建立、不存檔） |
+| 現金數字鍵盤（無小數幣別） | 最後一列左邊留一格空白：「（空）0 ⌫」 | 「0」佔左邊兩格、右邊是 ⌫；有小數點的幣別仍是「. 0 ⌫」 | 使用者要求，左下不要空白 |
+| 已作廢卡片「庫存」列 | 依實際有無 `.voidRestock` 異動 | 不變 | 一次存檔後兩者一致；交易當初沒有銷售出庫時仍顯示「未回流」 |
+
 #### 測試
 
 ##### 自動 —— 指令驗證
@@ -2120,7 +2136,7 @@ xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iO
 
 ##### 自動 —— 單元測試
 
-`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`、`LocalDataManagerTests`。
+`TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`、`LocalDataManagerTests`、`AtomicLedgerWriteTests`（10：結帳／作廢／新增／編輯商品各自「成功時只存檔 1 次、全部寫入」與「存檔失敗時一筆不留、庫存不變」）。
 
 ##### 手動 —— 需操作 App（⬜ 待做）
 
@@ -2132,6 +2148,9 @@ xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iO
 6. 作廢視窗未選原因或回流時作廢按鈕不可按；取消確認框不會作廢。
 7. 已作廢交易的商品仍不能刪除；已結束場次的交易也能作廢。
 8. 深色模式檢查卡片、標籤、已作廢卡片可讀。
+9. 現金（計算機與簡化模式各一次；台幣鍵盤「0」佔兩格，美元等有小數的幣別為「. 0 ⌫」）與電子支付結帳：結帳視窗關閉後正中間出現「付款完成」方塊與正確金額，約 0.5 秒淡出；方塊顯示中可以直接點商品；深色模式可讀。
+10. 新增商品（初始庫存 > 0）與編輯商品庫存：異動列表各多一筆，庫存正確。
+11. 失敗提示（需暫時改程式讓存檔回傳 false）：結帳留在付款頁並跳「結帳失敗」，按「好」後可再結帳；作廢跳「作廢失敗」留在視窗；商品存檔跳「儲存失敗」。三者庫存與異動都沒有變。
 
 ### Backlog
 
@@ -2441,3 +2460,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-11-04 | 第 6 批 6.1 重寫（前兩版驗收失敗、退回 `4cf4d26`）：共用 `SectionedScrollView`（點 chip 根因修正、捲動依序高亮含最後一段平均分配）、管理商品頁改一般捲動畫面＋右上角「排序」按鈕與排序畫面（含套餐／組合 `sortOrder`）、網格／列表設定可注入、互動驗證工具。全部 331 個測試於 iOS 18.3、26.3 通過；iOS 17.5（暫改最低版本跑測試，跑完還原）本批測試全過，另有 1 個既有的 `ReportTimeRangeSelectorLayoutTests` 在 iOS 17.5 寬 393pt 時超出 0.33pt（本批未修改該畫面，之前未在 iOS 17 跑過）；手動測試完成 |
 | 2026-11-04 | 6.1 驗收後調整：排序畫面左側 ≡＋按住整列拖曳並拆出 `InventoryReorderViewModel`、交易明細拆出 `TransactionDetailViewModel`（交易編號／付款方式文字改共用）、年月選擇搬到獨立檔案、登入完成判斷搬進 `AuthenticationManager`、套餐／組合「儲存」移到右上角、新增商品圖片移到最上方、套餐圖片標題改「商品圖片（選填）」。335 個測試於 iOS 18.3、26.3 通過；iOS 17.5 僅既有的版面測試失敗；手動測試完成 |
 | 2026-11-04 | 第 7 批 交易作廢（7.1–7.7）：獨立作廢紀錄實體 `CDTransactionVoidEntity`、`TransactionVoidIndex`、`VoidRecorder`、庫存原因「作廢回流」、交易明細作廢流程（Picker 原因、無預設回流、確認框）、`EventDataSource.transactions` 改為有效交易並新增 `allTransactions`、交易紀錄與交易 CSV 處理作廢。手動測試待做 |
+| 2026-11-05 | 第 7 批追加：結帳（`EventRepository.recordCheckout`）、作廢（`recordVoid`）、新增／編輯商品的庫存與異動紀錄改為同一次存檔，失敗全部撤回並提示（結帳失敗留在付款頁）；移除 `.restockFailed` 與舊的分開寫入 API；結帳成功回 POS 顯示「付款完成」方塊（`SuccessHUD`）。新增 `AtomicLedgerWriteTests`（10）。手動測試待做。差異見 §11 第 7 批 |

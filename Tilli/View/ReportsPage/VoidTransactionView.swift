@@ -3,32 +3,21 @@
 //  Tilli
 //
 //  作廢視窗（sheet，系統 Form 樣式）：交易編號與金額 → 作廢原因（選單＋補充文字）→ 庫存回流與否 → 「作廢」。
-//  按「作廢」先跳確認框，確認後由 VM 寫入；結束時以 `onFinished` 回報結果給明細頁，再關閉視窗。
+//  按「作廢」先跳確認框，確認後由 VM 寫入；成功或已被作廢就關閉視窗（明細頁在關閉後重新讀取），存檔失敗留在視窗提示。
 //
 
 import SwiftUI
 
 struct VoidTransactionView: View {
     @EnvironmentObject private var eventRepository: EventRepository
-    @EnvironmentObject private var productRepository: ProductRepository
-    @EnvironmentObject private var inventoryChangeRepository: InventoryChangeRepository
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: VoidTransactionViewModel
 
     @State private var showConfirm = false
     @State private var showVoidFailed = false
 
-    private let onFinished: (VoidTransactionViewModel.VoidOutcome) -> Void
-
-    /// - Parameter onFinished: 關閉視窗前呼叫，傳入 `.done`、`.restockFailed` 或 `.rejected`（如已被作廢）；
-    ///   `.voidFailed` 不呼叫（留在視窗顯示錯誤）。明細頁在視窗關閉後據此重新讀取並決定是否提示
-    init(
-        transaction: TransactionModel,
-        dataSource: EventDataSource,
-        onFinished: @escaping (VoidTransactionViewModel.VoidOutcome) -> Void
-    ) {
+    init(transaction: TransactionModel, dataSource: EventDataSource) {
         _viewModel = StateObject(wrappedValue: VoidTransactionViewModel(transaction: transaction, dataSource: dataSource))
-        self.onFinished = onFinished
     }
 
     var body: some View {
@@ -164,21 +153,13 @@ struct VoidTransactionView: View {
     // MARK: - 寫入
 
     private func submit() {
-        let outcome = viewModel.performVoid(
-            eventRepository: eventRepository,
-            productRepository: productRepository,
-            inventoryChangeRepository: inventoryChangeRepository
-        )
+        let outcome = viewModel.performVoid(eventRepository: eventRepository)
         switch outcome {
-        case .done, .restockFailed:
-            onFinished(outcome)
+        case .done, .rejected:
+            // 已作廢等被拒絕的情況也關閉，明細頁關閉後會重新讀取
             dismiss()
         case .voidFailed:
             showVoidFailed = true
-        case .rejected:
-            // 已作廢等情況：通知明細頁重新讀取後關閉
-            onFinished(outcome)
-            dismiss()
         }
     }
 }

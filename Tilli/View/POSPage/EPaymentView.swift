@@ -14,7 +14,6 @@ struct EPaymentView: View {
     @EnvironmentObject var eventDataManager: EventRepository
     @EnvironmentObject var productRepository: ProductRepository
     @EnvironmentObject var qrCodeDataManager: QRCodeRepository
-    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
 
     let event: EventModel
 
@@ -124,6 +123,7 @@ struct EPaymentView: View {
         .padding()
         .background(DesignSystem.ColorToken.paper)
         .navigationTitle("")
+        .checkoutFailedAlert(isPresented: $viewModel.showCheckoutFailed)
     }
 
     // MARK: - Helper Methods
@@ -131,12 +131,11 @@ struct EPaymentView: View {
     private func completePayment() {
         guard qrCodeDataManager.qrCodeImage != nil else { return }
 
-        viewModel.performCheckout(
+        // 寫入成功才關閉結帳流程；失敗時 ViewModel 會跳出「結帳失敗」，留在付款頁
+        let saved = viewModel.performCheckout(
             eventDataManager: eventDataManager,
-            productRepository: productRepository,
-            inventoryChangeRepository: inventoryChangeRepository
+            productRepository: productRepository
         )
-
-        closeFlow()
+        if saved { closeFlow(viewModel.totalAmount) }
     }
 }

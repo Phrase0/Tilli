@@ -34,7 +34,7 @@ final class TransactionDetailViewModel: ObservableObject {
     }
 
     /// 已作廢卡片的「庫存」列：場次異動中有這筆交易的作廢回流（`.voidRestock`）才算已回流。
-    /// 不看作廢紀錄的 `restocked`（那是使用者的選擇；回流寫入失敗或沒有銷售出庫時並未加回庫存）。
+    /// 不看作廢紀錄的 `restocked`（那是使用者的選擇；交易當初沒有銷售出庫異動時，選了回流也沒有東西加回庫存）。
     var restockText: String {
         let restocked = dataSource.inventoryChanges.contains {
             $0.reason == .voidRestock && $0.transactionId == transaction.id

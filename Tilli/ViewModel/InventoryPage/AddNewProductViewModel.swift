@@ -358,8 +358,9 @@ class AddNewProductViewModel: ObservableObject {
     }
     
     // MARK: - 儲存動作
-    func save(using productRepository: ProductRepository,
-              inventoryChangeRepository: InventoryChangeRepository) -> Bool {
+
+    /// 商品與庫存異動在同一次存檔完成（由 `ProductRepository` 負責）；失敗時都不留，跳出「儲存失敗」並留在頁面。
+    func save(using productRepository: ProductRepository) -> Bool {
         // 先檢查名稱重複
         if checkDuplicateName(using: productRepository) {
             return false
@@ -371,47 +372,48 @@ class AddNewProductViewModel: ObservableObject {
         }
 
         if editingProduct != nil {
-            // 編輯模式 → 更新產品
-            let updateResult = productRepository.updateProduct(product.id, productModel: product, imageChanged: imageChanged)
-            if case .failed(let message) = updateResult {
-                saveFailedMessage = message
-                showSaveFailedAlert = true
-                return false
-            }
-
-            // 如果庫存有變化，記錄異動
-            if stockDelta != 0 {
-                let change = InventoryChangeModel(
+            // 編輯模式 → 更新產品；庫存有變化就一起記錄異動
+            let stockChange = stockDelta != 0
+                ? InventoryChangeModel(
                     productId: product.id,
                     change: stockDelta,
                     reason: stockChangeReason,
                     customReason: stockChangeReason == .adjustment ? customChangeReason : nil,
                     timestamp: Date()
                 )
-                inventoryChangeRepository.addChange(change, eventId: event.id)
+                : nil
+            let updateResult = productRepository.updateProduct(
+                product.id, productModel: product, imageChanged: imageChanged, stockChange: stockChange
+            )
+            if case .failed(let message) = updateResult {
+                saveFailedMessage = message
+                showSaveFailedAlert = true
+                return false
             }
         } else {
-            // 新增模式 → 新增產品
-            productRepository.addProduct(to: product.categoryId, productModel: product, imageChanged: imageChanged)
-
-            // 新增產品時，記錄初始庫存為「進貨入庫」
+            // 新增模式 → 新增產品；初始庫存記為「進貨入庫」
             let initialStock = Int(quantity) ?? 0
-            if initialStock > 0 {
-                let change = InventoryChangeModel(
+            let initialChange = initialStock > 0
+                ? InventoryChangeModel(
                     productId: product.id,
                     change: initialStock,
                     reason: .purchase,
                     customReason: nil,
                     timestamp: Date()
                 )
-                inventoryChangeRepository.addChange(change, eventId: event.id)
+                : nil
+            guard productRepository.addProduct(
+                to: product.categoryId, productModel: product, imageChanged: imageChanged, initialChange: initialChange
+            ) else {
+                // 儲存失敗，請再試一次
+                saveFailedMessage = String.localized("productSaveFailed")
+                showSaveFailedAlert = true
+                return false
             }
         }
         return true
     }
 
-    
-    
     // MARK: - 處理圖片選擇
     func selectImage() {
         showImagePicker = true

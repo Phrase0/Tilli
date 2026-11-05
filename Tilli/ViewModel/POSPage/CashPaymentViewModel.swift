@@ -20,6 +20,7 @@ class CashPaymentViewModel: ObservableObject {
     @Published var receivedAmountText: String = ""
     @Published var errorMessage: String? = nil
     @Published var showDateWarning: Bool = false
+    @Published var showCheckoutFailed = false
     @Published var dateWarningMessage: String = ""
     
     var receivedAmount: Decimal {
@@ -112,19 +113,17 @@ class CashPaymentViewModel: ObservableObject {
         return true
     }
 
+    /// 結帳寫入：交易、銷售扣庫存異動、商品庫存一次存檔（`EventRepository.recordCheckout`）。
+    /// 失敗時什麼都沒寫入，設定 `showCheckoutFailed` 並回傳 false，畫面留在付款頁讓使用者重試。
     func performCheckout(
         eventDataManager: EventRepository,
-        productRepository: ProductRepository,
-        inventoryChangeRepository: InventoryChangeRepository
-    ) {
-        // 批次更新產品庫存（同一商品多列會累加）
+        productRepository: ProductRepository
+    ) -> Bool {
+        // 同一商品多列會累加扣除
         let currentStock = Dictionary(
             uniqueKeysWithValues: productRepository.fetchProducts(forEventId: event.id).map { ($0.id, $0.stock) }
         )
         let stockUpdates = CheckoutRecorder.stockUpdates(for: summaryItems, currentStock: currentStock)
-        if !productRepository.batchUpdateProductStock(stockUpdates) {
-            print("🔴 批次更新產品庫存失敗")
-        }
 
         let record = CheckoutRecorder.makeRecord(
             event: event,
@@ -137,9 +136,10 @@ class CashPaymentViewModel: ObservableObject {
             now: Date()
         )
 
-        eventDataManager.addTransaction(record.transaction)
-        for change in record.inventoryChanges {
-            inventoryChangeRepository.addChange(change, eventId: event.id)
+        guard eventDataManager.recordCheckout(record, stockUpdates: stockUpdates) else {
+            showCheckoutFailed = true
+            return false
         }
+        return true
     }
 }

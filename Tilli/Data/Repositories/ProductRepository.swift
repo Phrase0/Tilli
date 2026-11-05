@@ -22,31 +22,49 @@ class ProductRepository: ObservableObject {
 
     // MARK: - Product CRUD Operations
 
-    /// 新增 Product 到指定 Category
-    func addProduct(to categoryId: UUID, productModel: ProductModel, imageChanged: Bool = false) {
+    /// 新增 Product 到指定 Category。商品與初始庫存異動（`initialChange`）在**同一次存檔**完成；
+    /// 找不到類別、場次或存檔失敗回傳 false，失敗時都不留。
+    @discardableResult
+    func addProduct(
+        to categoryId: UUID,
+        productModel: ProductModel,
+        imageChanged: Bool = false,
+        initialChange: InventoryChangeModel? = nil,
+        userId: String = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
+    ) -> Bool {
         let categoryRequest: NSFetchRequest<CDCategoryEntity> = CDCategoryEntity.fetchRequest()
         categoryRequest.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
 
-        do {
-            guard let categoryEntity = try context.fetch(categoryRequest).first else {
-                print("找不到對應 category，無法加入 product")
-                return
-            }
-
-            let productEntity = CDProductEntity(context: context)
-            productEntity.update(from: productModel, context: context)
-            productEntity.sortOrder = Int16(nextProductSortOrder(forCategoryId: categoryId))
-            productEntity.userId = Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId
-            productEntity.markPendingSync()
-            productEntity.category = categoryEntity
-
-            saveContext()
-            // 同步到 Firestore（用剛存好的 entity 轉回 model，確保 sortOrder 等 repository 算出來的值一起同步，而不是呼叫端傳進來的舊值）
-            let savedModel = productEntity.toModel()
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
-        } catch {
-            print("加入 product 失敗:", error)
+        guard let categoryEntity = try? context.fetch(categoryRequest).first else {
+            print("找不到對應 category，無法加入 product")
+            return false
         }
+        let now = Date()
+
+        let productEntity = CDProductEntity(context: context)
+        productEntity.update(from: productModel, context: context)
+        productEntity.sortOrder = Int16(nextProductSortOrder(forCategoryId: categoryId))
+        productEntity.userId = userId
+        productEntity.markPendingSync(at: now)
+        productEntity.category = categoryEntity
+
+        if let initialChange {
+            guard let eventEntity = fetchEventEntity(by: productModel.eventId) else {
+                print("找不到對應 event，無法寫入初始庫存異動")
+                context.delete(productEntity)
+                return false
+            }
+            InventoryChangeRepository.insertChange(
+                initialChange, event: eventEntity, product: productEntity,
+                userId: userId, at: now, in: context
+            )
+        }
+
+        guard saveContext() else { return false }
+        // 同步到 Firestore（用剛存好的 entity 轉回 model，確保 sortOrder 等 repository 算出來的值一起同步，而不是呼叫端傳進來的舊值）
+        let savedModel = productEntity.toModel()
+        // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+        return true
     }
 
     /// 取得同類別內下一個可用的 sortOrder（目前最大值 + 1，該類別尚無商品則為 0）
@@ -100,8 +118,15 @@ class ProductRepository: ObservableObject {
     /// 更新 Product（允許修改名稱、價格、庫存等屬性，遵循原有業務邏輯）
     ///
     /// 價格有變且會讓場次內的套餐／組合比原價還貴時**拒絕並不寫入任何欄位**（只拒絕，不改做別的事）。
+    /// 商品與庫存異動（`stockChange`）在**同一次存檔**完成；找不到商品、場次或存檔失敗回傳 `.failed`，都不留。
     @discardableResult
-    func updateProduct(_ productId: UUID, productModel: ProductModel, imageChanged: Bool = false) -> ProductUpdateResult {
+    func updateProduct(
+        _ productId: UUID,
+        productModel: ProductModel,
+        imageChanged: Bool = false,
+        stockChange: InventoryChangeModel? = nil,
+        userId: String? = nil
+    ) -> ProductUpdateResult {
         let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", productId as CVarArg)
 
@@ -137,15 +162,33 @@ class ProductRepository: ObservableObject {
                 if imageChanged {
                     entity.imageURL = nil  // TODO: [SYNC-PENDING] 清空舊 URL，重建同步後由上傳端回寫
                 }
-                entity.markPendingSync()
+                let now = Date()
+                entity.markPendingSync(at: now)
 
-                saveContext()
+                if let stockChange {
+                    guard let eventEntity = fetchEventEntity(by: entity.eventId) else {
+                        print("找不到對應 event，無法寫入庫存異動")
+                        context.rollback()
+                        return .failed(String.localized("productSaveFailed"))
+                    }
+                    // userId 只在要寫異動時才解析（nil = 目前登入者，未登入為訪客）
+                    InventoryChangeRepository.insertChange(
+                        stockChange, event: eventEntity, product: entity,
+                        userId: userId ?? Auth.auth().currentUser?.uid ?? UserProfileModel.guestUserId,
+                        at: now, in: context
+                    )
+                }
+
+                // 儲存失敗，請再試一次
+                guard saveContext() else { return .failed(String.localized("productSaveFailed")) }
                 // 同步到 Firestore（用 entity 轉回 model，而非呼叫端傳進來的 productModel——
                 // sortOrder 這裡不會被更新，若直接同步 productModel 會把它預設值 0 誤傳上雲端）
                 let savedModel = entity.toModel()
                 // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
+                return .updated
             }
-            return .updated
+            print("找不到要更新的 product")
+            return .failed(String.localized("productSaveFailed"))
         } catch {
             print("Update product failed:", error)
             return .failed(error.localizedDescription)
@@ -304,43 +347,6 @@ class ProductRepository: ObservableObject {
     }
 
     // MARK: - Batch Operations
-    
-    /// 批次更新產品庫存
-    func batchUpdateProductStock(_ stockUpdates: [UUID: Int]) -> Bool {
-        guard !stockUpdates.isEmpty else {
-            return true
-        }
-        
-        let productIds = Array(stockUpdates.keys)
-        let request: NSFetchRequest<CDProductEntity> = CDProductEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "id IN %@", productIds)
-        
-        do {
-            let products = try context.fetch(request)
-            
-            let now = Date()
-            for product in products {
-                if let newStock = stockUpdates[product.id] {
-                    product.stock = Int32(max(newStock, 0))
-                    product.markPendingSync(at: now)
-                }
-            }
-            
-            try context.save()
-
-            // 同步到 Firestore
-            let updatedModels = products.map { $0.toModel() }
-            // TODO: [SYNC-PENDING] 重建同步時在此 enqueue
-
-            print("✅ Batch updated \(products.count) products stock")
-            return true
-
-        } catch {
-            context.rollback()
-            print("🔴 批次更新產品庫存失敗: \(error)")
-            return false
-        }
-    }
 
     /// 批次更新多個產品（完整更新）
     func batchUpdateProducts(_ productUpdates: [ProductModel]) -> Bool {
@@ -387,6 +393,13 @@ class ProductRepository: ObservableObject {
 
     // MARK: - Save Context
     @discardableResult
+    private func fetchEventEntity(by eventId: UUID) -> CDEventEntity? {
+        let request: NSFetchRequest<CDEventEntity> = CDEventEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", eventId as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
+    }
+
     private func saveContext() -> Bool {
         do {
             try context.save()
@@ -411,5 +424,5 @@ enum ProductDeletionResult {
 
 enum ProductUpdateResult: Equatable {
     case updated
-    case failed(String)    // 被拒絕（例如改價會讓套餐比原價還貴）
+    case failed(String)    // 被拒絕（例如改價會讓套餐比原價還貴）或存檔失敗，附上要顯示的訊息
 }

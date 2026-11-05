@@ -652,6 +652,57 @@
         }
       }
     },
+    "checkoutFailedMessage" : {
+      "comment" : "交易沒有儲存，請再試一次",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transaction wasn't saved. Please try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易沒有儲存，請再試一次"
+          }
+        }
+      }
+    },
+    "checkoutFailedTitle" : {
+      "comment" : "結帳失敗",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checkout Failed"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結帳失敗"
+          }
+        }
+      }
+    },
+    "checkoutSuccessHUD" : {
+      "comment" : "付款完成",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment Complete"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "付款完成"
+          }
+        }
+      }
+    },
     "discountBreakdownComboGroups %@ %lld" : {
       "comment" : "組合優惠 %@ × %lld 組",
       "localizations" : {
@@ -784,6 +835,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "庫存只剩 %lld 個"
+          }
+        }
+      }
+    },
+    "productSaveFailed" : {
+      "comment" : "儲存失敗，請再試一次",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save. Please try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存失敗，請再試一次"
           }
         }
       }
@@ -8231,23 +8299,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "作廢原因"
-          }
-        }
-      }
-    },
-    "voidRestockFailedMessage" : {
-      "comment" : "交易已作廢，但庫存回流失敗，請到管理商品手動調整庫存",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The transaction was voided, but restocking failed. Please adjust stock manually in Manage Products."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "交易已作廢，但庫存回流失敗，請到管理商品手動調整庫存"
           }
         }
       }

@@ -9,7 +9,6 @@ import SwiftUI
 struct AddNewProductView: View {
 
     @EnvironmentObject var productRepository: ProductRepository
-    @EnvironmentObject var inventoryChangeRepository: InventoryChangeRepository
     @EnvironmentObject var transactionDataManager: TransactionRepository
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddNewProductViewModel
@@ -230,8 +229,7 @@ struct AddNewProductView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("addProductSave") {
-                    if viewModel.save(using: productRepository,
-                                      inventoryChangeRepository: inventoryChangeRepository) {
+                    if viewModel.save(using: productRepository) {
                         onSave?()
                         dismiss()
                     }

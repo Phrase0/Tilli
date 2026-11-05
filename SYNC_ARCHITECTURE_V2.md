@@ -949,7 +949,7 @@ Pro 的賣點是「換裝置不掉資料」，**不是**「多裝置同時用」
 | 動作 | 位置 |
 |------|------|
 | 從 `toFirestoreData()` **移除 stock** | `ModelFirestoreExtensions.swift:167` |
-| **刪除** `batchUpdateProductStock` | `ProductRepository.swift:301` |
+| **刪除** `batchUpdateProductStock` | ✅ 2026-11-05 已刪除（結帳／作廢改走 `EventRepository.recordCheckout`／`recordVoid` 一次存檔） |
 | **刪除** `updateStockWithBusinessLogic` | `ProductRepository.swift:261` |
 | 結帳只寫 Transaction + InventoryChange | `CashPaymentViewModel.swift:168-173`、`EPaymentViewModel.swift:62-67` |
 | `CDProductEntity.stock` 降級為本機推導快取 | 由本機 ledger 重算，永不上傳 |
@@ -1533,7 +1533,7 @@ iOS 購買 → StoreKit 2 簽名交易 → Cloud Function 向 Apple 驗證
 | `syncState` 文件 + `pendingChanges` | Firestore | 改用 pull cursor |
 | `initializeSyncState()` / `syncStateExists()` / `trimPendingChangesIfNeeded()` | `FirestoreUploader.swift:73/98/111` | 同上 |
 | `cleanUpDeletedEntities()` / `cleanUpLocalEntities()` / `fetchRemoteIds()` | `FirestoreDownloader.swift:582` | 改用 tombstone |
-| `batchUpdateProductStock()` | `ProductRepository.swift:301` | 改用 ledger |
+| `batchUpdateProductStock()` | ✅ 2026-11-05 已刪除 | 改用 ledger（目前庫存仍是欄位，但與異動紀錄同一次存檔） |
 | `updateStockWithBusinessLogic()` | `ProductRepository.swift:261` | 同上 |
 | `inFlightSyncCount` + `waitForInFlightSyncToFinish()` | `SyncManager` / `AuthenticationManager:486` | 改問 outbox 筆數 |
 | 7 個 `enqueueXOperation()` | `SyncManager.swift:546-600` | 統一入口 |
@@ -1656,10 +1656,10 @@ iOS 購買 → StoreKit 2 簽名交易 → Cloud Function 向 Apple 驗證
 |---|------|
 | 6.1 | `StockCalculator`：從 InventoryChange 推導 |
 | 6.2 | `stock` 從 `toFirestoreData` 移除，改名 `initialStock` |
-| 6.3 | 刪除 `batchUpdateProductStock` / `updateStockWithBusinessLogic` |
+| 6.3 | 刪除 `batchUpdateProductStock` / `updateStockWithBusinessLogic`（`batchUpdateProductStock` ✅ 2026-11-05 已刪除） |
 | 6.4 | 結帳只寫 Transaction + InventoryChange |
 | 6.5 | 快取欄位重算時機 |
-| 6.6 | `addChange` 的靜默失敗改為可觀測（原 Bug 8） |
+| 6.6 | `addChange` 的靜默失敗改為可觀測（原 Bug 8）（✅ 2026-11-05：`addChange` 已刪除，異動隨結帳／作廢／商品存檔一次寫入，失敗回報並提示） |
 
 ### Phase 7 — 收款方式（多張 QR 卡片）
 
@@ -1865,7 +1865,7 @@ iOS 購買 → StoreKit 2 簽名交易 → Cloud Function 向 Apple 驗證
 
 | # | 問題 | 位置 | 排入 |
 |---|------|------|------|
-| B1 | `addChange` 找不到 Event 就靜默 `return`，初始庫存整筆遺失（本機＋雲端） | `InventoryChangeRepository.swift:25` | Phase 6.6 |
+| B1 | `addChange` 找不到 Event 就靜默 `return`，初始庫存整筆遺失（本機＋雲端） | `InventoryChangeRepository.swift:25` | ✅ 2026-11-05 已處理（見 6.6） |
 | B2 | `EntityImageView` 下載失敗永遠停在 `ProgressView`（`onFailure` 空實作） | `View/Components/EntityImageView.swift` | Phase 2.7 |
 | B3 | `getErrorMessage` 未處理 `accountExistsWithDifferentCredential` | `AuthenticationManager.swift:578` | Phase 8.1 |
 | B4 | `CDQRCodeEntity.imageData` 非 optional，空值變 `Data()` 而非 nil | `CDQRCodeEntity+CoreDataProperties.swift:18` | Phase 7.1 |
