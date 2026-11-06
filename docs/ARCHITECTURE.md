@@ -31,7 +31,7 @@
 | `SYNC_ARCHITECTURE_V2.md` | 同步階段的細節：Outbox、Pull-by-cursor、Device Handoff、訂閱 | 重建同步時 |
 | `CONVENTIONS.md` | **程式碼慣例的唯一真相**：資料夾結構、MVVM 規則、命名、檔案標頭、多語言 | 新增檔案、決定東西放哪 |
 | `DESIGN.md` | UI 視覺規範 | 做畫面時 |
-| `_archive:/` | 已被取代的舊規劃（SYNC_IMPLEMENTATION_PLAN、PRO_SYNC_BUGS、DISCOUNT_REFACTOR_PLAN、NAVIGATION_RESTRUCTURE_PLAN） | 不要看 |
+| `docs/archive/` | 已被取代的舊規劃（SYNC_IMPLEMENTATION_PLAN、PRO_SYNC_BUGS、DISCOUNT_REFACTOR_PLAN、NAVIGATION_RESTRUCTURE_PLAN、RESTRUCTURE_PLAN、CLOUD_FUNCTIONS） | 不要看 |
 
 **規則：**
 - **資料結構**（欄位怎麼分類、同步時怎麼處理）→ 以本文件為準

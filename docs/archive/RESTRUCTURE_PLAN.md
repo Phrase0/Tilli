@@ -61,7 +61,7 @@ class EventsViewModel: ObservableObject {
 
 移除的舊 pattern：Combine sink 轉發、refreshID hack、Binding 跨頁回寫、onChange trigger。
 
-詳細規則見 → [`CONVENTIONS.md`](./CONVENTIONS.md) 的「資料同步規範」章節。
+詳細規則見 → [`CONVENTIONS.md`](../CONVENTIONS.md) 的「資料同步規範」章節。
 
 ### Q2: WorkspaceView 用三個按鈕，各自 NavigationLink 到下一頁
 
@@ -261,8 +261,8 @@ func testSmokeTest() {
 - [x] 保留 `ContentView.swift` 的 auth loading 邏輯，搬到 `RootTabView`
 - [x] 修改 `TilliApp.swift`：`ContentView()` → `RootTabView()`
 - [x] **不刪除** `ContentView.swift`（保留備用）
-- [x] **建立多語言字串目錄**：`Localizable.xcstrings`，加入 `zh-Hant`（基底語言）和 `en` 兩個 locale。斷點 2 之後所有新建頁面的使用者看得到的文字一律用 localized key，不直接寫中文字串。舊頁面暫不動。多語言命名規範見 [`CONVENTIONS.md`](./CONVENTIONS.md) 的「多語言規範」章節。
-- [x] **新建 `Tilli/Utilities/DesignSystem.swift`**，把 [`DESIGN.md`](./DESIGN.md) 的 token 轉成 Swift 常數，供斷點 2 之後所有新建頁面直接引用（不再各自寫 `24`、`#8E8E93` 這種 magic number）：
+- [x] **建立多語言字串目錄**：`Localizable.xcstrings`，加入 `zh-Hant`（基底語言）和 `en` 兩個 locale。斷點 2 之後所有新建頁面的使用者看得到的文字一律用 localized key，不直接寫中文字串。舊頁面暫不動。多語言命名規範見 [`CONVENTIONS.md`](../CONVENTIONS.md) 的「多語言規範」章節。
+- [x] **新建 `Tilli/Utilities/DesignSystem.swift`**，把 [`DESIGN.md`](../../DESIGN.md) 的 token 轉成 Swift 常數，供斷點 2 之後所有新建頁面直接引用（不再各自寫 `24`、`#8E8E93` 這種 magic number）：
    ```swift
    enum DesignSystem {
        enum Spacing {
@@ -596,7 +596,7 @@ RootTabView
 
 **策略：新建的頁面直接套用極簡風，不回頭改沒動到的舊頁面。**
 
-詳細規範見 → [`DESIGN.md`](./DESIGN.md)（唯一依據），token 的 Swift 實作見斷點 1 新建的 `DesignSystem.swift`。
+詳細規範見 → [`DESIGN.md`](../../DESIGN.md)（唯一依據），token 的 Swift 實作見斷點 1 新建的 `DesignSystem.swift`。
 
 每個斷點新建的 View 直接套用，不額外增加斷點。未動到的舊頁面（如 `AddNewProductView`、`CheckoutFlowView`）留到之後獨立處理。
 

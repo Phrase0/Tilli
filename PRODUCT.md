@@ -45,7 +45,7 @@ Tilli 是攤商的隨手帳——把紙本帳簿和計算機壓在收銀盒下�
 
 - 設計參考稿：`tilliStructure1.PNG`、`tilliStructure2.PNG`、`tilliStructure3.PNG`。
 - 設計系統文件：`DESIGN.md`（已建立，含完整 token 定義）。
-- 重構計畫：`RESTRUCTURE_PLAN.md`（10 個斷點，目前完成到斷點 4）。
+- 重構計畫：已完成（實作與原計畫不同），計畫歸檔於 `docs/archive/RESTRUCTURE_PLAN.md`。
 - 無真實用戶測試數據、無 App Store 上架記錄、無現有使用者回饋。
 
 ## Product Principles

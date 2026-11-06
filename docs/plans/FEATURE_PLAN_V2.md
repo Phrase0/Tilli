@@ -126,6 +126,8 @@ V1 §11 第 0–7 批全部完成並通過手動測試。以下是沒做、轉�
 
 不受其他批次影響的小 UI 修正可以隨時穿插。
 
+**`feature/RemoveFirebaseSync`（第 0、1 批）完成後併入 `develop`**（2026-11-06 使用者要求）。develop 目前落後 200 多個 commit，之前的 feature 分支是一條鏈，併入後 develop 就完全跟上。
+
 ### 第 1 批 — 移除 Firebase 雲端（分支 `feature/RemoveFirebaseSync`）
 
 | # | 項目 | 狀態 |
@@ -136,7 +138,7 @@ V1 §11 第 0–7 批全部完成並通過手動測試。以下是沒做、轉�
 | 1.4 | 同步相關欄位：**逐一列出給使用者確認**保留或刪除（`syncStatus`、`imageURL`、`updatedAt`…）；保留的在宣告處加註解「雲端預留、目前不使用」。`PendingSyncStamp`、`SYNC-PENDING` 標記與 V1 §14 登記表依確認結果處理 | ⬜ |
 | 1.5 | 移除套件：FirebaseAuth、FirebaseFirestore、FirebaseFunctions、FirebaseStorage、GoogleSignIn／GoogleSignInSwift；Alamofire、Kingfisher 若只為雲端圖片使用也一併評估 | ⬜ |
 | 1.6 | 加上 Crashlytics：保留 FirebaseCore、FirebaseAnalytics 與 `GoogleService-Info.plist`，加入 FirebaseCrashlytics 與上傳 dSYM 的建置步驟 | ⬜ |
-| 1.7 | `functions/` 與 `CLOUD_FUNCTIONS.md` 移到 `_archive/`；`project.pbxproj` 清掉相關設定 | ⬜ |
+| 1.7 | `functions/` 移除（`CLOUD_FUNCTIONS.md` 已於 2026-11-06 移到 `docs/archive/`）；`project.pbxproj` 清掉相關設定 | ⬜ |
 | 1.8 | 文件：`ARCHITECTURE.md` §4 標註「預留（雲端）」欄位並跑 `scripts/check_field_classification.py`；`CONVENTIONS.md` 同步規則改為「暫緩」；`CLAUDE.md` 文件表更新 | ⬜ |
 | 1.9 | **套餐照片換了要馬上顯示**（§2.1）。建議：`BundleModel` 加 `imageUpdatedAt: Date?`（存在 `bundlesData` JSON 內，不用改 CoreData），換照片時更新，並傳進 `BundleImageView` 當輸入；日後雲端也能用它判斷要不要重傳。順便把 `CDQRCodeEntity.imageData` 改成 optional | ⬜ |
 
@@ -256,3 +258,4 @@ V1 §11 第 0–7 批全部完成並通過手動測試。以下是沒做、轉�
 | 2026-11-05 | 初版：決定 V1 只做本機、雲端延後、保留 Crashlytics；整理 V1 遺留項目；排定第 1–6 批 |
 | 2026-11-06 | 不凍結 CoreData；保留 Analytics；同步欄位逐一確認後才保留（保留的加註解）；訂閱改為只有月訂閱＋7 天試用；定下會員／非會員（看廣告解鎖）功能表；會員降級處理列為待討論；語言與外觀各三選項；場次名稱不鎖；補 tombstone 說明、圖片處理現況與套餐照片不即時顯示的原因（第 1 批 1.9）；刪除場次現況（§2.2，目前是硬刪除）；新增第 0 批「文件圖表」（本機 HTML、第 1 批之前先做）；各批加分支欄 |
 | 2026-11-06 | 第 0 批完成：`scripts/build_docs.py` 產生 `docs/architecture/index.html`（頁面說明、頁面地圖、架構圖、資料結構、循序圖 6 張），pre-commit hook 自動更新與檢查。差異見第 0 批 |
+| 2026-11-06 | 文件整理：ARCHITECTURE、CONVENTIONS 移到 `docs/`；FEATURE_PLAN_V1／V2、SYNC_ARCHITECTURE_V2 移到 `docs/plans/`；`_archive/` 改為 `docs/archive/`，並歸檔 RESTRUCTURE_PLAN（實作已與計畫不同）與 CLOUD_FUNCTIONS；DESIGN、PRODUCT 留在根目錄（`.impeccable` 從根目錄讀）；CLAUDE.md 只能在根目錄 |

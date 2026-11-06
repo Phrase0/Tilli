@@ -233,9 +233,9 @@ CoreData model 與 `Localizable.xcstrings` 都可正常載入。
 
 ## UI 極簡風格規範
 
-UI 視覺規範已統一以 [`DESIGN.md`](./DESIGN.md) 為唯一依據（single source of truth），本文件不再重複維護 token 表、元件樣式或禁止事項，避免兩份文件對同一規則寫出不同版本而互相衝突。
+UI 視覺規範已統一以 [`DESIGN.md`](../DESIGN.md) 為唯一依據（single source of truth），本文件不再重複維護 token 表、元件樣式或禁止事項，避免兩份文件對同一規則寫出不同版本而互相衝突。
 
-新建頁面／重構頁面一律對照 `DESIGN.md` 實作；舊頁面（`AddNewProductView`、`CheckoutFlowView`、`InventoryChangeView` 等）暫不改動，處理原則見 `DESIGN.md` 開頭「總覽」段落與 `RESTRUCTURE_PLAN.md`。
+新建頁面／重構頁面一律對照 `DESIGN.md` 實作；舊頁面（`AddNewProductView`、`CheckoutFlowView`、`InventoryChangeView` 等）暫不改動，處理原則見 `DESIGN.md` 開頭「總覽」段落。
 
 ---
 

@@ -90,7 +90,7 @@ components:
     padding: "16px"
 ---
 
-> **語言版本：** 這份正體中文版是 canonical 版本——`.impeccable` 工具鏈只認 `DESIGN.md` 這個檔名，所有 token 定義（上面的 YAML frontmatter）都以這份文件為準。英文版見 [`DESIGN.en.md`](./DESIGN.en.md)，純粹給不看中文的人參考用，不吃任何自動化流程。之後如果要加其他語言，比照 `DESIGN.<語言代碼>.md` 命名（例如 `DESIGN.ja.md`），只翻內文，不要在裡面另外維護一份 frontmatter——token 數值改了只改這份中文版，其他語言版本手動同步過去就好，避免多處維護跑掉。
+> **語言版本：** 這份正體中文版是 canonical 版本——`.impeccable` 工具鏈只認 `DESIGN.md` 這個檔名，所有 token 定義（上面的 YAML frontmatter）都以這份文件為準。目前沒有英文版。之後如果要加其他語言，比照 `DESIGN.<語言代碼>.md` 命名（例如 `DESIGN.ja.md`），只翻內文，不要在裡面另外維護一份 frontmatter——token 數值改了只改這份中文版，其他語言版本手動同步過去就好，避免多處維護跑掉。
 
 # 設計系統：Tilli（市集收銀 POS）
 

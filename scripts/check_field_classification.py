@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "Tilli/Data/CoreData/Tilli.xcdatamodeld/Tilli.xcdatamodel/contents"
-DOC = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "ARCHITECTURE.md"
+DOC = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "docs/ARCHITECTURE.md"
 
 
 def load_coredata():

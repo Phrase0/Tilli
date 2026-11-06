@@ -180,7 +180,7 @@ func loadProducts() {
 
 ### 難點 3: 切 tab 時 `onAppear` 是否穩定觸發
 
-**現狀：** 整套跨頁同步都靠 `onAppear` + Repository 重新載入（[`CONVENTIONS.md`](./CONVENTIONS.md) 規則 2）。
+**現狀：** 整套跨頁同步都靠 `onAppear` + Repository 重新載入（[`CONVENTIONS.md`](../CONVENTIONS.md) 規則 2）。
 
 **問題：** 原本三頁是 push/pop，`onAppear` 必然觸發。改成 tab 後，依賴的是「SwiftUI TabView 切換時對進入的 tab 重發 `onAppear`」這個行為。這在 iOS 17 通常成立，但並非契約。
 
