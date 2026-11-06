@@ -1,0 +1,1419 @@
+<!doctype html>
+<!-- 由 scripts/build_docs.py 自動產生，請勿手改。說明改 docs/architecture/pages.md，循序圖改 docs/architecture/sequences/ -->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tilli 架構地圖</title>
+<style>
+:root {
+  --bg: #fafaf9; --surface: #ffffff; --text: #1c1917; --muted: #78716c;
+  --border: #e7e5e4; --accent: #0f766e; --code-bg: #f5f5f4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161514; --surface: #1f1e1c; --text: #e7e5e4; --muted: #a8a29e;
+    --border: #3a3734; --accent: #5eead4; --code-bg: #2a2826;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif; }
+header.top { padding: 20px 16px 0; max-width: 1200px; margin: 0 auto; }
+header.top h1 { margin: 0 0 4px; font-size: 22px; }
+nav.tabs { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); }
+nav.tabs .inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; overflow-x: auto; }
+nav.tabs button { border: 0; background: none; color: var(--muted); font: inherit; padding: 12px 14px;
+  border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+.tab { display: none; }
+.tab.active { display: block; }
+h2 { font-size: 18px; margin: 28px 0 12px; }
+h3 { font-size: 16px; margin: 0; }
+.muted { color: var(--muted); font-weight: normal; font-size: 13px; }
+code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-size: 12.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card .desc p { margin: 8px 0; }
+.card .desc ul { margin: 6px 0; padding-left: 20px; }
+.card dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 10px; margin: 10px 0 0;
+  font-size: 13px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.card dt { color: var(--muted); }
+.card dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px; overflow-x: auto; margin: 8px 0 16px; }
+.diagram pre.mermaid { margin: 0; background: none; text-align: center; }
+.diagram.wide svg { max-width: none !important; }
+.seq-toc { padding-left: 20px; }
+.seq p { max-width: 760px; }
+a { color: var(--accent); }
+@media (max-width: 480px) { .cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Tilli 架構地圖</h1>
+  <p class="muted">135 個 Swift 檔、25 個畫面、8 個 CoreData entity、6 張循序圖。由 <code>scripts/build_docs.py</code> 在每次 commit 前自動產生。</p>
+</header>
+<nav class="tabs"><div class="inner" role="tablist">
+  <button role="tab" data-tab="pages" aria-selected="true">頁面說明</button>
+  <button role="tab" data-tab="nav" aria-selected="false">頁面地圖</button>
+  <button role="tab" data-tab="arch" aria-selected="false">架構圖</button>
+  <button role="tab" data-tab="er" aria-selected="false">資料結構</button>
+  <button role="tab" data-tab="seq" aria-selected="false">流程（循序圖）</button>
+</div></nav>
+<main>
+  <section class="tab active" id="tab-pages"><section class="folder"><h2>根畫面 <span class="muted">Root</span></h2><div class="cards">
+<article class="card" id="page-RootTabView">
+  <header><h3>根畫面</h3><code class="type">RootTabView</code></header>
+  <div class="desc"><p>App 的最外層。登入狀態還在載入時顯示轉圈，載入完進入場次列表。</p>
+<ul><li>已登入但還沒填名字時，全螢幕打開「建立個人資料」，不能關閉。</li><li>套用深色模式設定（目前是開關，關掉時強制淺色）。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><span class="muted">—</span></dd>
+    <dt>會打開</dt><dd><code>場次列表</code> <code>個人資料</code></dd>
+    <dt>ViewModel</dt><dd><span class="muted">—</span></dd>
+    <dt>共用計算／資料層</dt><dd><code>AuthenticationManager</code></dd>
+    
+  </dl>
+</article></div></section><section class="folder"><h2>場次 <span class="muted">EventsPage</span></h2><div class="cards">
+<article class="card" id="page-EventsView">
+  <header><h3>場次列表</h3><code class="type">EventsView</code></header>
+  <div class="desc"><p>打開 App 第一個看到的畫面，列出所有場次。</p>
+<ul><li>可切換「列表」與「日曆」兩種顯示；列表分成今天、即將到來、已結束，可搜尋。</li><li>新增、編輯、複製場次；單筆或批次刪除（目前是真的刪掉，見 <code>FEATURE_PLAN_V2.md</code> §2.2）。</li><li>點場次進入場次工作區，預設分頁依場次狀態決定：沒有商品或未開始 → 管理商品、進行中 → 收銀、已結束 → 報表。</li><li>右上角進「我的」。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>根畫面</code></dd>
+    <dt>會打開</dt><dd><code>新增／編輯場次</code> <code>場次工作區</code> <code>場次日曆</code> <code>我的</code></dd>
+    <dt>ViewModel</dt><dd><code>EventsCalendarViewModel</code> <code>EventsViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>EventRepository</code> <code>ProductRepository</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-EventsCalendarView">
+  <header><h3>場次日曆</h3><code class="type">EventsCalendarView</code></header>
+  <div class="desc"><p>場次列表的日曆模式。月曆上標出有場次的日期，點某一天列出當天的場次（多日場次每天都會出現）；永久場次固定顯示在日曆下方。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次列表</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>EventsCalendarViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>EventRepository</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-AddEventView">
+  <header><h3>新增／編輯場次</h3><code class="type">AddEventView</code></header>
+  <div class="desc"><p>場次的表單。</p>
+<ul><li>名稱、日期類型（單日／多日／永久）與日期、幣別（有交易後鎖定）。</li><li>類別清單：新增、改名、拖曳排序、停用與恢復；有交易的類別不能刪除。</li><li>預設折扣（百分比與減額）。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次列表</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>AddEventViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleValidator</code> <code>ProductRepository</code> <code>TransactionIndex</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-EventWorkspaceView">
+  <header><h3>場次工作區</h3><code class="type">EventWorkspaceView</code></header>
+  <div class="desc"><p>一個場次的工作區，下方三個分頁：管理商品、開始收銀、查看分析。</p>
+<ul><li>建立一份 <code>EventDataSource</code>，三個分頁共用同一份資料。</li><li>右上角的按鈕依目前分頁切換（新增商品、排序、匯出等）。</li><li>場次被刪除時自動退回場次列表。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次列表</code></dd>
+    <dt>會打開</dt><dd><code>新增／編輯商品</code> <code>新增／編輯套餐或組合</code> <code>排序</code> <code>管理商品</code> <code>收銀</code> <code>查看分析</code> <code>交易明細</code></dd>
+    <dt>ViewModel</dt><dd><code>InventoryViewModel</code> <code>POSViewModel</code> <code>ReportsViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleAvailability</code> <code>BundleImageStore</code> <code>CSVExporter</code> <code>CartPricing</code> <code>ComboApplier</code> <code>DiscountCalculator</code> <code>EventDataSource</code> <code>EventRepository</code> <code>InventoryChangeRepository</code> <code>ProductRepository</code> <code>TransactionBreakdown</code> <code>TransactionIndex</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article></div></section><section class="folder"><h2>收銀 <span class="muted">POSPage</span></h2><div class="cards">
+<article class="card" id="page-POSView">
+  <header><h3>收銀</h3><code class="type">POSView</code></header>
+  <div class="desc"><p>場次工作區的「開始收銀」分頁。</p>
+<ul><li>依類別分區列出可販售的商品與套餐，可切換列表／格狀；上方 chip 列跳區。</li><li>加減數量進購物車；組合符合條件時自動套用。</li><li>按「結帳」打開結帳視窗；付款成功、視窗關閉後顯示「付款完成」方塊。</li><li>購物車裡的商品被下架或庫存不足時，提示並移除。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><code>結帳視窗</code></dd>
+    <dt>ViewModel</dt><dd><code>POSViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleAvailability</code> <code>CartPricing</code> <code>ComboApplier</code> <code>DiscountCalculator</code> <code>EventDataSource</code> <code>TransactionBreakdown</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-CheckoutFlowView">
+  <header><h3>結帳視窗</h3><code class="type">CheckoutFlowView</code></header>
+  <div class="desc"><p>結帳流程的外框（sheet），內含訂單摘要 → 付款頁的導覽。付款寫入成功後把金額回報給收銀頁並關閉。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>收銀</code></dd>
+    <dt>會打開</dt><dd><code>訂單摘要</code></dd>
+    <dt>ViewModel</dt><dd><code>POSViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleAvailability</code> <code>CartPricing</code> <code>ComboApplier</code> <code>DiscountCalculator</code> <code>EventDataSource</code> <code>TransactionBreakdown</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-CheckoutSummaryView">
+  <header><h3>訂單摘要</h3><code class="type">CheckoutSummaryView</code></header>
+  <div class="desc"><p>結帳的第一步：列出商品、套餐、組合折抵與折扣，每行可再增減；可取消或恢復自動套用的組合。</p>
+<ul><li>選擇付款方式：現金或電子支付。</li><li>可改交易日期（補記帳），日期不在場次期間內會提醒。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>結帳視窗</code></dd>
+    <dt>會打開</dt><dd><code>現金付款</code> <code>電子支付</code></dd>
+    <dt>ViewModel</dt><dd><code>CheckoutSummaryViewModel</code> <code>POSViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleAvailability</code> <code>CartPricing</code> <code>ComboApplier</code> <code>DiscountCalculator</code> <code>EventDataSource</code> <code>RevenueAllocator</code> <code>TransactionBreakdown</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-CashPaymentView">
+  <header><h3>現金付款</h3><code class="type">CashPaymentView</code></header>
+  <div class="desc"><p>輸入收到的金額（計算機或簡化鍵盤），顯示找零；「剛好」一鍵填入應收金額。按「完成」寫入交易，失敗時留在本頁提示。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>訂單摘要</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>CashPaymentViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>CheckoutRecorder</code> <code>EventRepository</code> <code>ProductRepository</code> <code>RevenueAllocator</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-EPaymentView">
+  <header><h3>電子支付</h3><code class="type">EPaymentView</code></header>
+  <div class="desc"><p>顯示「我的 → 收款碼」設定的 QR code 給客人掃，確認收款後按「完成」寫入交易。沒有設定收款碼時提示去設定。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>訂單摘要</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>EPaymentViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>CheckoutRecorder</code> <code>EventRepository</code> <code>ProductRepository</code> <code>QRCodeRepository</code> <code>RevenueAllocator</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article></div></section><section class="folder"><h2>管理商品 <span class="muted">InventoryPage</span></h2><div class="cards">
+<article class="card" id="page-InventoryView">
+  <header><h3>管理商品</h3><code class="type">InventoryView</code></header>
+  <div class="desc"><p>場次工作區的「管理商品」分頁。</p>
+<ul><li>依「組合｜套餐｜各類別」分區列出，上方 chip 列可跳到該區、捲動時自動高亮。</li><li>可搜尋；點商品卡片展開庫存異動紀錄。</li><li>新增商品、套餐、組合；下架、刪除（有交易的商品只能下架）。</li><li>匯出庫存摘要與庫存異動明細 CSV。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>InventoryViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleAvailability</code> <code>BundleImageStore</code> <code>CSVExporter</code> <code>EventDataSource</code> <code>EventRepository</code> <code>ProductRepository</code> <code>TransactionIndex</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-AddNewProductView">
+  <header><h3>新增／編輯商品</h3><code class="type">AddNewProductView</code></header>
+  <div class="desc"><p>商品表單：圖片、名稱、類別、價格、庫存。</p>
+<ul><li>新增時填初始庫存；編輯時調整庫存要選原因，庫存與異動紀錄同一次存檔。</li><li>同類別不能同名；有交易後名稱、價格、類別不能改。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>AddNewProductViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>ProductRepository</code> <code>TransactionIndex</code> <code>TransactionRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-BundleFormView">
+  <header><h3>新增／編輯套餐或組合</h3><code class="type">BundleFormView</code></header>
+  <div class="desc"><ul><li>套餐（固定內容，例如 A＋B 賣 150）：名稱、價格、成員商品、照片（選填）。</li><li>組合（任選幾個賣多少）：名稱、數量、價格、候選商品。</li><li>停用與刪除不在表單裡，在管理商品頁的 ⋯ 選單。</li></ul></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>BundleFormViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>BundleImageStore</code> <code>BundleValidator</code> <code>EventRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-InventoryReorderView">
+  <header><h3>排序</h3><code class="type">InventoryReorderView</code></header>
+  <div class="desc"><p>調整管理商品頁與收銀頁的顯示順序。依組合、套餐、各類別分組，組內按住拖曳；按「完成」才寫入，「取消」不變。列出全部項目（含已下架）。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>InventoryReorderViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>EventDataSource</code> <code>EventRepository</code> <code>ProductRepository</code></dd>
+    
+  </dl>
+</article></div></section><section class="folder"><h2>報表 <span class="muted">ReportsPage</span></h2><div class="cards">
+<article class="card" id="page-ReportsView">
+  <header><h3>查看分析</h3><code class="type">ReportsView</code></header>
+  <div class="desc"><p>場次工作區的「查看分析」分頁，上方切換三個子頁：銷售分析、商品績效、交易紀錄。可選時間範圍；匯出目前子頁的 CSV。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><code>商品績效</code> <code>銷售分析</code> <code>交易紀錄</code></dd>
+    <dt>ViewModel</dt><dd><code>ReportsViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>EventDataSource</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-SalesAnalyticsView">
+  <header><h3>銷售分析</h3><code class="type">SalesAnalyticsView</code></header>
+  <div class="desc"><p>總銷售額、交易筆數、平均客單價、尖峰時段；營收趨勢（每日／每月）、時段分布、付款方式分布圖表。已作廢的交易不計入。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>查看分析</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>SalesAnalyticsViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>CSVExporter</code> <code>EventDataSource</code> <code>SalesAnalyticsService</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-ProductPerformanceView">
+  <header><h3>商品績效</h3><code class="type">ProductPerformanceView</code></header>
+  <div class="desc"><p>商品銷售排行（含實際營收）、類別分析與銷售洞察。沒賣出且已下架的商品會標示。已作廢的交易不計入。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>查看分析</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>ProductPerformanceViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>CSVExporter</code> <code>EventDataSource</code> <code>ProductPerformanceService</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-TransactionHistoryView">
+  <header><h3>交易紀錄</h3><code class="type">TransactionHistoryView</code></header>
+  <div class="desc"><p>依日期分組列出每筆交易，可依付款方式篩選、依時間或金額排序。已作廢的交易仍列出但變淡並標示，不計入當日總額。點卡片進交易明細。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>查看分析</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>TransactionHistoryViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>CSVExporter</code> <code>DiscountCalculator</code> <code>EventDataSource</code> <code>TransactionBreakdown</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-TransactionDetailView">
+  <header><h3>交易明細</h3><code class="type">TransactionDetailView</code></header>
+  <div class="desc"><p>一筆交易的完整內容：資訊區、商品、優惠明細，由交易當下的快照還原（之後改商品不影響）。已作廢會在最上方顯示作廢卡片；未作廢可按「作廢交易」。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次工作區</code></dd>
+    <dt>會打開</dt><dd><code>作廢交易</code></dd>
+    <dt>ViewModel</dt><dd><code>TransactionDetailViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>EventDataSource</code> <code>TransactionBreakdown</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-VoidTransactionView">
+  <header><h3>作廢交易</h3><code class="type">VoidTransactionView</code></header>
+  <div class="desc"><p>作廢視窗：選作廢原因（可補充文字）、選庫存要不要回流，按「作廢」再確認一次才寫入。作廢紀錄、回流異動與庫存同一次存檔，失敗時留在視窗提示。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>交易明細</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>VoidTransactionViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>EventDataSource</code> <code>EventRepository</code> <code>VoidRecorder</code></dd>
+    
+  </dl>
+</article></div></section><section class="folder"><h2>我的 <span class="muted">MyPage</span></h2><div class="cards">
+<article class="card" id="page-MyView">
+  <header><h3>我的</h3><code class="type">MyView</code></header>
+  <div class="desc"><p>個人資料、會員狀態、收款碼、App 版本，以及設定：語言、計算機、深色模式、通知。登入／登出、刪除帳號（第 1 批移除 Firebase 後會改）。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>場次列表</code></dd>
+    <dt>會打開</dt><dd><code>個人資料</code> <code>收款碼</code> <code>登入</code> <code>Tilli Pro</code></dd>
+    <dt>ViewModel</dt><dd><span class="muted">—</span></dd>
+    <dt>共用計算／資料層</dt><dd><code>AuthenticationManager</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-ProfileEditView">
+  <header><h3>個人資料</h3><code class="type">ProfileEditView</code></header>
+  <div class="desc"><p>編輯名字與頭像。第一次登入時以「建立個人資料」模式全螢幕出現，必須填名字。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>我的</code> <code>根畫面</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>ProfileEditViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>AuthenticationManager</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-QRCodeView">
+  <header><h3>收款碼</h3><code class="type">QRCodeView</code></header>
+  <div class="desc"><p>上傳、更換、刪除電子支付用的收款 QR code 圖片，結帳時在電子支付頁顯示。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>我的</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><code>QRCodeViewModel</code></dd>
+    <dt>共用計算／資料層</dt><dd><code>QRCodeRepository</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-SignInView">
+  <header><h3>登入</h3><code class="type">SignInView</code></header>
+  <div class="desc"><p>用 Apple 或 Google 帳號登入（Firebase Auth）。第 1 批移除。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>我的</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><span class="muted">—</span></dd>
+    <dt>共用計算／資料層</dt><dd><code>AuthenticationManager</code></dd>
+    
+  </dl>
+</article>
+<article class="card" id="page-TilliProSheetView">
+  <header><h3>Tilli Pro</h3><code class="type">TilliProSheetView</code></header>
+  <div class="desc"><p>顯示目前是 Pro 會員或免費版與到期日。目前有一個測試用開關可直接切換會員狀態；第 4 批改為 StoreKit 訂閱與付費牆。</p></div>
+  <dl>
+    <dt>從哪裡進來</dt><dd><code>我的</code></dd>
+    <dt>會打開</dt><dd><span class="muted">—</span></dd>
+    <dt>ViewModel</dt><dd><span class="muted">—</span></dd>
+    <dt>共用計算／資料層</dt><dd><code>AuthenticationManager</code></dd>
+    
+  </dl>
+</article></div></section></section>
+  <section class="tab" id="tab-nav">
+    <h2>頁面地圖</h2>
+    <p class="muted">箭頭：左邊的畫面會打開右邊的畫面（依程式碼引用自動產生）。</p>
+    <div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph F_Root[&quot;根畫面&quot;]
+    RootTabView[&quot;根畫面&lt;br/&gt;&lt;small&gt;RootTabView&lt;/small&gt;&quot;]
+  end
+  subgraph F_EventsPage[&quot;場次&quot;]
+    AddEventView[&quot;新增／編輯場次&lt;br/&gt;&lt;small&gt;AddEventView&lt;/small&gt;&quot;]
+    EventWorkspaceView[&quot;場次工作區&lt;br/&gt;&lt;small&gt;EventWorkspaceView&lt;/small&gt;&quot;]
+    EventsCalendarView[&quot;場次日曆&lt;br/&gt;&lt;small&gt;EventsCalendarView&lt;/small&gt;&quot;]
+    EventsView[&quot;場次列表&lt;br/&gt;&lt;small&gt;EventsView&lt;/small&gt;&quot;]
+  end
+  subgraph F_POSPage[&quot;收銀&quot;]
+    CashPaymentView[&quot;現金付款&lt;br/&gt;&lt;small&gt;CashPaymentView&lt;/small&gt;&quot;]
+    CheckoutFlowView[&quot;結帳視窗&lt;br/&gt;&lt;small&gt;CheckoutFlowView&lt;/small&gt;&quot;]
+    CheckoutSummaryView[&quot;訂單摘要&lt;br/&gt;&lt;small&gt;CheckoutSummaryView&lt;/small&gt;&quot;]
+    EPaymentView[&quot;電子支付&lt;br/&gt;&lt;small&gt;EPaymentView&lt;/small&gt;&quot;]
+    POSView[&quot;收銀&lt;br/&gt;&lt;small&gt;POSView&lt;/small&gt;&quot;]
+  end
+  subgraph F_InventoryPage[&quot;管理商品&quot;]
+    AddNewProductView[&quot;新增／編輯商品&lt;br/&gt;&lt;small&gt;AddNewProductView&lt;/small&gt;&quot;]
+    BundleFormView[&quot;新增／編輯套餐或組合&lt;br/&gt;&lt;small&gt;BundleFormView&lt;/small&gt;&quot;]
+    InventoryReorderView[&quot;排序&lt;br/&gt;&lt;small&gt;InventoryReorderView&lt;/small&gt;&quot;]
+    InventoryView[&quot;管理商品&lt;br/&gt;&lt;small&gt;InventoryView&lt;/small&gt;&quot;]
+  end
+  subgraph F_ReportsPage[&quot;報表&quot;]
+    ProductPerformanceView[&quot;商品績效&lt;br/&gt;&lt;small&gt;ProductPerformanceView&lt;/small&gt;&quot;]
+    ReportsView[&quot;查看分析&lt;br/&gt;&lt;small&gt;ReportsView&lt;/small&gt;&quot;]
+    SalesAnalyticsView[&quot;銷售分析&lt;br/&gt;&lt;small&gt;SalesAnalyticsView&lt;/small&gt;&quot;]
+    TransactionDetailView[&quot;交易明細&lt;br/&gt;&lt;small&gt;TransactionDetailView&lt;/small&gt;&quot;]
+    TransactionHistoryView[&quot;交易紀錄&lt;br/&gt;&lt;small&gt;TransactionHistoryView&lt;/small&gt;&quot;]
+    VoidTransactionView[&quot;作廢交易&lt;br/&gt;&lt;small&gt;VoidTransactionView&lt;/small&gt;&quot;]
+  end
+  subgraph F_MyPage[&quot;我的&quot;]
+    MyView[&quot;我的&lt;br/&gt;&lt;small&gt;MyView&lt;/small&gt;&quot;]
+    ProfileEditView[&quot;個人資料&lt;br/&gt;&lt;small&gt;ProfileEditView&lt;/small&gt;&quot;]
+    QRCodeView[&quot;收款碼&lt;br/&gt;&lt;small&gt;QRCodeView&lt;/small&gt;&quot;]
+    SignInView[&quot;登入&lt;br/&gt;&lt;small&gt;SignInView&lt;/small&gt;&quot;]
+    TilliProSheetView[&quot;Tilli Pro&lt;br/&gt;&lt;small&gt;TilliProSheetView&lt;/small&gt;&quot;]
+  end
+  CheckoutFlowView --&gt; CheckoutSummaryView
+  CheckoutSummaryView --&gt; CashPaymentView
+  CheckoutSummaryView --&gt; EPaymentView
+  EventWorkspaceView --&gt; AddNewProductView
+  EventWorkspaceView --&gt; BundleFormView
+  EventWorkspaceView --&gt; InventoryReorderView
+  EventWorkspaceView --&gt; InventoryView
+  EventWorkspaceView --&gt; POSView
+  EventWorkspaceView --&gt; ReportsView
+  EventWorkspaceView --&gt; TransactionDetailView
+  EventsView --&gt; AddEventView
+  EventsView --&gt; EventWorkspaceView
+  EventsView --&gt; EventsCalendarView
+  EventsView --&gt; MyView
+  MyView --&gt; ProfileEditView
+  MyView --&gt; QRCodeView
+  MyView --&gt; SignInView
+  MyView --&gt; TilliProSheetView
+  POSView --&gt; CheckoutFlowView
+  ReportsView --&gt; ProductPerformanceView
+  ReportsView --&gt; SalesAnalyticsView
+  ReportsView --&gt; TransactionHistoryView
+  RootTabView --&gt; EventsView
+  RootTabView --&gt; ProfileEditView
+  TransactionDetailView --&gt; VoidTransactionView</pre></div>
+  </section>
+  <section class="tab" id="tab-arch"><h2>分層架構總覽</h2><p class="muted">箭頭表示「會用到」。只畫 View → ViewModel → Service → Data → 外部套件，Model、Utilities、Extensions 每層都會用，不畫。虛線框是外部套件。</p><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    View_EventsPage[&quot;EventsPage&lt;br/&gt;場次&quot;]
+    View_InventoryPage[&quot;InventoryPage&lt;br/&gt;管理商品&quot;]
+    View_MyPage[&quot;MyPage&lt;br/&gt;我的&quot;]
+    View_POSPage[&quot;POSPage&lt;br/&gt;收銀&quot;]
+    View_ReportsPage[&quot;ReportsPage&lt;br/&gt;報表&quot;]
+    View_Root[&quot;Root&lt;br/&gt;根畫面&quot;]
+  end
+  subgraph L_ViewModel[&quot;ViewModel&quot;]
+    direction TB
+    ViewModel_EventsPage[&quot;EventsPage&lt;br/&gt;場次&quot;]
+    ViewModel_InventoryPage[&quot;InventoryPage&lt;br/&gt;管理商品&quot;]
+    ViewModel_MyPage[&quot;MyPage&lt;br/&gt;我的&quot;]
+    ViewModel_POSPage[&quot;POSPage&lt;br/&gt;收銀&quot;]
+    ViewModel_ReportsPage[&quot;ReportsPage&lt;br/&gt;報表&quot;]
+  end
+  subgraph L_Service[&quot;共用計算 Service&quot;]
+    direction TB
+    Service[&quot;Service&quot;]
+    Service_Analytics[&quot;Analytics&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    Data_Auth[&quot;Auth&quot;]
+    Data_CoreData[&quot;CoreData&quot;]
+    Data_Local[&quot;Local&quot;]
+    Data_Repositories[&quot;Repositories&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    External_Firebase[&quot;Firebase&quot;]:::ext
+    External_GoogleSignIn[&quot;GoogleSignIn&quot;]:::ext
+  end
+  Data_Auth --&gt; Data_Local
+  Data_Auth --&gt; Data_Repositories
+  Data_Auth --&gt; External_Firebase
+  Data_Auth --&gt; External_GoogleSignIn
+  Data_Local --&gt; Data_CoreData
+  Data_Repositories --&gt; Data_CoreData
+  Data_Repositories --&gt; External_Firebase
+  Service --&gt; Data_Repositories
+  View_EventsPage --&gt; Data_Repositories
+  View_EventsPage --&gt; Service
+  View_EventsPage --&gt; View_InventoryPage
+  View_EventsPage --&gt; View_MyPage
+  View_EventsPage --&gt; View_POSPage
+  View_EventsPage --&gt; View_ReportsPage
+  View_EventsPage --&gt; ViewModel_EventsPage
+  View_EventsPage --&gt; ViewModel_InventoryPage
+  View_EventsPage --&gt; ViewModel_POSPage
+  View_EventsPage --&gt; ViewModel_ReportsPage
+  View_InventoryPage --&gt; Data_Repositories
+  View_InventoryPage --&gt; Service
+  View_InventoryPage --&gt; View_EventsPage
+  View_InventoryPage --&gt; View_ReportsPage
+  View_InventoryPage --&gt; ViewModel_InventoryPage
+  View_MyPage --&gt; Data_Auth
+  View_MyPage --&gt; Data_Repositories
+  View_MyPage --&gt; ViewModel_MyPage
+  View_POSPage --&gt; Data_Repositories
+  View_POSPage --&gt; Service
+  View_POSPage --&gt; ViewModel_POSPage
+  View_ReportsPage --&gt; Data_Repositories
+  View_ReportsPage --&gt; Service
+  View_ReportsPage --&gt; ViewModel_ReportsPage
+  View_Root --&gt; Data_Auth
+  View_Root --&gt; View_EventsPage
+  View_Root --&gt; View_MyPage
+  ViewModel_EventsPage --&gt; Data_Repositories
+  ViewModel_EventsPage --&gt; Service
+  ViewModel_InventoryPage --&gt; Data_Repositories
+  ViewModel_InventoryPage --&gt; Service
+  ViewModel_MyPage --&gt; Data_Auth
+  ViewModel_MyPage --&gt; Data_Repositories
+  ViewModel_POSPage --&gt; Data_Repositories
+  ViewModel_POSPage --&gt; Service
+  ViewModel_ReportsPage --&gt; Data_Repositories
+  ViewModel_ReportsPage --&gt; Service
+  ViewModel_ReportsPage --&gt; Service_Analytics
+  classDef ext stroke-dasharray: 4 3</pre></div><h2>根畫面 <span class="muted">Root</span></h2><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    RootTabView[&quot;RootTabView&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    AuthenticationManager[&quot;AuthenticationManager&quot;]
+    CDEventEntity_CoreDataClass[&quot;CDEventEntity+CoreDataClass&quot;]
+    CDQRCodeEntity_CoreDataClass[&quot;CDQRCodeEntity+CoreDataClass&quot;]
+    CDTransactionEntity_CoreDataClass[&quot;CDTransactionEntity+CoreDataClass&quot;]
+    CDTransactionVoidEntity_CoreDataClass[&quot;CDTransactionVoidEntity+CoreDataClass&quot;]
+    CDUserProfileEntity_CoreDataClass[&quot;CDUserProfileEntity+CoreDataClass&quot;]
+    LocalDataManager[&quot;LocalDataManager&quot;]
+    Persistence[&quot;Persistence&quot;]
+    SyncStatus[&quot;SyncStatus&quot;]
+    UserRepository[&quot;UserRepository&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    X_Firebase[&quot;Firebase&quot;]:::ext
+    X_GoogleSignIn[&quot;GoogleSignIn&quot;]:::ext
+  end
+  AuthenticationManager --&gt; LocalDataManager
+  AuthenticationManager --&gt; UserRepository
+  AuthenticationManager -.-&gt; X_Firebase
+  AuthenticationManager -.-&gt; X_GoogleSignIn
+  LocalDataManager --&gt; CDEventEntity_CoreDataClass
+  LocalDataManager --&gt; CDQRCodeEntity_CoreDataClass
+  LocalDataManager --&gt; CDTransactionEntity_CoreDataClass
+  LocalDataManager --&gt; CDTransactionVoidEntity_CoreDataClass
+  LocalDataManager --&gt; CDUserProfileEntity_CoreDataClass
+  LocalDataManager --&gt; Persistence
+  LocalDataManager --&gt; SyncStatus
+  RootTabView --&gt; AuthenticationManager
+  UserRepository --&gt; CDUserProfileEntity_CoreDataClass
+  UserRepository --&gt; Persistence
+  UserRepository --&gt; SyncStatus
+  UserRepository -.-&gt; X_Firebase
+  classDef ext stroke-dasharray: 4 3</pre></div><h2>場次 <span class="muted">EventsPage</span></h2><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    AddEventView[&quot;AddEventView&quot;]
+    CalendarMonthYearPicker[&quot;CalendarMonthYearPicker&quot;]
+    EventWorkspaceView[&quot;EventWorkspaceView&quot;]
+    EventsCalendarView[&quot;EventsCalendarView&quot;]
+    EventsView[&quot;EventsView&quot;]
+  end
+  subgraph L_ViewModel[&quot;ViewModel&quot;]
+    direction TB
+    AddEventViewModel[&quot;AddEventViewModel&quot;]
+    EventsCalendarViewModel[&quot;EventsCalendarViewModel&quot;]
+    EventsViewModel[&quot;EventsViewModel&quot;]
+    InventoryViewModel[&quot;InventoryViewModel&quot;]
+    POSViewModel[&quot;POSViewModel&quot;]
+    ReportsViewModel[&quot;ReportsViewModel&quot;]
+  end
+  subgraph L_Service[&quot;共用計算 Service&quot;]
+    direction TB
+    BundleAvailability[&quot;BundleAvailability&quot;]
+    BundleImageStore[&quot;BundleImageStore&quot;]
+    BundleValidator[&quot;BundleValidator&quot;]
+    CSVExporter[&quot;CSVExporter&quot;]
+    CartPricing[&quot;CartPricing&quot;]
+    CheckoutRecorder[&quot;CheckoutRecorder&quot;]
+    ComboApplier[&quot;ComboApplier&quot;]
+    DiscountCalculator[&quot;DiscountCalculator&quot;]
+    EventDataSource[&quot;EventDataSource&quot;]
+    RevenueAllocator[&quot;RevenueAllocator&quot;]
+    TransactionBreakdown[&quot;TransactionBreakdown&quot;]
+    TransactionIndex[&quot;TransactionIndex&quot;]
+    TransactionVoidIndex[&quot;TransactionVoidIndex&quot;]
+    VoidRecorder[&quot;VoidRecorder&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    CDCategoryEntity_CoreDataClass[&quot;CDCategoryEntity+CoreDataClass&quot;]
+    CDEventEntity_CoreDataClass[&quot;CDEventEntity+CoreDataClass&quot;]
+    CDInventoryChangeEntity_CoreDataClass[&quot;CDInventoryChangeEntity+CoreDataClass&quot;]
+    CDProductEntity_CoreDataClass[&quot;CDProductEntity+CoreDataClass&quot;]
+    CDTransactionEntity_CoreDataClass[&quot;CDTransactionEntity+CoreDataClass&quot;]
+    CDTransactionVoidEntity_CoreDataClass[&quot;CDTransactionVoidEntity+CoreDataClass&quot;]
+    EventRepository[&quot;EventRepository&quot;]
+    InventoryChangeRepository[&quot;InventoryChangeRepository&quot;]
+    Persistence[&quot;Persistence&quot;]
+    ProductRepository[&quot;ProductRepository&quot;]
+    TransactionRepository[&quot;TransactionRepository&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    X_Firebase[&quot;Firebase&quot;]:::ext
+  end
+  AddEventView --&gt; AddEventViewModel
+  AddEventView --&gt; ProductRepository
+  AddEventView --&gt; TransactionRepository
+  AddEventViewModel --&gt; BundleValidator
+  AddEventViewModel --&gt; ProductRepository
+  AddEventViewModel --&gt; TransactionIndex
+  AddEventViewModel --&gt; TransactionRepository
+  CartPricing --&gt; ComboApplier
+  CartPricing --&gt; DiscountCalculator
+  CartPricing --&gt; RevenueAllocator
+  CheckoutRecorder --&gt; CartPricing
+  CheckoutRecorder --&gt; DiscountCalculator
+  CheckoutRecorder --&gt; RevenueAllocator
+  EventDataSource --&gt; EventRepository
+  EventDataSource --&gt; InventoryChangeRepository
+  EventDataSource --&gt; ProductRepository
+  EventDataSource --&gt; TransactionIndex
+  EventDataSource --&gt; TransactionRepository
+  EventDataSource --&gt; TransactionVoidIndex
+  EventRepository --&gt; CDCategoryEntity_CoreDataClass
+  EventRepository --&gt; CDEventEntity_CoreDataClass
+  EventRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  EventRepository --&gt; CDProductEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  EventRepository --&gt; InventoryChangeRepository
+  EventRepository --&gt; Persistence
+  EventRepository --&gt; TransactionRepository
+  EventRepository -.-&gt; X_Firebase
+  EventWorkspaceView --&gt; EventDataSource
+  EventWorkspaceView --&gt; EventRepository
+  EventWorkspaceView --&gt; InventoryChangeRepository
+  EventWorkspaceView --&gt; InventoryViewModel
+  EventWorkspaceView --&gt; POSViewModel
+  EventWorkspaceView --&gt; ProductRepository
+  EventWorkspaceView --&gt; ReportsViewModel
+  EventWorkspaceView --&gt; TransactionRepository
+  EventsCalendarView --&gt; CalendarMonthYearPicker
+  EventsCalendarView --&gt; EventRepository
+  EventsCalendarView --&gt; EventsCalendarViewModel
+  EventsCalendarViewModel --&gt; TransactionRepository
+  EventsView --&gt; AddEventView
+  EventsView --&gt; EventRepository
+  EventsView --&gt; EventWorkspaceView
+  EventsView --&gt; EventsCalendarView
+  EventsView --&gt; EventsCalendarViewModel
+  EventsView --&gt; EventsViewModel
+  EventsView --&gt; ProductRepository
+  EventsView --&gt; TransactionRepository
+  EventsViewModel --&gt; EventRepository
+  EventsViewModel --&gt; ProductRepository
+  EventsViewModel --&gt; TransactionRepository
+  InventoryChangeRepository --&gt; CDEventEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDProductEntity_CoreDataClass
+  InventoryChangeRepository --&gt; Persistence
+  InventoryViewModel --&gt; BundleAvailability
+  InventoryViewModel --&gt; BundleImageStore
+  InventoryViewModel --&gt; CSVExporter
+  InventoryViewModel --&gt; EventDataSource
+  InventoryViewModel --&gt; EventRepository
+  InventoryViewModel --&gt; ProductRepository
+  InventoryViewModel --&gt; TransactionIndex
+  POSViewModel --&gt; BundleAvailability
+  POSViewModel --&gt; CartPricing
+  POSViewModel --&gt; ComboApplier
+  POSViewModel --&gt; DiscountCalculator
+  POSViewModel --&gt; EventDataSource
+  POSViewModel --&gt; TransactionBreakdown
+  ProductRepository --&gt; CDCategoryEntity_CoreDataClass
+  ProductRepository --&gt; CDEventEntity_CoreDataClass
+  ProductRepository --&gt; CDProductEntity_CoreDataClass
+  ProductRepository --&gt; CDTransactionEntity_CoreDataClass
+  ProductRepository --&gt; InventoryChangeRepository
+  ProductRepository --&gt; Persistence
+  ProductRepository -.-&gt; X_Firebase
+  ReportsViewModel --&gt; EventDataSource
+  TransactionRepository --&gt; CDTransactionEntity_CoreDataClass
+  TransactionRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  TransactionRepository --&gt; Persistence
+  VoidRecorder --&gt; CheckoutRecorder
+  VoidRecorder --&gt; TransactionVoidIndex
+  classDef ext stroke-dasharray: 4 3</pre></div><h2>收銀 <span class="muted">POSPage</span></h2><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    CashPaymentView[&quot;CashPaymentView&quot;]
+    CheckoutFlowView[&quot;CheckoutFlowView&quot;]
+    CheckoutSummaryView[&quot;CheckoutSummaryView&quot;]
+    EPaymentView[&quot;EPaymentView&quot;]
+    POSBundleSection[&quot;POSBundleSection&quot;]
+    POSView[&quot;POSView&quot;]
+  end
+  subgraph L_ViewModel[&quot;ViewModel&quot;]
+    direction TB
+    CashPaymentViewModel[&quot;CashPaymentViewModel&quot;]
+    CheckoutSummaryViewModel[&quot;CheckoutSummaryViewModel&quot;]
+    EPaymentViewModel[&quot;EPaymentViewModel&quot;]
+    POSViewModel[&quot;POSViewModel&quot;]
+  end
+  subgraph L_Service[&quot;共用計算 Service&quot;]
+    direction TB
+    BundleAvailability[&quot;BundleAvailability&quot;]
+    BundleImageStore[&quot;BundleImageStore&quot;]
+    BundleValidator[&quot;BundleValidator&quot;]
+    CartPricing[&quot;CartPricing&quot;]
+    CheckoutRecorder[&quot;CheckoutRecorder&quot;]
+    ComboApplier[&quot;ComboApplier&quot;]
+    DiscountCalculator[&quot;DiscountCalculator&quot;]
+    EventDataSource[&quot;EventDataSource&quot;]
+    RevenueAllocator[&quot;RevenueAllocator&quot;]
+    TransactionBreakdown[&quot;TransactionBreakdown&quot;]
+    TransactionIndex[&quot;TransactionIndex&quot;]
+    TransactionVoidIndex[&quot;TransactionVoidIndex&quot;]
+    VoidRecorder[&quot;VoidRecorder&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    CDCategoryEntity_CoreDataClass[&quot;CDCategoryEntity+CoreDataClass&quot;]
+    CDEventEntity_CoreDataClass[&quot;CDEventEntity+CoreDataClass&quot;]
+    CDInventoryChangeEntity_CoreDataClass[&quot;CDInventoryChangeEntity+CoreDataClass&quot;]
+    CDProductEntity_CoreDataClass[&quot;CDProductEntity+CoreDataClass&quot;]
+    CDQRCodeEntity_CoreDataClass[&quot;CDQRCodeEntity+CoreDataClass&quot;]
+    CDTransactionEntity_CoreDataClass[&quot;CDTransactionEntity+CoreDataClass&quot;]
+    CDTransactionVoidEntity_CoreDataClass[&quot;CDTransactionVoidEntity+CoreDataClass&quot;]
+    EventRepository[&quot;EventRepository&quot;]
+    InventoryChangeRepository[&quot;InventoryChangeRepository&quot;]
+    Persistence[&quot;Persistence&quot;]
+    ProductRepository[&quot;ProductRepository&quot;]
+    QRCodeRepository[&quot;QRCodeRepository&quot;]
+    TransactionRepository[&quot;TransactionRepository&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    X_Firebase[&quot;Firebase&quot;]:::ext
+  end
+  CartPricing --&gt; ComboApplier
+  CartPricing --&gt; DiscountCalculator
+  CartPricing --&gt; RevenueAllocator
+  CashPaymentView --&gt; CashPaymentViewModel
+  CashPaymentView --&gt; EventRepository
+  CashPaymentView --&gt; ProductRepository
+  CashPaymentView --&gt; RevenueAllocator
+  CashPaymentView --&gt; TransactionRepository
+  CashPaymentViewModel --&gt; CheckoutRecorder
+  CashPaymentViewModel --&gt; EventRepository
+  CashPaymentViewModel --&gt; ProductRepository
+  CashPaymentViewModel --&gt; RevenueAllocator
+  CheckoutFlowView --&gt; CheckoutSummaryView
+  CheckoutFlowView --&gt; POSViewModel
+  CheckoutRecorder --&gt; CartPricing
+  CheckoutRecorder --&gt; DiscountCalculator
+  CheckoutRecorder --&gt; RevenueAllocator
+  CheckoutSummaryView --&gt; CashPaymentView
+  CheckoutSummaryView --&gt; CheckoutSummaryViewModel
+  CheckoutSummaryView --&gt; EPaymentView
+  CheckoutSummaryView --&gt; POSViewModel
+  CheckoutSummaryView --&gt; RevenueAllocator
+  EPaymentView --&gt; EPaymentViewModel
+  EPaymentView --&gt; EventRepository
+  EPaymentView --&gt; ProductRepository
+  EPaymentView --&gt; QRCodeRepository
+  EPaymentView --&gt; RevenueAllocator
+  EPaymentView --&gt; TransactionRepository
+  EPaymentViewModel --&gt; CheckoutRecorder
+  EPaymentViewModel --&gt; EventRepository
+  EPaymentViewModel --&gt; ProductRepository
+  EPaymentViewModel --&gt; RevenueAllocator
+  EventDataSource --&gt; EventRepository
+  EventDataSource --&gt; InventoryChangeRepository
+  EventDataSource --&gt; ProductRepository
+  EventDataSource --&gt; TransactionIndex
+  EventDataSource --&gt; TransactionRepository
+  EventDataSource --&gt; TransactionVoidIndex
+  EventRepository --&gt; CDCategoryEntity_CoreDataClass
+  EventRepository --&gt; CDEventEntity_CoreDataClass
+  EventRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  EventRepository --&gt; CDProductEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  EventRepository --&gt; InventoryChangeRepository
+  EventRepository --&gt; Persistence
+  EventRepository --&gt; TransactionRepository
+  EventRepository -.-&gt; X_Firebase
+  InventoryChangeRepository --&gt; CDEventEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDProductEntity_CoreDataClass
+  InventoryChangeRepository --&gt; Persistence
+  POSBundleSection --&gt; POSView
+  POSBundleSection --&gt; POSViewModel
+  POSView --&gt; CheckoutFlowView
+  POSView --&gt; DiscountCalculator
+  POSView --&gt; POSBundleSection
+  POSView --&gt; POSViewModel
+  POSViewModel --&gt; BundleAvailability
+  POSViewModel --&gt; CartPricing
+  POSViewModel --&gt; ComboApplier
+  POSViewModel --&gt; DiscountCalculator
+  POSViewModel --&gt; EventDataSource
+  POSViewModel --&gt; TransactionBreakdown
+  ProductRepository --&gt; CDCategoryEntity_CoreDataClass
+  ProductRepository --&gt; CDEventEntity_CoreDataClass
+  ProductRepository --&gt; CDProductEntity_CoreDataClass
+  ProductRepository --&gt; CDTransactionEntity_CoreDataClass
+  ProductRepository --&gt; InventoryChangeRepository
+  ProductRepository --&gt; Persistence
+  ProductRepository -.-&gt; X_Firebase
+  QRCodeRepository --&gt; CDQRCodeEntity_CoreDataClass
+  QRCodeRepository --&gt; Persistence
+  QRCodeRepository -.-&gt; X_Firebase
+  TransactionRepository --&gt; CDTransactionEntity_CoreDataClass
+  TransactionRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  TransactionRepository --&gt; Persistence
+  VoidRecorder --&gt; CheckoutRecorder
+  VoidRecorder --&gt; TransactionVoidIndex
+  classDef ext stroke-dasharray: 4 3</pre></div><h2>管理商品 <span class="muted">InventoryPage</span></h2><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    AddNewProductView[&quot;AddNewProductView&quot;]
+    BundleFormView[&quot;BundleFormView&quot;]
+    InventoryBundleCard[&quot;InventoryBundleCard&quot;]
+    InventoryProductCard[&quot;InventoryProductCard&quot;]
+    InventoryReorderView[&quot;InventoryReorderView&quot;]
+    InventoryView[&quot;InventoryView&quot;]
+  end
+  subgraph L_ViewModel[&quot;ViewModel&quot;]
+    direction TB
+    AddNewProductViewModel[&quot;AddNewProductViewModel&quot;]
+    BundleFormViewModel[&quot;BundleFormViewModel&quot;]
+    InventoryReorderViewModel[&quot;InventoryReorderViewModel&quot;]
+    InventoryViewModel[&quot;InventoryViewModel&quot;]
+  end
+  subgraph L_Service[&quot;共用計算 Service&quot;]
+    direction TB
+    BundleAvailability[&quot;BundleAvailability&quot;]
+    BundleImageStore[&quot;BundleImageStore&quot;]
+    BundleValidator[&quot;BundleValidator&quot;]
+    CSVExporter[&quot;CSVExporter&quot;]
+    CartPricing[&quot;CartPricing&quot;]
+    CheckoutRecorder[&quot;CheckoutRecorder&quot;]
+    ComboApplier[&quot;ComboApplier&quot;]
+    DiscountCalculator[&quot;DiscountCalculator&quot;]
+    EventDataSource[&quot;EventDataSource&quot;]
+    RevenueAllocator[&quot;RevenueAllocator&quot;]
+    TransactionIndex[&quot;TransactionIndex&quot;]
+    TransactionVoidIndex[&quot;TransactionVoidIndex&quot;]
+    VoidRecorder[&quot;VoidRecorder&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    CDCategoryEntity_CoreDataClass[&quot;CDCategoryEntity+CoreDataClass&quot;]
+    CDEventEntity_CoreDataClass[&quot;CDEventEntity+CoreDataClass&quot;]
+    CDInventoryChangeEntity_CoreDataClass[&quot;CDInventoryChangeEntity+CoreDataClass&quot;]
+    CDProductEntity_CoreDataClass[&quot;CDProductEntity+CoreDataClass&quot;]
+    CDTransactionEntity_CoreDataClass[&quot;CDTransactionEntity+CoreDataClass&quot;]
+    CDTransactionVoidEntity_CoreDataClass[&quot;CDTransactionVoidEntity+CoreDataClass&quot;]
+    EventRepository[&quot;EventRepository&quot;]
+    InventoryChangeRepository[&quot;InventoryChangeRepository&quot;]
+    Persistence[&quot;Persistence&quot;]
+    ProductRepository[&quot;ProductRepository&quot;]
+    TransactionRepository[&quot;TransactionRepository&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    X_Firebase[&quot;Firebase&quot;]:::ext
+  end
+  AddNewProductView --&gt; AddNewProductViewModel
+  AddNewProductView --&gt; ProductRepository
+  AddNewProductView --&gt; TransactionRepository
+  AddNewProductViewModel --&gt; ProductRepository
+  AddNewProductViewModel --&gt; TransactionIndex
+  AddNewProductViewModel --&gt; TransactionRepository
+  BundleFormView --&gt; BundleFormViewModel
+  BundleFormView --&gt; EventRepository
+  BundleFormViewModel --&gt; AddNewProductViewModel
+  BundleFormViewModel --&gt; BundleImageStore
+  BundleFormViewModel --&gt; BundleValidator
+  BundleFormViewModel --&gt; EventRepository
+  CartPricing --&gt; ComboApplier
+  CartPricing --&gt; DiscountCalculator
+  CartPricing --&gt; RevenueAllocator
+  CheckoutRecorder --&gt; CartPricing
+  CheckoutRecorder --&gt; DiscountCalculator
+  CheckoutRecorder --&gt; RevenueAllocator
+  EventDataSource --&gt; EventRepository
+  EventDataSource --&gt; InventoryChangeRepository
+  EventDataSource --&gt; ProductRepository
+  EventDataSource --&gt; TransactionIndex
+  EventDataSource --&gt; TransactionRepository
+  EventDataSource --&gt; TransactionVoidIndex
+  EventRepository --&gt; CDCategoryEntity_CoreDataClass
+  EventRepository --&gt; CDEventEntity_CoreDataClass
+  EventRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  EventRepository --&gt; CDProductEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  EventRepository --&gt; InventoryChangeRepository
+  EventRepository --&gt; Persistence
+  EventRepository --&gt; TransactionRepository
+  EventRepository -.-&gt; X_Firebase
+  InventoryChangeRepository --&gt; CDEventEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDProductEntity_CoreDataClass
+  InventoryChangeRepository --&gt; Persistence
+  InventoryProductCard --&gt; InventoryViewModel
+  InventoryReorderView --&gt; EventDataSource
+  InventoryReorderView --&gt; EventRepository
+  InventoryReorderView --&gt; InventoryReorderViewModel
+  InventoryReorderView --&gt; ProductRepository
+  InventoryReorderViewModel --&gt; EventDataSource
+  InventoryReorderViewModel --&gt; EventRepository
+  InventoryReorderViewModel --&gt; ProductRepository
+  InventoryView --&gt; EventRepository
+  InventoryView --&gt; InventoryBundleCard
+  InventoryView --&gt; InventoryProductCard
+  InventoryView --&gt; InventoryViewModel
+  InventoryView --&gt; ProductRepository
+  InventoryViewModel --&gt; BundleAvailability
+  InventoryViewModel --&gt; BundleImageStore
+  InventoryViewModel --&gt; CSVExporter
+  InventoryViewModel --&gt; EventDataSource
+  InventoryViewModel --&gt; EventRepository
+  InventoryViewModel --&gt; ProductRepository
+  InventoryViewModel --&gt; TransactionIndex
+  ProductRepository --&gt; CDCategoryEntity_CoreDataClass
+  ProductRepository --&gt; CDEventEntity_CoreDataClass
+  ProductRepository --&gt; CDProductEntity_CoreDataClass
+  ProductRepository --&gt; CDTransactionEntity_CoreDataClass
+  ProductRepository --&gt; InventoryChangeRepository
+  ProductRepository --&gt; Persistence
+  ProductRepository -.-&gt; X_Firebase
+  TransactionRepository --&gt; CDTransactionEntity_CoreDataClass
+  TransactionRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  TransactionRepository --&gt; Persistence
+  VoidRecorder --&gt; CheckoutRecorder
+  VoidRecorder --&gt; TransactionVoidIndex
+  classDef ext stroke-dasharray: 4 3</pre></div><h2>報表 <span class="muted">ReportsPage</span></h2><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    ProductPerformanceComponents[&quot;ProductPerformanceComponents&quot;]
+    ProductPerformanceView[&quot;ProductPerformanceView&quot;]
+    ReportTimeRangeSelector[&quot;ReportTimeRangeSelector&quot;]
+    ReportsView[&quot;ReportsView&quot;]
+    SalesAnalyticsView[&quot;SalesAnalyticsView&quot;]
+    TransactionDetailView[&quot;TransactionDetailView&quot;]
+    TransactionHistoryView[&quot;TransactionHistoryView&quot;]
+    VoidTransactionView[&quot;VoidTransactionView&quot;]
+  end
+  subgraph L_ViewModel[&quot;ViewModel&quot;]
+    direction TB
+    ProductPerformanceViewModel[&quot;ProductPerformanceViewModel&quot;]
+    ReportsViewModel[&quot;ReportsViewModel&quot;]
+    SalesAnalyticsViewModel[&quot;SalesAnalyticsViewModel&quot;]
+    TransactionDetailViewModel[&quot;TransactionDetailViewModel&quot;]
+    TransactionHistoryViewModel[&quot;TransactionHistoryViewModel&quot;]
+    VoidTransactionViewModel[&quot;VoidTransactionViewModel&quot;]
+  end
+  subgraph L_Service[&quot;共用計算 Service&quot;]
+    direction TB
+    BundleImageStore[&quot;BundleImageStore&quot;]
+    BundleValidator[&quot;BundleValidator&quot;]
+    CSVExporter[&quot;CSVExporter&quot;]
+    CartPricing[&quot;CartPricing&quot;]
+    CheckoutRecorder[&quot;CheckoutRecorder&quot;]
+    ComboApplier[&quot;ComboApplier&quot;]
+    DiscountCalculator[&quot;DiscountCalculator&quot;]
+    EventDataSource[&quot;EventDataSource&quot;]
+    ProductPerformanceService[&quot;ProductPerformanceService&quot;]
+    RevenueAllocator[&quot;RevenueAllocator&quot;]
+    SalesAnalyticsService[&quot;SalesAnalyticsService&quot;]
+    TransactionBreakdown[&quot;TransactionBreakdown&quot;]
+    TransactionIndex[&quot;TransactionIndex&quot;]
+    TransactionVoidIndex[&quot;TransactionVoidIndex&quot;]
+    VoidRecorder[&quot;VoidRecorder&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    CDCategoryEntity_CoreDataClass[&quot;CDCategoryEntity+CoreDataClass&quot;]
+    CDEventEntity_CoreDataClass[&quot;CDEventEntity+CoreDataClass&quot;]
+    CDInventoryChangeEntity_CoreDataClass[&quot;CDInventoryChangeEntity+CoreDataClass&quot;]
+    CDProductEntity_CoreDataClass[&quot;CDProductEntity+CoreDataClass&quot;]
+    CDTransactionEntity_CoreDataClass[&quot;CDTransactionEntity+CoreDataClass&quot;]
+    CDTransactionVoidEntity_CoreDataClass[&quot;CDTransactionVoidEntity+CoreDataClass&quot;]
+    EventRepository[&quot;EventRepository&quot;]
+    InventoryChangeRepository[&quot;InventoryChangeRepository&quot;]
+    Persistence[&quot;Persistence&quot;]
+    ProductRepository[&quot;ProductRepository&quot;]
+    TransactionRepository[&quot;TransactionRepository&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    X_Firebase[&quot;Firebase&quot;]:::ext
+  end
+  CartPricing --&gt; ComboApplier
+  CartPricing --&gt; DiscountCalculator
+  CartPricing --&gt; RevenueAllocator
+  CheckoutRecorder --&gt; CartPricing
+  CheckoutRecorder --&gt; DiscountCalculator
+  CheckoutRecorder --&gt; RevenueAllocator
+  EventDataSource --&gt; EventRepository
+  EventDataSource --&gt; InventoryChangeRepository
+  EventDataSource --&gt; ProductRepository
+  EventDataSource --&gt; TransactionIndex
+  EventDataSource --&gt; TransactionRepository
+  EventDataSource --&gt; TransactionVoidIndex
+  EventRepository --&gt; CDCategoryEntity_CoreDataClass
+  EventRepository --&gt; CDEventEntity_CoreDataClass
+  EventRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  EventRepository --&gt; CDProductEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionEntity_CoreDataClass
+  EventRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  EventRepository --&gt; InventoryChangeRepository
+  EventRepository --&gt; Persistence
+  EventRepository --&gt; TransactionRepository
+  EventRepository -.-&gt; X_Firebase
+  InventoryChangeRepository --&gt; CDEventEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDInventoryChangeEntity_CoreDataClass
+  InventoryChangeRepository --&gt; CDProductEntity_CoreDataClass
+  InventoryChangeRepository --&gt; Persistence
+  ProductPerformanceView --&gt; ProductPerformanceComponents
+  ProductPerformanceView --&gt; ProductPerformanceViewModel
+  ProductPerformanceViewModel --&gt; CSVExporter
+  ProductPerformanceViewModel --&gt; EventDataSource
+  ProductPerformanceViewModel --&gt; ProductPerformanceService
+  ProductRepository --&gt; CDCategoryEntity_CoreDataClass
+  ProductRepository --&gt; CDEventEntity_CoreDataClass
+  ProductRepository --&gt; CDProductEntity_CoreDataClass
+  ProductRepository --&gt; CDTransactionEntity_CoreDataClass
+  ProductRepository --&gt; InventoryChangeRepository
+  ProductRepository --&gt; Persistence
+  ProductRepository -.-&gt; X_Firebase
+  ReportsView --&gt; ProductPerformanceView
+  ReportsView --&gt; ReportTimeRangeSelector
+  ReportsView --&gt; ReportsViewModel
+  ReportsView --&gt; SalesAnalyticsView
+  ReportsView --&gt; TransactionHistoryView
+  ReportsViewModel --&gt; EventDataSource
+  ReportsViewModel --&gt; ProductPerformanceViewModel
+  ReportsViewModel --&gt; SalesAnalyticsViewModel
+  ReportsViewModel --&gt; TransactionHistoryViewModel
+  SalesAnalyticsView --&gt; SalesAnalyticsViewModel
+  SalesAnalyticsViewModel --&gt; CSVExporter
+  SalesAnalyticsViewModel --&gt; EventDataSource
+  SalesAnalyticsViewModel --&gt; SalesAnalyticsService
+  TransactionDetailView --&gt; EventDataSource
+  TransactionDetailView --&gt; TransactionBreakdown
+  TransactionDetailView --&gt; TransactionDetailViewModel
+  TransactionDetailView --&gt; VoidTransactionView
+  TransactionDetailViewModel --&gt; EventDataSource
+  TransactionDetailViewModel --&gt; TransactionBreakdown
+  TransactionHistoryView --&gt; TransactionHistoryViewModel
+  TransactionHistoryViewModel --&gt; CSVExporter
+  TransactionHistoryViewModel --&gt; DiscountCalculator
+  TransactionHistoryViewModel --&gt; EventDataSource
+  TransactionHistoryViewModel --&gt; TransactionBreakdown
+  TransactionRepository --&gt; CDTransactionEntity_CoreDataClass
+  TransactionRepository --&gt; CDTransactionVoidEntity_CoreDataClass
+  TransactionRepository --&gt; Persistence
+  VoidRecorder --&gt; CheckoutRecorder
+  VoidRecorder --&gt; TransactionVoidIndex
+  VoidTransactionView --&gt; EventDataSource
+  VoidTransactionView --&gt; EventRepository
+  VoidTransactionView --&gt; VoidTransactionViewModel
+  VoidTransactionViewModel --&gt; EventDataSource
+  VoidTransactionViewModel --&gt; EventRepository
+  VoidTransactionViewModel --&gt; VoidRecorder
+  classDef ext stroke-dasharray: 4 3</pre></div><h2>我的 <span class="muted">MyPage</span></h2><div class="diagram wide"><pre class="mermaid">flowchart LR
+  subgraph L_View[&quot;畫面 View&quot;]
+    direction TB
+    MyView[&quot;MyView&quot;]
+    ProfileEditView[&quot;ProfileEditView&quot;]
+    QRCodeView[&quot;QRCodeView&quot;]
+    SignInView[&quot;SignInView&quot;]
+    TilliProSheetView[&quot;TilliProSheetView&quot;]
+  end
+  subgraph L_ViewModel[&quot;ViewModel&quot;]
+    direction TB
+    ProfileEditViewModel[&quot;ProfileEditViewModel&quot;]
+    QRCodeViewModel[&quot;QRCodeViewModel&quot;]
+  end
+  subgraph L_Data[&quot;資料層 Data&quot;]
+    direction TB
+    AuthenticationManager[&quot;AuthenticationManager&quot;]
+    CDEventEntity_CoreDataClass[&quot;CDEventEntity+CoreDataClass&quot;]
+    CDQRCodeEntity_CoreDataClass[&quot;CDQRCodeEntity+CoreDataClass&quot;]
+    CDTransactionEntity_CoreDataClass[&quot;CDTransactionEntity+CoreDataClass&quot;]
+    CDTransactionVoidEntity_CoreDataClass[&quot;CDTransactionVoidEntity+CoreDataClass&quot;]
+    CDUserProfileEntity_CoreDataClass[&quot;CDUserProfileEntity+CoreDataClass&quot;]
+    LocalDataManager[&quot;LocalDataManager&quot;]
+    Persistence[&quot;Persistence&quot;]
+    QRCodeRepository[&quot;QRCodeRepository&quot;]
+    SyncStatus[&quot;SyncStatus&quot;]
+    UserRepository[&quot;UserRepository&quot;]
+  end
+  subgraph L_External[&quot;外部套件&quot;]
+    direction TB
+    X_Firebase[&quot;Firebase&quot;]:::ext
+    X_GoogleSignIn[&quot;GoogleSignIn&quot;]:::ext
+  end
+  AuthenticationManager --&gt; LocalDataManager
+  AuthenticationManager --&gt; UserRepository
+  AuthenticationManager -.-&gt; X_Firebase
+  AuthenticationManager -.-&gt; X_GoogleSignIn
+  LocalDataManager --&gt; CDEventEntity_CoreDataClass
+  LocalDataManager --&gt; CDQRCodeEntity_CoreDataClass
+  LocalDataManager --&gt; CDTransactionEntity_CoreDataClass
+  LocalDataManager --&gt; CDTransactionVoidEntity_CoreDataClass
+  LocalDataManager --&gt; CDUserProfileEntity_CoreDataClass
+  LocalDataManager --&gt; Persistence
+  LocalDataManager --&gt; SyncStatus
+  MyView --&gt; AuthenticationManager
+  MyView --&gt; ProfileEditView
+  MyView --&gt; QRCodeView
+  MyView --&gt; SignInView
+  MyView --&gt; TilliProSheetView
+  ProfileEditView --&gt; AuthenticationManager
+  ProfileEditView --&gt; ProfileEditViewModel
+  ProfileEditViewModel --&gt; AuthenticationManager
+  QRCodeRepository --&gt; CDQRCodeEntity_CoreDataClass
+  QRCodeRepository --&gt; Persistence
+  QRCodeRepository -.-&gt; X_Firebase
+  QRCodeView --&gt; QRCodeRepository
+  QRCodeView --&gt; QRCodeViewModel
+  QRCodeViewModel --&gt; QRCodeRepository
+  SignInView --&gt; AuthenticationManager
+  TilliProSheetView --&gt; AuthenticationManager
+  UserRepository --&gt; CDUserProfileEntity_CoreDataClass
+  UserRepository --&gt; Persistence
+  UserRepository --&gt; SyncStatus
+  UserRepository -.-&gt; X_Firebase
+  classDef ext stroke-dasharray: 4 3</pre></div></section>
+  <section class="tab" id="tab-er">
+    <h2>CoreData 資料結構</h2>
+    <p class="muted">連線標籤是 relationship 名稱與刪除規則（Cascade 會連帶刪除、Nullify 只清掉關聯）。欄位分類以 ARCHITECTURE.md §4 為準。</p>
+    <div class="diagram wide"><pre class="mermaid">erDiagram
+  CDCategoryEntity ||--o{ CDProductEntity : &quot;products (Cascade)&quot;
+  CDCategoryEntity }o--|| CDEventEntity : &quot;event (Nullify)&quot;
+  CDInventoryChangeEntity }o--|| CDEventEntity : &quot;event (Nullify)&quot;
+  CDInventoryChangeEntity }o--o| CDProductEntity : &quot;product (Nullify)&quot;
+  CDEventEntity |o--o{ CDTransactionEntity : &quot;transactions (Nullify)&quot;
+  CDCategoryEntity {
+    Date createdAt
+    UUID id
+    Bool isDisabled
+    String name
+    UUID eventId &quot;optional&quot;
+    Int16 sortOrder
+    String syncStatus &quot;optional&quot;
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+  }
+  CDInventoryChangeEntity {
+    UUID bundleId &quot;optional&quot;
+    String bundleName &quot;optional&quot;
+    Int32 change
+    String customReason &quot;optional&quot;
+    UUID id
+    UUID productId
+    String reason
+    UUID eventId &quot;optional&quot;
+    String syncStatus &quot;optional&quot;
+    Date timestamp
+    UUID transactionId &quot;optional&quot;
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+  }
+  CDProductEntity {
+    UUID categoryId
+    Date createdAt &quot;optional&quot;
+    UUID id
+    Binary imageData &quot;optional&quot;
+    String imageURL &quot;optional&quot;
+    Bool isDisabled &quot;optional&quot;
+    String name
+    Decimal price
+    UUID eventId
+    Int16 sortOrder
+    Int32 stock
+    String syncStatus &quot;optional&quot;
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+  }
+  CDQRCodeEntity {
+    Date createdAt
+    UUID id
+    Binary imageData
+    String imageURL &quot;optional&quot;
+    String syncStatus &quot;optional&quot;
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+  }
+  CDUserProfileEntity {
+    String uid
+    String email
+    String name
+    String photoURL &quot;optional&quot;
+    Binary imageData &quot;optional&quot;
+    String provider
+    String accountStatus
+    String membership
+    Date expiryDate &quot;optional&quot;
+    Date createdAt
+    String currentDeviceId &quot;optional&quot;
+    Date updatedAt
+    String syncStatus
+  }
+  CDEventEntity {
+    Date createdAt &quot;optional&quot;
+    String currency
+    String dateType
+    Binary bundlesData &quot;optional&quot;
+    Binary discountsData &quot;optional&quot;
+    Date endDate &quot;optional&quot;
+    UUID id
+    Date startDate
+    String syncStatus &quot;optional&quot;
+    String title
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+  }
+  CDTransactionEntity {
+    Binary appliedDiscountsData &quot;optional&quot;
+    String currency
+    UUID id
+    Binary itemsData &quot;optional&quot;
+    Date occurredAt &quot;optional&quot;
+    String paymentMethod
+    UUID eventId
+    String eventTitle
+    String syncStatus &quot;optional&quot;
+    Date timestamp
+    Decimal totalAmount
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+  }
+  CDTransactionVoidEntity {
+    UUID eventId
+    UUID id
+    String note &quot;optional&quot;
+    String reason
+    Bool restocked
+    String syncStatus &quot;optional&quot;
+    UUID transactionId
+    Date updatedAt &quot;optional&quot;
+    String userId &quot;optional&quot;
+    Date voidedAt
+  }</pre></div>
+  </section>
+  <section class="tab" id="tab-seq">
+    <h2>流程</h2>
+    <ul class="seq-toc"><li><a href="#seq-01-checkout">結帳（現金）</a></li><li><a href="#seq-02-void-transaction">作廢交易</a></li><li><a href="#seq-03-save-product">新增／編輯商品</a></li><li><a href="#seq-04-open-workspace">進入場次工作區</a></li><li><a href="#seq-05-delete-event">刪除場次（現況：硬刪除）</a></li><li><a href="#seq-06-app-launch">App 啟動與登入狀態（現況，第 1 批移除）</a></li></ul>
+    <section class="seq" id="seq-01-checkout"><h2>結帳（現金）</h2><p>收銀頁從購物車到寫入交易。電子支付的流程相同，只是付款頁換成 <code>EPaymentView</code>／<code>EPaymentViewModel</code>。 交易、銷售扣庫存的異動、商品庫存在<strong>同一次存檔</strong>完成，失敗時全部不留。</p><div class="diagram wide"><pre class="mermaid">sequenceDiagram
+    actor U as 攤商
+    participant POSView
+    participant POSViewModel
+    participant CheckoutSummaryView
+    participant CashPaymentView
+    participant CashPaymentViewModel
+    participant CheckoutRecorder
+    participant EventRepository
+    participant DB as CoreData
+
+    U-&gt;&gt;POSView: 點商品／套餐加入購物車
+    POSView-&gt;&gt;POSViewModel: 更新購物車（CartPricing 算價、ComboApplier 套組合）
+    U-&gt;&gt;POSView: 按「結帳」
+    POSView-&gt;&gt;CheckoutSummaryView: 打開結帳視窗（CheckoutFlowView）
+    U-&gt;&gt;CheckoutSummaryView: 確認內容、（可選）改交易日期、選現金
+    CheckoutSummaryView-&gt;&gt;CashPaymentView: 帶著定價快照進付款頁
+    U-&gt;&gt;CashPaymentView: 輸入收款金額、按「完成」
+    CashPaymentView-&gt;&gt;CashPaymentViewModel: performCheckout
+    CashPaymentViewModel-&gt;&gt;CheckoutRecorder: stockUpdates（算出結帳後各商品庫存）
+    CashPaymentViewModel-&gt;&gt;CheckoutRecorder: makeRecord（RevenueAllocator 攤提折扣）
+    CashPaymentViewModel-&gt;&gt;EventRepository: recordCheckout(交易, 庫存)
+    EventRepository-&gt;&gt;DB: 交易＋銷售異動＋商品庫存，同一次存檔
+    alt 存檔失敗
+        EventRepository--&gt;&gt;CashPaymentViewModel: false
+        CashPaymentViewModel--&gt;&gt;U: 「結帳失敗」，留在付款頁
+    else 成功
+        EventRepository--&gt;&gt;CashPaymentViewModel: true
+        CashPaymentView-&gt;&gt;POSView: 回報金額並關閉結帳視窗
+        POSView-&gt;&gt;POSViewModel: loadProducts（EventDataSource.reload）
+        POSView--&gt;&gt;U: 視窗關閉後顯示「付款完成」方塊
+    end
+</pre></div></section><section class="seq" id="seq-02-void-transaction"><h2>作廢交易</h2><p>交易明細頁作廢一筆交易。交易本身不改不刪，另外新增一筆作廢紀錄（<code>CDTransactionVoidEntity</code>）； 選「回流」時再新增「作廢回流」庫存異動並加回庫存。三者同一次存檔。</p><div class="diagram wide"><pre class="mermaid">sequenceDiagram
+    actor U as 攤商
+    participant TransactionDetailView
+    participant VoidTransactionView
+    participant VoidTransactionViewModel
+    participant VoidRecorder
+    participant EventRepository
+    participant DB as CoreData
+
+    U-&gt;&gt;TransactionDetailView: 按「作廢交易」
+    TransactionDetailView-&gt;&gt;VoidTransactionView: 打開作廢視窗
+    U-&gt;&gt;VoidTransactionView: 選原因、選回流與否、按「作廢」並確認
+    VoidTransactionView-&gt;&gt;VoidTransactionViewModel: performVoid
+    VoidTransactionViewModel-&gt;&gt;VoidRecorder: makeRecord（已作廢、沒選原因或回流 → 拒絕）
+    VoidTransactionViewModel-&gt;&gt;VoidRecorder: stockUpdates（回流後各商品庫存）
+    VoidTransactionViewModel-&gt;&gt;EventRepository: recordVoid(作廢紀錄, 庫存)
+    EventRepository-&gt;&gt;DB: 確認沒有重複作廢；作廢紀錄＋回流異動＋庫存，同一次存檔
+    alt 存檔失敗
+        EventRepository--&gt;&gt;VoidTransactionViewModel: false
+        VoidTransactionViewModel--&gt;&gt;U: 「作廢失敗」，留在視窗
+    else 成功（或已被作廢而拒絕）
+        VoidTransactionViewModel-&gt;&gt;VoidTransactionViewModel: EventDataSource.reload
+        VoidTransactionView-&gt;&gt;TransactionDetailView: 關閉視窗
+        TransactionDetailView-&gt;&gt;TransactionDetailView: refreshVoidState，顯示作廢卡片
+    end
+</pre></div></section><section class="seq" id="seq-03-save-product"><h2>新增／編輯商品</h2><p>商品與庫存異動（新增時的初始庫存、編輯時的庫存調整）在同一次存檔完成。</p><div class="diagram wide"><pre class="mermaid">sequenceDiagram
+    actor U as 攤商
+    participant InventoryView
+    participant EventWorkspaceView
+    participant AddNewProductView
+    participant AddNewProductViewModel
+    participant ProductRepository
+    participant DB as CoreData
+    participant InventoryViewModel
+
+    U-&gt;&gt;InventoryView: 新增商品，或點商品編輯
+    InventoryView-&gt;&gt;EventWorkspaceView: 設定要開的表單
+    EventWorkspaceView-&gt;&gt;AddNewProductView: 推入商品表單（帶存檔成功的回呼）
+    U-&gt;&gt;AddNewProductView: 填圖片、名稱、類別、價格、庫存，按儲存
+    AddNewProductView-&gt;&gt;AddNewProductViewModel: save
+    AddNewProductViewModel-&gt;&gt;AddNewProductViewModel: 驗證欄位、同類別同名檢查
+    alt 新增
+        AddNewProductViewModel-&gt;&gt;ProductRepository: addProduct(商品, initialChange: 初始庫存異動)
+    else 編輯
+        AddNewProductViewModel-&gt;&gt;ProductRepository: updateProduct(商品, stockChange: 庫存調整異動)
+    end
+    ProductRepository-&gt;&gt;DB: 商品＋庫存異動，同一次存檔
+    alt 存檔失敗
+        ProductRepository--&gt;&gt;AddNewProductViewModel: 失敗
+        AddNewProductViewModel--&gt;&gt;U: 「儲存失敗」，留在表單
+    else 成功
+        AddNewProductView-&gt;&gt;EventWorkspaceView: 存檔成功回呼，返回管理商品頁
+        EventWorkspaceView-&gt;&gt;InventoryViewModel: loadData（EventDataSource.reload）
+    end
+</pre></div></section><section class="seq" id="seq-04-open-workspace"><h2>進入場次工作區</h2><p>點場次後建立一份 <code>EventDataSource</code>，三個分頁共用。之後各分頁出現時（<code>onAppear</code>）呼叫 <code>reload</code> 取最新快照， 頁面之間不互相通知。</p><div class="diagram wide"><pre class="mermaid">sequenceDiagram
+    actor U as 攤商
+    participant EventsView
+    participant EventsViewModel
+    participant EventWorkspaceView
+    participant EventDataSource
+    participant EventRepository
+    participant ProductRepository
+    participant TransactionRepository
+    participant InventoryChangeRepository
+
+    U-&gt;&gt;EventsView: 點場次
+    EventsView-&gt;&gt;EventsViewModel: defaultWorkspaceTab
+    EventsViewModel--&gt;&gt;EventsView: 沒商品或未開始→管理商品；進行中→收銀；已結束→報表
+    EventsView-&gt;&gt;EventWorkspaceView: 推入工作區
+    EventWorkspaceView-&gt;&gt;EventDataSource: 建立一份（建立時就 reload）
+    EventDataSource-&gt;&gt;EventRepository: fetchEvent（找不到 → isEventDeleted）
+    EventDataSource-&gt;&gt;ProductRepository: fetchProducts
+    EventDataSource-&gt;&gt;TransactionRepository: fetchTransactions、fetchVoids
+    EventDataSource-&gt;&gt;InventoryChangeRepository: fetchChanges
+    EventDataSource-&gt;&gt;EventDataSource: 建 TransactionVoidIndex、TransactionIndex
+    EventWorkspaceView-&gt;&gt;EventWorkspaceView: 同一份資料源交給 Inventory／POS／Reports 三個 ViewModel
+    Note over EventWorkspaceView,EventDataSource: 場次被刪除時 isEventDeleted 變 true，工作區自動退回列表
+</pre></div></section><section class="seq" id="seq-05-delete-event"><h2>刪除場次（現況：硬刪除）</h2><p>目前是真的刪掉，不檢查有沒有交易。類別、商品、庫存異動由 CoreData Cascade 一起刪除； 交易保留但不再屬於任何場次。改成軟刪除的規劃見 <code>FEATURE_PLAN_V2.md</code> §2.2。</p><div class="diagram wide"><pre class="mermaid">sequenceDiagram
+    actor U as 攤商
+    participant EventsView
+    participant EventsViewModel
+    participant EventRepository
+    participant DB as CoreData
+    participant BundleImageStore
+
+    U-&gt;&gt;EventsView: 刪除（單筆，或批次選取）並確認
+    EventsView-&gt;&gt;EventsViewModel: deleteEvent／deleteSelectedEvents
+    loop 每個選取的場次
+        EventsViewModel-&gt;&gt;EventRepository: deleteEvent(id)
+        EventRepository-&gt;&gt;DB: 刪除場次
+        Note right of DB: Cascade：類別、商品、庫存異動一起刪&lt;br/&gt;Nullify：交易保留，變成孤兒交易&lt;br/&gt;作廢紀錄不受影響
+        alt 存檔成功
+            EventRepository-&gt;&gt;BundleImageStore: 刪除該場次的套餐照片檔
+            EventRepository-&gt;&gt;EventRepository: fetchEvents，更新列表
+        end
+    end
+</pre></div></section><section class="seq" id="seq-06-app-launch"><h2>App 啟動與登入狀態（現況，第 1 批移除）</h2><p>目前啟動時會設定 Firebase 並監聽登入狀態。<code>FEATURE_PLAN_V2.md</code> 第 1 批移除登入後， App 會直接進場次列表，這張圖要跟著改。</p><div class="diagram wide"><pre class="mermaid">sequenceDiagram
+    participant App as TilliApp
+    participant AuthenticationManager
+    participant FB as Firebase Auth
+    participant RootTabView
+    participant EventsView
+    participant ProfileEditView
+
+    App-&gt;&gt;FB: FirebaseApp.configure()
+    App-&gt;&gt;AuthenticationManager: 建立，連同各 Repository 放進 environment
+    AuthenticationManager-&gt;&gt;FB: addStateDidChangeListener
+    FB--&gt;&gt;AuthenticationManager: 目前登入的使用者（或沒有）
+    AuthenticationManager--&gt;&gt;RootTabView: authState：loading → guest／needsSetup／ready
+    RootTabView-&gt;&gt;EventsView: 載入完成後顯示場次列表
+    alt needsSetup（已登入但沒填名字）
+        RootTabView-&gt;&gt;ProfileEditView: 全螢幕「建立個人資料」，不能關閉
+    end
+    Note over App,AuthenticationManager: App 回到前景時 checkDeviceId，帳號在別台登入就跳出衝突提醒
+</pre></div></section>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", securityLevel: "loose",
+    flowchart: { htmlLabels: true, useMaxWidth: false }, sequence: { useMaxWidth: false },
+    er: { layoutDirection: "LR", useMaxWidth: false } });
+  var rendered = {};
+  function show(name) {
+    document.querySelectorAll(".tab").forEach(function (t) { t.classList.toggle("active", t.id === "tab-" + name); });
+    document.querySelectorAll("nav.tabs button").forEach(function (b) {
+      b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false");
+    });
+    if (!rendered[name]) {
+      rendered[name] = true;
+      mermaid.run({ nodes: document.querySelectorAll("#tab-" + name + " pre.mermaid") });
+    }
+    try { history.replaceState(null, "", "#" + name); } catch (e) {}
+  }
+  document.querySelectorAll("nav.tabs button").forEach(function (b) {
+    b.addEventListener("click", function () { show(b.dataset.tab); });
+  });
+  var initial = (location.hash || "").replace("#", "");
+  show(["pages", "nav", "arch", "er", "seq"].indexOf(initial) >= 0 ? initial : "pages");
+})();
+</script>
+</body>
+</html>
