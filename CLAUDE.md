@@ -12,9 +12,10 @@ Tilli 是給台灣市集攤商用的 iOS POS App（SwiftUI + CoreData + Firebase
 |------|------|
 | `ARCHITECTURE.md` | **資料結構唯一真相來源**。每個 CoreData 欄位都必須在 §4 分類表有一列 |
 | `CONVENTIONS.md` | 開發規範：共用計算元件、MVVM、資料同步、測試、多語言、檔案放置 |
-| `FEATURE_PLAN_V1.md` | 本輪功能規劃與**執行進度**（§11 各批次）。每批完成後要更新狀態與「實作與計畫的差異」表 |
+| `FEATURE_PLAN_V2.md` | 本輪功能規劃與**執行進度**（§3 各批次）。每批完成後要更新狀態與「實作與計畫的差異」表 |
+| `FEATURE_PLAN_V1.md` | 上一輪（已完成）的規劃、差異表與測試紀錄 |
 | `DESIGN.md` / `PRODUCT.md` | UI 設計系統 / 產品定位與使用者情境 |
-| `SYNC_ARCHITECTURE_V2.md` | 雲端同步規劃（尚未實作） |
+| `SYNC_ARCHITECTURE_V2.md` | 雲端同步規劃（2026-11-05 決定暫緩，第一版只做本機；合併規則沿用於備份匯入） |
 | `CLOUD_FUNCTIONS.md` | `functions/` 的 Firebase Cloud Functions |
 
 `_archive/` 是過時文件；`_Deprecated/` 是不參與編譯的舊程式碼（列在 `project.pbxproj` 的 `membershipExceptions`），不要更新它們。

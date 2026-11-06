@@ -1,8 +1,11 @@
 # Tilli 功能規劃 v1：流程統一、折扣、組合套餐
 
-> 建立日期：2026-09-11　最後更新：2026-10-08
+> 建立日期：2026-09-11　最後更新：2026-11-05
 > 範圍：本輪功能改動 + **全專案流程統一重構**
 > 同步架構見 `SYNC_ARCHITECTURE_V2.md`
+>
+> ✅ **本輪（第 0–7 批）已全部完成。** 下一輪與遺留項目見 `FEATURE_PLAN_V2.md`。
+> 2026-11-05 決定第一版不做雲端同步，§14「待接同步清單」改為第 3 批「備份檔格式要涵蓋的欄位」清單使用。
 >
 > 📐 **資料結構以 `ARCHITECTURE.md` 為準。**
 > 任何欄位的分類（即時值／快照／推導／純本機）、以及同步時怎麼處理，都看那份。
@@ -2139,7 +2142,7 @@ xcodebuild test -project Tilli.xcodeproj -scheme Tilli -destination 'platform=iO
 
 `TransactionVoidModelTests`、`TransactionVoidIndexTests`、`EventDataSourceVoidTests`、`VoidRecorderTests`、`VoidTransactionViewModelTests`、`TransactionDetailViewModelTests`、`TransactionHistoryVoidTests`、`LocalDataManagerTests`、`AtomicLedgerWriteTests`（10：結帳／作廢／新增／編輯商品各自「成功時只存檔 1 次、全部寫入」與「存檔失敗時一筆不留、庫存不變」）、`MoneyFormatTests`（7：畫面金額整數不顯示小數、有分顯示兩位、台幣不變、CSV 固定兩位）。
 
-##### 手動 —— 需操作 App（⬜ 待做）
+##### 手動 —— 需操作 App（✅ 2026-11-05 完成）
 
 1. 結帳一筆含單點＋套餐的交易 → 明細作廢、選「輸入錯誤」＋回流 → 確認框文字正確 → 明細出現已作廢卡片、按鈕消失。
 2. 管理商品頁：該商品庫存加回、異動列表出現「作廢回流」（套餐成員各一筆、顯示來自〈套餐〉）。
@@ -2463,3 +2466,4 @@ func fetchProductsIncludingDeleted(ids:) -> [ProductModel]     // 報表 join（
 | 2026-11-04 | 第 7 批 交易作廢（7.1–7.7）：獨立作廢紀錄實體 `CDTransactionVoidEntity`、`TransactionVoidIndex`、`VoidRecorder`、庫存原因「作廢回流」、交易明細作廢流程（Picker 原因、無預設回流、確認框）、`EventDataSource.transactions` 改為有效交易並新增 `allTransactions`、交易紀錄與交易 CSV 處理作廢。手動測試待做 |
 | 2026-11-05 | 第 7 批追加：結帳（`EventRepository.recordCheckout`）、作廢（`recordVoid`）、新增／編輯商品的庫存與異動紀錄改為同一次存檔，失敗全部撤回並提示（結帳失敗留在付款頁）；移除 `.restockFailed` 與舊的分開寫入 API；結帳成功回 POS 顯示「付款完成」方塊（`SuccessHUD`）。新增 `AtomicLedgerWriteTests`（10）。手動測試待做。差異見 §11 第 7 批 |
 | 2026-11-05 | 第 7 批手動測試完成。畫面金額（`MoneyHelper.format`）整數不顯示小數、有分顯示兩位；CSV 維持固定兩位。新增 `MoneyFormatTests`（7）。總計 386 個單元測試全過 |
+| 2026-11-05 | 本輪結束：第 7 批手動測試標記改為完成；決定第一版不做雲端同步，遺留項目與下一輪規劃移到 `FEATURE_PLAN_V2.md` |
